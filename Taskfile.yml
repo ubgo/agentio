@@ -1,0 +1,83 @@
+version: '3'
+
+# Every module of the repository (SPEC §3). go.work ties them together for
+# local development; it is never committed.
+vars:
+  MODULES: . claude codex codex/state builtin examples
+  PLATFORMS: linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64
+
+tasks:
+  build:
+    desc: Build every module
+    cmds:
+      - for m in {{.MODULES}}; do (cd $m && go build -o /dev/null ./...) || exit 1; done
+
+  test:quick:
+    desc: Run the unit tests of every module (no race detector, cached)
+    cmds:
+      - for m in {{.MODULES}}; do (cd $m && go test ./...) || exit 1; done
+
+  vet:
+    desc: Run go vet on every module
+    cmds:
+      - for m in {{.MODULES}}; do (cd $m && go vet ./...) || exit 1; done
+
+  example:
+    desc: Run examples/agentinfo against this machine (disk reads only; pass flags after --)
+    dir: examples
+    cmds:
+      - go run ./agentinfo -dir "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+
+  example:darwin:
+    desc: Cross-compile examples/agentinfo to dist/agentinfo-darwin-arm64
+    cmds:
+      - mkdir -p dist
+      - cd examples && CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o ../dist/agentinfo-darwin-arm64 ./agentinfo
+
+  check:
+    desc: Full gate - gofmt, vet, staticcheck (if installed), race tests, cross-compile 6 platforms, standalone (GOWORK=off) builds
+    cmds:
+      - task: check:fmt
+      - task: vet
+      - task: check:staticcheck
+      - task: check:race
+      - task: check:cross
+      - task: check:standalone
+
+  check:fmt:
+    desc: Fail when any Go file is not gofmt-clean
+    cmds:
+      - |
+        out=$(gofmt -l $(git ls-files -co --exclude-standard '*.go'))
+        if [ -n "$out" ]; then echo "gofmt needed:"; echo "$out"; exit 1; fi
+
+  check:staticcheck:
+    desc: Run staticcheck on every module when it is installed
+    cmds:
+      - |
+        if ! command -v staticcheck >/dev/null; then echo "staticcheck not installed, skipped"; exit 0; fi
+        for m in {{.MODULES}}; do (cd $m && staticcheck ./...) || exit 1; done
+
+  check:race:
+    desc: Run every module's tests with the race detector
+    cmds:
+      - for m in {{.MODULES}}; do (cd $m && go test -race -count=1 ./...) || exit 1; done
+
+  check:cross:
+    desc: Cross-compile every module for the 6 release platforms with CGO off
+    cmds:
+      - |
+        for p in {{.PLATFORMS}}; do
+          for m in {{.MODULES}}; do
+            (cd $m && CGO_ENABLED=0 GOOS=${p%/*} GOARCH=${p#*/} go build -o /dev/null ./...) || { echo "FAIL $m $p"; exit 1; }
+          done
+          echo "ok $p"
+        done
+
+  check:standalone:
+    desc: Build and vet every module outside go.work (GOWORK=off), using the pseudo-versions in each go.mod
+    env:
+      GOWORK: 'off'
+      GOPRIVATE: github.com/khanakia/*
+    cmds:
+      - for m in {{.MODULES}}; do (cd $m && go build -o /dev/null ./... && go vet ./...) || { echo "FAIL $m"; exit 1; }; echo "ok $m"; done

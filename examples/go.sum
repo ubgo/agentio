@@ -1,0 +1,10 @@
+github.com/khanakia/agentcli v0.0.0-20261114022936-789497f6c22c h1:a1uVtjIfv0BRQ7sEAt470q/CtKafcWeTVzWH7gYAI5U=
+github.com/khanakia/agentcli v0.0.0-20261114022936-789497f6c22c/go.mod h1:PR1wafnv4uW0eU9KSmiXTPcPGn8D8/nX3RUCB6saopc=
+github.com/khanakia/agentcli/builtin v0.0.0-20261114023353-d8e5ecaddcb9 h1:dlVXku/XG3izqEHh7EE+X+tMlVpE/xtP02cK/JGjKGE=
+github.com/khanakia/agentcli/builtin v0.0.0-20261114023353-d8e5ecaddcb9/go.mod h1:3umtPI144WyyaE2fUXCzEvP7r9z5zTXtSREw0x/az5I=
+github.com/khanakia/agentcli/claude v0.0.0-20261114023002-44f98c1ccc91 h1:tcqodztj5aH+q3LnvaHvNgY1yrff/QZg6MBhFNARdHc=
+github.com/khanakia/agentcli/claude v0.0.0-20261114023002-44f98c1ccc91/go.mod h1:yuNhTwcdk0O2+Axqr02FoJkVpBgOxce9Cyargi62Lcw=
+github.com/khanakia/agentcli/codex v0.0.0-20261114023318-71edb853a42a h1:qy+MHvet8H+3si54jLv4NaSQApWmM5y8kKF0dPLCrHk=
+github.com/khanakia/agentcli/codex v0.0.0-20261114023318-71edb853a42a/go.mod h1:+xLnXlwPMSMKaky/nT1effpveqRPl+eBKykZ1Wnh75I=
+github.com/pelletier/go-toml/v2 v2.4.3 h1:GTRvJQutkOSftxIFD5xw9aepkYNuPWmVJpffdDPYVpY=
+github.com/pelletier/go-toml/v2 v2.4.3/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
