@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -166,5 +167,25 @@ func TestRetentionClockSkew(t *testing.T) {
 	}
 	if !strings.Contains(msg, "clock skew") || status != agentio.CheckWarn {
 		t.Fatalf("retention = %s %q, want a clock skew warning", status, msg)
+	}
+}
+
+// TestConfigLayersHighestFirst guards the layer order shared with Codex
+// and agentio.ConfigReader: highest precedence first (local, project, user
+// for a project folder).
+func TestConfigLayersHighestFirst(t *testing.T) {
+	t.Parallel()
+	a, dir := fixtureAgent(t, fixtureVersions(t)[0])
+	ls, err := a.Neutral().(agentio.ConfigReader).ConfigLayers(a.DefaultHome().Neutral(), filepath.Join(dir, "project"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var scopes []agentio.ConfigScope
+	for _, l := range ls {
+		scopes = append(scopes, l.Scope)
+	}
+	want := []agentio.ConfigScope{agentio.ConfigLocal, agentio.ConfigProject, agentio.ConfigUser}
+	if len(scopes) < len(want) || !slices.Equal(scopes[len(scopes)-len(want):], want) {
+		t.Fatalf("scopes %v, want ... %v", scopes, want)
 	}
 }

@@ -518,7 +518,7 @@ type PluginLister interface {
 	Plugins(h Home, dir string) ([]Plugin, error)
 }
 
-// ConfigLayer is one config file that applies, in precedence order.
+// ConfigLayer is one config file that applies.
 type ConfigLayer struct {
 	Scope  ConfigScope
 	Path   string
@@ -535,7 +535,13 @@ type Defaults struct {
 
 // ConfigReader reads the facts both vendors' configs share.
 type ConfigReader interface {
-	// ConfigLayers is Disk · Read.
+	// ConfigLayers lists the config files that apply to h and dir, highest
+	// precedence first, for every vendor: Claude managed, CLI, local,
+	// project, user; Codex legacy managed, session (-c), project (deepest
+	// first), profile, user, system. Why highest first: answering "which
+	// file sets this value" scans from the top and stops at the first layer
+	// that has it, and both vendors document their precedence in this
+	// order. Merge by applying the slice last to first. Disk · Read.
 	ConfigLayers(h Home, dir string) ([]ConfigLayer, error)
 	// ProjectTrust is Disk · Read.
 	ProjectTrust(h Home, dir string) (Trust, error)

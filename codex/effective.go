@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -54,7 +55,9 @@ const (
 	reasonNotRead   = "not readable by the library"
 )
 
-// Layer is one config source in precedence order.
+// Layer is one config source. Lists of layers (ConfigLayers,
+// EffectiveConfig.Layers) are highest precedence first, the order shared
+// with Claude and agentio.ConfigReader.
 type Layer struct {
 	Kind     LayerKind
 	File     string
@@ -74,7 +77,7 @@ type EffectiveQuery struct {
 type EffectiveConfig struct {
 	Config       Config
 	Origins      map[string]LayerKind // dotted key → winning layer
-	Layers       []Layer              // low → high
+	Layers       []Layer              // highest precedence first (the merge applies them last to first)
 	NotEvaluated []LayerKind          // mdm, cloud: present upstream, not readable here
 	Warnings     agentio.Warnings
 }
@@ -249,6 +252,9 @@ func (a *Agent) Effective(h Home, q EffectiveQuery) (EffectiveConfig, error) {
 	out := EffectiveConfig{Origins: map[string]LayerKind{}, NotEvaluated: []LayerKind{LayerMDM, LayerCloud}, Warnings: warns}
 	order := []string{}
 	merged := map[string]tomlEntry{}
+	// layers resolves low → high, Codex's own resolution order, so merging
+	// in slice order lets a later layer win; the listed order is reversed
+	// below to highest first.
 	for _, le := range layers {
 		out.Layers = append(out.Layers, le.layer)
 		for _, e := range le.entries {
@@ -264,22 +270,24 @@ func (a *Agent) Effective(h Home, q EffectiveQuery) (EffectiveConfig, error) {
 	for _, k := range order {
 		entries = append(entries, merged[k])
 	}
+	slices.Reverse(out.Layers)
 	cfg, w, _ := decodeEntries(entries, "")
 	out.Config = cfg
 	out.Warnings = append(out.Warnings, w...)
 	return out, nil
 }
 
-// ConfigLayers lists the files that apply to h and dir in precedence
-// order, including disabled (untrusted) project layers. Disk · Read.
+// ConfigLayers lists the files that apply to h and dir, highest precedence
+// first (the order shared with Claude and agentio.ConfigReader), including
+// disabled (untrusted) project layers. Disk · Read.
 func (a *Agent) ConfigLayers(h Home, dir string) ([]Layer, error) {
 	layers, _, err := a.layers(h, EffectiveQuery{Dir: dir, IncludeSystem: true})
 	if err != nil {
 		return nil, err
 	}
-	out := make([]Layer, 0, len(layers)+2)
-	for _, le := range layers {
-		out = append(out, le.layer)
+	out := make([]Layer, 0, len(layers))
+	for i := len(layers) - 1; i >= 0; i-- {
+		out = append(out, layers[i].layer)
 	}
 	return out, nil
 }
@@ -354,9 +362,11 @@ func (a *Agent) MCPServers(h Home, dir string) ([]MCPServerEntry, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Layers are highest first: the first file of a kind (the deepest
+	// project layer) is the one whose keys won.
 	files := map[LayerKind]string{}
 	for _, l := range eff.Layers {
-		if l.Exists && l.Disabled == "" {
+		if _, seen := files[l.Kind]; !seen && l.Exists && l.Disabled == "" {
 			files[l.Kind] = l.File
 		}
 	}

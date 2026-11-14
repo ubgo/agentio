@@ -18,7 +18,7 @@ func firstHome(a agentio.Agent) (agentio.Home, bool, error) {
 }
 
 // snippet:start config
-// printConfig prints the config files that apply in dir (precedence order,
+// printConfig prints the config files that apply in dir (highest precedence first,
 // with whether each exists), the project trust and the effective launch
 // defaults, for each agent's first home.
 func printConfig(w io.Writer, h agentio.Host, agents []agentio.Agent, dir string) error {

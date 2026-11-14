@@ -1144,11 +1144,43 @@ func TestSystemConfigFollowsHost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(eff.Layers) == 0 || eff.Layers[0].Kind != LayerSystem || !eff.Layers[0].Exists || eff.Layers[0].File != filepath.Join(root, "etc", "codex", "config.toml") {
-		t.Fatalf("system layer %+v", eff.Layers)
+	last := len(eff.Layers) - 1
+	if last < 0 || eff.Layers[last].Kind != LayerSystem || !eff.Layers[last].Exists || eff.Layers[last].File != filepath.Join(root, "etc", "codex", "config.toml") {
+		t.Fatalf("system layer (lowest precedence, last) %+v", eff.Layers)
 	}
 	win := New(agentio.Host{GOOS: "windows", SystemRoot: "R"})
 	if sys, managed := win.systemConfigPaths(); sys != filepath.Join("R", "ProgramData", "OpenAI", "Codex", "config.toml") || managed != "" {
 		t.Errorf("windows system paths %q %q", sys, managed)
+	}
+}
+
+// TestConfigLayersHighestFirst guards the one layer order shared with
+// Claude and agentio.ConfigReader: highest precedence first, so the legacy
+// managed file (wins over everything Codex reads) comes first and the
+// system config.toml (loses to everything) comes last, in ConfigLayers,
+// EffectiveConfig.Layers and the neutral view.
+func TestConfigLayersHighestFirst(t *testing.T) {
+	root := t.TempDir()
+	a, h := setup(t, agenttest.WithSystem("linux", root))
+	layers, err := a.ConfigLayers(h, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(layers) < 3 || layers[0].Kind != LayerLegacyManaged || layers[len(layers)-1].Kind != LayerSystem {
+		t.Fatalf("ConfigLayers order %+v, want legacy-managed first and system last", layers)
+	}
+	eff, err := a.Effective(h, EffectiveQuery{IncludeSystem: true, Overrides: []Override{{Path: "model", Value: TOMLRaw(`"cli"`)}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if eff.Layers[0].Kind != LayerLegacyManaged || eff.Layers[1].Kind != LayerSession || eff.Config.Model.V != "cli" {
+		t.Fatalf("Effective order %+v model %q", eff.Layers, eff.Config.Model.V)
+	}
+	n, err := a.Neutral().(agentio.ConfigReader).ConfigLayers(h.Neutral(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n[len(n)-1].Path != filepath.Join(root, "etc", "codex", "config.toml") {
+		t.Fatalf("neutral order %+v, want the system file last", n)
 	}
 }

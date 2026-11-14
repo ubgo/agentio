@@ -294,7 +294,9 @@ func (n neutral) Plugins(h agentio.Home, _ string) ([]agentio.Plugin, error) {
 	return out, nil
 }
 
-// ConfigLayers is Disk · Read.
+// ConfigLayers lists the applied layers highest precedence first (the
+// agentio.ConfigReader order); disabled (untrusted) layers are left out.
+// Disk · Read.
 func (n neutral) ConfigLayers(h agentio.Home, dir string) ([]agentio.ConfigLayer, error) {
 	ch, err := n.home(h)
 	if err != nil {

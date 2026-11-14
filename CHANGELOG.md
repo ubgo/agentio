@@ -15,6 +15,7 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 - `Host` has `GOOS` and `SystemRoot`, filled only by `HostFromOS` (`Host.SystemPath` joins a system path under the root; `agenttest.WithSystem` sets both). Claude `SystemPaths`, `ManagedSettings`, the managed `CLAUDE.md` in `MemoryFiles`, managed MCP servers, `Runner.ManagedPlist` and Codex's `/etc/codex` layers resolve through them instead of `runtime.GOOS` and absolute paths; a fixture or hand-built Host has no system locations, so the machine's `/etc` never changes its output.
 - `HistoryMover.MoveHistory` returns `agentio.HistoryMove{Moved, Backup}` instead of a bare `Backup`, so a folder without history (`Moved` false) is no longer indistinguishable from a move; `claude.Writer.MoveHistory` returns the same type instead of `(moved, backup, err)`.
 - `HomeLink` carries the `Agent` that planned it (`agentio.CheckLinksOwner` checks a plan).
+- Config layers are listed highest precedence first for every vendor and the neutral `ConfigReader.ConfigLayers` (documented on the interface): Codex `ConfigLayers` and `EffectiveConfig.Layers` now match Claude, which already listed the winning layer first (module `codex`).
 
 ### Fixed
 

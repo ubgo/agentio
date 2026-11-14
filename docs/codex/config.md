@@ -69,7 +69,7 @@ func parseConfigBytes(w io.Writer) error {
 
 ## Step 2 — Read the effective config
 
-`ConfigLayers(h, dir)` lists the files that apply, in precedence order, including disabled ones with the reason. `Effective(h, EffectiveQuery)` merges them the way Codex does: system (only with `IncludeSystem`), user `config.toml`, the legacy `[profiles.X]` the root `profile` selects (only without a v2 profile), the v2 profile file, trusted project layers from the project root down to `Dir` (keys Codex denies in project layers dropped), and the `Overrides` you will pass with `-c`. Later layers win per key; tables merge. `Origins` maps each dotted key to the winning `LayerKind`. `Config.TrustOf(dir)` is the trust level of the nearest configured ancestor; `Config.FeatureOverrides()` flattens `[features]` to name → enabled.
+`ConfigLayers(h, dir)` lists the files that apply, highest precedence first (the order Claude and the neutral `ConfigReader` use), including disabled ones with the reason. `Effective(h, EffectiveQuery)` merges them the way Codex does, from lowest to highest: system (only with `IncludeSystem`), user `config.toml`, the legacy `[profiles.X]` the root `profile` selects (only without a v2 profile), the v2 profile file, trusted project layers from the project root down to `Dir` (keys Codex denies in project layers dropped), the `Overrides` you will pass with `-c`, and the legacy `managed_config.toml` (only with `IncludeSystem`). A higher layer wins per key; tables merge. `EffectiveConfig.Layers` lists them highest first, like `ConfigLayers`. `Origins` maps each dotted key to the winning `LayerKind`. `Config.TrustOf(dir)` is the trust level of the nearest configured ancestor; `Config.FeatureOverrides()` flattens `[features]` to name → enabled.
 
 <!-- snippet: examples/codexconfig/config.go#effective -->
 ```go
@@ -200,8 +200,8 @@ unknown some_future_key.nested = true
 approval=on-request known=true
 sandbox=brand-new-mode known=false
 warning: type-changed: inline.toml: model_context_window: expected integer, found string
-layer user         exists=true  applied
 layer project      exists=true  applied
+layer user         exists=true  applied
 effective model from project
 effective model_reasoning_effort from user-profile
 effective model_verbosity from session
@@ -224,6 +224,7 @@ rejected: no '='
 
 ## Pitfalls
 
+- **Layers are listed highest first.** `ConfigLayers` and `EffectiveConfig.Layers` put the winning layer first (legacy managed, session, deepest project, ..., user, system), the same order as Claude; earlier releases listed Codex layers lowest first.
 - **Check `.Set`, not the zero value.** An absent `sandbox_mode` is `Set=false` with `V=""`; Codex then uses its own default, which this library does not invent.
 - **Untrusted project layers are skipped.** A project's `.codex/config.toml` applies only when the folder (or an ancestor) is `trust_level = "trusted"`; otherwise `ConfigLayers` lists it with `Disabled = "folder is not trusted"` and `Effective` ignores it. Some keys (for example `notify`) are denied in project layers even when trusted.
 - **MDM and cloud layers are never read.** `EffectiveConfig.NotEvaluated` lists them; the effective config can differ from what Codex sees on a managed machine.

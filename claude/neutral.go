@@ -450,8 +450,8 @@ func settingsConfigScope(s SettingsScope) agentio.ConfigScope {
 	return agentio.ConfigScopeUnknown
 }
 
-// ConfigLayers lists the settings files that apply, highest first, with
-// presence. cost: Disk · Read.
+// ConfigLayers lists the settings files that apply, highest precedence
+// first (the agentio.ConfigReader order), with presence. cost: Disk · Read.
 func (n neutral) ConfigLayers(h agentio.Home, dir string) ([]agentio.ConfigLayer, error) {
 	ch, err := n.home(h)
 	if err != nil {

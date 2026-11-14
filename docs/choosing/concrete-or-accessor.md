@@ -80,7 +80,7 @@ On the Claude 2.1.325 fixture home this prints `claude personal: 6%` and `claude
 - **Neutral methods take `agentio.Home`, vendor methods take the vendor `Home`.** Passing a Codex home to `claude.Agent.HomeOf` returns `agentio.ErrForeignHome`; this is the check that stops you reading one vendor's home with another's reader.
 - **`ok == false` has two causes.** The agent does not implement the interface (Claude has no model catalog, so `ModelsOf` is false), or it implements it but gates it off from data (a config-defined agent without `VersionArgs` has no `BinaryVersion`). `agentio.Unsupported` explains both.
 - **An accessor is free; its methods are not.** `UsageOf(a)` costs nothing, `Usage(ctx, h)` is a network read that may return `ErrRateLimited`. `Capability.Cost()` tells you the worst case before you call; see [which usage to read](live-or-cached-usage.md).
-- **Layer order is vendor-specific.** `ConfigReader.ConfigLayers` returns the layers in precedence order as each vendor defines it: Claude Code lists the highest-precedence layer first, Codex the lowest first. Use each layer's `Scope` instead of its index.
+- **Layers are highest precedence first for every vendor.** `ConfigReader.ConfigLayers` lists the winning layer first (Claude: managed, CLI, local, project, user; Codex: legacy managed, session, project, profile, user, system), so the first layer that sets a value is the one in effect. Use `Scope` to label a layer.
 - **Neutral results are summaries.** `agentio.Conversation` has title, folder and times; the full transcript or rollout reader is vendor API ([Claude transcripts](../claude/transcript.md), [Codex rollouts](../codex/rollout.md)).
 
 ## Related
