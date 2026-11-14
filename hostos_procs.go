@@ -52,6 +52,63 @@ func (osProcesses) Cwd(ctx context.Context, pid int) (string, error) {
 	return "", UnsupportedError("", "process cwd", "no reader for "+runtime.GOOS)
 }
 
+// Env is Process · Read: /proc/{pid}/environ on linux (NUL-separated),
+// `ps -E` on darwin (space-split, mixed with the command line; see
+// ProcessEnvReader). Windows keeps another process's environment only in
+// its memory (PEB), so there it is ErrUnsupported.
+func (osProcesses) Env(ctx context.Context, pid int) ([]string, error) {
+	switch runtime.GOOS {
+	case goosLinux:
+		return linuxEnvAt(procRoot, pid)
+	case goosDarwin:
+		return darwinEnv(ctx, pid)
+	case goosWindows:
+		return nil, UnsupportedError("", "process env", reasonWindowsEnv)
+	}
+	return nil, UnsupportedError("", "process env", "no reader for "+runtime.GOOS)
+}
+
+// reasonWindowsEnv is why Env is unsupported on windows.
+const reasonWindowsEnv = "windows exposes another process's environment only in its memory (PEB)"
+
+// linuxEnvAt reads root/{pid}/environ. Disk · Read.
+func linuxEnvAt(root string, pid int) ([]string, error) {
+	b, err := os.ReadFile(filepath.Join(root, strconv.Itoa(pid), "environ"))
+	if err != nil {
+		return nil, err
+	}
+	var out []string
+	for _, kv := range bytes.Split(b, []byte{0}) {
+		if len(kv) > 0 {
+			out = append(out, string(kv))
+		}
+	}
+	return out, nil
+}
+
+// darwinEnv runs `ps -E -ww -o command= -p pid` and returns the
+// space-split fields that look like NAME=value. Process · Read.
+func darwinEnv(ctx context.Context, pid int) ([]string, error) {
+	cmd := exec.CommandContext(ctx, psBin, "-E", "-ww", "-o", "command=", "-p", strconv.Itoa(pid))
+	cmd.Env = []string{envLocaleC}
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("agentio: ps -E: %w", err)
+	}
+	return envFields(string(out)), nil
+}
+
+// envFields keeps the space-separated fields shaped NAME=value. Pure.
+func envFields(s string) []string {
+	var out []string
+	for _, f := range strings.Fields(s) {
+		if i := strings.IndexByte(f, '='); i > 0 {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
 // reasonWindowsCwd is why Cwd is unsupported on windows.
 const reasonWindowsCwd = "windows exposes another process's working directory only in its memory (PEB)"
 

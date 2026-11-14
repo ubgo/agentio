@@ -81,6 +81,20 @@ type ProcessLister interface {
 	Cwd(ctx context.Context, pid int) (string, error)
 }
 
+// ProcessEnvReader is an optional extension of ProcessLister: the start
+// environment of a process, so a caller can tell its own launch (one that
+// set AGX_RUN_ID=<id>) from an unrelated process that reused the pid.
+// HostFromOS's lister implements it on linux (/proc/<pid>/environ) and
+// darwin (`ps -E`); windows keeps another process's environment only in its
+// memory, so there it is ErrUnsupported.
+type ProcessEnvReader interface {
+	// Env is Process · Read: pid's start environment as NAME=value
+	// entries. On darwin the entries are split on spaces from `ps -E`
+	// output, mixed with the command line, so match a whole NAME=value
+	// entry, never parse values with spaces.
+	Env(ctx context.Context, pid int) ([]string, error)
+}
+
 // SecretStore reads the keychain or keyring.
 type SecretStore interface {
 	// Get is Process · Read. account "" is a service-only lookup, used only

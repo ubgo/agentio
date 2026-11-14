@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -80,11 +81,29 @@ func (f *FakeSecrets) Get(_ context.Context, service, account string) (agentio.T
 type FakeProcesses struct {
 	List []agentio.Process
 	Cwds map[int]string
+	// Envs are start environments by pid, for ProcessEnvReader; nil = the
+	// env cannot be read (ErrUnsupported, like windows).
+	Envs map[int][]string
 	// Err, when set, is returned by Processes.
 	Err error
 }
 
-var _ agentio.ProcessLister = (*FakeProcesses)(nil)
+var (
+	_ agentio.ProcessLister    = (*FakeProcesses)(nil)
+	_ agentio.ProcessEnvReader = (*FakeProcesses)(nil)
+)
+
+// Env returns Envs[pid]; ErrUnsupported when Envs is nil, fs.ErrNotExist
+// for a pid without an entry. Pure.
+func (f *FakeProcesses) Env(_ context.Context, pid int) ([]string, error) {
+	if f.Envs == nil {
+		return nil, agentio.UnsupportedError("", "process env", "fake without envs")
+	}
+	if e, ok := f.Envs[pid]; ok {
+		return append([]string(nil), e...), nil
+	}
+	return nil, fs.ErrNotExist
+}
 
 // Processes returns List. Pure.
 func (f *FakeProcesses) Processes(context.Context) ([]agentio.Process, error) {
