@@ -1,0 +1,5 @@
+func (v *Version) UnmarshalText(b []byte) error {
+	p, _ := ParseVersion(string(b))
+	*v = p
+	return nil
+}

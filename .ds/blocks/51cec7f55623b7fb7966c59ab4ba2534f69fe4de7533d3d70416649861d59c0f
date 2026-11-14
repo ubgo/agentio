@@ -1,0 +1,8 @@
+func (ws Warnings) Has(kind WarningKind) bool {
+	for _, w := range ws {
+		if w.Kind == kind {
+			return true
+		}
+	}
+	return false
+}

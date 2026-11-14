@@ -1,0 +1,7 @@
+func (u Usage) MaxPercent() float64 {
+	highest := 0.0
+	for _, w := range u.Windows {
+		highest = max(highest, w.Percent)
+	}
+	return highest
+}

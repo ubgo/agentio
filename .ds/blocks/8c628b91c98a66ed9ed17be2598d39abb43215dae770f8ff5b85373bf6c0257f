@@ -1,0 +1,6 @@
+func (r Runner) Run(ctx context.Context, cmd Command, stdin io.Reader) (ProcessResult, error) {
+	if r.core == nil || r.core.host.Exec == nil {
+		return ProcessResult{}, fmt.Errorf("agentio: no process runner in host")
+	}
+	return r.core.host.Exec.Run(ctx, cmd, stdin)
+}

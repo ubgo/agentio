@@ -6,26 +6,26 @@ agentio is read-only by default. When your program has to change something a ven
 
 | Change | How | Claude Code | Codex | Guide | Example |
 |---|---|---|---|---|---|
-| A top-level key of `settings.json` (user, project or local) | Writer: `SetUserSetting`, `SetProjectSetting` | ✅ | ❌ | [Claude writer](../claude/writer.md#step-1--patch-a-settings-file) | [claudehooks](../../examples/claudehooks/), [doors](../../examples/doors/) |
-| Add or remove a hook | Writer: `AddHook`, `RemoveHooks` | ✅ | ❌ | [Claude writer](../claude/writer.md#step-2--add-a-hook) | [claudehooks](../../examples/claudehooks/) |
-| Re-key a folder's history after the folder moved | Writer: `MoveHistory`, or `HistoryMoverOf` | ✅ | ❌ conversations stay in their home | [Claude writer](../claude/writer.md#step-4--move-history) | [claudehooks](../../examples/claudehooks/) |
-| Move conversations to another home | `PlanMove`, then Writer `ApplyMove`, or `ConversationMoverOf` | ✅ | ❌ | [Backups, moves and home links](../core/backup-move-link.md#step-2--plan-a-move) | [backupmove](../../examples/backupmove/) |
+| A top-level key of `settings.json` (user, project or local) | Writer: [`SetUserSetting`](ds:block?id=claude-writer-setusersetting-hfm5v3t7), [`SetProjectSetting`](ds:block?id=claude-writer-setprojectsetting-9xh95gnh) | ✅ | ❌ | [Claude writer](../claude/writer.md#step-1--patch-a-settings-file) | [claudehooks](../../examples/claudehooks/), [doors](../../examples/doors/) |
+| Add or remove a hook | Writer: `AddHook`, [`RemoveHooks`](ds:block?id=claude-writer-removehooks-x8p95azs) | ✅ | ❌ | [Claude writer](../claude/writer.md#step-2--add-a-hook) | [claudehooks](../../examples/claudehooks/) |
+| Re-key a folder's history after the folder moved | Writer: [`MoveHistory`](ds:block?id=claude-writer-movehistory-3n8zhjz3), or `HistoryMoverOf` | ✅ | ❌ conversations stay in their home | [Claude writer](../claude/writer.md#step-4--move-history) | [claudehooks](../../examples/claudehooks/) |
+| Move conversations to another home | `PlanMove`, then Writer [`ApplyMove`](ds:block?id=claude-writer-applymove-tpwp98h7), or `ConversationMoverOf` | ✅ | ❌ | [Backups, moves and home links](../core/backup-move-link.md#step-2--plan-a-move) | [backupmove](../../examples/backupmove/) |
 | Link shared files into a new home | `HomeLinkerOf`, or Writer `ApplyHomeLinks` | ✅ | nothing to link | [Doors](../capabilities/doors.md#step-4--link-shared-home-files) | [doors](../../examples/doors/) |
-| Add or remove an MCP server | vendor command: `MCPAddCommand`, `MCPRemoveCommand` | ✅ `claude mcp add-json` | ✅ `codex mcp add` | [Claude MCP](../claude/mcp.md#step-3--build-add-and-remove-commands), [Codex MCP](../codex/mcp.md#step-2--build-add-and-remove-commands) | [claudeextensions](../../examples/claudeextensions/), [codexconfig](../../examples/codexconfig/) |
-| Install, enable or disable a plugin; add a marketplace | vendor command: `PluginInstallCommand`, `PluginEnableCommand`, `MarketplaceAddCommand`, … | ✅ | ❌ (list only: `PluginListCommand`) | [Claude plugins](../claude/plugins.md#step-4--build-plugin-commands) | [claudeextensions](../../examples/claudeextensions/) |
-| Turn a feature flag on or off | vendor command: `FeatureCommand` | ❌ | ✅ `codex features enable` | [Codex launch](../codex/launch.md#step-3--build-archive-delete-and-queue-commands) | [codexlaunch](../../examples/codexlaunch/) |
-| Archive, unarchive or delete a conversation | vendor command: `Archive`, `Unarchive`, `Delete` | ❌ | ✅ | [Codex launch](../codex/launch.md#step-3--build-archive-delete-and-queue-commands) | [codexlaunch](../../examples/codexlaunch/) |
-| Log in or out, create a setup-token | vendor command: `LoginCommand`, `LogoutCommand`, `SetupTokenCommand` | ✅ | ✅ login and logout | [Logins and tokens](../capabilities/logins.md#step-1--build-a-login-command) | [usage](../../examples/usage/), [claudeaccount](../../examples/claudeaccount/) |
-| Update or reinstall the CLI | vendor command: `UpdateCommand`, `InstallCommand` | ✅ | ✅ `UpdateCommand()` (same method shape) | [Claude install](../claude/install.md#step-3--build-install-and-update-commands) | [claudesettings](../../examples/claudesettings/) |
+| Add or remove an MCP server | vendor command: `MCPAddCommand`, `MCPRemoveCommand` | ✅ [`claude mcp add-json`](ds:block?id=claude-agent-mcpaddcommand-p8k42k84) | ✅ [`codex mcp add`](ds:block?id=codex-agent-mcpaddcommand-yajah85d) | [Claude MCP](../claude/mcp.md#step-3--build-add-and-remove-commands), [Codex MCP](../codex/mcp.md#step-2--build-add-and-remove-commands) | [claudeextensions](../../examples/claudeextensions/), [codexconfig](../../examples/codexconfig/) |
+| Install, enable or disable a plugin; add a marketplace | vendor command: `PluginInstallCommand`, `PluginEnableCommand`, `MarketplaceAddCommand`, … | ✅ | ❌ (list only: [`PluginListCommand`](ds:block?id=codex-agent-pluginlistcommand-59jvvkz7)) | [Claude plugins](../claude/plugins.md#step-4--build-plugin-commands) | [claudeextensions](../../examples/claudeextensions/) |
+| Turn a feature flag on or off | vendor command: `FeatureCommand` | ❌ | ✅ [`codex features enable`](ds:block?id=codex-agent-featurecommand-w47qatyu) | [Codex launch](../codex/launch.md#step-3--build-archive-delete-and-queue-commands) | [codexlaunch](../../examples/codexlaunch/) |
+| Archive, unarchive or delete a conversation | vendor command: [`Archive`](ds:block?id=codex-agent-archive-yztnawg5), `Unarchive`, `Delete` | ❌ | ✅ | [Codex launch](../codex/launch.md#step-3--build-archive-delete-and-queue-commands) | [codexlaunch](../../examples/codexlaunch/) |
+| Log in or out, create a setup-token | vendor command: `LoginCommand`, `LogoutCommand`, [`SetupTokenCommand`](ds:block?id=claude-agent-setuptokencommand-xces3g4z) | ✅ | ✅ login and logout | [Logins and tokens](../capabilities/logins.md#step-1--build-a-login-command) | [usage](../../examples/usage/), [claudeaccount](../../examples/claudeaccount/) |
+| Update or reinstall the CLI | vendor command: `UpdateCommand`, `InstallCommand` | ✅ | ✅ [`UpdateCommand()`](ds:block?id=codex-agent-updatecommand-mmv9gxga) (same method shape) | [Claude install](../claude/install.md#step-3--build-install-and-update-commands) | [claudesettings](../../examples/claudesettings/) |
 
 ## If this, then that
 
-- If the file is a Claude Code `settings.json` (any scope), use the Writer. It backs the file up, writes atomically, refuses a file that does not parse instead of overwriting it, and returns an `agentio.Backup`.
-- If the file is `~/.claude.json`, a project `.mcp.json`, or anything in a Codex home, build the vendor command. Claude Code rewrites `.claude.json` constantly while it runs, and Codex keeps its own SQLite index consistent with its files, so only the vendor may change them.
+- If the file is a Claude Code `settings.json` (any scope), use the Writer. It backs the file up, [writes atomically](ds:block?id=claude-writer-writerawsettings-6sjvkkgu), [refuses a file that does not parse instead of overwriting it](ds:block?id=claude-readrawsettings-peagek4s), and returns an `agentio.Backup`.
+- If the file is `~/.claude.json`, a project `.mcp.json`, or anything in a Codex home, build the vendor command. Claude Code rewrites `.claude.json` constantly while it runs, and Codex keeps its own SQLite index consistent with its files, so [only the vendor may change them](ds:block?id=claude-writer-t5gq26t8).
 - If you build a vendor command, decide how to run it: `exec.Cmd` with the `Command`'s `Env` and `Dir`, a terminal, or print it for the user. agentio never runs one for you.
-- If the change carries a secret (an MCP server's env value), it cannot go on argv. `claude.Agent.MCPAddCommand` refuses a server with env values; ask the user to add that server in the CLI.
+- If the change carries a secret (an MCP server's env value), it cannot go on argv. [`claude.Agent.MCPAddCommand`](ds:block?id=claude-agent-mcpaddcommand-p8k42k84) refuses a server with env values; ask the user to add that server in the CLI.
 - If several homes need the same settings, link them (`HomeLinkerOf`) instead of writing each copy; a later edit then reaches every home.
-- If your installer may run twice, read first (`a.Hooks`, `a.UserSettings`) and skip what is already there: `AddHook` appends a new group on every call.
+- If your installer may run twice, read first (`a.Hooks`, `a.UserSettings`) and skip what is already there: [`AddHook` appends a new group on every call](ds:block?id=claude-writer-addhook-y3s8tkg6).
 
 ## A file write and a vendor command
 
@@ -37,7 +37,7 @@ const settingModel = "model"
 
 // pinModel sets the user-scope model of one Claude home through the Writer.
 // The file is backed up first and the copy's path comes back in the Backup;
-// every other key stays byte for byte.
+// every other key keeps its value (the file is rewritten indented).
 func pinModel(w io.Writer, c *claude.Agent, h claude.Home, model string) error {
 	val, err := json.Marshal(model) // values are raw JSON: a string keeps its quotes
 	if err != nil {
@@ -56,7 +56,7 @@ func pinModel(w io.Writer, c *claude.Agent, h claude.Home, model string) error {
 }
 ```
 
-On a home whose `settings.json` was `{"theme":"dark"}` this prints `backed up ~/.claude/settings.json to ~/.claude/settings.json.agentio-bak-20261114T063137Z` and leaves both keys in the file.
+On a home whose `settings.json` was `{"theme":"dark"}` this prints [`backed up ~/.claude/settings.json to ~/.claude/settings.json.agentio-bak-20261114T063137Z`](ds:block?id=backuppath-tfjr5hjr) and leaves both keys in the file.
 
 The vendor-command path, for a Codex feature flag:
 
@@ -80,16 +80,16 @@ func enableFeature(ctx context.Context, a *codex.Agent, h codex.Home, name strin
 }
 ```
 
-The command it runs is `codex features enable web_search`; on a machine without `codex` on the Host's `PATH` it returns `agentio: binary not found on PATH: codex` before running anything.
+The command it runs is [`codex features enable web_search`](ds:block?id=codex-agent-featurecommand-w47qatyu); on a machine without `codex` on the Host's `PATH` it returns [`agentio: binary not found on PATH: codex`](ds:block?id=lookpath-f56nfyzk) before running anything.
 
 ## Pitfalls
 
-- **The Writer rewrites the file's layout.** Keys it does not touch keep their values byte for byte, but the file is written back indented with its keys sorted. Do not rely on hand formatting surviving a write.
-- **Backups pile up.** Each Writer call leaves `<file>.agentio-bak-<UTC stamp>` (a `-N` suffix if that name is taken); nothing deletes them.
-- **`SettingsPatch.Set` takes raw JSON.** Marshal Go values with `encoding/json`; the string `opus` must be `"opus"` in the patch.
-- **`MoveHistory` refuses while the agent runs in the folder.** A live session in `from` (or of one of its conversations) is `*claude.LiveSessionError`, matching `agentio.ErrMoveBlocked`, with the blocker text `PlanMove` uses.
-- **`MoveHistory` moves only the history folder.** The folder's state entry in `.claude.json` (trust, last session) stays under the old path.
-- **`codex.Agent.Writer()` has no methods.** It exists so the door is in place; every Codex change is a vendor command.
+- **The Writer rewrites the file's layout.** Keys it does not touch keep their values, but not [byte for byte](ds:block?id=claude-writer-writerawsettings-6sjvkkgu): the file is written back indented with its keys sorted, nested values are re-indented, and `<`, `>`, `&` inside strings come back as `\u003c`-style escapes. Do not rely on hand formatting surviving a write.
+- **Backups pile up.** [Each Writer call](ds:block?id=backupfile-bxsxzm67) that changes an existing file leaves `<file>.agentio-bak-<UTC stamp>` (`ApplyMove`: one `<from home>.agentio-bak-<UTC stamp>/` folder; [a `-N` suffix if that name is taken](ds:block?id=backuppath-tfjr5hjr)); nothing deletes them.
+- **[`SettingsPatch.Set`](ds:block?id=claude-writer-applypatch-utnp7z3r) takes raw JSON.** Marshal Go values with `encoding/json`; the string `opus` must be `"opus"` in the patch.
+- **`MoveHistory` refuses while the agent runs in the folder.** A live session in `from` (or of one of its conversations) is [`*claude.LiveSessionError`](ds:block?id=claude-writer-movehistory-3n8zhjz3), matching [`agentio.ErrMoveBlocked`](ds:block?id=claude-livesessionerror-unwrap-parprkp9), with the blocker text `PlanMove` uses.
+- **`MoveHistory` moves only the history folder.** The folder's state entry in `.claude.json` (trust, last session) [stays under the old path](ds:block?id=claude-writer-movehistory-3n8zhjz3).
+- **[`codex.Agent.Writer()`](ds:block?id=codex-writer-tax23vch) has no methods.** It exists so the door is in place; every Codex change is a vendor command.
 - **Running a vendor command is a Process cost and may touch the login**, like any Runner call. Run it on a user action, never in a loop.
 
 ## Related

@@ -1,0 +1,1 @@
+func (o Opt[T]) IsZero() bool { return !o.Set }

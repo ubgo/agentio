@@ -1,0 +1,1 @@
+	ErrUnauthorized = errors.New("agentio: login rejected by the server")

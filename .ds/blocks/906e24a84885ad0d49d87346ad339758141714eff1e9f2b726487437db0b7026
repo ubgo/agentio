@@ -1,0 +1,3 @@
+func (a *Agent) Identity(h Home) (Identity, error) {
+	return a.IdentityContext(context.Background(), h)
+}

@@ -1,0 +1,3 @@
+func WithSystem(goos, root string) HostOption {
+	return func(h *agentio.Host) { h.GOOS, h.SystemRoot = goos, root }
+}

@@ -1,0 +1,19 @@
+func (a *Agent) profileCheck(h Home, cfg Config) (agentio.Check, bool) {
+	legacy := cfg.LegacyProfileNames()
+	if len(legacy) == 0 {
+		return agentio.Check{}, false
+	}
+	v2, _ := a.ProfileFiles(h)
+	var clash []string
+	for _, n := range legacy {
+		if slices.Contains(v2, n) {
+			clash = append(clash, n)
+		}
+	}
+	msg := "legacy profiles in config.toml: " + strings.Join(legacy, ", ") +
+		"; `codex -p NAME` (profile v2, since 0.131.0) refuses while a legacy [profiles.NAME] table or `profile = \"NAME\"` exists — move each into <home>/NAME.config.toml and remove the legacy table/selector"
+	if len(clash) > 0 {
+		msg += "; v2 file(s) already collide: " + strings.Join(clash, ", ")
+	}
+	return agentio.Check{ID: CheckProfileConflict, Status: agentio.CheckWarn, Message: msg}, true
+}

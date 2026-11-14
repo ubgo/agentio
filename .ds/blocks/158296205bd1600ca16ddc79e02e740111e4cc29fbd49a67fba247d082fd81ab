@@ -1,0 +1,1 @@
+func (v Version) MarshalText() ([]byte, error) { return []byte(v.String()), nil }

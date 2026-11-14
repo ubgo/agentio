@@ -1,0 +1,6 @@
+func enumString[E enum8](e E, kind string, names []string) string {
+	if int(e) < len(names) {
+		return names[e]
+	}
+	return fmt.Sprintf(unknownEnumFormat, kind, uint8(e))
+}

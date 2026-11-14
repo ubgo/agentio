@@ -1,0 +1,9 @@
+func (a *Agent) TokenEnv(c agentio.TokenCredential) ([]agentio.EnvChange, error) {
+	switch c.Kind {
+	case agentio.TokenOAuthToken:
+		return []agentio.EnvChange{agentio.EnvSetSecret(OAuthTokenEnv, c.Token)}, nil
+	case agentio.TokenAPIKey:
+		return []agentio.EnvChange{agentio.EnvSetSecret(APIKeyEnv, c.Token)}, nil
+	}
+	return nil, agentio.UnsupportedError(ID, "token kind "+c.Kind.String(), "Claude takes an OAuth token or an API key")
+}

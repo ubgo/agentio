@@ -1,0 +1,7 @@
+func New(h agentio.Host) *Agent {
+	core, err := agentio.NewCore(Spec(), h)
+	if err != nil {
+		core = nil
+	}
+	return &Agent{host: h, core: core, baseURL: DefaultBaseURL}
+}

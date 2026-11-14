@@ -1,0 +1,1 @@
+func (h Home) Target() Target { return Target{Home: h} }

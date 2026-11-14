@@ -1,0 +1,26 @@
+func (w *Writer) writeRawSettings(path string, m map[string]json.RawMessage) (agentio.Backup, error) {
+	b, err := agentio.BackupFile(path, w.a.now())
+	if err != nil {
+		return b, err
+	}
+	data, err := json.MarshalIndent(m, "", jsonIndent)
+	if err != nil {
+		return b, err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), dirPerm); err != nil {
+		return b, err
+	}
+	perm := settingsPerm
+	if info, err := os.Stat(path); err == nil {
+		perm = info.Mode().Perm()
+	}
+	tmp := path + tmpSuffix
+	if err := os.WriteFile(tmp, append(data, '\n'), perm); err != nil {
+		return b, err
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		_ = os.Remove(tmp) // the rename error is the one reported
+		return b, err
+	}
+	return b, nil
+}

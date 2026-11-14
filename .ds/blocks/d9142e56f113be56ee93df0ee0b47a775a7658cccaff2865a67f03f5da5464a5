@@ -1,0 +1,4 @@
+func (c *Core) LookPath() (string, error) {
+	path, _ := c.host.Getenv(envPath)
+	return LookPath(path, c.spec.Binary)
+}

@@ -1,0 +1,12 @@
+func (d *DB) SchemaVersion(ctx context.Context, f File) (int64, error) {
+	c, err := d.conn(f)
+	if err != nil {
+		return 0, err
+	}
+	var v sql.NullInt64
+	q := "SELECT MAX(version) FROM " + migrationsTable + " WHERE success = 1"
+	if err := c.QueryRowContext(ctx, q).Scan(&v); err != nil {
+		return 0, fmt.Errorf("codex/state: %s schema version: %w", f, err)
+	}
+	return v.Int64, nil
+}

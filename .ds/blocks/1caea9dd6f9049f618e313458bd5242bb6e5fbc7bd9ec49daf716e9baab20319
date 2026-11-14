@@ -1,0 +1,3 @@
+func warningKindNames() []string {
+	return []string{"untested-version", "version-unknown", "type-changed", "old-key-name", "unknown-record", "unreadable"}
+}

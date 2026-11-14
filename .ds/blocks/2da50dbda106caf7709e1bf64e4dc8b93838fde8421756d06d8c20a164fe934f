@@ -1,0 +1,19 @@
+type Turn struct {
+	ThreadID   string
+	TurnID     string
+	RootTurnID *string // 0008+
+	Status     TurnStatus
+	// Error is error_json verbatim (shape vendor-defined); nil when the
+	// column is NULL. omitempty keeps a nil Error out of JSON instead of
+	// encoding it as null.
+	Error             agentio.Raw `json:",omitempty"`
+	Started           time.Time   // started_at (seconds)
+	Completed         time.Time   // completed_at (seconds)
+	Duration          time.Duration
+	FirstUserItemID   *string
+	FinalAgentItemID  *string
+	RolloutOrdinal    int64
+	RolloutByteOffset *int64 // 0003+: where the turn starts in the rollout
+	RolloutEndOrdinal *int64
+	RolloutEndOffset  *int64
+}

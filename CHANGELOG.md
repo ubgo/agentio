@@ -41,6 +41,7 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 - A feature index (`docs/reference/features.md`) listing every feature with its package, the guide step that teaches it and an example that calls it.
 - An architecture diagram (`docs/assets/architecture.svg`).
 - Runnable examples under `examples/`, one per area, each with a README showing its real output and a test that runs it on the repository's fixture homes, fakes and local test servers (no real account, binary or network). `examples/agentinfo` and `examples/drift` gained READMEs and fixture-home tests, and `drift` a `-fixtures` flag.
+- Docs bound to code with docsync (`ds`): behavioural sentences in `README.md` and the guides cite the declaration that implements them (`ds:block` links to remote `ds:def` ids defined in a comment block in `README.md`), each acknowledged only after it was checked against the code; `.ds/` is committed. `task docs:check` runs `ds check` after `internal/docscheck` and `task check` runs `task docs:check`; a manual-only (`workflow_dispatch`) docsync workflow is in `.github/workflows/docsync.yml`.
 - A docs checker (`internal/docscheck`, run by `task docs:check`) that fails on broken links and anchors, hard-wrapped Markdown, local paths, attribution lines, and snippets that differ from the example source they are copied from; `task docs:snippets` rewrites snippet blocks from source.
 - Repository files: README, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, LICENSE, issue and pull request templates, and `llms.txt`.
 

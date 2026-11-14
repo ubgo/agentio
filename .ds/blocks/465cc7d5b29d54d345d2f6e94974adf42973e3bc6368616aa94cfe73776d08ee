@@ -1,0 +1,10 @@
+func (c *Core) HomeFromEnv() (Home, bool) {
+	if c.spec.HomeEnv == "" {
+		return Home{}, false
+	}
+	v, ok := c.host.Getenv(c.spec.HomeEnv)
+	if !ok || v == "" {
+		return Home{}, false
+	}
+	return c.HomeAt(v), true
+}

@@ -1,0 +1,13 @@
+func fixtureHost(repoRoot string) (agentio.Host, error) {
+	root, err := filepath.Abs(repoRoot)
+	if err != nil {
+		return agentio.Host{}, err
+	}
+	home := filepath.Join(root, claudeFixture)
+	return agentio.Host{
+		UserHome: home,
+		User:     fixtureUser,
+		Env:      []string{"HOME=" + home, fixtureNoBinaries, codex.EnvHome + "=" + filepath.Join(root, codexFixture)},
+		Now:      fixtureClock,
+	}, nil
+}

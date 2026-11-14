@@ -1,0 +1,28 @@
+func (d *DB) MemoryJobs(ctx context.Context) ([]MemoryJob, error) {
+	c, err := d.ready(ctx, FileMemories)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := c.QueryContext(ctx, "SELECT kind, job_key, status, started_at, finished_at, lease_until, retry_at, retry_remaining, last_error FROM "+
+		tableJobs+" ORDER BY kind, job_key LIMIT ?", maxLimit)
+	if err != nil {
+		return nil, fmt.Errorf("codex/state: memory jobs: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var out []MemoryJob
+	for rows.Next() {
+		var j MemoryJob
+		var status string
+		var started, finished, lease, retry sql.NullInt64
+		var lastErr sql.NullString
+		if err := rows.Scan(&j.Kind, &j.Key, &status, &started, &finished, &lease, &retry, &j.RetryRemaining, &lastErr); err != nil {
+			return nil, fmt.Errorf("codex/state: memory jobs: %w", err)
+		}
+		j.Status = JobStatus(status)
+		j.Started, j.Finished = timePtr(fromSeconds(started)), timePtr(fromSeconds(finished))
+		j.LeaseUntil, j.RetryAt = timePtr(fromSeconds(lease)), timePtr(fromSeconds(retry))
+		j.LastError = strPtr(lastErr)
+		out = append(out, j)
+	}
+	return out, rows.Err()
+}

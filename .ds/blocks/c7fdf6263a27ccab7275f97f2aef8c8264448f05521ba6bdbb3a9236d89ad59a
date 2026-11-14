@@ -1,0 +1,6 @@
+func execPrompt(o LaunchOptions) string {
+	if o.PromptFromStdin && o.Prompt == "" {
+		return stdinPrompt
+	}
+	return o.Prompt
+}

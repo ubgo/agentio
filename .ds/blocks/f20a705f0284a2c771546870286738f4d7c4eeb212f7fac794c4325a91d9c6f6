@@ -1,0 +1,1 @@
+	ErrBilledPerToken = errors.New("agentio: billed per token: no usage windows")

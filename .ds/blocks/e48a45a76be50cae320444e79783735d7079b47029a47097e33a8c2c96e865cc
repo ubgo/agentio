@@ -1,0 +1,3 @@
+func (a *Agent) Launch(t agentio.Target, o LaunchOptions) (agentio.Command, error) {
+	return a.launch(t, o, nil)
+}

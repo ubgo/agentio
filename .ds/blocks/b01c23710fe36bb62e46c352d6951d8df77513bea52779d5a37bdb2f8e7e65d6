@@ -1,0 +1,44 @@
+func (d *DB) Logs(ctx context.Context, q LogQuery) ([]LogLine, error) {
+	c, err := d.ready(ctx, FileLogs)
+	if err != nil {
+		return nil, err
+	}
+	have, err := d.columns(ctx, FileLogs, tableLogs)
+	if err != nil {
+		return nil, err
+	}
+	body := colLogMessage
+	if !have[colLogMessage] {
+		body = colLogOldMsg
+	}
+	var since int64
+	if !q.Since.IsZero() {
+		since = q.Since.Unix()
+	}
+	sqlText := "SELECT id, ts, ts_nanos, level, target, " + body + ", module_path, file, line, thread_id, process_uuid FROM " + tableLogs +
+		" WHERE (? = '' OR thread_id = ?) AND (? = '' OR level = ?) AND ts >= ?" +
+		" ORDER BY ts DESC, ts_nanos DESC, id DESC LIMIT ?"
+	rows, err := c.QueryContext(ctx, sqlText, q.ThreadID, q.ThreadID, string(q.Level), string(q.Level), since, clampLimit(q.Limit))
+	if err != nil {
+		return nil, fmt.Errorf("codex/state: logs: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var out []LogLine
+	for rows.Next() {
+		var l LogLine
+		var ts, nanos int64
+		var level string
+		var msg, module, file, thread, proc sql.NullString
+		var line sql.NullInt64
+		if err := rows.Scan(&l.ID, &ts, &nanos, &level, &l.Target, &msg, &module, &file, &line, &thread, &proc); err != nil {
+			return nil, fmt.Errorf("codex/state: logs: %w", err)
+		}
+		l.Time = time.Unix(ts, nanos).UTC()
+		l.Level = LogLevel(level)
+		l.Body = msg.String
+		l.ModulePath, l.File, l.Line = strPtr(module), strPtr(file), int64Ptr(line)
+		l.ThreadID, l.ProcessUUID = strPtr(thread), strPtr(proc)
+		out = append(out, l)
+	}
+	return out, rows.Err()
+}

@@ -1,0 +1,6 @@
+func ParseAuthStatus(b []byte) (AuthStatus, error) {
+	var s AuthStatus
+	u, _, err := decodeLenient("auth status", b, reflect.TypeFor[AuthStatus](), func(d []byte) error { s = AuthStatus{}; return json.Unmarshal(d, &s) })
+	s.Unknown = u
+	return s, err
+}

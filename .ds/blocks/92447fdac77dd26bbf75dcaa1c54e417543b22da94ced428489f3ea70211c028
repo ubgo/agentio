@@ -1,0 +1,1 @@
+var ErrHistoryExists = errors.New("claude: destination already has history")

@@ -1,0 +1,5 @@
+func (a *Agent) New(t agentio.Target, o LaunchOptions) (agentio.Command, error) {
+	b := newBuilder(t)
+	b.global(o, false)
+	return a.finish(b, o.Dir, o.Prompt)
+}

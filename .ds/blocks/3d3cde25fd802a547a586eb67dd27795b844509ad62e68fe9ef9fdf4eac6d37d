@@ -1,0 +1,6 @@
+type RateLimitWindow struct {
+	// Utilization is the used fraction, 0..1 (0.52 recorded), not a percent.
+	Utilization float64
+	ResetsAt    time.Time
+	Status      string // "allowed" recorded
+}

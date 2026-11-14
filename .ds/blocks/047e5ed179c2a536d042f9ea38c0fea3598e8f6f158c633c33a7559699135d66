@@ -1,0 +1,11 @@
+func PlanLabel(subscriptionType, rateLimitTier string) string {
+	subscriptionType = strings.TrimPrefix(subscriptionType, orgTypePrefix)
+	if subscriptionType == "" {
+		return ""
+	}
+	name := strings.ToUpper(subscriptionType[:1]) + subscriptionType[1:]
+	if m := tierMultiplier().FindStringSubmatch(rateLimitTier); m != nil {
+		return name + " (" + m[1] + ")"
+	}
+	return name
+}

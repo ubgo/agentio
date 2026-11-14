@@ -1,0 +1,10 @@
+func ExtraUsageOf(u agentio.Usage) (ExtraUsage, error) {
+	var w wireUsage
+	if err := json.Unmarshal(u.Raw, &w); err != nil {
+		return ExtraUsage{}, fmt.Errorf("claude: decode usage: %w", err)
+	}
+	if len(w.ExtraUsage) == 0 || string(w.ExtraUsage) == jsonNull {
+		return ExtraUsage{}, nil
+	}
+	return parseExtra(w.ExtraUsage)
+}

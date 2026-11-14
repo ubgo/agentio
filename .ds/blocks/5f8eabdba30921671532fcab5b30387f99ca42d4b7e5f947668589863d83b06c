@@ -1,0 +1,6 @@
+func (a *Agent) HomeOf(n agentio.Home) (Home, error) {
+	if err := agentio.CheckOwner(ID, n); err != nil {
+		return Home{}, err
+	}
+	return Home{h: n}, nil
+}

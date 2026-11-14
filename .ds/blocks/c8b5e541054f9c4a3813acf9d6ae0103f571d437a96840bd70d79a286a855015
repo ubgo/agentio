@@ -1,0 +1,7 @@
+func (a *Agent) Changelog(h Home) (string, error) {
+	data, found, err := readFileBounded(filepath.Join(h.Dir(), cacheDir, changelogFile), maxChangelogBytes)
+	if err != nil || !found {
+		return "", err
+	}
+	return string(data), nil
+}

@@ -1,0 +1,1 @@
+func (a *Agent) Writer() *Writer { return &Writer{a: a} }

@@ -1,0 +1,20 @@
+func (a *Agent) loadKeyring(ctx context.Context, h Home) (storedAuth, error) {
+	e := a.KeyringEntry(h)
+	out := storedAuth{store: StoreKeyring, keyring: e}
+	if a.host.Secrets == nil {
+		return out, nil
+	}
+	tok, ok, err := a.host.Secrets.Get(ctx, e.Service, e.Account)
+	if err != nil {
+		return out, &KeyringError{Entry: e, Err: err}
+	}
+	if !ok || tok.IsZero() {
+		return out, nil
+	}
+	raw := keyringBytes(tok.Reveal())
+	if !json.Valid(raw) {
+		return out, &KeyringError{Entry: e, Err: ErrKeyringValue}
+	}
+	out.raw, out.found = raw, true
+	return out, nil
+}

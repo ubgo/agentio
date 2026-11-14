@@ -1,0 +1,12 @@
+func decodeEntriesInto(entries []tomlEntry, file string) (Config, agentio.Warnings) {
+	d := newTOMLDecoder(file)
+	var c Config
+	for _, e := range entries {
+		d.scope(&c.Unknown, 0)
+		decodeConfigEntry(d, &c, e)
+	}
+	d.counts.Total = len(entries)
+	d.counts.Typed = d.counts.Total - d.counts.Raw - d.counts.Unknown
+	c.counts = d.counts
+	return c, d.warns
+}

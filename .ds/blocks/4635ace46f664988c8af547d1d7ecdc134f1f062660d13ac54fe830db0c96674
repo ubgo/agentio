@@ -1,0 +1,1 @@
+	ErrFeatureUnavailable = errors.New("agentio: feature unavailable in the installed version")

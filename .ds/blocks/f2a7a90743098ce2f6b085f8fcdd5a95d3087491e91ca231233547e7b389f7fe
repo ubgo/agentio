@@ -1,0 +1,10 @@
+func (a Agents) All() []agentio.Agent {
+	all := make([]agentio.Agent, 0, len(a.Custom)+2)
+	if a.Claude != nil {
+		all = append(all, a.Claude.Neutral())
+	}
+	if a.Codex != nil {
+		all = append(all, a.Codex.Neutral())
+	}
+	return append(all, a.Custom...)
+}

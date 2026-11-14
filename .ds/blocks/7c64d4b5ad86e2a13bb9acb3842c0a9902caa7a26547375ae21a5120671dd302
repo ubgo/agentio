@@ -1,0 +1,18 @@
+func (t Thread) Conversation(h codex.Home) codex.Conversation {
+	title := t.Title
+	if t.Name != nil && *t.Name != "" {
+		title = *t.Name
+	}
+	if title == "" {
+		title = t.FirstUserMessage
+	}
+	c := codex.Conversation{
+		ID: t.ID, Home: h, Path: t.RolloutPath, Dir: t.Cwd, Title: title,
+		Created: t.Created, Updated: t.Updated, CLIVersion: t.CLIVersion, Source: t.Source,
+		ModelProvider: t.ModelProvider, Git: t.Git, Archived: t.Archived,
+	}
+	if t.Originator != nil {
+		c.Originator = *t.Originator
+	}
+	return c
+}

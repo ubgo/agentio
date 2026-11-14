@@ -1,0 +1,1 @@
+func (p Personal) Reveal() string { return p.v }

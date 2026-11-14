@@ -1,0 +1,37 @@
+func parseVersionAt(s string) (Version, bool) {
+	var parts [3]int
+	n, i := 0, 0
+	for n < len(parts) {
+		j := i
+		for j < len(s) && isDigit(s[j]) {
+			j++
+		}
+		if j == i {
+			break
+		}
+		v, err := strconv.Atoi(s[i:j])
+		if err != nil {
+			return Version{}, false
+		}
+		parts[n] = v
+		n++
+		i = j
+		if i < len(s) && s[i] == versionDot && i+1 < len(s) && isDigit(s[i+1]) && n < len(parts) {
+			i++
+			continue
+		}
+		break
+	}
+	if n == 0 {
+		return Version{}, false
+	}
+	v := Version{Major: parts[0], Minor: parts[1], Patch: parts[2]}
+	if i < len(s) && s[i] == versionPre {
+		j := i + 1
+		for j < len(s) && (isAlnum(s[j]) || s[j] == versionDot) {
+			j++
+		}
+		v.Pre = strings.TrimRight(s[i+1:j], string(versionDot))
+	}
+	return v, true
+}

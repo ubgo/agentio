@@ -1,0 +1,9 @@
+func clampLimit(n int) int {
+	switch {
+	case n <= 0:
+		return defaultLimit
+	case n > maxLimit:
+		return maxLimit
+	}
+	return n
+}

@@ -1,0 +1,10 @@
+func (d *DB) ready(ctx context.Context, f File) (*sql.DB, error) {
+	v, err := d.SchemaVersion(ctx, f)
+	if err != nil {
+		return nil, err
+	}
+	if v > f.MaxKnownMigration() {
+		return nil, &SchemaTooNewError{File: f, Found: v, Max: f.MaxKnownMigration()}
+	}
+	return d.conn(f)
+}

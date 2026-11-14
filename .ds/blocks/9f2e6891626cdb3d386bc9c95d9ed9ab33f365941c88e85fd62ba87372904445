@@ -1,0 +1,1 @@
+	ErrRateLimited = errors.New("agentio: rate-limited; try again shortly")

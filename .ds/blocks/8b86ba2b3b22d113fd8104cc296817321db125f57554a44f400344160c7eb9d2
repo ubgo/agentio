@@ -1,0 +1,86 @@
+func (a *Agent) layers(h Home, q EffectiveQuery) ([]layerEntries, agentio.Warnings, error) {
+	p := a.Paths(h)
+	var out []layerEntries
+	sysCfg, managedCfg := a.systemConfigPaths()
+	if q.IncludeSystem && sysCfg != "" {
+		le, err := readLayer(LayerSystem, sysCfg)
+		if err != nil {
+			return nil, nil, err
+		}
+		out = append(out, le)
+	}
+	user, err := readLayer(LayerUser, p.Config)
+	if err != nil {
+		return nil, nil, err
+	}
+	out = append(out, user)
+	userCfg, warns, _ := decodeEntries(user.entries, p.Config)
+	if q.Profile == "" && userCfg.Profile.Set {
+		// legacy selector: root `profile = "X"` applies [profiles.X] on top of the root
+		name := userCfg.Profile.V
+		le := layerEntries{layer: Layer{Kind: LayerLegacyProfile, File: p.Config, Exists: true}}
+		for _, e := range user.entries {
+			if len(e.path) >= 3 && e.path[0] == keyProfiles && e.path[1] == name {
+				le.entries = append(le.entries, tomlEntry{path: e.path[2:], val: e.val, line: e.line})
+			}
+		}
+		out = append(out, le)
+	}
+	if q.Profile != "" {
+		le, err := readLayer(LayerUserProfile, p.ProfileConfig(q.Profile))
+		if err != nil {
+			return nil, nil, err
+		}
+		out = append(out, le)
+	}
+	if q.Dir != "" {
+		trusted := false
+		if t, ok := userCfg.TrustOf(q.Dir); ok && t == TrustTrusted {
+			trusted = true
+		}
+		root, _ := projectRoot(q.Dir, userCfg)
+		for _, d := range dirsRootToCwd(root, q.Dir) {
+			path := filepath.Join(d, dirProjectCodex, fileConfig)
+			le, err := readLayer(LayerProject, path)
+			if err != nil {
+				return nil, nil, err
+			}
+			if !le.layer.Exists {
+				continue
+			}
+			if !trusted {
+				le.layer.Disabled, le.entries = reasonUntrusted, nil
+			} else {
+				kept := le.entries[:0]
+				for _, e := range le.entries {
+					if !projectDenied(e.path[0]) {
+						kept = append(kept, e)
+					}
+				}
+				le.entries = kept
+			}
+			out = append(out, le)
+		}
+	}
+	if len(q.Overrides) > 0 {
+		le := layerEntries{layer: Layer{Kind: LayerSession, Exists: true}}
+		for _, ov := range q.Overrides {
+			// a -c path is already TOML dotted-key syntax (possibly quoted)
+			src := []byte(ov.Path + " = " + string(ov.Value))
+			entries, err := parseTOML(src)
+			if err != nil {
+				return nil, nil, fmt.Errorf("codex: override %s: %w", ov.Path, err)
+			}
+			le.entries = append(le.entries, entries...)
+		}
+		out = append(out, le)
+	}
+	if q.IncludeSystem && managedCfg != "" {
+		le, err := readLayer(LayerLegacyManaged, managedCfg)
+		if err != nil {
+			return nil, nil, err
+		}
+		out = append(out, le)
+	}
+	return out, warns, nil
+}

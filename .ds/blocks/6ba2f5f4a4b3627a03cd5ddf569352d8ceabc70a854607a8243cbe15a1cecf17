@@ -1,0 +1,3 @@
+func credentialSourceNames() []string {
+	return []string{"none", "keychain", "file", "keyring", "env"}
+}

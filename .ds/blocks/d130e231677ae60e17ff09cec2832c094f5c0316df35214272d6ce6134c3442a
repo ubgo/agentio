@@ -1,0 +1,3 @@
+func (e *FeatureUnavailableError) Is(target error) bool {
+	return target == agentio.ErrFeatureUnavailable
+}

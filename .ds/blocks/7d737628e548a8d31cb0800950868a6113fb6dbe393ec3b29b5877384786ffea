@@ -1,0 +1,17 @@
+func (a *Agent) Project(dir string) (Project, error) {
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return Project{}, fmt.Errorf("claude: project %s: %w", dir, err)
+	}
+	p := Project{Dir: abs}
+	for d := abs; ; d = filepath.Dir(d) {
+		if _, err := os.Stat(filepath.Join(d, gitDir)); err == nil {
+			p.RepoRoot = d
+			break
+		}
+		if filepath.Dir(d) == d {
+			break
+		}
+	}
+	return p, nil
+}

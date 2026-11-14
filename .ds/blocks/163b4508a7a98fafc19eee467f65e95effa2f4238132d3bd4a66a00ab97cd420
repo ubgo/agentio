@@ -1,0 +1,10 @@
+func (c Config) FeatureOverrides() map[string]bool {
+	if c.Features == nil {
+		return nil
+	}
+	out := make(map[string]bool, len(c.Features))
+	for k, v := range c.Features {
+		out[k] = v.Enabled
+	}
+	return out
+}

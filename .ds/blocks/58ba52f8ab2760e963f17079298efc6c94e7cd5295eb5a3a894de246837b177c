@@ -1,0 +1,73 @@
+func (a *Agent) Doctor(ctx context.Context, h Home, p *Project, opts DoctorOptions) []agentio.Check {
+	out := a.core.Checks(ctx, h.Neutral())
+	add := func(id agentio.CheckID, st agentio.CheckStatus, msg string) {
+		out = append(out, agentio.Check{ID: id, Status: st, Message: msg})
+	}
+	inst, ierr := a.Install()
+	out = append(out, agentio.VersionCheck(Compat(), inst.Version))
+	if ierr == nil && len(inst.Shadowed) > 0 {
+		add(CheckBinaryShadowed, agentio.CheckWarn, fmt.Sprintf("%d other claude on PATH: %s", len(inst.Shadowed), strings.Join(inst.Shadowed, ", ")))
+	}
+	if a.shellFunctionDefined(h) {
+		add(CheckShellFunction, agentio.CheckInfo, "claude is also a shell function in a shell snapshot; the library uses the PATH binary")
+	}
+	eff, _ := a.Settings(h, p, nil)
+	for _, l := range eff.Layers {
+		switch {
+		case l.Err != nil:
+			add(CheckSettingsParse, agentio.CheckFail, l.Source.Path+" does not parse")
+		case len(l.Settings.Warnings) > 0:
+			add(CheckSettingsParse, agentio.CheckWarn, fmt.Sprintf("%s: %d keys changed type", l.Source.Path, len(l.Settings.Warnings)))
+		}
+		for ev := range l.Settings.Hooks {
+			if !ev.IsKnown() {
+				add(CheckSettingsParse, agentio.CheckWarn, l.Source.Path+": unknown hook event "+string(ev))
+			}
+		}
+	}
+	if minV := eff.Merged.MinimumVersion; minV != "" && !inst.Version.IsZero() && inst.Version.Compare(agentio.MustVersion(minV)) < 0 {
+		add(CheckVersionMin, agentio.CheckFail, "installed "+inst.Version.String()+" is below minimumVersion "+minV)
+	}
+	if v, ok := a.host.Getenv(ConfigDirEnv); ok && filepath.Clean(v) == a.DefaultHome().Dir() {
+		add(CheckHomeEnvDefault, agentio.CheckWarn, ConfigDirEnv+" names the default home; Claude Code then uses a hashed keychain name and looks logged out")
+	}
+	a.loginChecks(h, add)
+	a.globalConfigChecks(h, add)
+	if p != nil {
+		if ss, err := a.MCPServers(h, p); err == nil {
+			var pending []string
+			for _, s := range ss {
+				if s.Scope == MCPScopeProject && s.Approval == ApprovalPending {
+					pending = append(pending, s.Name)
+				}
+			}
+			if len(pending) > 0 {
+				add(CheckMCPProjectPending, agentio.CheckInfo, ".mcp.json servers not approved yet: "+strings.Join(pending, ", "))
+			}
+		}
+	}
+	a.pluginChecks(h, p, eff.Merged, add)
+	if ls, err := a.LiveSessions(h); err == nil && a.host.Processes != nil {
+		stale := 0
+		for _, l := range ls {
+			if !l.Alive {
+				stale++
+			}
+		}
+		if stale > 0 {
+			add(CheckStaleLiveSessions, agentio.CheckInfo, fmt.Sprintf("%d sessions/*.json entries whose process is gone", stale))
+		}
+	}
+	a.retentionCheck(h, eff.Merged, add)
+	a.historySizeCheck(h, add)
+	if opts.Runner != nil {
+		if st, err := opts.Runner.AuthStatus(ctx, h); err != nil {
+			add(CheckAuthStatus, agentio.CheckWarn, "auth status failed: "+err.Error())
+		} else if !st.LoggedIn {
+			add(CheckAuthStatus, agentio.CheckWarn, "auth status: not logged in")
+		} else {
+			add(CheckAuthStatus, agentio.CheckOK, "auth status: logged in ("+string(st.AuthMethod)+")")
+		}
+	}
+	return out
+}

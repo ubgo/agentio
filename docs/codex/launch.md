@@ -1,18 +1,18 @@
 # Codex launch, resume and exec
 
-Build the exact `codex` command line for an interactive start, a resume, a fork, a headless `codex exec` run or review, and the vendor's own management commands (archive, delete, queue, doctor, servers, feature switches). Builders are pure: they return an `agentio.Command` (path, argv, env with the home rule applied, warnings) and never run it. Flags the installed Codex provably lacks are refused before launch.
+Build the exact `codex` command line for an interactive start, a resume, a fork, a headless `codex exec` run or review, and the vendor's own management commands (archive, delete, queue, doctor, servers, feature switches). Builders are pure: they return an [`agentio.Command`](ds:block?id=codex-agent-finish-xtvrjgys) (path, argv, env with the home rule applied, warnings) and never run it. [Flags the installed Codex provably lacks are refused before launch.](ds:block?id=codex-checkfeature-8e67wy9d)
 
 ## Before you start
 
 - Module `github.com/ubgo/agentio/codex`; a `codex.Agent` and `codex.Home` from [The Codex agent](agent.md).
-- An `agentio.Target`: `h.Target()` (version unknown) or `a.TargetFor(h)` (installed version from `package.json`). Set `Target.Version` when you know it; set `Target.AllowDangerous` before asking for `BypassAll`.
+- An `agentio.Target`: `h.Target()` (version unknown) or [`a.TargetFor(h)`](ds:block?id=codex-agent-targetfor-nzpuwqwd) (installed version from `package.json`). Set `Target.Version` when you know it; set [`Target.AllowDangerous`](ds:block?id=codex-builder-global-82whnmvu) before asking for `BypassAll`.
 - Running the command is your job (`os/exec` with `Command.Path`, `Args`, `Env`, `Dir`). Running `exec` or `review` spends quota.
 
 The snippets come from [`examples/codexlaunch`](../../examples/codexlaunch/), which puts a placeholder `codex` on `PATH` (never run) and prints each command as `codex <args>`.
 
 ## Step 1 — Start and resume
 
-`New(t, LaunchOptions)` builds `codex [flags] [PROMPT]`; `Resume(t, id, o)` builds `codex resume ID`; `ResumeLast(t, o, all)` builds `codex resume --last [--all]`; `Fork(t, id, o)` builds `codex fork ID [PROMPT]`. `LaunchOptions` carries the global flags as typed fields: `Model`, `Profile`, `Sandbox` (`codex.SandboxMode`), `Approval` (`codex.ApprovalPolicy`), `AddDirs`, `Images`, `Overrides` (typed `-c`, see [config](config.md#step-4--build-config-overrides)), `Enable`/`Disable`, `Search`, `OSS`, `Worktree`, `NoDaemon`, `Remote`, `RemoteAuthTokenEnv` (a variable name, never a token), and more. `ProfileCheck` takes the home's `Config` and refuses a profile name that collides with a legacy profile.
+[`New(t, LaunchOptions)`](ds:block?id=codex-agent-new-kykg9kgg) builds `codex [flags] [PROMPT]`; [`Resume(t, id, o)`](ds:block?id=codex-agent-resume-s8xtppwf) builds `codex resume ID`; [`ResumeLast(t, o, all)`](ds:block?id=codex-agent-resumelast-tm3kcsgb) builds `codex resume --last [--all]`; [`Fork(t, id, o)`](ds:block?id=codex-agent-fork-rtfwu5vc) builds `codex fork ID [PROMPT]`. `LaunchOptions` carries the global flags as typed fields: `Model`, `Profile`, `Sandbox` (`codex.SandboxMode`), `Approval` (`codex.ApprovalPolicy`), `AddDirs`, `Images`, `Overrides` (typed `-c`, see [config](config.md#step-4--build-config-overrides)), `Enable`/`Disable`, `Search`, `OSS`, `Worktree`, `NoDaemon`, `Remote`, [`RemoteAuthTokenEnv`](ds:block?id=codex-launchoptions-q4zej67x) (a variable name, never a token), and more. [`ProfileCheck`](ds:block?id=codex-builder-profile-wmpsnv3m) takes the home's `Config` and refuses a profile name that collides with a legacy profile.
 
 <!-- snippet: examples/codexlaunch/main.go#start -->
 ```go
@@ -87,7 +87,7 @@ func startAndResume(w io.Writer, a *codex.Agent, other codex.Home) error {
 
 ## Step 2 — Run exec headless
 
-`Exec(t, ExecOptions)` builds `codex exec [flags] [PROMPT|-]`, `ExecResume(t, id, o)` builds `codex exec resume ID`, `Review(t, ReviewTarget, o)` builds `codex exec review [--uncommitted|--base B|--commit SHA] [--title T]`. `ExecOptions` embeds `LaunchOptions` and adds `JSON`, `OutputLastMessage`, `OutputSchema`, `Color`, `SkipGitRepoCheck`, `Ephemeral`, `IgnoreUserConfig`, `IgnoreRules` and more. `PromptFromStdin` passes `-` so the prompt is read from stdin.
+[`Exec(t, ExecOptions)`](ds:block?id=codex-agent-exec-k7qxsu6g) builds `codex exec [flags] [PROMPT|-]`, [`ExecResume(t, id, o)`](ds:block?id=codex-agent-execresume-n3xtc4vz) builds `codex exec resume ID`, [`Review(t, ReviewTarget, o)`](ds:block?id=codex-agent-review-s6fb5u6d) builds `codex exec review [--uncommitted|--base B|--commit SHA] [--title T]`. [`ExecOptions` embeds](ds:block?id=codex-execoptions-b7s5mn6w) `LaunchOptions` and adds `JSON`, `OutputLastMessage`, `OutputSchema`, `Color`, `SkipGitRepoCheck`, `Ephemeral`, `IgnoreUserConfig`, `IgnoreRules` and more. [`PromptFromStdin`](ds:block?id=codex-execprompt-29smbrfm) passes `-` so the prompt is read from stdin.
 
 <!-- snippet: examples/codexlaunch/main.go#exec -->
 ```go
@@ -122,7 +122,7 @@ func execHeadless(w io.Writer, a *codex.Agent, _ codex.Home) error {
 
 ## Step 3 — Build archive, delete and queue commands
 
-Codex keeps rollouts, its SQLite index and thread history consistent itself, so this library changes conversations and config only through the vendor's commands: `Archive`, `Unarchive`, `Delete(h, id, force)`, `Queue(h, thread, message)`, `DoctorCommand(h, json)`, `MCPServer(h)` (Codex as a stdio MCP server), `AppServer(h, listen)` (`""` = stdio) and `FeatureCommand(h, name, on)` (`codex features enable|disable`).
+Codex keeps rollouts, its SQLite index and thread history consistent itself, so this library changes conversations and config only through the vendor's commands: [`Archive`](ds:block?id=codex-agent-archive-yztnawg5), [`Unarchive`](ds:block?id=codex-agent-unarchive-yuphtxzv), [`Delete(h, id, force)`](ds:block?id=codex-agent-delete-3kpvc6vh), [`Queue(h, thread, message)`](ds:block?id=codex-agent-queue-9kwzc756), [`DoctorCommand(h, json)`](ds:block?id=codex-agent-doctorcommand-49nfu5hm), [`MCPServer(h)`](ds:block?id=codex-agent-mcpserver-ggfsjmwy) (Codex as a stdio MCP server), [`AppServer(h, listen)`](ds:block?id=codex-agent-appserver-784gkx4q) (`""` = stdio) and [`FeatureCommand(h, name, on)`](ds:block?id=codex-agent-featurecommand-w47qatyu) (`codex features enable|disable`).
 
 <!-- snippet: examples/codexlaunch/main.go#vendor -->
 ```go
@@ -145,7 +145,7 @@ func vendorCommands(w io.Writer, a *codex.Agent, _ codex.Home) error {
 
 ## Step 4 — Handle unavailable features
 
-Every version-dependent flag and subcommand is a `codex.Feature` with a verified `Since`/`Until` span (`codex.FeatureInfo`). When `Target.Version` is known and outside the span, the builder returns a `*codex.FeatureUnavailableError` naming the feature, the installed version and the bound; it matches `errors.Is(err, agentio.ErrFeatureUnavailable)`. When the version is unknown the builder emits the flag and adds a `version-unknown` warning instead.
+Every version-dependent flag and subcommand is a `codex.Feature` with a verified `Since`/`Until` span ([`codex.FeatureInfo`](ds:block?id=codex-featureinfo-zr2w6mdt)). When `Target.Version` is known and outside the span, the builder returns a [`*codex.FeatureUnavailableError`](ds:block?id=codex-checkfeature-8e67wy9d) naming the feature, the installed version and the bound; it matches [`errors.Is(err, agentio.ErrFeatureUnavailable)`](ds:block?id=codex-featureunavailableerror-is-rgu84dcc). When the version is unknown the builder emits the flag and adds a [`version-unknown`](ds:block?id=codex-newbuilder-45cx4x37) warning instead.
 
 <!-- snippet: examples/codexlaunch/main.go#unavailable -->
 ```go
@@ -202,14 +202,14 @@ span known=true since=0.156.0
 
 ## Pitfalls
 
-- **Approval is a TUI flag.** `codex exec` has no `-a`; in `Exec` and `Review` an `Approval` renders as `-c approval_policy="…"`.
-- **`BypassAll` needs `Target.AllowDangerous`**, else `agentio.ErrDangerousNotAllowed`. It maps to `--dangerously-bypass-approvals-and-sandbox`.
-- **Resume and fork need an id**: an empty id is `codex.ErrNoSessionID`. A value Codex would reject is `codex.ErrInvalidOption`.
-- **Unknown version means no gate.** `h.Target()` and a `TargetFor` without an npm-family install leave `Version` zero: flags are emitted and the command carries a `version-unknown` warning. Pin the version to get the gate.
-- **`ProfileCheck` nil skips the conflict check** and adds a `version-unknown` warning when a `Profile` is set. Pass the home's `ConfigFile` result to refuse a v2 profile name that Codex 0.162.1 would refuse. Below Codex 0.131.0, `-p` selects a legacy profile, so no conflict check applies.
-- **The default home removes `CODEX_HOME`**, a non-default home sets it; `Target.ExtraEnv` cannot override that. Secrets never go on argv: `RemoteAuthTokenEnv` and `BearerTokenEnvVar` take variable names.
-- **An inherited `CODEX_API_KEY` is removed.** In `codex exec` it beats the home's stored login, so every command unsets it (set it in `Target.ExtraEnv` to use a key on purpose). `OPENAI_API_KEY` is kept: Codex auth does not read it, and a model provider may name it as its key.
-- **Building is free, running is not.** `Exec`, `ExecResume` and `Review` spend quota when run; `DoctorCommand` and `PluginListCommand` may touch the network and auth.
+- **Approval is a TUI flag.** `codex exec` has no `-a`; in `Exec` and `Review` an [`Approval`](ds:block?id=codex-builder-global-82whnmvu) renders as `-c approval_policy="…"`.
+- **[`BypassAll`](ds:block?id=codex-builder-global-82whnmvu) needs `Target.AllowDangerous`**, else `agentio.ErrDangerousNotAllowed`. It maps to `--dangerously-bypass-approvals-and-sandbox`.
+- **Resume and fork need an id**: an empty id is [`codex.ErrNoSessionID`](ds:block?id=codex-agent-resume-s8xtppwf). A value Codex would reject is [`codex.ErrInvalidOption`](ds:block?id=codex-builder-global-82whnmvu).
+- **Unknown version means no gate.** `h.Target()` and a [`TargetFor`](ds:block?id=codex-agent-targetfor-nzpuwqwd) without an npm-family install leave `Version` zero: flags are emitted and the command carries a [`version-unknown`](ds:block?id=codex-newbuilder-45cx4x37) warning. Pin the version to get the gate.
+- **[`ProfileCheck`](ds:block?id=codex-builder-profile-wmpsnv3m) nil skips the conflict check** and adds a `version-unknown` warning when a `Profile` is set. Pass the home's `ConfigFile` result to refuse a v2 profile name that Codex 0.162.1 would refuse. Below Codex 0.131.0, `-p` selects a legacy profile, so no conflict check applies.
+- **The default home removes `CODEX_HOME`**, a non-default home sets it; [`Target.ExtraEnv`](ds:block?id=core-envchanges-f8hrn3we) cannot override that. Secrets never go on argv: `RemoteAuthTokenEnv` and [`BearerTokenEnvVar`](ds:block?id=codex-agent-mcpaddcommand-yajah85d) take variable names.
+- **An inherited [`CODEX_API_KEY`](ds:block?id=codex-spec-ut8me6cu) is removed.** In `codex exec` it beats the home's stored login, so every command unsets it (set it in [`Target.ExtraEnv`](ds:block?id=core-envchanges-f8hrn3we) to use a key on purpose). [`OPENAI_API_KEY`](ds:block?id=codex-envapikey-mmsb33zd) is kept: Codex auth does not read it, and a model provider may name it as its key.
+- **Building is free, running is not.** `Exec`, `ExecResume` and `Review` spend quota when run; [`DoctorCommand`](ds:block?id=codex-agent-doctorcommand-49nfu5hm) and [`PluginListCommand`](ds:block?id=codex-agent-pluginlistcommand-59jvvkz7) may touch the network and auth.
 
 ## Related
 

@@ -1,0 +1,19 @@
+type MovePlan struct {
+	Agent ID     `json:"agent"`
+	From  Home   `json:"from"`
+	To    Home   `json:"to"`
+	Dir   string `json:"dir"`
+	// Conversations are the ids that will move, newest first.
+	Conversations []string   `json:"conversations"`
+	Items         []MoveItem `json:"items"`
+	// Blockers abort the move before a single file is touched (an agent
+	// running in the folder, an id already in the target).
+	Blockers []string `json:"blockers,omitempty"`
+	// Left lists entries found for the folder that are not moved, so
+	// nothing is silently dropped.
+	Left []string `json:"left,omitempty"`
+	// Cleanup lists source dirs removed after a successful move only if
+	// empty, innermost first, so a fully moved folder leaves no empty
+	// history that would still look like "has history".
+	Cleanup []string `json:"cleanup,omitempty"`
+}

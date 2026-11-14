@@ -1,0 +1,23 @@
+func run(ctx context.Context, host agentio.Host, opt options, out io.Writer) error {
+	r := &report{}
+	if opt.basePath != "" {
+		if err := r.loadBaseline(opt.basePath); err != nil {
+			return err
+		}
+	}
+	if err := claudeDrift(ctx, claude.New(host), r, out); err != nil {
+		return err
+	}
+	if err := codexDrift(ctx, codex.New(host), r, out); err != nil {
+		return err
+	}
+	if opt.helpPath != "" {
+		if err := helpDrift(opt.helpPath, r); err != nil {
+			return err
+		}
+	}
+	fmt.Fprintln(out)
+	r.print(out)
+	fmt.Fprintf(out, "%d distinct findings, %d already in the baseline\n", len(r.counts), r.suppressed)
+	return nil
+}

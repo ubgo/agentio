@@ -1,0 +1,8 @@
+func (c Capability) Cost() Cost {
+	for _, r := range capabilityTable() {
+		if r.cap == c {
+			return r.cost
+		}
+	}
+	return Cost{}
+}

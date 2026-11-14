@@ -1,0 +1,19 @@
+func (a *Agent) HomeMarkersIn(dir string) ([]string, error) {
+	info, err := os.Stat(dir)
+	if isNotExist(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("claude: stat %s: %w", dir, err)
+	}
+	if !info.IsDir() {
+		return nil, nil
+	}
+	var out []string
+	for _, m := range homeMarkers() {
+		if _, err := os.Lstat(filepath.Join(dir, m)); err == nil {
+			out = append(out, m)
+		}
+	}
+	return out, nil
+}

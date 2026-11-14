@@ -1,0 +1,6 @@
+func (n neutral) UnsupportedReason(c agentio.Capability) (string, bool) {
+	if c == agentio.CapModels {
+		return modelListerReason, true
+	}
+	return "", false
+}

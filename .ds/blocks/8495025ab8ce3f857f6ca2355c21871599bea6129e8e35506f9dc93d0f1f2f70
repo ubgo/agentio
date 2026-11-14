@@ -1,0 +1,28 @@
+type MCPServer struct {
+	// stdio
+	Command Opt[string]
+	Args    []string
+	Cwd     Opt[string]
+	EnvKeys []string    // names only
+	EnvVars []MCPEnvVar // env_vars: names forwarded from the parent env
+
+	// http
+	URL               Opt[string]
+	BearerTokenEnvVar Opt[string]
+	HasBearerToken    bool              // inline bearer_token present; value never loaded
+	HTTPHeaderNames   []string          // http_headers names only
+	EnvHTTPHeaders    map[string]string // header → env var name
+	Auth              Opt[MCPAuth]
+	OAuthResource     Opt[string]
+	Scopes            []string
+	OAuth             TOMLRaw // [mcp_servers.x.oauth] kept raw (client_secret never typed)
+
+	// control
+	Enabled, Required, SupportsParallelToolCalls Opt[bool]
+	StartupTimeout, ToolTimeout                  Opt[time.Duration] // startup_timeout_sec|_ms, tool_timeout_sec
+	EnabledTools, DisabledTools                  []string
+	DefaultToolsApprovalMode                     Opt[ToolApproval]
+	StartupReadiness                             Opt[MCPReadiness]
+	Tools                                        TOMLRaw
+	Unknown                                      UnknownTOML
+}

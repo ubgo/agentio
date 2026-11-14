@@ -1,0 +1,58 @@
+type Paths struct {
+	Home string
+
+	// config and instructions
+	Config   string // config.toml
+	AgentsMD string // AGENTS.md (user-level instructions)
+	Rules    string // rules/ (execpolicy *.rules)
+	Hooks    string // hooks.json
+
+	// identity
+	Auth           string // auth.json (0600)
+	Credentials    string // .credentials.json (keyring fallback store)
+	InstallationID string // installation_id
+
+	// conversations
+	Sessions             string // sessions/YYYY/MM/DD/rollout-<ts>-<uuid>.jsonl
+	ArchivedSessions     string // archived_sessions/
+	SessionIndex         string // session_index.jsonl (titles)
+	History              string // history.jsonl (prompt history)
+	TranscriptionHistory string // transcription-history.jsonl (dictation)
+	ShellSnapshots       string // shell_snapshots/
+	Attachments          string // attachments/
+
+	// SQLite; directory = CODEX_SQLITE_HOME / sqlite_home, default Home
+	SQLiteHome      string
+	StateDB         string // state_5.sqlite
+	ThreadHistoryDB string // thread_history_1.sqlite
+	GoalsDB         string // goals_1.sqlite
+	QueueDB         string // queue_1.sqlite
+	MemoriesDB      string // memories_1.sqlite
+	LogsDB          string // logs_2.sqlite
+
+	// catalogs and caches
+	ModelsCache  string // models_cache.json
+	VersionCache string // version.json
+	Skills       string // skills/ (+ skills/.system bundled)
+	VendorSkills string // vendor_imports/skills
+	Plugins      string // plugins/
+	PluginCache  string // plugins/cache/<marketplace>/<plugin>/<version>/
+	Memories     string // memories/
+	Cache        string // cache/
+	Log          string // log/ (or config log_dir)
+	Tmp          string // tmp/
+
+	// desktop app files: listed so callers know they exist, never parsed
+	// (no recorded shape)
+	DesktopState      string // .codex-global-state.json
+	DesktopDB         string // sqlite/codex-dev.db
+	IPCSocket         string // ipc/ipc.sock
+	ChatProcesses     string // process_manager/chat_processes.json
+	ComputerUse       string // computer-use/
+	Browser           string // browser/
+	Visualizations    string // visualizations/
+	ThreadWriterLocks string // thread-writer-locks/
+
+	// Markers are migration markers (presence = done).
+	Markers []string
+}

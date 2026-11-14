@@ -1,0 +1,3 @@
+func SkillScopeValues() []SkillScope {
+	return []SkillScope{SkillUser, SkillProject, SkillPlugin, SkillManaged, SkillSystem}
+}

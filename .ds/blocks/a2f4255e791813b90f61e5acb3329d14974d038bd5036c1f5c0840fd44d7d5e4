@@ -1,0 +1,12 @@
+func ParseOverride(s string) (Override, error) {
+	path, val, ok := strings.Cut(s, overrideSep)
+	path = strings.TrimSpace(path)
+	if !ok || path == "" {
+		return Override{}, fmt.Errorf("%w: %q", ErrBadOverride, s)
+	}
+	val = strings.TrimSpace(val)
+	if _, err := parseTOML([]byte("v = " + val)); err == nil && val != "" {
+		return Override{Path: path, Value: TOMLRaw(val)}, nil
+	}
+	return OverrideString(path, val), nil
+}

@@ -1,0 +1,6 @@
+type Warning struct {
+	Kind   WarningKind `json:"kind"`
+	File   string      `json:"file,omitempty"`
+	Key    string      `json:"key,omitempty"`
+	Detail string      `json:"detail,omitempty"`
+}

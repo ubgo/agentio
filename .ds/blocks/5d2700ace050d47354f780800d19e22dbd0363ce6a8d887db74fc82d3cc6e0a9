@@ -1,0 +1,13 @@
+func ExtractUnknown(data []byte, known []string) (Unknown, error) {
+	var all map[string]json.RawMessage
+	if err := json.Unmarshal(data, &all); err != nil {
+		return nil, fmt.Errorf("agentio: unknown keys: %w", err)
+	}
+	for _, k := range known {
+		delete(all, k)
+	}
+	if len(all) == 0 {
+		return nil, nil
+	}
+	return all, nil
+}

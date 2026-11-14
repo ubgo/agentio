@@ -1,0 +1,7 @@
+func OverrideStrings(path string, vs []string) Override {
+	q := make([]string, len(vs))
+	for i, v := range vs {
+		q[i] = strconv.Quote(v)
+	}
+	return Override{Path: path, Value: TOMLRaw("[" + strings.Join(q, ", ") + "]")}
+}

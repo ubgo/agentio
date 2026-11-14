@@ -1,0 +1,12 @@
+func (c *Core) EnvChanges(t Target, tokenEnv []EnvChange) []EnvChange {
+	out := ScrubEnv(c.spec.CredentialEnv)
+	out = append(out, t.ExtraEnv...)
+	if tokenEnv != nil {
+		out = append(out, ScrubEnv(c.spec.CredentialEnv)...)
+		out = append(out, tokenEnv...)
+	}
+	if hc, ok := HomeEnvChange(c.spec.HomeEnv, t.Home); ok {
+		out = append(out, hc)
+	}
+	return out
+}

@@ -1,0 +1,3 @@
+func windowClassNames() []string {
+	return []string{"unknown", "short", "day", "week", "month"}
+}

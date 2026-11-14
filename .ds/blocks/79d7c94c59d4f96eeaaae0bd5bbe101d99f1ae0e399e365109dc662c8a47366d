@@ -1,0 +1,7 @@
+func enumValues[E enum8](names []string) []E {
+	out := make([]E, len(names))
+	for i := range names {
+		out[i] = E(i)
+	}
+	return out
+}

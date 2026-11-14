@@ -1,0 +1,7 @@
+func (r *Runner) AuthStatus(ctx context.Context, h Home) (AuthStatus, error) {
+	out, err := r.run(ctx, h, subAuth, subStatus, flagJSON)
+	if err != nil {
+		return AuthStatus{}, err
+	}
+	return ParseAuthStatus(out)
+}

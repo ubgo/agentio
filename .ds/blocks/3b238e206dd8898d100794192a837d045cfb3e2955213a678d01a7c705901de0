@@ -1,0 +1,8 @@
+type ConversationQuery struct {
+	// Dir limits to conversations started in this exact directory.
+	Dir string
+	// Since limits to conversations updated at or after it; zero = no limit.
+	Since time.Time
+	// Limit caps results (newest first); <= 0 = no cap.
+	Limit int
+}

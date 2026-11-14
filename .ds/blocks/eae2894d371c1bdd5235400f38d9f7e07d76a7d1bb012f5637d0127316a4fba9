@@ -1,0 +1,14 @@
+func (l Limit) Label() string {
+	switch l.Kind {
+	case kindSession:
+		return labelSession
+	case kindWeeklyAll:
+		return labelWeeklyAll
+	case kindWeeklyScoped:
+		if n := l.scopeName(); n != "" {
+			return n
+		}
+		return labelScopedFallbk
+	}
+	return l.Kind
+}

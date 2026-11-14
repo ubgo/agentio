@@ -1,0 +1,19 @@
+func (a *Agent) IdentityContext(ctx context.Context, h Home) (Identity, error) {
+	s, err := a.loadAuth(ctx, h)
+	if err != nil {
+		return Identity{CredentialStore: s.store, Source: s.source, Keyring: s.keyring}, err
+	}
+	if !s.found {
+		return Identity{CredentialStore: s.store, Source: s.source, Keyring: s.keyring}, nil
+	}
+	id, err := ParseAuth(s.raw, s.source)
+	if err != nil && s.store == StoreKeyring {
+		// The decode error may quote bytes of the value; replace it.
+		return Identity{CredentialStore: s.store, Keyring: s.keyring}, &KeyringError{Entry: s.keyring, Err: ErrKeyringValue}
+	}
+	if err != nil {
+		return Identity{}, err
+	}
+	id.CredentialStore, id.Keyring = s.store, s.keyring
+	return id, nil
+}

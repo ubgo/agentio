@@ -1,0 +1,6 @@
+func LookPath(pathList, name string) (string, error) {
+	if all := LookPathAll(pathList, name); len(all) > 0 {
+		return all[0], nil
+	}
+	return "", fmt.Errorf("%w: %s", ErrNotInstalled, name)
+}

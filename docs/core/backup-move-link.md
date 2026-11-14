@@ -1,6 +1,6 @@
 # Backups, moves and home links
 
-agentio is read-only by default. The few calls that write a file a vendor CLI owns go through a Writer door, and they all share the helpers on this page: back a file up before changing it, plan a move of one folder's conversations between two homes of the same agent and then apply it (backup first, rollback on failure), and link shared files of the default home (your instructions, skills, settings) into another home. You want this page when you build a tool that moves history between accounts or sets up a new home.
+agentio is read-only by default. The few calls that write a file a vendor CLI owns go through a Writer door, and they all share the helpers on this page: back a file up before changing it, plan a move of one folder's conversations between two homes of the same agent and then apply it ([backup first, rollback on failure](ds:block?id=applymoveplan-sdj62uyw)), and link shared files of the default home (your instructions, skills, settings) into another home. You want this page when you build a tool that moves history between accounts or sets up a new home.
 
 ## Before you start
 
@@ -22,7 +22,7 @@ func copyFixture(src, dst string) error {
 
 ## Step 1 — Back up a file
 
-`BackupFile(path, now)` copies a file or a whole directory tree to `BackupPath(path, now)`, which is `<path>.agentio-bak-<UTC stamp>`, adding `-2`, `-3` … until the name is free, so a backup never overwrites another. A missing path returns an empty `Backup` (`IsEmpty()` true) and no error: there was nothing to save. A `Backup` lists `BackupEntry{Original, Copy}` pairs; `Merge` joins two. `CopyTree(src, dst)` is the copier underneath: it keeps file modes, copies symlinks as links and refuses an existing destination.
+[`BackupFile(path, now)`](ds:block?id=backupfile-bxsxzm67) copies a file or a whole directory tree to [`BackupPath(path, now)`](ds:block?id=backuppath-tfjr5hjr), which is `<path>.agentio-bak-<UTC stamp>`, adding `-2`, `-3` … until the name is free, so a backup never overwrites another. A missing path returns an empty `Backup` ([`IsEmpty()`](ds:block?id=backup-isempty-4q86tar4) true) and no error: there was nothing to save. A `Backup` lists `BackupEntry{Original, Copy}` pairs; [`Merge`](ds:block?id=backup-merge-hg9treax) joins two. [`CopyTree(src, dst)`](ds:block?id=copytree-2u9s9bp6) is the copier underneath: it keeps file modes, copies symlinks as links and refuses an existing destination.
 
 <!-- snippet: examples/backupmove/main.go#backup-file -->
 ```go
@@ -60,7 +60,7 @@ func backupFile(p printer, home string, now time.Time) error {
 
 ## Step 2 — Plan a move
 
-A `MoveRequest` names the source and target homes (`From`, `To`), the working folder whose conversations move (`Dir`) and optionally `OnlyIDs`. The agent turns it into a `MovePlan` without changing anything: the conversation IDs, every `MoveItem{From, To}` rename, `Blockers` that stop the move (a live session in the folder, a target that already exists), `Left` (entries found but not moved, so nothing is dropped silently) and `Cleanup` (source dirs removed afterwards only if empty).
+A [`MoveRequest`](ds:block?id=moverequest-evw38rsj) names the source and target homes (`From`, `To`), the working folder whose conversations move (`Dir`) and optionally `OnlyIDs`. The agent turns it into a [`MovePlan`](ds:block?id=moveplan-3777j6wu) without changing anything: the conversation IDs, every `MoveItem{From, To}` rename, `Blockers` that stop the move (a live session in the folder, a target that already exists), `Left` (entries found but not moved, so nothing is dropped silently) and `Cleanup` (source dirs removed afterwards only if empty).
 
 <!-- snippet: examples/backupmove/main.go#plan-move -->
 ```go
@@ -81,11 +81,11 @@ func planMove(p printer, a *claude.Agent, from, to agentio.Home) (agentio.MovePl
 }
 ```
 
-`claude.Agent.PlanMove` (also reachable as the `ConversationMover` capability, see [Conversations](../capabilities/conversations.md#step-4--check-and-move-history)) plans transcripts, per-conversation folders and, on a full move, the folder's auto memory.
+[`claude.Agent.PlanMove`](ds:block?id=claude-agent-planmove-jj5mdn26) (also reachable as the `ConversationMover` capability, see [Conversations](../capabilities/conversations.md#step-4--check-and-move-history)) plans transcripts, per-conversation folders and, on a full move, the folder's auto memory.
 
 ## Step 3 — Apply a move plan
 
-`ApplyMovePlan(plan, now)` executes a plan the same way for every agent. It refuses a plan with blockers (`ErrMoveBlocked`) or with homes of two different agents (`ErrForeignHome`). Otherwise it copies every source item into one backup folder beside the source home (`<from home>.agentio-bak-<stamp>/`, paths relative to the home), then renames each item into place. If a rename fails, the items already moved are renamed back, so a failed move leaves both homes as they were.
+[`ApplyMovePlan(plan, now)`](ds:block?id=applymoveplan-sdj62uyw) executes a plan the same way for every agent. It refuses a plan with blockers (`ErrMoveBlocked`) or with homes of two different agents (`ErrForeignHome`). Otherwise it copies every source item into [one backup folder beside the source home](ds:block?id=backupmoveitems-g7vzvm4y) (`<from home>.agentio-bak-<stamp>/`, paths relative to the home), then renames each item into place. [If a rename fails](ds:block?id=rollbackmove-6gfza3bz), the items already moved are renamed back, so a failed move leaves both homes as they were.
 
 <!-- snippet: examples/backupmove/main.go#apply-move -->
 ```go
@@ -108,7 +108,7 @@ func applyMove(p printer, plan agentio.MovePlan, now time.Time) error {
 }
 ```
 
-A blocker stops the move before a single file is touched:
+[A blocker stops the move before a single file is touched](ds:block?id=applymoveplan-sdj62uyw):
 
 <!-- snippet: examples/backupmove/main.go#blocked-move -->
 ```go
@@ -134,11 +134,11 @@ func blockedMove(p printer, a *claude.Agent, from, to claude.Home, now time.Time
 }
 ```
 
-In an application, apply through the agent's Writer door (`claude.Agent.Writer().ApplyMove(plan)`), which also checks the plan belongs to Claude and uses the Host clock ([Claude writer](../claude/writer.md#step-4--move-history)).
+In an application, apply through the agent's Writer door ([`claude.Agent.Writer().ApplyMove(plan)`](ds:block?id=claude-writer-applymove-tpwp98h7)), which also checks the plan belongs to Claude and uses the Host clock ([Claude writer](../claude/writer.md#step-4--move-history)).
 
 ## Step 4 — Plan and apply home links
 
-A new home starts empty. `PlanHomeLinks(def, h, names)` decides which entries of the default home to symlink into `h`; `Core.PlanHomeLinks(def, h)` does the same for the Spec's `SharedHomeFiles` (`CLAUDE.md`, `skills`, `settings.json` for Claude). A name missing from the default home is left out; a target that already exists (even a broken symlink) is planned with `Exists` true. `ApplyHomeLinks` makes every link that does not exist yet and never replaces anything, so there is nothing to back up.
+A new home starts empty. [`PlanHomeLinks(def, h, names)`](ds:block?id=planhomelinks-yg65h8jg) decides which entries of the default home to symlink into `h`; [`Core.PlanHomeLinks(def, h)`](ds:block?id=core-planhomelinks-zybhmbpb) does the same for the Spec's `SharedHomeFiles` (`CLAUDE.md`, `skills`, [`settings.json`](ds:block?id=claude-sharedhomefiles-3vpa9mqk) for Claude). A name missing from the default home is left out; a target that already exists (even a broken symlink) is planned with `Exists` true. [`ApplyHomeLinks`](ds:block?id=applyhomelinks-svx7cuvm) makes every link that does not exist yet and never replaces anything, so there is nothing to back up.
 
 <!-- snippet: examples/backupmove/main.go#home-links -->
 ```go
@@ -176,7 +176,7 @@ func homeLinks(p printer, h agentio.Host, def, work agentio.Home) error {
 }
 ```
 
-The neutral capability for this is `HomeLinker` (`agentio.HomeLinkerOf`), described in [Doors](../capabilities/doors.md#step-4--link-shared-home-files).
+The neutral capability for this is [`HomeLinker`](ds:block?id=homelinker-ek5zfyg7) ([`agentio.HomeLinkerOf`](ds:block?id=homelinkerof-fk3qdrnr)), described in [Doors](../capabilities/doors.md#step-4--link-shared-home-files).
 
 ## Try it
 
@@ -208,14 +208,14 @@ link plan again: CLAUDE.md exists=true
 
 ## Pitfalls
 
-- **`BackupPath` does not reserve the name.** It returns the first free name at call time; `BackupFile` picks its own name the same way, so call `BackupFile` and read the name from the returned `Backup`.
-- **Backups use the clock you pass.** Two backups in the same second get `-2`, `-3`; the stamp is UTC and has no `:` so it is a valid Windows file name.
-- **Moves need one filesystem.** Items are renamed, not copied; a target home on another device fails the first rename and triggers the rollback. The backup folder stays either way.
-- **A failed rollback is reported, not hidden.** If renaming back also fails, the error says so and points you at the backup folder.
-- **Cleanup only removes empty folders.** A source folder with entries listed in `Left` stays.
-- **Codex conversations cannot move between homes.** Codex indexes them in SQLite with absolute paths, so the Codex agent does not implement the move capabilities; `agentio.Unsupported` tells you why.
-- **`ApplyHomeLinks` never overwrites.** A file that appeared after planning makes `os.Symlink` fail rather than being replaced. Each planned `HomeLink` carries its `Agent`; `Core.ApplyHomeLinks` and `claude.Writer.ApplyHomeLinks` refuse a link of another agent with `ErrForeignHome` (checked with `CheckLinksOwner`), as `ApplyMove` does. The free function `ApplyHomeLinks` has no agent to check against.
-- **Call these from a Writer door in application code.** The package functions are the shared implementation; the vendor Writer adds the owner check and the Host clock.
+- **[`BackupPath`](ds:block?id=backuppath-tfjr5hjr) does not reserve the name.** It returns the first free name at call time; `BackupFile` picks its own name the same way, so call `BackupFile` and read the name from the returned [`Backup`](ds:block?id=backupfile-bxsxzm67).
+- **Backups use the clock you pass.** [Two backups in the same second get](ds:block?id=backuppath-tfjr5hjr) `-2`, `-3`; [the stamp is UTC](ds:block?id=backupstamp-ur2d5sev) and has no `:` so it is a valid Windows file name.
+- [**Moves need one filesystem.**](ds:block?id=applymoveplan-sdj62uyw) Items are renamed, not copied; a target home on another device fails the first rename and triggers the rollback. The backup folder stays either way.
+- [**A failed rollback is reported, not hidden.**](ds:block?id=applymoveplan-sdj62uyw) If renaming back also fails, the error says so and points you at the backup folder.
+- [**Cleanup only removes empty folders.**](ds:block?id=applymoveplan-sdj62uyw) A source folder with entries listed in `Left` stays.
+- [**Codex conversations cannot move between homes.**](ds:block?id=codex-agent-moveunsupportedreason-yn4v8j7h) Codex indexes them in SQLite with absolute paths, so the Codex agent does not implement the move capabilities; [`agentio.Unsupported`](ds:block?id=unsupported-zhw69bda) tells you why.
+- [**`ApplyHomeLinks` never overwrites.**](ds:block?id=applyhomelinks-svx7cuvm) A file that appeared after planning makes `os.Symlink` fail rather than being replaced. Each planned [`HomeLink`](ds:block?id=homelink-a86nv2s4) carries its `Agent`; [`Core.ApplyHomeLinks`](ds:block?id=core-applyhomelinks-q5mmu4xp) and [`claude.Writer.ApplyHomeLinks`](ds:block?id=claude-writer-applyhomelinks-39hcpw7p) refuse a link of another agent with `ErrForeignHome` (checked with [`CheckLinksOwner`](ds:block?id=checklinksowner-czbw4f2d)), as `ApplyMove` does. The free function `ApplyHomeLinks` has no agent to check against.
+- **Call these from a Writer door in application code.** The package functions are the shared implementation; [the vendor Writer adds the owner check and the Host clock](ds:block?id=claude-writer-applymove-tpwp98h7).
 
 ## Related
 

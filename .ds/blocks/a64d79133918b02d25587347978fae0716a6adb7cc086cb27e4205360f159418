@@ -1,0 +1,8 @@
+func KeyringAccount(dir string) string {
+	canonical := dir
+	if real, err := filepath.EvalSymlinks(dir); err == nil && filepath.IsAbs(real) {
+		canonical = real
+	}
+	sum := sha256.Sum256([]byte(canonical))
+	return keyringAccountPrefix + hex.EncodeToString(sum[:])[:keyringAccountHexLen]
+}

@@ -1,0 +1,25 @@
+func (a *Agent) Paths(h Home) Paths {
+	d := h.Dir()
+	j := func(n string) string { return filepath.Join(d, n) }
+	pd := j(pluginsDir)
+	pj := func(n string) string { return filepath.Join(pd, n) }
+	return Paths{
+		Home: d, GlobalConfig: a.globalConfigPath(h), Settings: j(settingsFile), Credentials: j(credentialsFile),
+		Memory: j(memoryFileName), Rules: j(rulesDir), Skills: j(skillsDir), Commands: j(commandsDir), Agents: j(agentsDir),
+		OutputStyles: j(outputStylesDir), Workflows: j(workflowsDir), AgentMemory: j(agentMemoryDir), Themes: j(themesDir),
+		Keybindings: j(keybindingsFile), MCPLegacy: j(legacyMCPFile), Projects: j(projectsDir), History: j(historyFile),
+		Sessions: j(sessionsDir), Jobs: j(jobsDir), Daemon: j(daemonDir), Teams: j(teamsDir), Tasks: j(tasksDir),
+		FileHistory: j(fileHistoryDir), SessionEnv: j(sessionEnvDir), ShellSnapshots: j(shellSnapshotsDir), PasteCache: j(pasteCacheDir),
+		Plans: j(plansDir), Debug: j(debugDir), Backups: j(backupsDir), Telemetry: j(telemetryDir), Cache: j(cacheDir), State: j(stateDir),
+		Feedback: j(feedbackDir), UsageData: j(usageDataDir), Uploads: j(uploadsDir), DevMods: j(devModsDir), IDE: j(ideDir), Chrome: j(chromeDir),
+		Plugins: PluginPaths{
+			Dir: pd, Installed: pj(installedPluginsFile), KnownMarketplaces: pj(knownMarketplacesFile), Blocklist: pj(blocklistFile),
+			Cache: pj(pluginCacheDir), Marketplaces: pj(pluginMarketplacesDir), Data: pj(pluginDataDir), Store: pj(pluginStoreDir),
+			Synced: pj(pluginSyncedDir), CatalogCache: pj(pluginCatalogCacheFile), DirectoryCache: pj(pluginDirCacheFile),
+		},
+		StatsCache: j(statsCacheFile), PolicyLimits: j(policyLimitsFile), RemoteSettings: j(remoteSettingsFile),
+		DaemonLock: j(daemonLockFile), DaemonLog: j(daemonLogFile), DaemonStatus: j(daemonStatusFile),
+		DaemonAuthStatus: j(daemonAuthStatusFile), DaemonAuthCooldown: j(daemonAuthCooldownFile),
+		LastUpdateResult: j(lastUpdateFile), LastCleanup: j(lastCleanupFile), MCPNeedsAuthCache: j(mcpNeedsAuthFile),
+	}
+}

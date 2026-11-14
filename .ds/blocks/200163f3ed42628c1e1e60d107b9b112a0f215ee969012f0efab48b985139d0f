@@ -1,0 +1,10 @@
+func Open(p codex.Paths) *DB {
+	d := &DB{cols: map[string]map[string]bool{}}
+	d.paths[FileState] = p.StateDB
+	d.paths[FileThreadHistory] = p.ThreadHistoryDB
+	d.paths[FileGoals] = p.GoalsDB
+	d.paths[FileQueue] = p.QueueDB
+	d.paths[FileMemories] = p.MemoriesDB
+	d.paths[FileLogs] = p.LogsDB
+	return d
+}

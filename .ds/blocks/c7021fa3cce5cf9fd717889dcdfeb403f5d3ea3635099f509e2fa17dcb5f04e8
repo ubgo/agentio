@@ -1,0 +1,5 @@
+type Agents struct {
+	Claude *claude.Agent
+	Codex  *codex.Agent
+	Custom []agentio.Agent
+}

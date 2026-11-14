@@ -1,6 +1,6 @@
 # Agent, Spec and Core
 
-`agentio.Agent` is the interface every agent shares: its ID and name, its binary on PATH, its homes, and building a launch command. A `Spec` is the plain data that describes an agent (binary, home variable and folders, argv templates, credential variables, how to recognise its process), and `Core` is the shared implementation built from a Spec. You want this page when you write code that loops over agents, or when you describe a CLI agentio does not ship by itself.
+[`agentio.Agent`](ds:block?id=agent-476xnza7) is the interface every agent shares: its ID and name, its binary on PATH, its homes, and building a launch command. A `Spec` is the plain data that describes an agent (binary, home variable and folders, argv templates, credential variables, how to recognise its process), and `Core` is the shared implementation built from a Spec. You want this page when you write code that loops over agents, or when you describe a CLI agentio does not ship by itself.
 
 ## Before you start
 
@@ -9,7 +9,7 @@
 
 ## Step 1 — Use the Agent interface
 
-Vendor agents (`*claude.Agent`, `*codex.Agent`) are not `agentio.Agent` themselves; they hand out their neutral view with `Neutral()`. That keeps vendor method names free for rich vendor types (`claude.Usage` on the vendor agent, `agentio.Usage` on the neutral one). Code that works on any agent takes `agentio.Agent`:
+Vendor agents (`*claude.Agent`, `*codex.Agent`) are not `agentio.Agent` themselves; they hand out their neutral view with [`Neutral()`](ds:block?id=claude-agent-neutral-eh63bcpc). That keeps vendor method names free for rich vendor types (`claude.Usage` on the vendor agent, `agentio.Usage` on the neutral one). Code that works on any agent takes `agentio.Agent`:
 
 <!-- snippet: examples/quickstart/spec.go#agent-interface -->
 ```go
@@ -34,7 +34,7 @@ func describe(p printer, a agentio.Agent) error {
 }
 ```
 
-The interface has nine methods. All are Pure except `LookPath`, `Homes` and `IsHome`, which read the disk:
+[The interface has nine methods.](ds:block?id=agent-476xnza7) All are Pure except `LookPath`, `Homes` and `IsHome`, which read the disk:
 
 | Method | Returns | Cost |
 |---|---|---|
@@ -50,11 +50,11 @@ The interface has nine methods. All are Pure except `LookPath`, `Homes` and `IsH
 
 Shared capabilities beyond this core (usage, conversations, live sessions …) are reached with typed accessors such as `agentio.UsageOf(a)`, never with type assertions in your code: see [Shared capabilities and accessors](../capabilities/accessors.md).
 
-An `ID` is `[a-z0-9-]`, starts with a letter and is at most 64 bytes, because it ends up in file names and flags. Built-in IDs are typed constants (`claude.ID`, `codex.ID`); IDs that come from config go through `agentio.ParseID`, which returns an error matching `ErrInvalidID`.
+An `ID` is `[a-z0-9-]`, starts with a letter and is at most 64 bytes, because it ends up in file names and flags. Built-in IDs are typed constants (`claude.ID`, `codex.ID`); IDs that come from config go through [`agentio.ParseID`](ds:block?id=parseid-rfund9ym), which returns an error matching `ErrInvalidID`.
 
 ## Step 2 — Read an agent's Spec
 
-Every agent, built-in or not, has a Spec. Built-ins build their core from their own Spec too, so home discovery, the home variable rule and launch templates are data for every agent:
+Every agent, built-in or not, has a Spec. [Built-ins build their core from their own Spec too](ds:block?id=claude-new-2b7v6ezn), so home discovery, the home variable rule and launch templates are data for every agent:
 
 <!-- snippet: examples/quickstart/spec.go#read-spec -->
 ```go
@@ -83,17 +83,17 @@ func readSpec(p printer, a agentio.Agent) error {
 The fields, grouped:
 
 - **Identity:** `ID`, `Name`, `Binary` (the executable looked up on PATH).
-- **Homes:** `HomeEnv` (the variable that selects a non-default home, `""` = one home only), `DefaultHome` (relative to `Host.UserHome`), `ExtraHomes` (a glob such as `.claude-*`), `HomeMarkers` (entries that make a folder a real home).
+- **Homes:** `HomeEnv` (the variable that selects a non-default home, `""` = one home only), `DefaultHome` (relative to `Host.UserHome`), `ExtraHomes` (a glob such as `.claude-*`), [`HomeMarkers`](ds:block?id=spec-9rwc3qhn) (entries that make a folder a real home).
 - **Launch templates:** `NewArgs`, `ResumeArgs`, `ModelArgs`, `AddDirArgs`, `PromptArgs`, with placeholders `{args}`, `{id}`, `{model}`, `{dir}`, `{prompt}`.
 - **Data-driven capabilities:** `VersionArgs` (binary version through a Runner), `LoginArgs` / `LogoutArgs` (login commands), `SharedHomeFiles` (home links).
-- **Credentials:** `CredentialEnv` (inherited copies are scrubbed from every launch), `APIBillingEnv` (variables that switch to per-token billing).
-- **Process:** `ProcessMatch` with `Basenames`, `ArgvContains` and `Exclude` (an exclude substring vetoes a match, which is how the Claude desktop app is told apart from the CLI).
+- **Credentials:** `CredentialEnv` ([inherited copies are scrubbed from every launch](ds:block?id=core-envchanges-f8hrn3we)), `APIBillingEnv` (variables that switch to per-token billing).
+- **Process:** `ProcessMatch` with `Basenames`, `ArgvContains` and `Exclude` ([an exclude substring vetoes a match](ds:block?id=processmatch-match-6phmdfg3), which is how the Claude desktop app is told apart from the CLI).
 
-`Spec.Validate` checks the ID, that `Binary` is set, that `DefaultHome` is relative and set whenever `HomeEnv` is, that `ExtraHomes` is a valid local glob, and that every non-empty template holds its placeholder. A failure matches `ErrInvalidSpec`.
+[`Spec.Validate`](ds:block?id=spec-validate-chxkxnh2) checks the ID, that `Binary` is set, that `DefaultHome` is relative and set whenever `HomeEnv` is, that `ExtraHomes` is a valid local glob, and that every non-empty template holds its placeholder. A failure matches `ErrInvalidSpec`.
 
 ## Step 3 — Build a Core from a Spec
 
-`agentio.NewCore(spec, host)` validates the Spec and binds it to a Host. The result implements the whole L1 core from data: homes, the home variable rule, PATH lookup, launch from the templates, process matching, home links, login commands and the L1 doctor checks.
+[`agentio.NewCore(spec, host)`](ds:block?id=newcore-dqu45h82) validates the Spec and binds it to a Host. The result implements the whole L1 core from data: homes, the home variable rule, PATH lookup, launch from the templates, process matching, home links, login commands and the L1 doctor checks.
 
 <!-- snippet: examples/quickstart/spec.go#build-core -->
 ```go
@@ -143,9 +143,9 @@ func buildCore(p printer, h agentio.Host) error {
 }
 ```
 
-`Core.Launch` expands the templates in a fixed order: `Target.ExtraArgs`, then the model and add-dir templates, then the request's own `Args`, then the prompt; the result is spliced where `{args}` stands in `NewArgs` (or `ResumeArgs` with `{id}` filled). `Core.Checks` reports `binary-found`, `home`, `home-env` (the home variable is set in the base env) and `api-billing-env`, by name only, never values.
+[`Core.Launch` expands the templates in a fixed order](ds:block?id=core-launch-v8h5ys7c): `Target.ExtraArgs`, then the model and add-dir templates, then the request's own `Args`, then the prompt; the result is spliced where `{args}` stands in `NewArgs` (or `ResumeArgs` with `{id}` filled). [`Core.Checks`](ds:block?id=core-checks-8dj5h3dt) reports `binary-found`, `home`, `home-env` (the home variable is set in the base env) and `api-billing-env`; `api-billing-env` names the variables only, never their values, while `home-env` also names the folder the variable selects.
 
-To turn a Spec into a full `agentio.Agent` (with process classification, login commands and doctor wired as capabilities), use `agentio.FromSpec`: see [Config-defined agents](../capabilities/fromspec.md).
+To turn a Spec into a full `agentio.Agent` (with process classification, login commands and doctor wired as capabilities), use [`agentio.FromSpec`](ds:block?id=fromspec-4tcd24bd): see [Config-defined agents](../capabilities/fromspec.md).
 
 ## Try it
 
@@ -178,12 +178,12 @@ core: check home warn: ~/.toy-work is not a home (missing or no marker)
 ## Pitfalls
 
 - **A vendor agent is not an `agentio.Agent`.** Pass `claude.New(h).Neutral()`, not `claude.New(h)`, to code that takes the interface.
-- **A Spec describes L1 only.** Usage, identity and conversations need code; a config-only agent never has them, and the accessors report them as unsupported.
-- **A field without a template is refused, not dropped.** `Core.Launch` returns `ErrUnsupported` for a model, add-dir, prompt or resume when the Spec has no template for it, and always for `Headless`, a token `Credential` or any non-default `Autonomy` (a Spec cannot describe them).
-- **`HomeMarkers` empty means any folder is a home.** A config agent without markers counts every folder its `ExtraHomes` glob matches.
-- **`HomeEnv` set but empty counts as absent.** `HomeFromEnv` returns false for `CLAUDE_CONFIG_DIR=`, as the vendor CLIs fall back to the default home.
-- **`Command.Path` is the binary name, not a path.** Building is Pure, so it never walks PATH; resolve it with `LookPath` before you exec.
-- **`LogoutCommand` returns a zero `Command`** (not an error) when the Spec has no `LogoutArgs` or the home is foreign; check `Path == ""`.
+- **A Spec describes L1 only.** Usage, identity and conversations need code; a config-only agent never has them, and [the accessors report them as unsupported](ds:block?id=specagent-unsupportedreason-jp9ga9ft).
+- **[A field without a template is refused, not dropped.](ds:block?id=core-launch-v8h5ys7c)** `Core.Launch` returns `ErrUnsupported` for a model, add-dir, prompt or resume when the Spec has no template for it, and always for `Headless`, a token `Credential` or any non-default `Autonomy` (a Spec cannot describe them).
+- **[`HomeMarkers` empty means any folder is a home.](ds:block?id=core-ishome-nxgj8ve9)** A config agent without markers counts every folder its `ExtraHomes` glob matches.
+- **[`HomeEnv` set but empty counts as absent.](ds:block?id=core-homefromenv-jk7mncfj)** `HomeFromEnv` returns false for `CLAUDE_CONFIG_DIR=`, as the vendor CLIs fall back to the default home.
+- **[`Command.Path` is the binary name, not a path.](ds:block?id=core-command-m93k4eug)** Building is Pure, so it never walks PATH; resolve it with `LookPath` before you exec.
+- **[`LogoutCommand`](ds:block?id=core-logoutcommand-ztcp3jsm) returns a zero `Command`** (not an error) when the Spec has no `LogoutArgs` or the home is foreign; check `Path == ""`.
 
 ## Related
 

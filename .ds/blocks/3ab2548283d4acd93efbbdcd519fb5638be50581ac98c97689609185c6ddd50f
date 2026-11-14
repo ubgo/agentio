@@ -1,0 +1,12 @@
+func (c Compat) Check(v Version) CompatStatus {
+	if v.IsZero() || (c.Min.IsZero() && c.Max.IsZero()) {
+		return CompatUnknown
+	}
+	if !c.Min.IsZero() && v.Compare(c.Min) < 0 {
+		return CompatOlder
+	}
+	if !c.Max.IsZero() && v.Compare(c.Max) > 0 {
+		return CompatNewer
+	}
+	return CompatInRange
+}

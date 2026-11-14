@@ -1,0 +1,14 @@
+type MCPServer struct {
+	Name      string
+	Transport MCPTransport
+	Scope     ConfigScope
+	Command   string
+	Args      []string
+	URL       string
+	// EnvNames are names only.
+	EnvNames []string
+	// Enabled is nil when the vendor does not say.
+	Enabled *bool
+	// Source is the file it came from.
+	Source string
+}

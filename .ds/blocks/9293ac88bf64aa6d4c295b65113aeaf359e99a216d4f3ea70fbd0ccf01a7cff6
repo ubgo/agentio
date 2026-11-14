@@ -1,0 +1,3 @@
+func (h Home) MarshalJSON() ([]byte, error) {
+	return marshalJSON(homeJSON{Agent: h.agent, Dir: h.dir, IsDefault: h.isDefault, Name: h.name})
+}

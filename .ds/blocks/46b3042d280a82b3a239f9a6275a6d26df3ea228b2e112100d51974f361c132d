@@ -1,0 +1,49 @@
+func transcriptDrift(ctx context.Context, c *claude.Agent, h claude.Home, w walker, out io.Writer) {
+	convs, err := c.Conversations(ctx, h, agentio.ConversationQuery{Limit: transcriptSample})
+	w.read("conversations", reflect.ValueOf(convs), err)
+	versions := map[string]int{}
+	// firstSeen[type][key] is the oldest Claude Code version that wrote the
+	// key on a record of that type. Record has no Unknown (its typed views
+	// pick fields per type), so new top-level keys are found by version:
+	// a key first written after TestedMin is drift the fixtures predate.
+	firstSeen := map[claude.RecordType]map[string]agentio.Version{}
+	for _, conv := range convs {
+		recs, err := c.TranscriptTail(h, conv.ID, transcriptTail)
+		if err != nil {
+			w.read(sourceTranscript, reflect.Value{}, err)
+			continue
+		}
+		for _, rec := range recs {
+			if rec.Version != "" {
+				versions[rec.Version]++
+				noteKeys(firstSeen, rec)
+			}
+			if !rec.Type.IsKnown() {
+				w.source = sourceTranscript
+				w.add(kindUnknownRecord, string(rec.Type))
+				continue
+			}
+			if a, err := rec.AsAssistant(); err == nil {
+				w.read("transcript assistant", reflect.ValueOf(a), nil)
+			}
+			if u, err := rec.AsUser(); err == nil {
+				w.read("transcript user", reflect.ValueOf(u), nil)
+			}
+		}
+	}
+	testedMin := agentio.MustVersion(claude.TestedMin)
+	w.source = sourceTranscript
+	for typ, keys := range firstSeen {
+		for k, v := range keys {
+			if v.Compare(testedMin) > 0 {
+				w.add(kindNewRecordKey, fmt.Sprintf("%s.%s since %s", typ, k, v))
+			}
+		}
+	}
+	vs := make([]string, 0, len(versions))
+	for v := range versions {
+		vs = append(vs, v)
+	}
+	sort.Strings(vs)
+	fmt.Fprintf(out, "  transcripts read %d, record versions %s\n", len(convs), strings.Join(vs, " "))
+}

@@ -1,0 +1,1 @@
+type FeatureSpan struct{ Since, Until Version }

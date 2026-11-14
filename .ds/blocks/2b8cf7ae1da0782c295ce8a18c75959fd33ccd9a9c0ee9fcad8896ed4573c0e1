@@ -1,0 +1,1 @@
+func credentialEnv() []string { return []string{OAuthTokenEnv, APIKeyEnv, AuthTokenEnv} }

@@ -1,0 +1,54 @@
+func (w walker) walk(v reflect.Value, path string) {
+	if !v.IsValid() {
+		return
+	}
+	switch v.Type() {
+	case reflect.TypeFor[agentio.Unknown]():
+		for _, k := range v.MapKeys() {
+			w.add(kindUnknownKey, strings.TrimPrefix(path+"."+k.String(), "."))
+		}
+		return
+	case reflect.TypeFor[agentio.Warnings]():
+		for i := range v.Len() {
+			wn := v.Index(i).Interface().(agentio.Warning)
+			w.add(kindWarning, fmt.Sprintf("%s %s %s: %s", wn.Kind, wn.File, wn.Key, wn.Detail))
+		}
+		return
+	case reflect.TypeFor[agentio.Raw]():
+		return
+	}
+	switch v.Kind() {
+	case reflect.Pointer, reflect.Interface:
+		if !v.IsNil() {
+			w.walk(v.Elem(), path)
+		}
+	case reflect.String:
+		if m := v.MethodByName(isKnownMethod); m.IsValid() && v.Len() > 0 && m.Type().NumIn() == 0 && m.Type().NumOut() == 1 && m.Type().Out(0).Kind() == reflect.Bool {
+			if !m.Call(nil)[0].Bool() {
+				w.add(kindUnknownEnum, fmt.Sprintf("%s %s=%q", strings.TrimPrefix(path, "."), v.Type().Name(), v.String()))
+			}
+		}
+	case reflect.Struct:
+		t := v.Type()
+		for i := range t.NumField() {
+			if f := t.Field(i); f.IsExported() {
+				seg := "." + f.Name
+				if f.Anonymous {
+					seg = ""
+				}
+				w.walk(v.Field(i), path+seg)
+			}
+		}
+	case reflect.Slice, reflect.Array:
+		if v.Type().Elem().Kind() == reflect.Uint8 {
+			return
+		}
+		for i := range v.Len() {
+			w.walk(v.Index(i), path+segSlice)
+		}
+	case reflect.Map:
+		for _, k := range v.MapKeys() {
+			w.walk(v.MapIndex(k), path+segMap)
+		}
+	}
+}

@@ -1,0 +1,69 @@
+func (a *Agent) PlanMove(r agentio.MoveRequest) (agentio.MovePlan, error) {
+	from, err := a.HomeOf(r.From)
+	if err != nil {
+		return agentio.MovePlan{}, err
+	}
+	to, err := a.HomeOf(r.To)
+	if err != nil {
+		return agentio.MovePlan{}, err
+	}
+	plan := agentio.MovePlan{Agent: ID, From: r.From, To: r.To, Dir: filepath.Clean(r.Dir)}
+	src, dst := a.HistoryDir(from, plan.Dir), a.HistoryDir(to, plan.Dir)
+	entries, err := os.ReadDir(src)
+	if isNotExist(err) {
+		return plan, nil
+	}
+	if err != nil {
+		return plan, fmt.Errorf("claude: read %s: %w", src, err)
+	}
+	ids := transcriptIDs(entries)
+	if len(r.OnlyIDs) > 0 {
+		var picked []string
+		for _, want := range r.OnlyIDs {
+			id, n := matchID(ids, want)
+			switch {
+			case n == 0:
+				return plan, fmt.Errorf("%w: conversation %q for %s", agentio.ErrNotFound, want, plan.Dir)
+			case n > 1:
+				return plan, fmt.Errorf("%w %q matches %d conversations", ErrAmbiguousID, want, n)
+			}
+			picked = append(picked, id)
+		}
+		ids = picked
+	}
+	plan.Conversations = ids
+	moving := map[string]bool{}
+	add := func(f, t string) {
+		if !fileExists(f) {
+			return
+		}
+		if fileExists(t) {
+			plan.Blockers = append(plan.Blockers, t+" already exists in the target home")
+		}
+		plan.Items = append(plan.Items, agentio.MoveItem{From: f, To: t})
+		moving[f] = true
+	}
+	for _, id := range ids {
+		add(filepath.Join(src, id+transcriptExt), filepath.Join(dst, id+transcriptExt))
+		add(filepath.Join(src, id), filepath.Join(dst, id))
+		for _, d := range perConversationDirs() {
+			add(filepath.Join(from.Dir(), d, id), filepath.Join(to.Dir(), d, id))
+		}
+	}
+	if len(r.OnlyIDs) == 0 {
+		if mem, err := os.ReadDir(filepath.Join(src, memoryDir)); err == nil {
+			for _, m := range mem {
+				add(filepath.Join(src, memoryDir, m.Name()), filepath.Join(dst, memoryDir, m.Name()))
+			}
+		}
+		plan.Cleanup = []string{filepath.Join(src, memoryDir), src}
+	}
+	for _, e := range entries {
+		p := filepath.Join(src, e.Name())
+		if !moving[p] && e.Name() != memoryDir {
+			plan.Left = append(plan.Left, p)
+		}
+	}
+	plan.Blockers = append(plan.Blockers, a.liveBlockers(plan.Dir, ids, from, to)...)
+	return plan, nil
+}

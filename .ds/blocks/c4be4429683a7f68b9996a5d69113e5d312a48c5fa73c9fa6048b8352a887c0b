@@ -1,0 +1,3 @@
+func instructionScopeNames() []string {
+	return []string{"managed", "user", "project", "local", "auto", "imported"}
+}

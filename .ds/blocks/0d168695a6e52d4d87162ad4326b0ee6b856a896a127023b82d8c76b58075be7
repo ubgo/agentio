@@ -1,0 +1,26 @@
+func (i Identity) Neutral() agentio.Identity {
+	out := agentio.Identity{
+		LoggedIn:   i.LoggedIn,
+		Email:      i.Email,
+		PlanLabel:  i.Plan.DisplayName(),
+		Billing:    agentio.BillingUnknown,
+		Credential: agentio.CredentialNone,
+	}
+	switch {
+	case i.Mode == AuthAPIKey:
+		out.Billing = agentio.BillingPerToken
+	case i.Mode == AuthChatGPT || i.Plan != "":
+		out.Billing = agentio.BillingSubscription
+	}
+	if i.LoggedIn {
+		out.Credential = agentio.CredentialFile
+		if i.CredentialStore == StoreKeyring {
+			out.Credential = agentio.CredentialKeyring
+		}
+	}
+	if !i.AccessExpiresAt.IsZero() {
+		t := i.AccessExpiresAt
+		out.ExpiresAt = &t
+	}
+	return out
+}

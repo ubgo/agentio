@@ -1,0 +1,3 @@
+func (a *Agent) MoveUnsupportedReason() string {
+	return "Codex indexes conversations in its own SQLite database with absolute paths (state_5.sqlite threads.rollout_path), so moving its files would break its index; continue Codex work in the original home"
+}

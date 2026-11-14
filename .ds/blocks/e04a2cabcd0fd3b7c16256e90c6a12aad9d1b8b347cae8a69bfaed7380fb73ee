@@ -1,0 +1,6 @@
+func (l LiveSession) Neutral(h Home) agentio.LiveSession {
+	return agentio.LiveSession{
+		PID: l.PID, ConversationID: l.SessionID, Dir: l.Cwd, Home: h.Neutral(), Kind: l.Kind,
+		Status: l.Status.Neutral(), StatusSince: l.StatusUpdatedAt, StartedAt: l.StartedAt, Alive: l.Alive,
+	}
+}

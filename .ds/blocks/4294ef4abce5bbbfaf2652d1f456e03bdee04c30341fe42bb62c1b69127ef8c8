@@ -1,0 +1,8 @@
+func (u Unknown) Keys() []string {
+	out := make([]string, 0, len(u))
+	for k := range u {
+		out = append(out, k)
+	}
+	slices.Sort(out)
+	return out
+}

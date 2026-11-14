@@ -1,0 +1,6 @@
+func Unsupported(a Agent, c Capability) (reason string, declared bool) {
+	if r, ok := a.(UnsupportedReasoner); ok {
+		return r.UnsupportedReason(c)
+	}
+	return "", false
+}

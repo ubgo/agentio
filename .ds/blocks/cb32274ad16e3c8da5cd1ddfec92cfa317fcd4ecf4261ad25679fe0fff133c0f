@@ -1,0 +1,49 @@
+func (a *Agent) Inventory(h Home) (Inventory, error) {
+	p := a.Paths(h)
+	inv := Inventory{Home: p.Home}
+	named := []struct{ name, path string }{
+		{"Config", p.Config}, {"AgentsMD", p.AgentsMD}, {"Rules", p.Rules}, {"Hooks", p.Hooks},
+		{"Auth", p.Auth}, {"Credentials", p.Credentials}, {"InstallationID", p.InstallationID},
+		{"Sessions", p.Sessions}, {"ArchivedSessions", p.ArchivedSessions}, {"SessionIndex", p.SessionIndex},
+		{"History", p.History}, {"TranscriptionHistory", p.TranscriptionHistory}, {"ShellSnapshots", p.ShellSnapshots},
+		{"Attachments", p.Attachments}, {"StateDB", p.StateDB}, {"ThreadHistoryDB", p.ThreadHistoryDB},
+		{"GoalsDB", p.GoalsDB}, {"QueueDB", p.QueueDB}, {"MemoriesDB", p.MemoriesDB}, {"LogsDB", p.LogsDB},
+		{"ModelsCache", p.ModelsCache}, {"VersionCache", p.VersionCache}, {"Skills", p.Skills},
+		{"VendorSkills", p.VendorSkills}, {"Plugins", p.Plugins}, {"Memories", p.Memories}, {"Cache", p.Cache},
+		{"Log", p.Log}, {"Tmp", p.Tmp}, {"DesktopState", p.DesktopState}, {"DesktopDB", p.DesktopDB},
+		{"IPCSocket", p.IPCSocket}, {"ChatProcesses", p.ChatProcesses}, {"ComputerUse", p.ComputerUse},
+		{"Browser", p.Browser}, {"Visualizations", p.Visualizations}, {"ThreadWriterLocks", p.ThreadWriterLocks},
+	}
+	for _, m := range p.Markers {
+		named = append(named, struct{ name, path string }{"Marker", m})
+	}
+	known := map[string]bool{}
+	for _, n := range named {
+		e := InventoryEntry{Name: n.name, Path: n.path}
+		if st, err := os.Lstat(n.path); err == nil {
+			e.Exists, e.IsDir, e.ModTime = true, st.IsDir(), st.ModTime()
+			if !st.IsDir() {
+				e.Size = st.Size()
+			}
+		}
+		inv.Entries = append(inv.Entries, e)
+		known[topLevel(p.Home, n.path)] = true
+	}
+	entries, err := os.ReadDir(p.Home)
+	if errors.Is(err, fs.ErrNotExist) {
+		return inv, nil
+	}
+	if err != nil {
+		return inv, fmt.Errorf("codex: read %s: %w", p.Home, err)
+	}
+	profiles, _ := a.ProfileFiles(h)
+	for _, e := range entries {
+		name := e.Name()
+		if known[name] || isProfileFile(name, profiles) || isSidecar(name, known) {
+			continue
+		}
+		inv.Unknown = append(inv.Unknown, name)
+	}
+	sort.Strings(inv.Unknown)
+	return inv, nil
+}

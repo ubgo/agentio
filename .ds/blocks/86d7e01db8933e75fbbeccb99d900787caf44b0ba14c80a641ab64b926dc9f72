@@ -1,0 +1,1 @@
+func (s FeatureSpan) Known() bool { return !s.Since.IsZero() || !s.Until.IsZero() }

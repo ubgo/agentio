@@ -1,0 +1,1 @@
+	ErrNotFound = errors.New("agentio: not found")

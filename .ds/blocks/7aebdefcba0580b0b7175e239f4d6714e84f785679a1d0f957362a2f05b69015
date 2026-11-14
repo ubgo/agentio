@@ -1,0 +1,1 @@
+func (a *Agent) SetupTokenCommand(h Home) agentio.Command { return a.command(h, subSetupToken) }

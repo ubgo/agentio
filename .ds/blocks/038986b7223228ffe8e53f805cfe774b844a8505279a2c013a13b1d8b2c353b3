@@ -1,0 +1,11 @@
+func (w *Writer) SetProjectSetting(p Project, local bool, patch SettingsPatch) (agentio.Backup, error) {
+	scope := ScopeProject
+	if local {
+		scope = ScopeLocal
+	}
+	path, err := w.a.settingsPath(Home{}, &p, scope)
+	if err != nil {
+		return agentio.Backup{}, err
+	}
+	return w.applyPatch(path, patch)
+}

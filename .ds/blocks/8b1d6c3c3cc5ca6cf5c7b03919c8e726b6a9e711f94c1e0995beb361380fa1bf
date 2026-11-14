@@ -1,0 +1,6 @@
+func redactIn(s, token string) string {
+	if token == "" {
+		return s
+	}
+	return strings.ReplaceAll(s, token, redactedMark)
+}

@@ -1,0 +1,7 @@
+func (a *Agent) PurgeCommand(dir string, dryRun bool) agentio.Command {
+	args := []string{subPurge, dir}
+	if dryRun {
+		args = append(args, flagDryRun)
+	}
+	return a.command(a.DefaultHome(), args...)
+}

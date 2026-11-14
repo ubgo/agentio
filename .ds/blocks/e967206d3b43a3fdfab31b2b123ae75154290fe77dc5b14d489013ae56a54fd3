@@ -1,0 +1,11 @@
+func (w walker) read(source string, val reflect.Value, err error) {
+	w.source = source
+	switch {
+	case errors.Is(err, agentio.ErrUnknownVersion):
+		w.add(kindFormatVersion, err.Error())
+	case errors.Is(err, agentio.ErrNotFound), errors.Is(err, agentio.ErrUnsupported):
+	case err != nil:
+		w.add(kindReadError, err.Error())
+	}
+	w.walk(val, "")
+}

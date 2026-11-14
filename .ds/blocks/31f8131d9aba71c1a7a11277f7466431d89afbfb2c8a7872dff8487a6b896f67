@@ -1,0 +1,3 @@
+func homeMarkers() []string {
+	return []string{settingsFile, projectsDir, credentialsFile, globalConfigFile}
+}

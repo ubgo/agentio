@@ -1,0 +1,39 @@
+func (a *Agent) CredentialContext(ctx context.Context, h Home) (Credential, error) {
+	var best Credential
+	found := false
+	var reasons []error
+	consider := func(c Credential) {
+		if !found || expiresAfter(c, best) {
+			best, found = c, true
+		}
+	}
+	path := filepath.Join(h.Dir(), credentialsFile)
+	if raw, ok, err := readFileBounded(path, maxResponseBytes); err != nil {
+		reasons = append(reasons, fmt.Errorf("claude: read %s: %w", path, err))
+	} else if ok {
+		if c, perr := parseCredential(raw, SourceFile, path); perr == nil {
+			consider(c)
+		} else {
+			reasons = append(reasons, perr)
+		}
+	}
+	for _, svc := range KeychainServices(h.Dir(), h.IsDefault()) {
+		tok, ok, err := a.keychainGet(ctx, svc)
+		if err != nil {
+			reasons = append(reasons, fmt.Errorf("claude: keychain %q: %w", svc, err))
+			continue
+		}
+		if !ok {
+			continue
+		}
+		if c, perr := parseCredential([]byte(tok.Reveal()), SourceKeychain, svc); perr == nil {
+			consider(c)
+		} else {
+			reasons = append(reasons, perr)
+		}
+	}
+	if !found {
+		return Credential{}, errors.Join(append([]error{agentio.ErrNotLoggedIn}, reasons...)...)
+	}
+	return best, nil
+}

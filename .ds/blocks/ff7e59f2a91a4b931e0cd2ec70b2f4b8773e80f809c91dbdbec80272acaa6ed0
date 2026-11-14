@@ -1,0 +1,10 @@
+func (a *Agent) usableCredential(ctx context.Context, h Home) (Credential, error) {
+	c, err := a.CredentialContext(ctx, h)
+	if err != nil {
+		return Credential{}, err
+	}
+	if c.Expired(a.now()) {
+		return Credential{}, fmt.Errorf("%w at %s: run claude once in this home to refresh it", agentio.ErrExpired, c.ExpiresAt.Format(time.RFC3339))
+	}
+	return c, nil
+}

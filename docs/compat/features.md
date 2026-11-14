@@ -1,6 +1,6 @@
 # Per-feature version table
 
-Vendor CLIs add flags and files over time, so a launch that is valid on today's Claude Code or Codex can be invalid on the version a user has installed. Each vendor module carries a table of version-gated features (flags, files and behaviours) with the version each appeared in, generated from a `features.tsv` file. The launch builders consult it: a flag the installed version provably lacks returns a typed `FeatureUnavailableError` instead of a command that would fail at run time. Use the table directly to hide options in a UI, or to explain an error to a user.
+Vendor CLIs add flags and files over time, so a launch that is valid on today's Claude Code or Codex can be invalid on the version a user has installed. Each vendor module carries a table of version-gated features (flags, files and behaviours) with the version each appeared in, generated from a `features.tsv` file. The launch builders consult it: a flag the installed version provably lacks returns a typed [`FeatureUnavailableError`](ds:block?id=claude-checkfeature-am2yhjzp) instead of a command that would fail at run time. Use the table directly to hide options in a UI, or to explain an error to a user.
 
 ## Before you start
 
@@ -10,7 +10,7 @@ Vendor CLIs add flags and files over time, so a launch that is valid on today's 
 
 ## Step 1 — List features
 
-`claude.Feature` and `codex.Feature` are small integer enums; `String()` returns the vendor spelling (`--worktree`, `CLAUDE_CONFIG_DIR`, `<name>.config.toml`). List them with `claude.Features()` and `codex.Features()` (one name for both vendors). `FeatureInfo(f)` returns the `agentio.FeatureSpan` and `FeatureSource(f)` names the vendor changelog or release note line behind the bounds.
+`claude.Feature` and `codex.Feature` are small integer enums; [`String()`](ds:block?id=claude-feature-string-4gkzaspt) returns the vendor spelling (`--worktree`, `CLAUDE_CONFIG_DIR`, `<name>.config.toml`). List them with [`claude.Features()`](ds:block?id=claude-features-ej42vjsy) and [`codex.Features()`](ds:block?id=codex-features-sgjqr7gr) (one name for both vendors). [`FeatureInfo(f)`](ds:block?id=claude-featureinfo-7cywwf7k) returns the `agentio.FeatureSpan` and [`FeatureSource(f)`](ds:block?id=claude-featuresource-fcy46dbg) names the vendor changelog or release note line behind the bounds.
 
 The table source is `claude/features.tsv` and `codex/features.tsv`, one row per feature with the columns `name`, `spelling`, `since`, `until`, `source`; `go generate` turns it into `features_gen.go`. A bound is filled only when an explicit vendor changelog or release-note line was found, and the row then names it in `source`; otherwise the bound stays empty. Many rows have no bounds at all: they are flags the builders emit, listed so every emitted flag has a row, but they cannot be gated.
 
@@ -46,7 +46,7 @@ func printFeatures(w io.Writer) {
 
 ## Step 2 — Check a feature against a version
 
-`FeatureSpan{Since, Until}` means "available from `Since` (inclusive) until `Until` (exclusive)", where a zero bound is unknown. `span.Known()` reports whether either bound is set. `span.In(v)` is true unless `v` is provably before `Since` or at/after `Until`; an unknown (zero) `v` is always in. The rule is "build and warn, never refuse on a guess": the library only refuses when it is sure.
+[`FeatureSpan{Since, Until}`](ds:block?id=featurespan-ckruwege) means "available from `Since` (inclusive) until `Until` (exclusive)", where a zero bound is unknown. [`span.Known()`](ds:block?id=featurespan-known-h6gygtav) reports whether either bound is set. [`span.In(v)`](ds:block?id=featurespan-in-vh7rmz94) is true unless `v` is provably before `Since` or at/after `Until`; an unknown (zero) `v` is always in. The rule is "build and warn, never refuse on a guess": the library only refuses when it is sure.
 
 <!-- snippet: examples/compat/main.go#spans -->
 ```go
@@ -64,7 +64,7 @@ func printSpans(w io.Writer) {
 
 ## Step 3 — Handle FeatureUnavailableError
 
-The typed launch builders (`claude.Agent.Launch`, `codex.Agent.New`, `codex.Agent.Exec` and friends) check every flag they emit against `Target.Version`. When the version provably lacks one, they return `*claude.FeatureUnavailableError` or `*codex.FeatureUnavailableError` with `Feature`, `Installed`, `Since` and `Until`. Both match `agentio.ErrFeatureUnavailable` with `errors.Is`, so code that handles several agents needs one branch; use `errors.As` when you want the fields for a message. With a newer, untested version the builders build the command and attach an `untested-version` warning instead.
+The typed launch builders ([`claude.Agent.Launch`](ds:block?id=claude-agent-launch-r7fsfwtp), `codex.Agent.New`, [`codex.Agent.Exec`](ds:block?id=codex-builder-flag-f2rrxpyh) and friends) check every flag they emit against `Target.Version`. When the version provably lacks one, they return [`*claude.FeatureUnavailableError`](ds:block?id=claude-featureunavailableerror-c76rq36g) or [`*codex.FeatureUnavailableError`](ds:block?id=codex-featureunavailableerror-vhup5my8) with `Feature`, `Installed`, `Since` and `Until`. Both match [`agentio.ErrFeatureUnavailable`](ds:block?id=claude-featureunavailableerror-is-anzr93zz) with `errors.Is`, so code that handles several agents needs one branch; use `errors.As` when you want the fields for a message. With a newer, untested version the builders build the command and attach an [`untested-version`](ds:block?id=claude-versionwarnings-82bmgcbc) warning instead.
 
 <!-- snippet: examples/compat/main.go#gates -->
 ```go
@@ -131,11 +131,11 @@ codex launch: codex 0.150.0: --no-daemon needs codex >= 0.156.0
 
 ## Pitfalls
 
-- `codex.Features()` (the version-gated launch features) is not `codex.Runner.Features` (the `codex features list` runtime switches); the package function lists this table, the Runner method runs the binary.
-- A feature with no known bound is never gated: `In` is true for every version. Absence of an error does not prove the installed CLI has the flag, only that the library cannot prove it lacks it.
-- `Target.Version` defaults to zero (unknown), and an unknown version passes every check (with a `version-unknown` warning on the command). Set `Target.Version` from the install if you want the gate to work.
-- The error texts differ by vendor (`claude: --worktree needs Claude Code >= 2.1.49 (installed 2.1.40)` vs `codex 0.150.0: --no-daemon needs codex >= 0.156.0`). Branch on `errors.Is(err, agentio.ErrFeatureUnavailable)` or `errors.As`, never on the message.
-- The neutral `agentio.Agent.Launch` goes through the same builders, so it returns the same typed errors; `errors.Is` with the neutral sentinel works on both paths.
+- [`codex.Features()`](ds:block?id=codex-features-sgjqr7gr) (the version-gated launch features) is not [`codex.Runner.Features`](ds:block?id=codex-runner-features-7eabzur3) (the `codex features list` runtime switches); the package function lists this table, the Runner method runs the binary.
+- A feature with no known bound is never gated: [`In`](ds:block?id=featurespan-in-vh7rmz94) is true for every version. Absence of an error does not prove the installed CLI has the flag, only that the library cannot prove it lacks it.
+- `Target.Version` defaults to zero (unknown), and an unknown version passes every check (with a [`version-unknown`](ds:block?id=claude-versionwarnings-82bmgcbc) warning on the command). Set `Target.Version` from the install if you want the gate to work.
+- The error texts differ by vendor ([`claude: --worktree needs Claude Code >= 2.1.49 (installed 2.1.40)`](ds:block?id=claude-featureunavailableerror-error-duumjrvf) vs [`codex 0.150.0: --no-daemon needs codex >= 0.156.0`](ds:block?id=codex-featureunavailableerror-error-mhyfpqrm)). Branch on `errors.Is(err, agentio.ErrFeatureUnavailable)` or `errors.As`, never on the message.
+- The neutral [`agentio.Agent.Launch`](ds:block?id=claude-neutral-launch-q63vggs3) goes through the same builders, so it returns the same typed errors; `errors.Is` with the neutral sentinel works on both paths.
 - `features.tsv` lists only features the library emits or reads, not every vendor flag. The [drift check](drift.md#step-3--compare-with-a-baseline) can compare a saved `claude --help` against it to find candidate rows.
 - Do not edit `features_gen.go`; edit `features.tsv` and run `go generate` in the vendor module.
 

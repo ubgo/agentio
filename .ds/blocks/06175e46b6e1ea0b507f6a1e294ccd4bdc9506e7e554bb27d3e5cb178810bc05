@@ -1,0 +1,3 @@
+func trustNames() []string {
+	return []string{"unknown", "trusted", "untrusted"}
+}

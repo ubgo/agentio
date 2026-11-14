@@ -1,0 +1,3 @@
+func (a *Agent) InstallCommand(target string) agentio.Command {
+	return a.command(a.DefaultHome(), subInstall, target)
+}

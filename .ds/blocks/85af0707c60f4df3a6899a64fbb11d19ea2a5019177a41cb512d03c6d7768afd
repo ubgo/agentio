@@ -1,0 +1,3 @@
+func configScopeNames() []string {
+	return []string{"unknown", "managed", "user", "project", "local", "profile", "cli", "plugin"}
+}

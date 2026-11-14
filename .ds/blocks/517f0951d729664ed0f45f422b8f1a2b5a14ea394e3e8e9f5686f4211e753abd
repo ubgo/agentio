@@ -1,0 +1,1 @@
+func HomeLinkerOf(a Agent) (HomeLinker, bool) { return capabilityOf[HomeLinker](a, CapHomeLinker) }

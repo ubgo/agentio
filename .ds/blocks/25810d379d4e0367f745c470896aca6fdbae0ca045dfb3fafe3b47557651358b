@@ -1,0 +1,8 @@
+func (a Agents) ByID(id agentio.ID) (agentio.Agent, bool) {
+	for _, ag := range a.All() {
+		if ag.ID() == id {
+			return ag, true
+		}
+	}
+	return nil, false
+}

@@ -1,0 +1,6 @@
+func (w *Writer) ApplyMove(p agentio.MovePlan) (agentio.Backup, error) {
+	if p.Agent != ID {
+		return agentio.Backup{}, fmt.Errorf("%w: %s move plan", agentio.ErrForeignHome, p.Agent)
+	}
+	return agentio.ApplyMovePlan(p, w.a.now())
+}

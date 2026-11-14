@@ -1,0 +1,12 @@
+func (d *DB) Close() error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	var errs []error
+	for i, c := range d.conns {
+		if c != nil {
+			errs = append(errs, c.Close())
+			d.conns[i] = nil
+		}
+	}
+	return errors.Join(errs...)
+}

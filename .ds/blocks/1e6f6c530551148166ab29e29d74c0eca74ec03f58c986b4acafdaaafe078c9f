@@ -1,0 +1,5 @@
+func (a *Agent) WithBaseURL(base string) *Agent {
+	c := *a
+	c.baseURL = strings.TrimRight(base, "/")
+	return &c
+}

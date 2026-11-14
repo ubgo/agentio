@@ -1,0 +1,6 @@
+func (d *DB) Path(f File) string {
+	if f >= fileCount {
+		return ""
+	}
+	return d.paths[f]
+}

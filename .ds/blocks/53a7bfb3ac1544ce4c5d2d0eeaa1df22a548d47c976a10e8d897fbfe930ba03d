@@ -1,0 +1,7 @@
+type Version struct {
+	Major, Minor, Patch int
+	// Pre is the pre-release suffix without the dash ("beta.2"); "" for a release.
+	Pre string
+	// Raw is the text it was parsed from (e.g. "2.1.323 (Claude Code)").
+	Raw string
+}

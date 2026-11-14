@@ -1,0 +1,23 @@
+func codexDrift(ctx context.Context, x *codex.Agent, r *report, out io.Writer) error {
+	inst, ierr := x.Install()
+	versionLine(out, codex.ID, inst.Install, ierr, codex.Compat())
+	homes, err := x.Homes()
+	if err != nil {
+		return err
+	}
+	if len(homes) == 0 {
+		fmt.Fprintln(out, "codex: no home on this machine")
+	}
+	for _, h := range homes {
+		w := walker{r: r, vendor: codex.ID, home: h.Name()}
+		fmt.Fprintf(out, "codex home %s\n", h.Name())
+		cfg, warns, err := x.ConfigFileWarnings(h)
+		w.read("config.toml", reflect.ValueOf(cfg), err)
+		w.walk(reflect.ValueOf(warns), "")
+		id, err := x.Identity(h)
+		w.read("auth", reflect.ValueOf(id), err)
+		convs, err := x.Conversations(ctx, h, codex.ConversationQuery{Limit: transcriptSample})
+		w.read("conversations", reflect.ValueOf(convs), err)
+	}
+	return nil
+}

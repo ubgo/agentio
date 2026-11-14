@@ -1,0 +1,22 @@
+func projectRoot(dir string, c Config) (string, bool) {
+	markers := []string{defaultRootMarker}
+	if c.ProjectRootMarkersSet {
+		markers = c.ProjectRootMarkers
+	}
+	dir = filepath.Clean(dir)
+	if len(markers) == 0 {
+		return dir, false
+	}
+	for cur := dir; ; {
+		for _, m := range markers {
+			if _, err := os.Lstat(filepath.Join(cur, m)); err == nil {
+				return cur, true
+			}
+		}
+		parent := filepath.Dir(cur)
+		if parent == cur {
+			return dir, false
+		}
+		cur = parent
+	}
+}

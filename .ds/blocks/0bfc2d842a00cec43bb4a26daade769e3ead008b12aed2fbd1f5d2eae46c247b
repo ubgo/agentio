@@ -1,0 +1,9 @@
+func (a *Agent) Fork(t agentio.Target, id string, o LaunchOptions) (agentio.Command, error) {
+	if id == "" {
+		return agentio.Command{}, ErrNoSessionID
+	}
+	b := newBuilder(t)
+	b.flag(FeatureSubFork, subFork)
+	b.global(o, false)
+	return a.finish(b, o.Dir, id, o.Prompt)
+}

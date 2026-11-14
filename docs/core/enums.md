@@ -1,6 +1,6 @@
 # Enums
 
-agentio never uses bare strings for a fixed set of values. Sets the library owns are closed enums: a `uint8` type with `String()`, `MarshalText`, `UnmarshalText`, a `XValues()` list and a `ParseX()` function; unknown text is an error. Sets that come from a vendor and may grow (install methods, MCP transports, process kinds) are open string types with an `IsKnown()` method; an unknown value decodes and is kept. You want this page to read an enum from config, print one, or build help text that lists every value.
+agentio never uses bare strings for a fixed set of values. Sets the library owns are closed enums: a `uint8` type with `String()`, `MarshalText`, `UnmarshalText`, a `XValues()` list and a [`ParseX()`](ds:block?id=enumparse-z445n2y9) function; [unknown text is an error](ds:block?id=enumunmarshal-d6njwv72). Sets that come from a vendor and may grow (install methods, MCP transports, process kinds) are open string types with an [`IsKnown()`](ds:block?id=installmethod-isknown-yqgegrt9) method; an unknown value decodes and is kept. You want this page to read an enum from config, print one, or build help text that lists every value.
 
 ## Before you start
 
@@ -8,7 +8,7 @@ agentio never uses bare strings for a fixed set of values. Sets the library owns
 
 ## Step 1 — Parse an enum from text
 
-`ParseX(s)` returns `(X, bool)`. In a struct, a closed enum decodes from its wire name through `UnmarshalText` and rejects anything else; it encodes as its name, never as a number.
+[`ParseX(s)`](ds:block?id=enumparse-z445n2y9) returns `(X, bool)`. In a struct, a closed enum decodes from its wire name through [`UnmarshalText`](ds:block?id=enumunmarshal-d6njwv72) and rejects anything else; it encodes as its name, never as a number.
 
 <!-- snippet: examples/values/enums.go#parse-enum -->
 ```go
@@ -53,40 +53,40 @@ The closed sets, with their wire names in declaration order:
 
 | Type | Values |
 |---|---|
-| `Access` | `read`, `write` |
-| `Autonomy` | `default`, `read-only`, `ask`, `accept-edits`, `full` |
-| `Billing` | `unknown`, `subscription`, `per-token` |
-| `Capability` | 26 values, `installer` … `doctor` ([Shared capabilities and accessors](../capabilities/accessors.md)) |
-| `CheckStatus` | `skip`, `ok`, `info`, `warn`, `fail` |
-| `CompatStatus` | `unknown`, `in-range`, `newer`, `older` |
-| `ConfigScope` | `unknown`, `managed`, `user`, `project`, `local`, `profile`, `cli`, `plugin` |
-| `CostClass` | `pure`, `disk`, `process`, `network`, `quota` |
-| `CredentialSource` | `none`, `keychain`, `file`, `keyring`, `env` |
-| `InstructionScope` | `managed`, `user`, `project`, `local`, `auto`, `imported` |
-| `LoginFlow` | `browser`, `device`, `api-key-stdin`, `access-token-stdin` |
-| `Role` | `user`, `assistant` |
-| `RunEventType` | `other`, `started`, `message`, `tool`, `usage`, `done`, `error` |
-| `SessionStatus` | `unknown`, `idle`, `busy` |
-| `TokenKind` | `unknown`, `oauth-token`, `api-key` |
-| `Trust` | `unknown`, `trusted`, `untrusted` |
-| `UsageSource` | `unknown`, `server`, `cache`, `transcript`, `probe` |
-| `WarningKind` | `untested-version`, `version-unknown`, `type-changed`, `old-key-name`, `unknown-record`, `unreadable` |
-| `WindowClass` | `unknown`, `short`, `day`, `week`, `month` |
+| [`Access`](ds:block?id=accessnames-aun8gmkk) | `read`, `write` |
+| [`Autonomy`](ds:block?id=autonomynames-upa3mjff) | `default`, `read-only`, `ask`, `accept-edits`, `full` |
+| [`Billing`](ds:block?id=billingnames-phdn4dkq) | `unknown`, `subscription`, `per-token` |
+| [`Capability`](ds:block?id=capabilitynames-pdt7huwg) | 26 values, `installer` … `doctor` ([Shared capabilities and accessors](../capabilities/accessors.md)) |
+| [`CheckStatus`](ds:block?id=checkstatusnames-r66q6t8d) | `skip`, `ok`, `info`, `warn`, `fail` |
+| [`CompatStatus`](ds:block?id=compatstatusnames-8wen9ft3) | `unknown`, `in-range`, `newer`, `older` |
+| [`ConfigScope`](ds:block?id=configscopenames-8qqr6u4z) | `unknown`, `managed`, `user`, `project`, `local`, `profile`, `cli`, `plugin` |
+| [`CostClass`](ds:block?id=costclassnames-x4rv84vr) | `pure`, `disk`, `process`, `network`, `quota` |
+| [`CredentialSource`](ds:block?id=credentialsourcenames-8g8hwb67) | `none`, `keychain`, `file`, `keyring`, `env` |
+| [`InstructionScope`](ds:block?id=instructionscopenames-ncxf2q89) | `managed`, `user`, `project`, `local`, `auto`, `imported` |
+| [`LoginFlow`](ds:block?id=loginflownames-a7bkqn6w) | `browser`, `device`, `api-key-stdin`, `access-token-stdin` |
+| [`Role`](ds:block?id=rolenames-dm4j429f) | `user`, `assistant` |
+| [`RunEventType`](ds:block?id=runeventtypenames-6vyhtd7t) | `other`, `started`, `message`, `tool`, `usage`, `done`, `error` |
+| [`SessionStatus`](ds:block?id=sessionstatusnames-9ja6re25) | `unknown`, `idle`, `busy` |
+| [`TokenKind`](ds:block?id=tokenkindnames-xdc3hc3t) | `unknown`, `oauth-token`, `api-key` |
+| [`Trust`](ds:block?id=trustnames-5zu82hd6) | `unknown`, `trusted`, `untrusted` |
+| [`UsageSource`](ds:block?id=usagesourcenames-hagrpw52) | `unknown`, `server`, `cache`, `transcript`, `probe` |
+| [`WarningKind`](ds:block?id=warningkindnames-a4xj32ut) | `untested-version`, `version-unknown`, `type-changed`, `old-key-name`, `unknown-record`, `unreadable` |
+| [`WindowClass`](ds:block?id=windowclassnames-757ahrk7) | `unknown`, `short`, `day`, `week`, `month` |
 
 The open sets, each with `XValues()` listing the names the library knows and `IsKnown()`:
 
 | Type | Known values |
 |---|---|
-| `InstallMethod` | `npm`, `bun`, `pnpm`, `brew`, `native`, `standalone`, `unknown` (vendor packages add their own, such as `claude.InstallNPMGlobal`) |
-| `MCPTransport` | `stdio`, `http`, `sse`, `ws` |
-| `ProcessKind` | `cli`, `exec`, `app-server`, `mcp-server`, `desktop`, `bridge`, `launcher` |
-| `SessionKind` | `interactive`, `bg` |
-| `SkillScope` | `user`, `project`, `plugin`, `managed`, `system` |
-| `CheckID` | `binary-found`, `home`, `home-env`, `api-billing-env`, `version-tested`, `login` |
+| [`InstallMethod`](ds:block?id=installmethodvalues-ru5s5eaq) | `npm`, `bun`, `pnpm`, `brew`, `native`, `standalone`, `unknown` (vendor packages add their own, such as [`claude.InstallNPMGlobal`](ds:block?id=claude-installnpmglobal-rnn85kq2)) |
+| [`MCPTransport`](ds:block?id=mcptransportvalues-gvqnntsb) | `stdio`, `http`, `sse`, `ws` |
+| [`ProcessKind`](ds:block?id=processkindvalues-vjn5j6xg) | `cli`, `exec`, `app-server`, `mcp-server`, `desktop`, `bridge`, `launcher` |
+| [`SessionKind`](ds:block?id=sessionkindvalues-dz2kaxw9) | `interactive`, `bg` |
+| [`SkillScope`](ds:block?id=skillscopevalues-43djff4u) | `user`, `project`, `plugin`, `managed`, `system` |
+| [`CheckID`](ds:block?id=checkidvalues-rw58qvqg) | `binary-found`, `home`, `home-env`, `api-billing-env`, `version-tested`, `login` |
 
 ## Step 2 — List every value
 
-`XValues()` returns every value in declaration order, the canonical list for help text, flag validation and table headers:
+[`XValues()`](ds:block?id=enumvalues-dwg2jdmz) returns every value in declaration order, the canonical list for help text, flag validation and table headers:
 
 <!-- snippet: examples/values/enums.go#list-enum -->
 ```go
@@ -126,11 +126,11 @@ capabilities: 26, first installer
 
 ## Pitfalls
 
-- **The zero value is the first name.** `var a agentio.Autonomy` is `default`, `var k agentio.TokenKind` is `unknown`; most sets start with a safe or unknown value for that reason, but `Access` starts with `read` and `Role` with `user`.
-- **An out-of-range number prints, it does not panic.** `agentio.Autonomy(42).String()` is `autonomy(42)`, so a corrupted value is greppable; `ParseX` and `UnmarshalText` never produce one.
-- **Closed sets reject unknown text; open sets keep it.** Decoding `"yolo"` into an `Autonomy` fails; decoding `"volta"` into an `InstallMethod` succeeds and `IsKnown()` is false. Do not treat an unknown open value as an error: a newer vendor version may have added it.
+- **The zero value is the first name.** [`var a agentio.Autonomy`](ds:block?id=autonomynames-upa3mjff) is `default`, `var k agentio.TokenKind` is `unknown`; most sets start with a safe or unknown value for that reason, but [`Access`](ds:block?id=accessnames-aun8gmkk) starts with `read` and `Role` with `user`.
+- **An out-of-range number prints, it does not panic.** [`agentio.Autonomy(42).String()`](ds:block?id=enumstring-57pf7m8z) is `autonomy(42)`, so a corrupted value is greppable; `ParseX` and `UnmarshalText` never produce one.
+- **Closed sets reject unknown text; open sets keep it.** Decoding `"yolo"` into an [`Autonomy`](ds:block?id=autonomy-unmarshaltext-ves9gtjm) fails; decoding `"volta"` into an [`InstallMethod`](ds:block?id=installmethod-isknown-yqgegrt9) succeeds and `IsKnown()` is false. Do not treat an unknown open value as an error: a newer vendor version may have added it.
 - **Values are append-only.** New values are added at the end, so the wire names are stable; never persist the numeric value, use the name.
-- **`Capability` has 26 values**, one per shared capability; `agentio.Supported(a)` and the accessors are on [Shared capabilities and accessors](../capabilities/accessors.md).
+- **[`Capability`](ds:block?id=capabilitynames-pdt7huwg) has 26 values**, one per shared capability; `agentio.Supported(a)` and the accessors are on [Shared capabilities and accessors](../capabilities/accessors.md).
 
 ## Related
 

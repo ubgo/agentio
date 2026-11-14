@@ -1,0 +1,7 @@
+func (a *Agent) FeatureCommand(h Home, name string, on bool) agentio.Command {
+	verb := subDisable
+	if on {
+		verb = subEnable
+	}
+	return a.plainCommand(h, []string{subFeatures, verb, name})
+}

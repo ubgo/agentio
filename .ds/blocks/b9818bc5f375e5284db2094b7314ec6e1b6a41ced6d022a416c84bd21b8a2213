@@ -1,0 +1,6 @@
+func (p Plan) DisplayName() string {
+	if d, ok := planDisplay(p); ok {
+		return d
+	}
+	return string(p)
+}

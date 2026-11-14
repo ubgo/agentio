@@ -1,0 +1,1 @@
+	ErrForeignHome = errors.New("agentio: home belongs to another agent")

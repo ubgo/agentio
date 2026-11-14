@@ -1,0 +1,15 @@
+func (c Command) Redacted() Command {
+	out := c
+	out.Args = slices.Clone(c.Args)
+	out.Warnings = slices.Clone(c.Warnings)
+	out.secretNames = slices.Clone(c.secretNames)
+	out.Env = make([]string, len(c.Env))
+	for i, kv := range c.Env {
+		name, val, ok := strings.Cut(kv, envSep)
+		if ok && val != "" && (slices.Contains(c.secretNames, name) || isSensitiveName(name)) {
+			kv = name + envSep + redactedText
+		}
+		out.Env[i] = kv
+	}
+	return out
+}

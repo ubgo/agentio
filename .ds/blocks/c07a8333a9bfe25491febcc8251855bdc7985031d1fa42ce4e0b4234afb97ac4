@@ -1,0 +1,1 @@
+func (t Token) LogValue() slog.Value { return slog.StringValue(redact(t.v)) }

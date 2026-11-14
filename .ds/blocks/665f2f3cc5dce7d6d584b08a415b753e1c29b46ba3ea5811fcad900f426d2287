@@ -1,0 +1,29 @@
+func applyIDClaims(id *Identity, c jwtClaims) {
+	email := c.Email
+	if email == "" && c.Profile != nil {
+		email = c.Profile.Email
+	}
+	id.Email = agentio.NewPersonal(email)
+	id.Name = agentio.NewPersonal(c.Name)
+	if c.Auth == nil {
+		return
+	}
+	a := c.Auth
+	if id.AccountID.IsZero() {
+		id.AccountID = agentio.NewPersonal(a.ChatGPTAccountID)
+	}
+	uid := a.ChatGPTUserID
+	if uid == "" {
+		uid = a.UserID
+	}
+	id.UserID = agentio.NewPersonal(uid)
+	if a.ChatGPTPlanType != "" {
+		id.Plan = ParsePlan(a.ChatGPTPlanType)
+	}
+	id.SubscriptionActiveStart = claimTime(a.SubscriptionStart)
+	id.SubscriptionActiveUntil = claimTime(a.SubscriptionUntil)
+	id.SubscriptionLastChecked = claimTime(a.SubscriptionChecked)
+	for _, o := range a.Organizations {
+		id.Organizations = append(id.Organizations, agentio.Raw(o))
+	}
+}

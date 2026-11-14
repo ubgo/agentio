@@ -15,17 +15,17 @@ agentio is five Go modules so that a program downloads and compiles only what it
 ## If this, then that
 
 - If your program only knows Claude Code, import `claude` and nothing else. It never downloads go-toml or SQLite.
-- If it only knows Codex, import `codex`. Conversations, turns, prompt history, usage and live sessions all work from rollouts and files without SQLite.
-- If it loops over every agent the library knows, import `builtin` and use `builtin.New(h)`. Adding a vendor later then needs no change in your code.
-- If you need Codex's thread index exactly as Codex sees it (archived flags, thread names, goals, the queue, memories, logs), add `codex/state`. It is the only module that opens SQLite, read-only.
-- If you only run config-defined agents (a launcher for CLIs agentio has no module for), the root module alone is enough: `agentio.FromSpec`.
+- If it only knows Codex, import `codex`. Conversations, turns, prompt history, usage and live sessions all work from rollouts and files [without SQLite](ds:block?id=codex-agent-conversations-gnmdnpjc).
+- If it loops over every agent the library knows, import `builtin` and use [`builtin.New(h)`](ds:block?id=builtin-new-55hg377w). Adding a vendor later then needs no change in your code.
+- If you need Codex's thread index exactly as Codex sees it (archived flags, thread names, goals, the queue, memories, logs), add `codex/state`. It is the only module that opens SQLite, [read-only](ds:block?id=codex-state-dsn-8wm86fpy).
+- If you only run config-defined agents (a launcher for CLIs agentio has no module for), the root module alone is enough: [`agentio.FromSpec`](ds:block?id=fromspec-4tcd24bd).
 - If you only write tests against fakes, `agentio/agenttest` is part of the root module; there is nothing else to add.
 
 ## Pitfalls
 
-- **`builtin` costs Codex's dependency.** A Claude-only tool that imports `builtin` for convenience downloads go-toml; call `claude.New(h)` instead and use `c.Neutral()` where you need the neutral view.
-- **`codex/state` is not in `builtin`.** `builtin.New` gives you the `*codex.Agent`; open the SQLite stores yourself with `state.Open(codexAgent.Paths(home))` (it returns a `*state.DB` and never fails; a store without a path fails when queried).
-- **Pass `state.Open` the full `codex.Paths`.** It expects every store path that `a.Paths(h)` (or `PathsWith`) computes; a hand-built `Paths` with only the threads file set is refused, even though files open lazily.
+- **`builtin` costs Codex's dependency.** A Claude-only tool that imports `builtin` for convenience downloads go-toml; call `claude.New(h)` instead and use [`c.Neutral()`](ds:block?id=claude-agent-neutral-eh63bcpc) where you need the neutral view.
+- **`codex/state` is not in `builtin`.** [`builtin.New`](ds:block?id=builtin-agents-q6nbmbqz) gives you the `*codex.Agent`; open the SQLite stores yourself with `state.Open(codexAgent.Paths(home))` (it returns a `*state.DB` and [never fails](ds:block?id=codex-state-open-uc95e9x7); a store without a path fails when queried).
+- **Pass `state.Open` the full `codex.Paths`.** Compute it with `a.Paths(h)` (or `PathsWith`); [a hand-built `Paths`](ds:block?id=codex-state-open-uc95e9x7) with only the threads file set opens fine, but every other store then fails with `state.ErrNoPath` when queried.
 - **SQLite is pure Go, but large.** `modernc.org/sqlite` needs no CGO and cross-compiles, yet it adds noticeable build time and binary size; that is the reason it is its own module.
 - **Keep module versions together.** The vendor modules require the root module at a matching version; upgrade them together so a vendor module never sees a root API it predates.
 

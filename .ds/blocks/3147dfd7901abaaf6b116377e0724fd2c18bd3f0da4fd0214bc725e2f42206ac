@@ -1,0 +1,4 @@
+func (r *Runner) AutoModeConfig(ctx context.Context, h Home) (agentio.Raw, error) {
+	out, err := r.run(ctx, h, subAutoMode, subConfig)
+	return agentio.Raw(out), err
+}

@@ -1,0 +1,3 @@
+func (v *Autonomy) UnmarshalText(b []byte) error {
+	return enumUnmarshal(v, b, autonomyKind, autonomyNames())
+}

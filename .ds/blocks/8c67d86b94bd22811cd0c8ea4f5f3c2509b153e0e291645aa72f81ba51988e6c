@@ -1,0 +1,18 @@
+func (a *Agent) SystemPaths() SystemPaths {
+	rel := managedDirLinux
+	switch a.host.GOOS {
+	case goosDarwin:
+		rel = managedDirDarwin
+	case goosWindows:
+		rel = managedDirWindows
+	}
+	dir, ok := a.host.SystemPath(rel)
+	if !ok {
+		return SystemPaths{}
+	}
+	return SystemPaths{
+		ManagedDir: dir, ManagedSettings: filepath.Join(dir, managedSettingsFile),
+		ManagedDropIn: filepath.Join(dir, managedDropInDir), ManagedMCP: filepath.Join(dir, managedMCPFile),
+		ManagedMemory: filepath.Join(dir, memoryFileName),
+	}
+}

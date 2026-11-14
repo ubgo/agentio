@@ -1,0 +1,15 @@
+func (a *Agent) settingsPath(h Home, p *Project, s SettingsScope) (string, error) {
+	switch s {
+	case ScopeUser:
+		return filepath.Join(h.Dir(), settingsFile), nil
+	case ScopeProject, ScopeLocal:
+		if p == nil {
+			return "", fmt.Errorf("%w: %s settings need a project", agentio.ErrUnsupported, s)
+		}
+		if s == ScopeProject {
+			return filepath.Join(p.Dir, dotClaudeDir, settingsFile), nil
+		}
+		return filepath.Join(p.localRoot(), dotClaudeDir, localSettingsFile), nil
+	}
+	return "", agentio.UnsupportedError(ID, "write "+string(s)+" settings", "only user, project and local settings files are writable")
+}

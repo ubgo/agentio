@@ -1,0 +1,8 @@
+func enumParse[E enum8](s string, names []string) (E, bool) {
+	for i, n := range names {
+		if n == s {
+			return E(i), true
+		}
+	}
+	return 0, false
+}

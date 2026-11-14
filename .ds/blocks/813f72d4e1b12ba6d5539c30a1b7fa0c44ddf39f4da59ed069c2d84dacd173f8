@@ -1,0 +1,9 @@
+func (a *Agent) systemConfigPaths() (system, managed string) {
+	if a.host.GOOS == goosWindows {
+		system, _ = a.host.SystemPath(systemConfigRelWindows)
+		return system, ""
+	}
+	system, _ = a.host.SystemPath(systemConfigRel)
+	managed, _ = a.host.SystemPath(managedConfigRel)
+	return system, managed
+}

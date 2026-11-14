@@ -1,0 +1,25 @@
+func (a *Agent) CachedUsage(h Home) (Usage, bool, error) {
+	files, err := walkRollouts(a.Paths(h).Sessions, false)
+	if err != nil {
+		return Usage{}, false, err
+	}
+	sort.SliceStable(files, func(i, j int) bool { return files[i].mod.After(files[j].mod) })
+	const maxFilesScanned = 5 // a few newest files: the newest may be a fresh, snapshot-less session
+	for i, f := range files {
+		if i >= maxFilesScanned {
+			break
+		}
+		recs, err := rolloutTail(f.path, tailReadBytes)
+		if err != nil {
+			continue
+		}
+		for j := len(recs) - 1; j >= 0; j-- {
+			r := recs[j]
+			if r.Event == nil || r.Event.Type != EventTokenCount || r.Event.RateLimits == nil {
+				continue
+			}
+			return usageFromSnapshot(r), true, nil
+		}
+	}
+	return Usage{}, false, nil
+}

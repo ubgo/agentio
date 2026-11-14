@@ -1,0 +1,3 @@
+func (r *Runner) BinaryVersion(ctx context.Context) (agentio.Version, error) {
+	return r.core.Version(ctx)
+}

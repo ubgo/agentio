@@ -1,0 +1,6 @@
+func (c *Core) LoginCommand(h Home, f LoginFlow) (Command, error) {
+	if len(c.spec.LoginArgs) == 0 || f != LoginBrowser {
+		return Command{}, UnsupportedError(c.spec.ID, "login flow "+f.String(), "not described by the agent spec")
+	}
+	return c.Command(h.Target(), "", c.spec.LoginArgs, nil)
+}

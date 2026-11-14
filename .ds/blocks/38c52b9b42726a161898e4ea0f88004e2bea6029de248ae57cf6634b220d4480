@@ -1,0 +1,15 @@
+func (a *Agent) Subscription(ctx context.Context, h Home) (Subscription, error) {
+	id, err := a.IdentityContext(ctx, h)
+	if err != nil {
+		return Subscription{}, err
+	}
+	if id.Plan != "" {
+		return Subscription{Plan: id.Plan, ActiveStart: id.SubscriptionActiveStart, ActiveUntil: id.SubscriptionActiveUntil,
+			LastChecked: id.SubscriptionLastChecked, Source: agentio.UsageCache}, nil
+	}
+	u, err := a.Usage(ctx, h)
+	if err != nil {
+		return Subscription{}, err
+	}
+	return Subscription{Plan: u.Plan, Source: agentio.UsageServer}, nil
+}

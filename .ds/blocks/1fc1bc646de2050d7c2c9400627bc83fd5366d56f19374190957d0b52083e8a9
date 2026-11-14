@@ -1,0 +1,6 @@
+type FakeExec struct {
+	mu      sync.Mutex
+	Results map[string]agentio.ProcessResult
+	Default agentio.ProcessResult
+	Calls   []agentio.Command
+}

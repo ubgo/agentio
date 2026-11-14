@@ -1,0 +1,9 @@
+func (e *FeatureUnavailableError) Error() string {
+	switch {
+	case !e.Since.IsZero() && e.Installed.Compare(e.Since) < 0:
+		return fmt.Sprintf("claude: %s needs Claude Code >= %s (installed %s)", e.Feature, e.Since, e.Installed)
+	case !e.Until.IsZero():
+		return fmt.Sprintf("claude: %s was removed in Claude Code %s (installed %s)", e.Feature, e.Until, e.Installed)
+	}
+	return fmt.Sprintf("claude: %s is unavailable in Claude Code %s", e.Feature, e.Installed)
+}

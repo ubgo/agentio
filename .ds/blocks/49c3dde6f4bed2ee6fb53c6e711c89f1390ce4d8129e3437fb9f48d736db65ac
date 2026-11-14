@@ -1,0 +1,1 @@
+func (h Home) String() string { return string(h.agent) + ":" + h.dir }

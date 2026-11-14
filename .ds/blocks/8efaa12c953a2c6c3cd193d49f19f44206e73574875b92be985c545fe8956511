@@ -1,0 +1,14 @@
+func (a *Agent) processTable(ctx context.Context) map[int]agentio.Process {
+	if a.host.Processes == nil {
+		return nil
+	}
+	list, err := a.host.Processes.Processes(ctx)
+	if err != nil {
+		return nil
+	}
+	m := make(map[int]agentio.Process, len(list))
+	for _, p := range list {
+		m[p.PID] = p
+	}
+	return m
+}

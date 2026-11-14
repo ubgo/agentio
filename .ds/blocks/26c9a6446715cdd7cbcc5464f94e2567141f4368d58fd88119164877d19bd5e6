@@ -1,0 +1,54 @@
+func (d *DB) Projects(ctx context.Context) ([]Project, error) {
+	c, err := d.ready(ctx, FileState)
+	if err != nil {
+		return nil, err
+	}
+	have, err := d.columns(ctx, FileState, tableProjects)
+	if err != nil {
+		return nil, err
+	}
+	if len(have) == 0 {
+		return nil, nil // table predates migration 0049
+	}
+	rows, err := c.QueryContext(ctx, "SELECT id, name, metadata, position, created_at_ms, updated_at_ms FROM "+
+		tableProjects+" ORDER BY position, id")
+	if err != nil {
+		return nil, fmt.Errorf("codex/state: projects: %w", err)
+	}
+	var out []Project
+	idx := map[string]int{}
+	for rows.Next() {
+		var p Project
+		var meta sql.NullString
+		var created, updated sql.NullInt64
+		if err := rows.Scan(&p.ID, &p.Name, &meta, &p.Position, &created, &updated); err != nil {
+			_ = rows.Close()
+			return nil, fmt.Errorf("codex/state: projects: %w", err)
+		}
+		if meta.String != "" {
+			p.Metadata = agentio.Raw(meta.String)
+		}
+		p.Created, p.Updated = fromMillis(created), fromMillis(updated)
+		idx[p.ID] = len(out)
+		out = append(out, p)
+	}
+	err = errors.Join(rows.Err(), rows.Close())
+	if err != nil {
+		return nil, fmt.Errorf("codex/state: projects: %w", err)
+	}
+	roots, err := c.QueryContext(ctx, "SELECT project_id, path FROM "+tableProjectRoots+" ORDER BY project_id, position")
+	if err != nil {
+		return nil, fmt.Errorf("codex/state: project roots: %w", err)
+	}
+	defer func() { _ = roots.Close() }()
+	for roots.Next() {
+		var pid, path string
+		if err := roots.Scan(&pid, &path); err != nil {
+			return nil, fmt.Errorf("codex/state: project roots: %w", err)
+		}
+		if i, ok := idx[pid]; ok {
+			out[i].Roots = append(out[i].Roots, path)
+		}
+	}
+	return out, roots.Err()
+}

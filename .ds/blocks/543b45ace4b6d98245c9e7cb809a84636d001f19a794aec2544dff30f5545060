@@ -1,0 +1,3 @@
+func EnvSetSecret(name string, t Token) EnvChange {
+	return EnvChange{op: EnvSetSecretOp, name: name, secret: t}
+}

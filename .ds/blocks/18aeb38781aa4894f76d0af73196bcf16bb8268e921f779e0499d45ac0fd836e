@@ -1,0 +1,84 @@
+type Config struct {
+	// model
+	Model                      Opt[string]
+	ModelProvider              Opt[string] // key into ModelProviders or a built-in ("openai", "ollama", "lmstudio")
+	ModelReasoningEffort       Opt[ReasoningEffort]
+	PlanModeReasoningEffort    Opt[ReasoningEffort]
+	ModelReasoningSummary      Opt[ReasoningSummary]
+	ModelVerbosity             Opt[Verbosity]
+	ModelContextWindow         Opt[int64]
+	ModelAutoCompactTokenLimit Opt[int64]
+	ModelCatalogJSON           Opt[string]
+	ModelInstructionsFile      Opt[string]
+	ReviewModel                Opt[string]
+	ServiceTier                Opt[string] // free-form upstream: "default" | "priority" | "flex" | legacy "fast"
+	Personality                Opt[Personality]
+	OSSProvider                Opt[string]
+	OpenAIBaseURL              Opt[string]
+	ChatGPTBaseURL             Opt[string]
+
+	// safety
+	ApprovalPolicy Opt[ApprovalPolicy]
+	// ApprovalGranular is the `approval_policy = { granular = {...} }`
+	// table, kept raw (no sample seen).
+	ApprovalGranular       TOMLRaw
+	ApprovalsReviewer      Opt[ApprovalsReviewer]
+	SandboxMode            Opt[SandboxMode]
+	SandboxWorkspaceWrite  *SandboxWorkspaceWrite
+	DefaultPermissions     Opt[string]        // permissions profile name; ":" prefix = built-in
+	Permissions            map[string]TOMLRaw // [permissions.<name>] kept raw (network/filesystem details untyped)
+	ShellEnvironmentPolicy *ShellEnvironmentPolicy
+	AllowLoginShell        Opt[bool]
+
+	// login
+	ForcedLoginMethod         Opt[LoginMethod]
+	ForcedChatGPTWorkspaceIDs []string // string or array upstream; normalised to a list
+	CLIAuthCredentialsStore   Opt[CredentialStore]
+	MCPOAuthCredentialsStore  Opt[OAuthStore]
+
+	// tables
+	ModelProviders map[string]ModelProvider
+	Profiles       map[string]LegacyProfile // [profiles.*] (legacy, read-only: Codex keeps them only for old configs)
+	Profile        Opt[string]              // root `profile = "…"` (legacy selector)
+	MCPServers     map[string]MCPServer
+	Projects       map[string]Project     // key = absolute folder
+	Plugins        map[string]PluginEntry // key "<plugin>@<marketplace>"
+	Marketplaces   map[string]MarketplaceEntry
+	Skills         *SkillsConfig
+	Features       map[string]FeatureSetting // bool or {enabled = …, …}
+	Hooks          *Hooks
+
+	// instructions
+	Instructions                Opt[string]
+	DeveloperInstructions       Opt[string]
+	CompactPrompt               Opt[string]
+	ProjectDocMaxBytes          Opt[int64]
+	ProjectDocFallbackFilenames []string
+	ProjectRootMarkers          []string // default [".git"]; an empty list disables the parent walk
+	// ProjectRootMarkersSet tells "absent" (default .git) from "set to []".
+	ProjectRootMarkersSet bool
+
+	// misc
+	Notify                  []string // argv of a notifier; the JSON payload is appended as the last arg
+	History                 *HistoryConfig
+	Memories                TOMLRaw // [memories] kept raw
+	Agents                  *AgentsConfig
+	Goals                   *GoalsConfig
+	WebSearch               Opt[WebSearchMode]
+	FileOpener              Opt[FileOpener]
+	HideAgentReasoning      Opt[bool]
+	ShowRawAgentReasoning   Opt[bool]
+	CheckForUpdateOnStartup Opt[bool]
+	Analytics               Opt[bool] // [analytics] enabled
+	Feedback                Opt[bool] // [feedback] enabled
+	SQLiteHome              Opt[string]
+	LogDir                  Opt[string]
+	TUI                     TOMLRaw // [tui] kept raw (keymaps, notifications, model_availability_nux, …)
+	Desktop                 TOMLRaw // opaque by upstream design
+
+	// Unknown holds every other key with its source text.
+	Unknown UnknownTOML
+
+	// counts is filled by the decoder; read through KeyCount.
+	counts KeyCounts
+}

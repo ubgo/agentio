@@ -1,0 +1,6 @@
+func (e EnvChange) Value() string {
+	if e.op == EnvSetOp {
+		return e.value
+	}
+	return ""
+}

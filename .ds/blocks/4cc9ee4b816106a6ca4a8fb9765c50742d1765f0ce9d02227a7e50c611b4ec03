@@ -1,0 +1,6 @@
+func (p Project) localRoot() string {
+	if p.RepoRoot != "" {
+		return p.RepoRoot
+	}
+	return p.Dir
+}

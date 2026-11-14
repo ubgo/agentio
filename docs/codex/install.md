@@ -1,18 +1,18 @@
 # Codex install and updates
 
-Where `codex` is installed, how (npm, bun, pnpm, Homebrew cask, standalone), which version, and how to update it, read from disk without running the binary. When you do need the binary's own answers (`--version`, `login status`, `features list`, the bundled model catalog), the `Runner` door runs it through `Host.Exec` and says so in its name.
+Where `codex` is installed, how (npm, bun, pnpm, [Homebrew cask](ds:block?id=codex-agent-install-7wqjtcqk), standalone), which version, and how to update it, read from disk without running the binary. When you do need the binary's own answers (`--version`, `login status`, `features list`, the bundled model catalog), the [`Runner`](ds:block?id=codex-runner-476qyke4) door runs it through `Host.Exec` and says so in its name.
 
 ## Before you start
 
 - Module `github.com/ubgo/agentio/codex`; a `codex.Agent` from [The Codex agent](agent.md).
-- `Install` walks `Host.Env` `PATH` (never a shell). For a version it needs an npm-family layout: `bin/codex` resolving into `node_modules/@openai/codex`, where `package.json` holds the version.
+- [`Install`](ds:block?id=codex-agent-install-7wqjtcqk) walks `Host.Env` `PATH` (never a shell). For a version it needs an npm-family layout: `bin/codex` resolving into `node_modules/@openai/codex`, where [`package.json`](ds:block?id=codex-packageversion-gts9xx4s) holds the version.
 - `Runner` calls need a `Host.Exec`; examples use a canned runner, real programs get one from `agentio.HostFromOS()`.
 
 The snippets come from [`examples/codexconfig`](../../examples/codexconfig/), which puts a fake npm install of codex 0.162.1 on `PATH` and answers Runner calls with recorded output.
 
 ## Step 1 — Read the install
 
-`Install` returns the first `codex` on `PATH`, any shadowed ones, the resolved real path, the install method and the version. `codex.ParseVersion` accepts `codex-cli 0.162.1` or a bare version and keeps pre-release text; it returns `(agentio.Version, bool)` like `agentio.ParseVersion`. `a.UpdateCommand()` is the vendor's own update command for the installed codex: it reads the install method with `Install` and resolves the package manager (`npm`, `bun`, `pnpm`, `brew`) on `Host.Env` `PATH`; the library never runs it.
+`Install` returns the first `codex` on `PATH`, any shadowed ones, the resolved real path, the install method and the version. [`codex.ParseVersion`](ds:block?id=codex-parseversion-zx9z9rav) accepts `codex-cli 0.162.1` or a bare version and keeps pre-release text; it returns `(agentio.Version, bool)` like `agentio.ParseVersion`. [`a.UpdateCommand()`](ds:block?id=codex-agent-updatecommand-mmv9gxga) is the vendor's own update command for the installed codex: it reads the install method with `Install` and resolves the package manager (`npm`, `bun`, `pnpm`, `brew`) on `Host.Env` `PATH`; the library never runs it.
 
 <!-- snippet: examples/codexconfig/install.go#read-install -->
 ```go
@@ -50,7 +50,7 @@ func readInstall(w io.Writer, m machine) error {
 
 ## Step 2 — Read the update cache
 
-`version.json` is written only by the TUI's startup check. `UpdateCache` returns it with `found=false` when absent.
+`version.json` is written only by the TUI's startup check. [`UpdateCache`](ds:block?id=codex-agent-updatecache-7c64td97) returns it with `found=false` when absent.
 
 <!-- snippet: examples/codexconfig/install.go#update-cache -->
 ```go
@@ -69,7 +69,7 @@ func readUpdateCache(w io.Writer, host agentio.Host) error {
 
 ## Step 3 — Run the binary through the Runner
 
-`a.Runner()` is the Process door. `BinaryVersion` runs `codex --version`, `LoginStatus` runs `codex login status`, `Features` runs `codex features list`, `BundledModels` runs `codex debug models --bundled`. `ParseFeatureList` is the parser `Features` uses, for output you captured yourself.
+[`a.Runner()`](ds:block?id=codex-agent-runner-v8k7es62) is the Process door. [`BinaryVersion`](ds:block?id=codex-runner-binaryversion-fz7k9npd) runs `codex --version`, [`LoginStatus`](ds:block?id=codex-runner-loginstatus-xg3qprt5) runs `codex login status`, `Features` runs `codex features list`, [`BundledModels`](ds:block?id=codex-runner-bundledmodels-cpzy9yw7) runs `codex debug models --bundled`. [`ParseFeatureList`](ds:block?id=codex-parsefeaturelist-ptd3dvzf) is the parser `Features` uses, for output you captured yourself.
 
 <!-- snippet: examples/codexconfig/install.go#runner -->
 ```go
@@ -143,12 +143,12 @@ bundled models: gpt-6-luna
 
 ## Pitfalls
 
-- **Every Runner method may rewrite `auth.json`.** Any Codex subcommand can refresh the login and rewrite the file, so all Runner methods are labelled MayTouchLogin and nothing on a read path calls them. Prefer `Install` (disk) over `BinaryVersion` (process) for the version.
-- **No version without `package.json`.** For Homebrew, standalone or an unknown layout, `Install.Version` is zero. Launch builders then warn `version-unknown` instead of gating flags (see [Codex launch](launch.md#step-4--handle-unavailable-features)).
-- **`ErrNotInstalled` when no `PATH` entry has `codex`.** It is an error from `Install`; `TargetFor` treats it as "version unknown" instead.
-- **`UpdateCommand` needs the package manager on `PATH`.** It is a method with the same shape as Claude's (`(agentio.Command, error)`, Disk · Read): `agentio.ErrNotInstalled` when codex or the package manager is not on `Host.Env` `PATH`, `agentio.ErrUnsupported` for a standalone or unknown install (the installer script is not modelled). `Command.Path` is the resolved absolute path, never a bare `npm`.
-- **A stale update cache is normal.** `LatestVersion` can be older than the installed version (the cache is only refreshed by the TUI); the doctor reports this as info, not as "update available".
-- **`Features` and `FeatureFlag` are the vendor's runtime feature switches** (`[features]` in `config.toml`). The version-gated launch flags are the separate `codex.Feature` enum ([Compat features](../compat/features.md)).
+- **Every Runner method may rewrite [`auth.json`](ds:block?id=codex-runner-476qyke4).** Any Codex subcommand can refresh the login and rewrite the file, so all Runner methods are labelled MayTouchLogin and nothing on a read path calls them. Prefer `Install` (disk) over `BinaryVersion` (process) for the version.
+- **No version without `package.json`.** For Homebrew, standalone or an unknown layout, [`Install.Version`](ds:block?id=codex-agent-install-7wqjtcqk) is zero. Launch builders then warn [`version-unknown`](ds:block?id=codex-newbuilder-45cx4x37) instead of gating flags (see [Codex launch](launch.md#step-4--handle-unavailable-features)).
+- **[`ErrNotInstalled`](ds:block?id=codex-agent-install-7wqjtcqk) when no `PATH` entry has `codex`.** It is an error from `Install`; [`TargetFor`](ds:block?id=codex-agent-targetfor-nzpuwqwd) treats it as "version unknown" instead.
+- **[`UpdateCommand`](ds:block?id=codex-agent-updatecommand-mmv9gxga) needs the package manager on `PATH`.** It is a method with the same shape as Claude's (`(agentio.Command, error)`, Disk · Read): `agentio.ErrNotInstalled` when codex or the package manager is not on `Host.Env` `PATH`, `agentio.ErrUnsupported` for a standalone or unknown install (the installer script is not modelled). `Command.Path` is the resolved absolute path, never a bare `npm`.
+- **A stale update cache is normal.** [`LatestVersion`](ds:block?id=codex-agent-checks-kj5pjpxm) can be older than the installed version (the cache is only refreshed by the TUI); the doctor reports this as info, not as "update available".
+- **`Features` and [`FeatureFlag`](ds:block?id=codex-featureflag-daqfcd4n) are the vendor's runtime feature switches** (`[features]` in `config.toml`). The version-gated launch flags are the separate [`codex.Feature`](ds:block?id=codex-feature-u2cyacgu) enum ([Compat features](../compat/features.md)).
 
 ## Related
 

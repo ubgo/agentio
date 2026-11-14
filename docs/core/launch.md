@@ -1,6 +1,6 @@
 # Targets and commands
 
-agentio never starts a process for you when you launch an agent. It builds an `agentio.Command`: the binary, the argv, the full child environment and the working dir, as data. You decide how to run it (`syscall.Exec`, `exec.Cmd`, or print it for a dry run). A `Target` is the home plus the inputs from the caller's profile; a `LaunchRequest` is one invocation (prompt, resume id, model, autonomy). You want this page to start or resume an agent in the right home with the right environment.
+agentio never starts a process for you when you launch an agent. It builds an [`agentio.Command`](ds:block?id=command-c4wdgewr): the binary, the argv, the full child environment and the working dir, as data. You decide how to run it (`syscall.Exec`, `exec.Cmd`, or print it for a dry run). A `Target` is the home plus the inputs from the caller's profile; a `LaunchRequest` is one invocation (prompt, resume id, model, autonomy). You want this page to start or resume an agent in the right home with the right environment.
 
 ## Before you start
 
@@ -9,7 +9,7 @@ agentio never starts a process for you when you launch an agent. It builds an `a
 
 ## Step 1 — Build a Target from a home
 
-`Home.Target()` gives a plain target. Fill the rest from the caller's profile: `ExtraArgs` go before the request's own args, `ExtraEnv` is applied onto the base env before the credential and home rules, `Version` is the installed vendor version (zero = unknown), `AllowDangerous` unlocks full autonomy, `Billing` is a hint.
+`Home.Target()` gives a plain target. Fill the rest from the caller's profile: `ExtraArgs` go before the request's own args, [`ExtraEnv`](ds:block?id=core-envchanges-f8hrn3we) is applied after the scrub of inherited credential variables and before a token login and the home rule, `Version` is the installed vendor version (zero = unknown), [`AllowDangerous`](ds:block?id=checkautonomy-udeuy75m) unlocks full autonomy, `Billing` is a hint.
 
 <!-- snippet: examples/launch/main.go#target -->
 ```go
@@ -29,7 +29,7 @@ func workTarget(a *claude.Agent) agentio.Target {
 
 ## Step 2 — Launch through the neutral Agent
 
-`Agent.Launch(target, request)` is the same call for every agent. Each `LaunchRequest` field the agent cannot express returns `ErrUnsupported`; nothing is silently dropped.
+[`Agent.Launch(target, request)`](ds:block?id=core-launch-v8h5ys7c) is the same call for every agent. Each `LaunchRequest` field the agent cannot express returns `ErrUnsupported`; nothing is silently dropped.
 
 <!-- snippet: examples/launch/main.go#launch-neutral -->
 ```go
@@ -60,17 +60,17 @@ The `Command` you get back:
 
 | Field / method | What it holds |
 |---|---|
-| `Path` | the binary name (`claude`); resolve it with `Agent.LookPath` before exec |
+| `Path` | [the binary name (`claude`)](ds:block?id=core-command-m93k4eug); resolve it with `Agent.LookPath` before exec |
 | `Args` | argv without argv[0]; never holds a token |
 | `Env` | the full child environment; the one place a token may live |
 | `Dir` | the working dir (`LaunchRequest.Dir`) |
 | `Warnings` | drift notes from building (unknown or untested version) |
-| `String()` | the shell-quoted argv, env never included |
-| `Redacted()` | a copy whose secret env values read `[redacted]` |
-| `SecretEnvNames()` | env names whose values came from a `Token` |
-| `MarshalJSON` | always the redacted form |
+| `String()` | [the shell-quoted argv, env never included](ds:block?id=command-string-uxssqggr) |
+| `Redacted()` | a copy whose secret env values read [`[redacted]`](ds:block?id=command-redacted-qbsw6442) |
+| `SecretEnvNames()` | [env names whose values came from a `Token`](ds:block?id=command-secretenvnames-72t7wfqg) |
+| `MarshalJSON` | [always the redacted form](ds:block?id=command-marshaljson-gy7a7qs2) |
 
-The default home is the important special case. Its home variable is removed from the child env, even when the caller's shell set it, and an unknown `Target.Version` still builds, with a warning:
+The default home is the important special case. Its home variable is [removed from the child env](ds:block?id=homeenvchange-59nx5j7k), even when the caller's shell set it, and an unknown `Target.Version` [still builds, with a warning](ds:block?id=claude-versionwarnings-82bmgcbc):
 
 <!-- snippet: examples/launch/main.go#launch-default -->
 ```go
@@ -94,7 +94,7 @@ func launchDefault(p printer, a *claude.Agent) error {
 
 ## Step 3 — Check the autonomy level
 
-`Autonomy` is the neutral permission level: `default` (no flag), `read-only`, `ask`, `accept-edits`, `full`. A level with no exact vendor mode is refused, never mapped to a more permissive one. `full` (no prompts, no sandbox) needs `Target.AllowDangerous`; without it every builder returns `ErrDangerousNotAllowed`, and `agentio.CheckAutonomy` applies the same rule in your own code.
+`Autonomy` is the neutral permission level: `default` (no flag), `read-only`, `ask`, `accept-edits`, `full`. A level with no exact vendor mode is refused, [never mapped to a more permissive one](ds:block?id=claude-launchfromrequest-tr947xnr). `full` (no prompts, no sandbox) needs `Target.AllowDangerous`; without it every builder returns `ErrDangerousNotAllowed`, and [`agentio.CheckAutonomy`](ds:block?id=checkautonomy-udeuy75m) applies the same rule in your own code.
 
 <!-- snippet: examples/launch/main.go#autonomy -->
 ```go
@@ -126,7 +126,7 @@ func autonomy(p printer, a agentio.Agent, t agentio.Target) error {
 
 ## Step 4 — Change the child environment
 
-An `EnvChange` is one edit to a child environment: `EnvSet(name, value)`, `EnvSetSecret(name, token)` or `EnvUnset(name)`. `ApplyEnv(base, changes...)` returns a new env (the input is never modified): each change first removes every entry of its name, duplicates included, then a set appends one. `HomeEnvChange(homeEnv, home)` is the home rule (unset for the default home, set to the folder for any other) and `ScrubEnv(names)` unsets a list. `NewCommand` builds a `Command` from those pieces and remembers which names hold secrets.
+An `EnvChange` is one edit to a child environment: `EnvSet(name, value)`, `EnvSetSecret(name, token)` or `EnvUnset(name)`. [`ApplyEnv(base, changes...)`](ds:block?id=applyenv-9fc572ee) returns a new env (the input is never modified): each change first removes every entry of its name, duplicates included, then a set appends one. [`HomeEnvChange(homeEnv, home)`](ds:block?id=homeenvchange-59nx5j7k) is the home rule (unset for the default home, set to the folder for any other) and [`ScrubEnv(names)`](ds:block?id=scrubenv-4rdtd62j) unsets a list. [`NewCommand`](ds:block?id=newcommand-78p36jg6) builds a `Command` from those pieces and remembers which names hold secrets.
 
 <!-- snippet: examples/launch/main.go#child-env -->
 ```go
@@ -165,7 +165,7 @@ func childEnv(p printer, a *claude.Agent) error {
 }
 ```
 
-Launch builders apply changes in a fixed order: a scrub of the vendor's credential variables (`Spec.CredentialEnv`) first, for every login, so an inherited key never overrides the home's stored login; then `Target.ExtraEnv`, so a credential you set on purpose is kept for a home login; then (token login only) the scrub again followed by the token itself; then the home rule last. So a profile can never override the home variable, and a token login always wins over a profile credential.
+[Launch builders apply changes in a fixed order](ds:block?id=core-envchanges-f8hrn3we): a scrub of the vendor's credential variables (`Spec.CredentialEnv`) first, for every login, so an inherited key never overrides the home's stored login; then `Target.ExtraEnv`, so a credential you set on purpose is kept for a home login; then (token login only) the scrub again followed by the token itself; then the home rule last. So a profile can never override the home variable, and a token login always wins over a profile credential.
 
 ## Try it
 
@@ -211,13 +211,13 @@ raw env holds the token: true
 
 ## Pitfalls
 
-- **Every launch removes inherited credential variables.** A base env carrying `ANTHROPIC_API_KEY` (as above) would make Claude Code bill per token instead of using the home's login, so `Launch` unsets `Spec.CredentialEnv` (Claude: `CLAUDE_CODE_OAUTH_TOKEN`, `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`; Codex: `CODEX_API_KEY`) for a home login too. To launch with a key on purpose, pass it as a token login (`LaunchRequest.Credential`) or set it in `Target.ExtraEnv`. Codex keeps `OPENAI_API_KEY`: Codex auth never reads it, and a model provider may name it as its key.
-- **`ExtraEnv` cannot set the home variable.** The home rule is applied last; to launch another home, use that home's Target.
-- **A prompt goes after `--`.** Claude's builder separates the prompt from flags, so a prompt that starts with `-` is never read as a flag.
+- **Every launch removes inherited credential variables.** A base env carrying `ANTHROPIC_API_KEY` (as above) would make Claude Code bill per token instead of using the home's login, so `Launch` unsets [`Spec.CredentialEnv`](ds:block?id=claude-credentialenv-kqm45qxy) (Claude: `CLAUDE_CODE_OAUTH_TOKEN`, `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`; Codex: `CODEX_API_KEY`) for a home login too. To launch with a key on purpose, pass it as a token login (`LaunchRequest.Credential`) or set it in `Target.ExtraEnv`. [Codex keeps `OPENAI_API_KEY`](ds:block?id=codex-spec-ut8me6cu): Codex auth never reads it, and a model provider may name it as its key.
+- **`ExtraEnv` cannot set the home variable.** [The home rule is applied last](ds:block?id=core-envchanges-f8hrn3we); to launch another home, use that home's Target.
+- **[A prompt goes after `--`.](ds:block?id=claude-launchoptions-build-78wzjpre)** Claude's builder separates the prompt from flags, so a prompt that starts with `-` is never read as a flag.
 - **`Command.Env` holds real secrets.** Print `Redacted()`, `String()` or the JSON form; never `fmt.Println(cmd.Env)`.
-- **`Redacted` also masks names that look secret.** Values from `ExtraEnv` whose names contain `TOKEN`, `KEY`, `SECRET`, `PASSWORD`, `PASSWD`, `CREDENTIAL` or `AUTH` are masked even though they did not come from a Token; `SecretEnvNames` lists only the Token ones.
-- **Unknown version builds and warns.** A zero `Target.Version` is never a refusal; read `Command.Warnings`. A known version that provably lacks a flag returns an error matching `ErrFeatureUnavailable` ([Per-feature version table](../compat/features.md)).
-- **`EnvChange` hides its secret.** `Value()` returns `""` for a secret change and its `String()` and JSON are redacted; only `ApplyEnv` reads the token.
+- **`Redacted` also masks names that look secret.** Values from `ExtraEnv` whose names contain `TOKEN`, `KEY`, `SECRET`, [`PASSWORD`](ds:block?id=sensitivenameparts-55jafnj3), `PASSWD`, `CREDENTIAL` or `AUTH` are masked even though they did not come from a Token; [`SecretEnvNames`](ds:block?id=secretnamesof-7pd7kykk) lists only the Token ones.
+- **[Unknown version builds and warns.](ds:block?id=featurespan-in-vh7rmz94)** A zero `Target.Version` is never a refusal; read `Command.Warnings`. A known version that provably lacks a flag returns an error matching [`ErrFeatureUnavailable`](ds:block?id=claude-checkfeature-am2yhjzp) ([Per-feature version table](../compat/features.md)).
+- **`EnvChange` hides its secret.** [`Value()`](ds:block?id=envchange-value-43pazd3a) returns `""` for a secret change and its `String()` and JSON are redacted; [only `ApplyEnv` reads the token](ds:block?id=applyenv-9fc572ee).
 
 ## Related
 

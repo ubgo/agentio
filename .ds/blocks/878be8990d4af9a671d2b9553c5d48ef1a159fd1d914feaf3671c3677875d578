@@ -1,0 +1,16 @@
+func (a *Agent) Usage(ctx context.Context, h Home) (Usage, error) {
+	c, err := a.usableCredential(ctx, h)
+	if err != nil {
+		return Usage{}, err
+	}
+	body, err := a.get(ctx, usagePath, c.AccessToken)
+	if err != nil {
+		return Usage{}, err
+	}
+	u, err := ParseUsage(body)
+	if err != nil {
+		return Usage{}, err
+	}
+	u.Source, u.ObservedAt = agentio.UsageServer, a.now()
+	return u, nil
+}

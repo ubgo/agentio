@@ -1,0 +1,6 @@
+func (w *Writer) ApplyHomeLinks(links []agentio.HomeLink) error {
+	if err := agentio.CheckLinksOwner(ID, links); err != nil {
+		return err
+	}
+	return agentio.ApplyHomeLinks(links)
+}

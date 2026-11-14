@@ -1,0 +1,1 @@
+	ErrInvalidID = errors.New("agentio: invalid agent id")

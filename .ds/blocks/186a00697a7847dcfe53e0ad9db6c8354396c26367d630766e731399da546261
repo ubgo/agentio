@@ -1,0 +1,7 @@
+func versionLine(out io.Writer, vendor agentio.ID, inst agentio.Install, err error, c agentio.Compat) {
+	if err != nil {
+		fmt.Fprintf(out, "%s: install not found (%v)\n", vendor, err)
+		return
+	}
+	fmt.Fprintf(out, "%s: installed %s, tested %s..%s: %s\n", vendor, inst.Version, c.Min, c.Max, c.Check(inst.Version))
+}

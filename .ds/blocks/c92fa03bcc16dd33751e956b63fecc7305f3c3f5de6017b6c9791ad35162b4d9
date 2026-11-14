@@ -1,0 +1,9 @@
+func (f *FakeExec) Run(_ context.Context, c agentio.Command, _ io.Reader) (agentio.ProcessResult, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.Calls = append(f.Calls, c)
+	if r, ok := f.Results[c.String()]; ok {
+		return r, nil
+	}
+	return f.Default, nil
+}

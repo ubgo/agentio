@@ -1,0 +1,20 @@
+func (a *Agent) MCPAddCommand(h Home, name string, s MCPAddSpec) (agentio.Command, error) {
+	if len(s.Env) > 0 {
+		return agentio.Command{}, agentio.UnsupportedError(ID, "mcp add with env values", "codex mcp add takes env values on argv (--env K=V), which would expose them; add the server without env and set env in config.toml")
+	}
+	args := []string{subMCP, subAdd, name}
+	switch {
+	case s.URL != "" && s.Command != "":
+		return agentio.Command{}, fmt.Errorf("%w: mcp add takes a URL or a command, not both", ErrInvalidOption)
+	case s.URL != "":
+		args = append(args, flagURL, s.URL)
+		if s.BearerTokenEnvVar != "" {
+			args = append(args, flagBearerEnv, s.BearerTokenEnvVar)
+		}
+	case s.Command != "":
+		args = append(append(args, flagArgsSep, s.Command), s.Args...)
+	default:
+		return agentio.Command{}, fmt.Errorf("%w: mcp add needs a URL or a command", ErrInvalidOption)
+	}
+	return a.plainCommand(h, args), nil
+}

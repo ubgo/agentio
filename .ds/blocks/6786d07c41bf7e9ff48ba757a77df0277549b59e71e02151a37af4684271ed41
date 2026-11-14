@@ -1,0 +1,22 @@
+func helpDrift(path string, r *report) error {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	known := map[string]bool{}
+	for _, f := range claude.Features() {
+		for _, tok := range strings.Fields(f.String()) {
+			if strings.HasPrefix(tok, longFlagPrefix) {
+				known[tok] = true
+			}
+		}
+	}
+	seen := map[string]bool{}
+	for _, fl := range regexp.MustCompile(helpFlagPattern).FindAllString(string(b), -1) {
+		if !known[fl] && !seen[fl] {
+			seen[fl] = true
+			r.add(finding{vendor: claude.ID, home: noHome, source: sourceHelp, kind: kindMissingFlag, detail: fl})
+		}
+	}
+	return nil
+}

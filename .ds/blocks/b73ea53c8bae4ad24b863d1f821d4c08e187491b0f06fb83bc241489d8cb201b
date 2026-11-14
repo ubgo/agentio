@@ -1,0 +1,12 @@
+func ClassifyProcess(agents []Agent, p Process) (ProcessInfo, bool) {
+	for _, a := range agents {
+		c, ok := ProcessClassifierOf(a)
+		if !ok {
+			continue
+		}
+		if info, ok := c.ClassifyProcess(p); ok {
+			return info, true
+		}
+	}
+	return ProcessInfo{}, false
+}

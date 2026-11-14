@@ -1,0 +1,9 @@
+func (w Warning) String() string {
+	parts := []string{w.Kind.String()}
+	for _, p := range []string{w.File, w.Key, w.Detail} {
+		if p != "" {
+			parts = append(parts, p)
+		}
+	}
+	return strings.Join(parts, warningSep)
+}

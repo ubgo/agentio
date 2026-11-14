@@ -1,0 +1,50 @@
+func (w *Writer) RemoveHooks(h Home, p *Project, s SettingsScope, keep func(HookEvent, HookHandler) bool) (removed int, b agentio.Backup, err error) {
+	path, err := w.a.settingsPath(h, p, s)
+	if err != nil {
+		return 0, b, err
+	}
+	raw, err := readRawSettings(path)
+	if err != nil {
+		return 0, b, err
+	}
+	hooks, err := readHooks(raw)
+	if err != nil {
+		return 0, b, err
+	}
+	for ev, groups := range hooks {
+		var keptGroups []HookMatcher
+		for _, g := range groups {
+			var kept []HookHandler
+			for _, hh := range g.Hooks {
+				if keep(ev, hh) {
+					kept = append(kept, hh)
+				} else {
+					removed++
+				}
+			}
+			if len(kept) > 0 {
+				g.Hooks = kept
+				keptGroups = append(keptGroups, g)
+			}
+		}
+		if len(keptGroups) == 0 {
+			delete(hooks, ev)
+		} else {
+			hooks[ev] = keptGroups
+		}
+	}
+	if removed == 0 {
+		return 0, b, nil
+	}
+	if len(hooks) == 0 {
+		delete(raw, keyHooks)
+	} else {
+		enc, err := json.Marshal(hooks)
+		if err != nil {
+			return 0, b, err
+		}
+		raw[keyHooks] = enc
+	}
+	b, err = w.writeRawSettings(path, raw)
+	return removed, b, err
+}

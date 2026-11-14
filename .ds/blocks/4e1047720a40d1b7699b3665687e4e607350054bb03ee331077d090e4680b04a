@@ -1,0 +1,8 @@
+func KeychainServices(dir string, isDefault bool) []string {
+	sum := sha256.Sum256([]byte(filepath.Clean(dir)))
+	names := []string{keychainService + "-" + hex.EncodeToString(sum[:])[:keychainHashLen]}
+	if isDefault {
+		names = append(names, keychainService)
+	}
+	return names
+}

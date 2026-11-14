@@ -1,0 +1,55 @@
+func (a *Agent) Usage(ctx context.Context, h Home) (Usage, error) {
+	endpoint := a.baseURL + usagePath
+	tok, account, mode, apiKey, err := a.readAccess(ctx, h)
+	if err != nil {
+		return Usage{}, err
+	}
+	if tok.IsZero() {
+		if apiKey || mode == AuthAPIKey {
+			return Usage{}, fmt.Errorf("codex: API-key login: %w", agentio.ErrBilledPerToken)
+		}
+		return Usage{}, agentio.ErrNotLoggedIn
+	}
+	now := a.now()
+	if c, ok := decodeJWT(tok.Reveal()); ok && c.Exp > 0 && !now.Before(unixTime(c.Exp)) {
+		return Usage{}, fmt.Errorf("codex: access token expired at %s (run codex to refresh it): %w", unixTime(c.Exp).Format(time.RFC3339), agentio.ErrExpired)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return Usage{}, fmt.Errorf("codex: build usage request: %w", err)
+	}
+	req.Header.Set(headerAuth, bearerPrefix+tok.Reveal())
+	if account != "" {
+		req.Header.Set(headerAccountID, account)
+	}
+	req.Header.Set(headerAccept, mimeJSON)
+	req.Header.Set(headerUserAgent, userAgent)
+	client := a.host.HTTP
+	if client == nil {
+		return Usage{}, agentio.UnsupportedError(ID, "usage", "Host.HTTP is nil")
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return Usage{}, fmt.Errorf("codex: usage request: %w", err)
+	}
+	// Body is read fully (bounded) below; Close only releases the connection.
+	defer func() { _ = resp.Body.Close() }()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
+	if err != nil {
+		return Usage{}, fmt.Errorf("codex: read usage response: %w", err)
+	}
+	switch {
+	case resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden:
+		return Usage{}, fmt.Errorf("codex: HTTP %d: %w", resp.StatusCode, agentio.ErrUnauthorized)
+	case resp.StatusCode == http.StatusTooManyRequests:
+		return Usage{}, agentio.RateLimitError(resp.Header, now)
+	case resp.StatusCode != http.StatusOK:
+		return Usage{}, fmt.Errorf("codex: unexpected HTTP %d: %s", resp.StatusCode, snippet(body))
+	}
+	u, err := ParseUsage(body)
+	if err != nil {
+		return Usage{}, err
+	}
+	u.ObservedAt = now
+	return u, nil
+}

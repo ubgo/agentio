@@ -1,0 +1,1 @@
+func (a *Agent) IsHome(dir string) (bool, error) { return a.core.IsHome(dir) }

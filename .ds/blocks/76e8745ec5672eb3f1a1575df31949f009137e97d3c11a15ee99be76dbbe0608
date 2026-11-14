@@ -1,0 +1,1 @@
+func (a *Agent) Prober() *Prober { return &Prober{a: a} }

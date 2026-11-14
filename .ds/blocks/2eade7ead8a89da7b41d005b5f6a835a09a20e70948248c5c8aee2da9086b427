@@ -1,0 +1,4 @@
+func (a *Agent) HomeFromEnv() (Home, bool) {
+	h, ok := a.core.HomeFromEnv()
+	return Home{h: h}, ok
+}

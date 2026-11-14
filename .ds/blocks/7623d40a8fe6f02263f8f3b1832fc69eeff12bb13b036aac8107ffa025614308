@@ -1,0 +1,8 @@
+func (r *Runner) BundledModels(ctx context.Context) (ModelCatalog, error) {
+	out, err := r.run(ctx, r.a.DefaultHome(), subDebug, subModels, flagBundled)
+	if err != nil {
+		return ModelCatalog{}, err
+	}
+	cat, _, err := ParseModelCatalog(out)
+	return cat, err
+}

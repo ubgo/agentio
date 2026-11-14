@@ -1,0 +1,3 @@
+func (c *Core) DefaultHome() Home {
+	return NewHome(c.spec.ID, c.defaultHomeDir(), true, DefaultHomeName)
+}

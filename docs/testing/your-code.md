@@ -140,7 +140,7 @@ The snippets on this site are cut from the example programs, so they always comp
 go test -count=1 ./internal/docscheck/ -run TestSnippets -args -update
 ```
 
-from the repository root (`task docs:snippets`) to rewrite the blocks from source. `task docs:check` (`go test -count=1 ./internal/docscheck/`) then fails on a block that drifted from its source, a broken relative link or `#anchor`, a hard-wrapped paragraph, or a local machine path in a public file. The checker lives in `internal/docscheck` and has no non-test code.
+from the repository root (`task docs:snippets`) to rewrite the blocks from source. `task docs:check` (`go test -count=1 ./internal/docscheck/`) then fails on a block that drifted from its source, a broken relative link or `#anchor`, a hard-wrapped paragraph, or a local machine path in a public file. The checker lives in `internal/docscheck` and has no non-test code. The same task then runs `ds check` ([docsync](https://github.com/ubgo/docsync)): behavioural sentences in the README and guides cite the code that implements them, and the check fails when that code changed since the sentence was acked. CONTRIBUTING describes how to re-check and `ds ack` a flagged sentence.
 
 ## Try it
 

@@ -1,0 +1,3 @@
+func (b Backup) Merge(o Backup) Backup {
+	return Backup{Entries: append(append([]BackupEntry{}, b.Entries...), o.Entries...)}
+}

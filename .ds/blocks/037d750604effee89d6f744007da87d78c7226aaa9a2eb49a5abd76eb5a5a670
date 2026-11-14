@@ -1,0 +1,11 @@
+func (c Config) LegacyProfileNames() []string {
+	var out []string
+	for name := range c.Profiles {
+		out = append(out, name)
+	}
+	if c.Profile.Set && c.Profile.V != "" {
+		addName(&out, c.Profile.V)
+	}
+	sort.Strings(out)
+	return out
+}

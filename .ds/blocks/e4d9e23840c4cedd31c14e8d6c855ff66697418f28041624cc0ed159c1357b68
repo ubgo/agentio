@@ -1,0 +1,6 @@
+func UnsupportedError(agent ID, what, reason string) error {
+	if reason == "" {
+		return fmt.Errorf("%w: %s: %s", ErrUnsupported, agent, what)
+	}
+	return fmt.Errorf("%w: %s: %s: %s", ErrUnsupported, agent, what, reason)
+}

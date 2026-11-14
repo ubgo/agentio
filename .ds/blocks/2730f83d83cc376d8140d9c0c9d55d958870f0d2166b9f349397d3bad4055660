@@ -1,0 +1,20 @@
+func launchFromRequest(r agentio.LaunchRequest) (LaunchOptions, error) {
+	o := LaunchOptions{Prompt: r.Prompt, Resume: r.ResumeID, Model: r.Model, AddDirs: r.AddDirs, ExtraArgs: r.Args}
+	switch r.Autonomy {
+	case agentio.AutonomyDefault:
+	case agentio.AutonomyReadOnly:
+		o.PermissionMode = ModePlan
+	case agentio.AutonomyAsk:
+		o.PermissionMode = ModeManual
+	case agentio.AutonomyAcceptEdits:
+		o.PermissionMode = ModeAcceptEdits
+	case agentio.AutonomyFull:
+		o.DangerouslySkipPermissions = true
+	default:
+		return o, agentio.UnsupportedError(ID, "autonomy "+r.Autonomy.String(), "no matching Claude permission mode")
+	}
+	if r.Headless {
+		o.Print, o.OutputFormat, o.Verbose = true, OutputStreamJSON, true
+	}
+	return o, nil
+}

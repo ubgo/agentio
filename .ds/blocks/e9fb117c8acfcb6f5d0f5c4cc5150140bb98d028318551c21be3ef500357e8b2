@@ -1,0 +1,22 @@
+func LookPathAll(pathList, name string) []string {
+	if name == "" {
+		return nil
+	}
+	if filepath.IsAbs(name) {
+		if isExecutable(name) {
+			return []string{name}
+		}
+		return nil
+	}
+	var out []string
+	for _, dir := range filepath.SplitList(pathList) {
+		if dir == "" || !filepath.IsAbs(dir) {
+			continue
+		}
+		p := filepath.Join(dir, name)
+		if isExecutable(p) && !slices.Contains(out, p) {
+			out = append(out, p)
+		}
+	}
+	return out
+}

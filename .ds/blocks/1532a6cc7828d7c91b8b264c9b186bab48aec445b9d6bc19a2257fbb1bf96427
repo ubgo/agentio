@@ -1,0 +1,1 @@
+func NewToken(v string) Token { return Token{v: v} }

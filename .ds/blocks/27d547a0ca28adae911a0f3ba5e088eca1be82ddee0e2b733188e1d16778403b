@@ -1,0 +1,27 @@
+func ParseAuth(b []byte, source string) (Identity, error) {
+	var w authFileWire
+	if err := json.Unmarshal(b, &w); err != nil {
+		return Identity{}, fmt.Errorf("codex: decode %s: %w", fileAuth, err)
+	}
+	id := Identity{Mode: w.AuthMode, CredentialStore: StoreFile, Source: source}
+	id.Unknown, _ = agentio.ExtractUnknown(b, authKnownKeys())
+	id.HasAPIKey = w.OpenAIAPIKey != nil && *w.OpenAIAPIKey != ""
+	if t, err := time.Parse(time.RFC3339Nano, w.LastRefresh); err == nil {
+		id.LastRefresh = t.UTC()
+	}
+	if w.Tokens != nil {
+		id.AccountID = agentio.NewPersonal(w.Tokens.AccountID)
+		if c, ok := decodeJWT(w.Tokens.AccessToken); ok {
+			id.AccessExpiresAt = unixTime(c.Exp)
+		}
+		if c, ok := decodeJWT(w.Tokens.IDToken); ok {
+			id.IDTokenExpiresAt = unixTime(c.Exp)
+			applyIDClaims(&id, c)
+		}
+	}
+	id.LoggedIn = (w.Tokens != nil && w.Tokens.AccessToken != "") || id.HasAPIKey
+	if id.Mode == AuthNone && id.HasAPIKey && (w.Tokens == nil || w.Tokens.AccessToken == "") {
+		id.Mode = AuthAPIKey
+	}
+	return id, nil
+}

@@ -1,0 +1,7 @@
+func FromSpec(s Spec, h Host) (Agent, error) {
+	c, err := NewCore(s, h)
+	if err != nil {
+		return nil, err
+	}
+	return specAgent{Core: c}, nil
+}

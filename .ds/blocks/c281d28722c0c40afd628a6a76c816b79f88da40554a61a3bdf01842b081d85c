@@ -1,0 +1,4 @@
+type Runner struct {
+	a    *Agent
+	core agentio.Runner
+}

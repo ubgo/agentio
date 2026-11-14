@@ -1,0 +1,32 @@
+func (a *Agent) Install() (Install, error) {
+	pathList, _ := lookupEnv(a.host.Env, envPath)
+	hits := agentio.LookPathAll(pathList, Binary)
+	if len(hits) == 0 {
+		return Install{}, fmt.Errorf("%w: %s", agentio.ErrNotInstalled, Binary)
+	}
+	in := Install{Install: agentio.Install{Path: hits[0], Method: agentio.InstallUnknown, Shadowed: hits[1:]}}
+	real, err := filepath.EvalSymlinks(hits[0])
+	if err != nil {
+		real = hits[0]
+	}
+	in.RealPath = real
+	slashed := filepath.ToSlash(real)
+	switch {
+	case strings.Contains(slashed, nodeModulesMarker):
+		i := strings.Index(slashed, nodeModulesMarker)
+		in.PackageRoot = filepath.FromSlash(slashed[:i+len(nodeModulesMarker)])
+		in.Method = agentio.InstallNPM
+		switch {
+		case strings.Contains(slashed, bunMarker):
+			in.Method = agentio.InstallBun
+		case strings.Contains(slashed, pnpmMarker):
+			in.Method = agentio.InstallPNPM
+		}
+		in.Version = packageVersion(filepath.Join(in.PackageRoot, filePackageJSON))
+	case strings.Contains(slashed, fileCaskroom):
+		in.Method = agentio.InstallBrew
+	case strings.Contains(slashed, dirStandalone):
+		in.Method = agentio.InstallStandalone
+	}
+	return in, nil
+}

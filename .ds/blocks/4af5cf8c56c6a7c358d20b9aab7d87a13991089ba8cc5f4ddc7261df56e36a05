@@ -1,0 +1,3 @@
+func checkStatusNames() []string {
+	return []string{"skip", "ok", "info", "warn", "fail"}
+}

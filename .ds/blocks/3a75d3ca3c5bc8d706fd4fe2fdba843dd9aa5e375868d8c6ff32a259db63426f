@@ -1,0 +1,6 @@
+func NewHome(agent ID, dir string, isDefault bool, name string) Home {
+	if dir != "" {
+		dir = filepath.Clean(dir)
+	}
+	return Home{agent: agent, dir: dir, isDefault: isDefault, name: name}
+}

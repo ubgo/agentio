@@ -1,0 +1,9 @@
+type ShellEnvironmentPolicy struct {
+	Inherit                Opt[EnvInherit]
+	IgnoreDefaultExcludes  Opt[bool]
+	ExperimentalUseProfile Opt[bool]
+	Exclude                []string
+	IncludeOnly            []string
+	SetKeys                []string // names only
+	Unknown                UnknownTOML
+}

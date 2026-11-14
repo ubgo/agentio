@@ -1,0 +1,3 @@
+func (ws *Warnings) Add(kind WarningKind, file, key, detail string) {
+	*ws = append(*ws, Warning{Kind: kind, File: file, Key: key, Detail: detail})
+}

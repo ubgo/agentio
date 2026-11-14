@@ -1,0 +1,6 @@
+func pickHost(fixtures bool) (agentio.Host, error) {
+	if !fixtures {
+		return agentio.HostFromOS()
+	}
+	return fixtureHost(repoFromExamples)
+}

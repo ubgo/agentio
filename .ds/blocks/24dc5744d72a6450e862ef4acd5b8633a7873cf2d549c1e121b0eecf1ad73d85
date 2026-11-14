@@ -1,0 +1,1 @@
+func (e *LiveSessionError) Unwrap() error { return agentio.ErrMoveBlocked }

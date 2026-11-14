@@ -1,0 +1,18 @@
+func (a *Agent) launch(t agentio.Target, o LaunchOptions, tokenEnv []agentio.EnvChange) (agentio.Command, error) {
+	b, err := o.build()
+	if err != nil {
+		return agentio.Command{}, err
+	}
+	for _, f := range b.feats {
+		if err := checkFeature(f, t.Version); err != nil {
+			return agentio.Command{}, err
+		}
+	}
+	argv := slices.Concat(t.ExtraArgs, b.args)
+	cmd, err := a.core.Command(t, "", argv, tokenEnv)
+	if err != nil {
+		return agentio.Command{}, err
+	}
+	cmd.Warnings = append(cmd.Warnings, versionWarnings(t.Version)...)
+	return cmd, nil
+}

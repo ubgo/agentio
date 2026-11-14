@@ -1,0 +1,19 @@
+func (a *Agent) LoginCommand(h Home, mode LoginMode, email string) agentio.Command {
+	args := []string{subAuth, subLogin}
+	switch mode {
+	case LoginConsole:
+		args = append(args, flagConsole)
+	case LoginSSO:
+		args = append(args, flagSSO)
+	default:
+		args = append(args, flagClaudeAI)
+	}
+	if email != "" {
+		args = append(args, flagEmail, email)
+	}
+	cmd, err := a.core.Command(h.Target(), "", args, nil)
+	if err != nil {
+		return a.command(h, args...)
+	}
+	return cmd
+}

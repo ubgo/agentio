@@ -1,0 +1,11 @@
+func (r *Runner) BinaryVersion(ctx context.Context) (agentio.Version, error) {
+	out, err := r.run(ctx, r.a.DefaultHome(), flagVersion)
+	if err != nil {
+		return agentio.Version{}, err
+	}
+	v, ok := ParseVersion(string(out))
+	if !ok {
+		return agentio.Version{}, fmt.Errorf("claude: no version in %s output %q", flagVersion, snippet(bytes.TrimSpace(out)))
+	}
+	return v, nil
+}

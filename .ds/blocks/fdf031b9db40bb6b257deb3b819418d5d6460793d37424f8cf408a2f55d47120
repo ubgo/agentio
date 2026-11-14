@@ -1,0 +1,35 @@
+func capabilityTable() []capabilityRow {
+	diskR := Cost{Class: CostDisk, Access: Read}
+	diskW := Cost{Class: CostDisk, Access: Write}
+	pure := Cost{Class: CostPure, Access: Read}
+	return []capabilityRow{
+		{CapInstaller, present(InstallerOf), diskR},
+		{CapBinaryVersion, present(BinaryVersionOf), Cost{Class: CostProcess, Access: Read, MayTouchLogin: true}},
+		// Identity is Disk for Codex, Disk + keychain Process for Claude.
+		{CapIdentity, present(IdentityOf), Cost{Class: CostProcess, Access: Read}},
+		{CapUsage, present(UsageOf), Cost{Class: CostNetwork, Access: Read}},
+		{CapCachedUsage, present(CachedUsageOf), diskR},
+		{CapSubscription, present(SubscriptionOf), Cost{Class: CostNetwork, Access: Read}},
+		{CapTokenLogin, present(TokenLoginOf), pure},
+		{CapTokenProber, present(TokenProberOf), Cost{Class: CostQuota, Access: Read}},
+		{CapLoginCommander, present(LoginCommanderOf), pure},
+		{CapConversations, present(ConversationsOf), diskR},
+		{CapHistoryChecker, present(HistoryCheckerOf), diskR},
+		{CapHistoryMover, present(HistoryMoverOf), diskW},
+		{CapConversationMover, present(ConversationMoverOf), diskW},
+		{CapPromptHistory, present(PromptHistoryOf), diskR},
+		// Live sessions read the process table (Process) besides disk.
+		{CapLiveSessions, present(LiveSessionsOf), Cost{Class: CostProcess, Access: Read}},
+		{CapProcessClassifier, present(ProcessClassifierOf), pure},
+		{CapTurns, present(TurnsOf), diskR},
+		{CapHomeLinker, present(HomeLinkerOf), diskW},
+		{CapInstructionFiles, present(InstructionFilesOf), diskR},
+		{CapMCPServers, present(MCPServersOf), diskR},
+		{CapSkills, present(SkillsOf), diskR},
+		{CapPlugins, present(PluginsOf), diskR},
+		{CapConfig, present(ConfigOf), diskR},
+		{CapModels, present(ModelsOf), diskR},
+		{CapRunEvents, present(RunEventsOf), pure},
+		{CapDoctor, present(DoctorOf), diskR},
+	}
+}

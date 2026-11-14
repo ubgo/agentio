@@ -1,0 +1,7 @@
+func (a *Agent) DoctorCommand(h Home, json bool) agentio.Command {
+	args := []string{subDoctor}
+	if json {
+		args = append(args, flagJSON)
+	}
+	return a.plainCommand(h, args)
+}

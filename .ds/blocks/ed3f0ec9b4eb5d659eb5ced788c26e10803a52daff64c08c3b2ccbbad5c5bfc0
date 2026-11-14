@@ -1,0 +1,10 @@
+func (v Version) String() string {
+	if v.IsZero() {
+		return ""
+	}
+	s := strconv.Itoa(v.Major) + "." + strconv.Itoa(v.Minor) + "." + strconv.Itoa(v.Patch)
+	if v.Pre != "" {
+		s += string(versionPre) + v.Pre
+	}
+	return s
+}

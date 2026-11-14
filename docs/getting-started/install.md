@@ -85,8 +85,8 @@ neutral: id=claude name="Claude Code" binary=claude
 
 - **Importing `builtin` pulls every vendor module.** That is its job. A Claude-only tool should import `claude` directly; it then never downloads go-toml or SQLite.
 - **`codex/state` is separate from `codex` on purpose.** `codex` reads rollout files and `config.toml` without SQLite; only the state index needs `modernc.org/sqlite`.
-- **Vendor `ParseVersion` is not the root one.** `agentio.ParseVersion` returns `(Version, bool)`; `claude.ParseVersion` and `codex.ParseVersion` return `(agentio.Version, error)`. See [Versions](../core/versions.md).
-- **Building never runs the vendor CLI.** No step here needs `claude` or `codex` on PATH; when they are missing, `Install` returns an error matching `agentio.ErrNotInstalled` rather than failing to build.
+- **Vendor `ParseVersion` has the root shape.** `agentio.ParseVersion`, [`claude.ParseVersion`](ds:block?id=claude-parseversion-n4kvb682) and [`codex.ParseVersion`](ds:block?id=codex-parseversion-zx9z9rav) all return `(agentio.Version, bool)`; `ok` is false when the text holds no version. See [Versions](../core/versions.md).
+- **Building never runs the vendor CLI.** No step here needs `claude` or `codex` on PATH; when they are missing, `Install` returns an error matching [`agentio.ErrNotInstalled`](ds:block?id=claude-agent-install-472s4jn6) rather than failing to build.
 
 ## Related
 

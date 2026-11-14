@@ -1,0 +1,17 @@
+func (r *report) print(w io.Writer) {
+	fs := make([]finding, 0, len(r.counts))
+	for f := range r.counts {
+		fs = append(fs, f)
+	}
+	sort.Slice(fs, func(i, j int) bool {
+		a, b := fs[i], fs[j]
+		return strings.Join([]string{string(a.vendor), a.home, string(a.kind), a.source, a.detail}, "\x00") < strings.Join([]string{string(b.vendor), b.home, string(b.kind), b.source, b.detail}, "\x00")
+	})
+	for _, f := range fs {
+		if r.baseline[f.baselineKey()] {
+			r.suppressed++
+			continue
+		}
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t(x%d)\n", f.vendor, f.home, f.kind, f.source, f.detail, r.counts[f])
+	}
+}

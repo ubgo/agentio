@@ -1,0 +1,7 @@
+func (a *Agent) DaemonSocket(h Home) (string, bool) {
+	p := a.Paths(h).IPCSocket
+	if _, err := os.Lstat(p); err != nil {
+		return "", false
+	}
+	return p, true
+}

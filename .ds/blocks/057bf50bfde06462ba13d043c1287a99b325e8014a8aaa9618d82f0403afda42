@@ -1,0 +1,12 @@
+func (c Compat) Warning(v Version) (Warning, bool) {
+	if c.Min.IsZero() && c.Max.IsZero() {
+		return Warning{}, false
+	}
+	switch c.Check(v) {
+	case CompatUnknown:
+		return Warning{Kind: WarnVersionUnknown, Detail: "installed version unknown; tested " + c.Min.String() + ".." + c.Max.String()}, true
+	case CompatNewer, CompatOlder:
+		return Warning{Kind: WarnUntestedVersion, Detail: "installed " + v.String() + " is outside tested " + c.Min.String() + ".." + c.Max.String()}, true
+	}
+	return Warning{}, false
+}

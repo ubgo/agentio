@@ -1,0 +1,3 @@
+func runEventTypeNames() []string {
+	return []string{"other", "started", "message", "tool", "usage", "done", "error"}
+}

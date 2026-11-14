@@ -1,0 +1,1 @@
+func Some[T Scalar](v T) Opt[T] { return Opt[T]{V: v, Set: true} }

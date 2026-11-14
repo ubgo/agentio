@@ -1,0 +1,7 @@
+func (r *Runner) Features(ctx context.Context, h Home) ([]FeatureFlag, error) {
+	out, err := r.run(ctx, h, subFeatures, subList)
+	if err != nil {
+		return nil, err
+	}
+	return ParseFeatureList(out), nil
+}

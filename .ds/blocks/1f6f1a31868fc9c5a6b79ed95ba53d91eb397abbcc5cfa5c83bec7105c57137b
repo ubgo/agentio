@@ -1,0 +1,22 @@
+func (a *Agent) UpdateCache(h Home) (UpdateCache, bool, error) {
+	b, err := os.ReadFile(a.Paths(h).VersionCache)
+	if errors.Is(err, fs.ErrNotExist) {
+		return UpdateCache{}, false, nil
+	}
+	if err != nil {
+		return UpdateCache{}, false, fmt.Errorf("codex: read %s: %w", fileVersionCache, err)
+	}
+	var w updateCacheWire
+	if err := json.Unmarshal(b, &w); err != nil {
+		return UpdateCache{}, false, fmt.Errorf("codex: decode %s: %w", fileVersionCache, err)
+	}
+	lv, _ := agentio.ParseVersion(w.LatestVersion)
+	uc := UpdateCache{LatestVersion: lv, LastCheckedAt: parseRFC3339(w.LastCheckedAt)}
+	if w.DismissedVersion != nil {
+		if dv, ok := agentio.ParseVersion(*w.DismissedVersion); ok {
+			uc.DismissedVersion = &dv
+		}
+	}
+	uc.Unknown, _ = agentio.ExtractUnknown(b, []string{"latest_version", "last_checked_at", "dismissed_version"})
+	return uc, true, nil
+}

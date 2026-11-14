@@ -1,0 +1,6 @@
+func (c *Core) ApplyHomeLinks(links []HomeLink) error {
+	if err := CheckLinksOwner(c.spec.ID, links); err != nil {
+		return err
+	}
+	return ApplyHomeLinks(links)
+}

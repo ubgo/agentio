@@ -1,0 +1,7 @@
+func (a *Agent) AppServer(h Home, listen string) agentio.Command {
+	args := []string{subAppServer}
+	if listen != "" {
+		args = append(args, flagListen, listen)
+	}
+	return a.plainCommand(h, args)
+}

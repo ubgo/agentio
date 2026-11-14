@@ -1,0 +1,65 @@
+func scanThread(rows *sql.Rows) (Thread, error) {
+	var (
+		id, rollout, source, provider, cwd, title, sandbox, approval      sql.NullString
+		model, effort, name, preview, firstMsg, gitSHA, gitBranch, gitURL sql.NullString
+		cliVersion, nick, role, path, memMode, histMode, threadSource     sql.NullString
+		section, project, originator, creatorUser, creatorAccount         sql.NullString
+		created, createdMs, updated, updatedMs, recencyMs, tokens         sql.NullInt64
+		hasUser, archived, archivedAt, pinned                             sql.NullInt64
+	)
+	err := rows.Scan(&id, &rollout, &created, &createdMs, &updated, &updatedMs, &recencyMs,
+		&source, &provider, &model, &effort, &cwd, &title, &name, &preview,
+		&firstMsg, &sandbox, &approval, &tokens, &hasUser,
+		&archived, &archivedAt, &gitSHA, &gitBranch, &gitURL, &cliVersion,
+		&nick, &role, &path, &memMode, &histMode, &threadSource,
+		&pinned, &section, &project, &originator, &creatorUser, &creatorAccount)
+	if err != nil {
+		return Thread{}, fmt.Errorf("codex/state: scan thread: %w", err)
+	}
+	t := Thread{
+		ID: id.String, RolloutPath: rollout.String, Cwd: cwd.String, Title: title.String,
+		Name: strPtr(name), Preview: preview.String, FirstUserMessage: firstMsg.String,
+		Created:      pickTime(createdMs, created),
+		Updated:      pickTime(updatedMs, updated),
+		Recency:      fromMillis(recencyMs),
+		ArchivedAt:   timePtr(fromSeconds(archivedAt)),
+		Archived:     archived.Int64 != 0,
+		HasUserEvent: hasUser.Int64 != 0,
+		Pinned:       pinned.Int64 != 0 || section.String == pinnedSectionID,
+		Source:       codex.ParseSessionSource(source.String),
+		ThreadSource: strPtr(threadSource), Originator: strPtr(originator),
+		ModelProvider: provider.String, Model: strPtr(model),
+		ReasoningEffort: codex.ReasoningEffort(effort.String),
+		Approval:        codex.ApprovalPolicy(approval.String),
+		TokensUsed:      tokens.Int64,
+		MemoryMode:      strPtr(memMode),
+		HistoryMode:     HistoryMode(histMode.String),
+		ProjectID:       strPtr(project), SectionID: strPtr(section),
+		CreatorUserID:    agentio.NewPersonal(creatorUser.String),
+		CreatorAccountID: agentio.NewPersonal(creatorAccount.String),
+	}
+	if !histMode.Valid {
+		// Before migration 0040 every thread was legacy (column default).
+		t.HistoryMode = HistoryLegacy
+	}
+	if sandbox.String != "" {
+		if err := json.Unmarshal([]byte(sandbox.String), &t.Sandbox); err != nil {
+			t.Warnings = append(t.Warnings, agentio.Warning{Kind: agentio.WarnTypeChanged, File: FileState.String(), Key: "threads.sandbox_policy", Detail: "unrecognised sandbox_policy shape"})
+		}
+	}
+	if cliVersion.String != "" {
+		v, ok := codex.ParseVersion(cliVersion.String)
+		if ok {
+			t.CLIVersion = v
+		} else {
+			t.Warnings = append(t.Warnings, agentio.Warning{Kind: agentio.WarnTypeChanged, File: FileState.String(), Key: "threads.cli_version", Detail: "unparseable version"})
+		}
+	}
+	if gitSHA.Valid || gitBranch.Valid || gitURL.Valid {
+		t.Git = &codex.GitInfo{CommitHash: gitSHA.String, Branch: gitBranch.String, RepositoryURL: gitURL.String}
+	}
+	if nick.Valid || role.Valid || path.Valid {
+		t.Agent = &SubAgentInfo{Nickname: nick.String, Role: role.String, Path: path.String}
+	}
+	return t, nil
+}

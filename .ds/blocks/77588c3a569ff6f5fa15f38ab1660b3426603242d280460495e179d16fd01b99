@@ -1,0 +1,13 @@
+func (w Window) Class() WindowClass {
+	switch {
+	case w.Length <= 0:
+		return WindowUnknown
+	case w.Length < day:
+		return WindowShort
+	case w.Length < week:
+		return WindowDay
+	case w.Length < month:
+		return WindowWeek
+	}
+	return WindowMonth
+}

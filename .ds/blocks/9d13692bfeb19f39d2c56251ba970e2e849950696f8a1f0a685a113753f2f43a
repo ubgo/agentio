@@ -1,0 +1,1 @@
+func (t Token) Format(f fmt.State, _ rune) { _, _ = io.WriteString(f, redact(t.v)) }

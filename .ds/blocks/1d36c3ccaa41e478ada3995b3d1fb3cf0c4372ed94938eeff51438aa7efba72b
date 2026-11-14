@@ -1,0 +1,24 @@
+func Spec() agentio.Spec {
+	return agentio.Spec{
+		ID:          ID,
+		Name:        displayName,
+		Binary:      Binary,
+		HomeEnv:     EnvHome,
+		DefaultHome: defaultHomeDir,
+		HomeMarkers: []string{fileConfig, fileAuth, dirSessions, fileStateDB, fileVersionCache, fileInstallationID},
+		NewArgs:     []string{tplArgs},
+		ResumeArgs:  []string{subResume, tplArgs, tplID},
+		VersionArgs: []string{flagVersion},
+		LoginArgs:   []string{subLogin},
+		LogoutArgs:  []string{subLogout},
+		// Codex has no shared-file convention between homes; nothing to link.
+		SharedHomeFiles: nil,
+		// Only the variable that overrides a home login; see EnvAPIKey.
+		CredentialEnv: []string{EnvCodexAPIKey},
+		APIBillingEnv: []string{EnvAPIKey, EnvCodexAPIKey},
+		Process: agentio.ProcessMatch{
+			Basenames:    []string{Binary},
+			ArgvContains: []string{npmPackage},
+		},
+	}
+}

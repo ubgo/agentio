@@ -1,0 +1,4 @@
+func (n neutral) TokenUsage(ctx context.Context, c agentio.TokenCredential) (agentio.Usage, error) {
+	u, err := n.a.Prober().TokenUsage(ctx, c)
+	return u.Usage, err
+}

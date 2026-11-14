@@ -1,0 +1,1 @@
+	ErrInvalidSpec = errors.New("agentio: invalid spec")

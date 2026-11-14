@@ -1,0 +1,6 @@
+func (a *Agent) now() time.Time {
+	if a.host.Now == nil {
+		return time.Time{}
+	}
+	return a.host.Now()
+}

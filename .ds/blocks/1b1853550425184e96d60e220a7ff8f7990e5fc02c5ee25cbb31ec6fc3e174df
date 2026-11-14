@@ -1,0 +1,3 @@
+func compatStatusNames() []string {
+	return []string{"unknown", "in-range", "newer", "older"}
+}

@@ -1,0 +1,3 @@
+func (a *Agent) ConfigFileWarnings(h Home) (Config, agentio.Warnings, error) {
+	return readConfigPath(a.Paths(h).Config)
+}

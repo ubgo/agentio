@@ -1,0 +1,13 @@
+func ParsePlan(raw string) Plan {
+	p := Plan(strings.ToLower(raw))
+	switch string(p) {
+	case planAliasHC:
+		return PlanEnterprise
+	case planAliasEducation:
+		return PlanEdu
+	}
+	if p.IsKnown() {
+		return p
+	}
+	return Plan(raw)
+}

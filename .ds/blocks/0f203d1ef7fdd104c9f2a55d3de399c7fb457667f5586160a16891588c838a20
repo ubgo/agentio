@@ -1,0 +1,3 @@
+func tokenKindNames() []string {
+	return []string{"unknown", "oauth-token", "api-key"}
+}

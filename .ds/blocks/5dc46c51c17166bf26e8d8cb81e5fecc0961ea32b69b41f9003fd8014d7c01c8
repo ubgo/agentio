@@ -1,0 +1,3 @@
+func ExtractUnknownFor(data []byte, model reflect.Type) (Unknown, error) {
+	return ExtractUnknown(data, JSONKeys(model))
+}

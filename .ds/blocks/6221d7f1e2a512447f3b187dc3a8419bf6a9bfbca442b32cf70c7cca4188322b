@@ -1,0 +1,10 @@
+func (c *Core) LogoutCommand(h Home) Command {
+	if len(c.spec.LogoutArgs) == 0 {
+		return Command{}
+	}
+	cmd, err := c.Command(h.Target(), "", c.spec.LogoutArgs, nil)
+	if err != nil {
+		return Command{}
+	}
+	return cmd
+}

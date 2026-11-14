@@ -18,7 +18,7 @@ import (
 
 ## Step 1 — Build a Host
 
-A `Host` is everything the library may look at: the user home, the base environment, the clock, an HTTP client, the keychain, the process table and a way to run programs. Nothing in agentio reads `$HOME` or `os.Environ` behind your back. On the real machine one call builds it:
+A `Host` is everything the library may look at: the user home, the base environment, the clock, an HTTP client, the keychain, the process table and a way to run programs. Nothing in agentio reads [`$HOME`](ds:block?id=host-4pbbeq6s) or `os.Environ` behind your back. On the real machine one call builds it:
 
 <!-- snippet: examples/quickstart/main.go#host-from-os -->
 ```go
@@ -35,7 +35,7 @@ func osHost() (agentio.Host, error) {
 
 ```
 
-For tests and examples you fill the struct yourself and point it at a fixture. Fields you leave nil mean "none": no keychain entry is ever found, no process is listed or run.
+For tests and examples you fill the struct yourself and point it at a fixture. Fields you leave nil mean "none": [no keychain entry is ever found](ds:block?id=claude-agent-keychainget-uj32ktdh), no process is listed or run.
 
 <!-- snippet: examples/quickstart/main.go#build-host -->
 ```go
@@ -58,7 +58,7 @@ func fixtureHost(userHome, pathList string) agentio.Host {
 
 ## Step 2 — Create the Claude agent
 
-`claude.New` binds Claude Code to a Host. It does no I/O and returns no error, so it is cheap to call wherever you need it.
+[`claude.New`](ds:block?id=claude-new-2b7v6ezn) binds Claude Code to a Host. It does no I/O and returns no error, so it is cheap to call wherever you need it.
 
 <!-- snippet: examples/quickstart/main.go#create-agent -->
 ```go
@@ -69,7 +69,7 @@ func newAgent(h agentio.Host) *claude.Agent {
 }
 ```
 
-`*claude.Agent` is the rich, Claude-specific API. When you want the same code to work for every agent, take its neutral view with `Neutral()`:
+`*claude.Agent` is the rich, Claude-specific API. When you want the same code to work for every agent, take its neutral view with [`Neutral()`](ds:block?id=claude-agent-neutral-eh63bcpc):
 
 <!-- snippet: examples/quickstart/main.go#neutral-view -->
 ```go
@@ -83,7 +83,7 @@ func neutralView(p printer, a *claude.Agent) {
 
 ## Step 3 — Read the install
 
-`Install` finds `claude` by walking `PATH` from `Host.Env` (never a shell), resolves symlinks, and reads the version from disk (the npm `package.json` or the native versions folder name). It never runs the binary.
+[`Install`](ds:block?id=claude-agent-install-472s4jn6) finds `claude` by walking `PATH` from `Host.Env` (never a shell), resolves symlinks, and reads the version from disk (the npm `package.json` or the native versions folder name). It never runs the binary.
 
 <!-- snippet: examples/quickstart/main.go#read-install -->
 ```go
@@ -110,7 +110,7 @@ func readInstall(p printer, a *claude.Agent) error {
 
 ## Step 4 — List the homes
 
-`Homes` returns the default home `~/.claude` first, then every `~/.claude-<name>` that holds a home marker file, then the home `CLAUDE_CONFIG_DIR` selects if it is not already listed.
+[`Homes`](ds:block?id=core-homes-43a2yjev) returns the default home `~/.claude` first, then every `~/.claude-<name>` that holds a home marker file, then the home `CLAUDE_CONFIG_DIR` selects if it is not already listed.
 
 <!-- snippet: examples/quickstart/main.go#list-homes -->
 ```go
@@ -159,11 +159,11 @@ cd examples && go run ./quickstart -os
 
 ## Pitfalls
 
-- **No `claude` on PATH is an answer, not a crash.** `Install` and `LookPath` return an error matching `agentio.ErrNotInstalled`; check it with `errors.Is` and carry on reading homes, which only need the files.
-- **PATH comes from `Host.Env`.** A Host built by hand with no `PATH` entry finds nothing, even when `claude` is installed. `HostFromOS` copies the process environment.
-- **The version is the on-disk one.** A Homebrew cask install reports an unknown (zero) version because there is no version file to read; running `claude --version` is a separate, explicit call through the Runner door ([Doors](../capabilities/doors.md)).
-- **`Install.Shadowed` lists other copies on PATH.** Only the first one runs; a stale second copy is a common cause of "I updated but nothing changed".
-- **The default home is called `personal`.** Its `Name()` is `agentio.DefaultHomeName`; other homes take their name from the folder (`~/.claude-work` is `work`).
+- **No `claude` on PATH is an answer, not a crash.** `Install` and [`LookPath`](ds:block?id=lookpath-f56nfyzk) return an error matching `agentio.ErrNotInstalled`; check it with `errors.Is` and carry on reading homes, which only need the files.
+- **PATH comes from `Host.Env`.** A Host built by hand with no `PATH` entry [finds nothing](ds:block?id=core-lookpath-ke3ntet7), even when `claude` is installed. [`HostFromOS`](ds:block?id=hostfromos-yvmqkxwe) copies the process environment.
+- **The version is the on-disk one.** A Homebrew cask install reports an [unknown (zero) version](ds:block?id=claude-methodandversion-8h4tytjj) because there is no version file to read; running `claude --version` is a separate, explicit call through the Runner door ([Doors](../capabilities/doors.md)).
+- **[`Install.Shadowed`](ds:block?id=claude-agent-install-472s4jn6) lists other copies on PATH.** Only the first one runs; a stale second copy is a common cause of "I updated but nothing changed".
+- **The default home is called `personal`.** Its `Name()` is [`agentio.DefaultHomeName`](ds:block?id=defaulthomename-2x8teypk); other homes [take their name from the folder](ds:block?id=core-homename-ep9s5ega) (`~/.claude-work` is `work`).
 
 ## Related
 

@@ -1,18 +1,18 @@
 # Claude writer: settings and hooks
 
-Everything in the `claude` module reads, except the `Writer` door. `a.Writer()` changes settings files, adds and removes hooks, and moves conversation history, and every method backs its target up first (`<file>.agentio-bak-<UTC stamp>`, never overwriting an earlier backup) and returns the `agentio.Backup` it made. Use it when your tool installs a hook, flips a setting, or follows a renamed project folder.
+Everything in the `claude` module reads, except the `Writer` door. [`a.Writer()`](ds:block?id=claude-writer-t5gq26t8) changes settings files, adds and removes hooks, and moves conversation history, and every method that changes a file backs its target up first ([`<file>.agentio-bak-<UTC stamp>`](ds:block?id=backuppath-tfjr5hjr), never overwriting an earlier backup) and returns the `agentio.Backup` it made; `ApplyHomeLinks` only adds symlinks, so it has nothing to back up. Use it when your tool installs a hook, flips a setting, or follows a renamed project folder.
 
 ## Before you start
 
 - `go get github.com/ubgo/agentio/claude`; an agent, a home and (for project files) a project (see [The Claude agent](agent.md)).
 - Every method here is a Disk write. Run the example's demo only on copies: it copies the fixture home to a temp dir first.
-- The writer never edits `.claude.json` or a project `.mcp.json`. Those changes are vendor commands you run (see [Claude MCP servers](mcp.md) and [Claude plugins](plugins.md)).
+- [The writer never edits `.claude.json` or a project `.mcp.json`.](ds:block?id=claude-writer-t5gq26t8) Those changes are vendor commands you run (see [Claude MCP servers](mcp.md) and [Claude plugins](plugins.md)).
 
 The snippets come from [`examples/claudehooks`](../../examples/claudehooks/).
 
 ## Step 1 — Patch a settings file
 
-`SetUserSetting(h, patch)` edits `<home>/settings.json`; `SetProjectSetting(p, local, patch)` edits `.claude/settings.json` (`local` false) or `.claude/settings.local.json` (`local` true). A `SettingsPatch` sets top-level keys to raw JSON values (`Set`) and removes keys (`Delete`); every other key is kept as it was. The file is written atomically (temp file, then rename) with its mode kept.
+[`SetUserSetting(h, patch)`](ds:block?id=claude-writer-setusersetting-hfm5v3t7) edits `<home>/settings.json`; [`SetProjectSetting(p, local, patch)`](ds:block?id=claude-writer-setprojectsetting-9xh95gnh) edits `.claude/settings.json` (`local` false) or `.claude/settings.local.json` (`local` true). A `SettingsPatch` sets top-level keys to raw JSON values (`Set`) and removes keys (`Delete`); [every other key is kept as it was](ds:block?id=claude-writer-applypatch-utnp7z3r). [The file is written atomically (temp file, then rename) with its mode kept.](ds:block?id=claude-writer-writerawsettings-6sjvkkgu)
 
 <!-- snippet: examples/claudehooks/main.go#patch -->
 ```go
@@ -54,7 +54,7 @@ func patchSettings(p printer, a *claude.Agent) error {
 
 ## Step 2 — Add a hook
 
-`AddHook(h, p, scope, event, matcher)` appends a matcher group for the event to the settings file of the scope (`ScopeUser` uses `h`; `ScopeProject` and `ScopeLocal` need `p`). Existing hooks and keys stay.
+[`AddHook(h, p, scope, event, matcher)`](ds:block?id=claude-writer-addhook-y3s8tkg6) appends a matcher group for the event to the settings file of the scope (`ScopeUser` uses `h`; [`ScopeProject` and `ScopeLocal` need `p`](ds:block?id=claude-agent-settingspath-g6smumdx)). Existing hooks and keys stay.
 
 <!-- snippet: examples/claudehooks/main.go#addhook -->
 ```go
@@ -80,7 +80,7 @@ func addHook(p printer, a *claude.Agent) error {
 
 ## Step 3 — Remove hooks
 
-`RemoveHooks(h, p, scope, keep)` drops every handler for which `keep` returns false, then drops matcher groups and events left empty. It returns how many handlers it removed. When nothing matches, nothing is written and the backup is empty.
+[`RemoveHooks(h, p, scope, keep)`](ds:block?id=claude-writer-removehooks-x8p95azs) drops every handler for which `keep` returns false, then drops matcher groups and events left empty. It returns how many handlers it removed. When nothing matches, nothing is written and the backup is empty.
 
 <!-- snippet: examples/claudehooks/main.go#removehooks -->
 ```go
@@ -107,7 +107,7 @@ func removeHooks(p printer, a *claude.Agent) error {
 
 ## Step 4 — Move history
 
-`MoveHistory(h, from, to)` re-keys a folder's history after the folder moved on disk, by renaming `<home>/projects/<EncodePath(from)>`. Claude Code finds conversations by the encoded folder, never by the cwd inside old lines, so the rename is enough for `claude --resume` to find them from the new path. It returns an `agentio.HistoryMove`: `Moved` false with a nil error when `from` has no history, otherwise `Moved` true and the `Backup`. An existing destination is `claude.ErrHistoryExists`, and a Claude session running in `from` (or one of its conversations being live) is a `*claude.LiveSessionError` matching `agentio.ErrMoveBlocked`, with the same `Blockers()` text `PlanMove` lists.
+[`MoveHistory(h, from, to)`](ds:block?id=claude-writer-movehistory-3n8zhjz3) re-keys a folder's history after the folder moved on disk, by renaming `<home>/projects/<EncodePath(from)>`. Claude Code finds conversations by the encoded folder, never by the cwd inside old lines, so the rename is enough for `claude --resume` to find them from the new path. It returns an `agentio.HistoryMove`: `Moved` false with a nil error when `from` has no history, otherwise `Moved` true and the `Backup`. An existing destination is `claude.ErrHistoryExists`, and a Claude session running in `from` (or one of its conversations being live) is a [`*claude.LiveSessionError`](ds:block?id=claude-livesessionerror-unwrap-parprkp9) matching `agentio.ErrMoveBlocked`, with the same `Blockers()` text `PlanMove` lists.
 
 <!-- snippet: examples/claudehooks/main.go#movehistory -->
 ```go
@@ -133,7 +133,7 @@ func moveHistory(p printer, a *claude.Agent) error {
 }
 ```
 
-To move one folder's conversations to another home (for example from the personal to the work home), plan with `a.PlanMove` (a Disk read that changes nothing and lists blockers such as a live session in the folder), then apply with `Writer.ApplyMove`, which backs up every item, renames each into place and rolls back on failure.
+To move one folder's conversations to another home (for example from the personal to the work home), plan with [`a.PlanMove`](ds:block?id=claude-agent-planmove-jj5mdn26) (a Disk read that changes nothing and lists blockers such as a live session in the folder), then apply with [`Writer.ApplyMove`](ds:block?id=applymoveplan-sdj62uyw), which backs up every item, renames each into place and rolls back on failure.
 
 <!-- snippet: examples/claudehooks/main.go#moveacross -->
 ```go
@@ -160,7 +160,7 @@ func moveAcrossHomes(p printer, a *claude.Agent) error {
 }
 ```
 
-`Writer.ApplyHomeLinks` makes the symlinks `agentio.PlanHomeLinks` planned, so a second home shares the default home's `CLAUDE.md`, `skills` and `settings.json`. A target that already exists is planned with `Exists` true and never overwritten.
+[`Writer.ApplyHomeLinks`](ds:block?id=applyhomelinks-svx7cuvm) makes the symlinks `agentio.PlanHomeLinks` planned, so a second home shares the default home's `CLAUDE.md`, `skills` and `settings.json`. [A target that already exists is planned with `Exists` true and never overwritten.](ds:block?id=planhomelinks-yg65h8jg)
 
 <!-- snippet: examples/claudehooks/main.go#link -->
 ```go
@@ -234,14 +234,14 @@ The first `settings.json` backup (stamp without a suffix) was taken earlier in t
 
 ## Pitfalls
 
-- **Backups pile up.** Each call leaves a `<file>.agentio-bak-<stamp>` next to the file (a `-N` suffix when the stamp is taken); nothing cleans them. Tell your users where they are, or remove them yourself once a change is confirmed.
-- **Values in `SettingsPatch.Set` are raw JSON.** A string needs its quotes (`"sonnet"`, not `sonnet`); an invalid value is refused before anything is written.
-- A settings file that is not a JSON object, or whose `hooks` key does not decode, is refused rather than rewritten, so a hand-edited file with a mistake is never clobbered.
-- `AddHook` appends a new group every call; calling it twice installs the hook twice. Check `a.Hooks` first if your installer may run again.
-- `MoveHistory` moves only the history folder for that path in that home; the folder's state entry in `.claude.json` (trust, last session) stays under the old path.
-- `ApplyMove` refuses a plan made for another agent with `agentio.ErrForeignHome`. `ApplyHomeLinks` does no such check: `HomeLink` carries no agent id, so it applies any plan you give it. It returns no `Backup` because it never overwrites.
-- `MoveHistory` and `PlanMove` both refuse while a Claude Code session uses the folder: `MoveHistory` returns `*claude.LiveSessionError` (`errors.Is(err, agentio.ErrMoveBlocked)`), `PlanMove` lists the same text in `Blockers`. The check reads `Host.Processes`; a Host without a process lister sees no live session.
-- `ApplyHomeLinks` checks ownership like `ApplyMove`: a link planned for another agent's homes (`HomeLink.Agent`) is `agentio.ErrForeignHome` and nothing is linked.
+- **[Backups pile up.](ds:block?id=backuppath-tfjr5hjr)** Each call leaves a `<file>.agentio-bak-<stamp>` next to the file (a `-N` suffix when the stamp is taken); nothing cleans them. Tell your users where they are, or remove them yourself once a change is confirmed.
+- **Values in `SettingsPatch.Set` are raw JSON.** A string needs its quotes (`"sonnet"`, not `sonnet`); [an invalid value is refused before anything is written](ds:block?id=claude-writer-applypatch-utnp7z3r).
+- A settings file that is not a JSON object, or whose `hooks` key does not decode, [is refused rather than rewritten](ds:block?id=claude-readrawsettings-peagek4s), so a hand-edited file with a mistake is never clobbered.
+- [`AddHook` appends a new group every call](ds:block?id=claude-writer-addhook-y3s8tkg6); calling it twice installs the hook twice. Check `a.Hooks` first if your installer may run again.
+- [`MoveHistory` moves only the history folder for that path in that home](ds:block?id=claude-writer-movehistory-3n8zhjz3); the folder's state entry in `.claude.json` (trust, last session) stays under the old path.
+- [`ApplyMove` refuses a plan made for another agent with `agentio.ErrForeignHome`.](ds:block?id=claude-writer-applymove-tpwp98h7) [`ApplyHomeLinks` returns no `Backup`](ds:block?id=claude-writer-applyhomelinks-39hcpw7p) because it never overwrites.
+- `MoveHistory` and `PlanMove` both refuse while a Claude Code session uses the folder: `MoveHistory` returns `*claude.LiveSessionError` (`errors.Is(err, agentio.ErrMoveBlocked)`), [`PlanMove` lists the same text in `Blockers`](ds:block?id=claude-agent-liveblockers-apwxxpeb). [The check reads `Host.Processes`; a Host without a process lister sees no live session.](ds:block?id=claude-agent-processtable-c26mufrf)
+- [`ApplyHomeLinks` checks ownership like `ApplyMove`](ds:block?id=checklinksowner-czbw4f2d): a link planned for another agent's homes (`HomeLink.Agent`) is `agentio.ErrForeignHome` and nothing is linked.
 
 ## Related
 

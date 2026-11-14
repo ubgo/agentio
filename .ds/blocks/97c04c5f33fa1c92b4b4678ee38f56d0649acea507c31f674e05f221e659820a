@@ -1,0 +1,36 @@
+func (a *Agent) Identity(h Home) (Identity, error) {
+	g, err := a.GlobalConfig(h)
+	if err != nil {
+		return Identity{}, err
+	}
+	id := Identity{Account: g.OAuthAccount, Identity: agentio.Identity{Billing: agentio.BillingUnknown}}
+	if acct := g.OAuthAccount; acct != nil {
+		id.Email, id.Org = acct.EmailAddress, acct.OrganizationName
+		tier := ""
+		if acct.OrganizationRateLimitTier != nil {
+			tier = *acct.OrganizationRateLimitTier
+		}
+		id.PlanLabel = PlanLabel(string(acct.OrganizationType), tier)
+		id.Billing = agentio.BillingSubscription
+	}
+	c, cerr := a.Credential(h)
+	if cerr != nil {
+		if errors.Is(cerr, agentio.ErrNotLoggedIn) {
+			return id, nil
+		}
+		return id, cerr
+	}
+	id.LoggedIn, id.ExpiresAt = true, c.ExpiresAt
+	id.Identity.Credential = agentio.CredentialFile
+	if c.Source == SourceKeychain {
+		id.Identity.Credential = agentio.CredentialKeychain
+	}
+	if id.PlanLabel == "" {
+		id.PlanLabel = PlanLabel(c.SubscriptionType, c.RateLimitTier)
+	}
+	if c.SubscriptionType != "" {
+		id.Billing = agentio.BillingSubscription
+	}
+	id.Credential = &CredentialSummary{Source: c.Source, Location: c.Location, ExpiresAt: c.ExpiresAt, Scopes: c.Scopes, SubscriptionType: c.SubscriptionType, RateLimitTier: c.RateLimitTier}
+	return id, nil
+}

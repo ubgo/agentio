@@ -1,0 +1,7 @@
+type MoveRequest struct {
+	From, To Home
+	// Dir is the working folder whose conversations move (absolute, clean).
+	Dir string
+	// OnlyIDs limits the move to these conversation ids; empty = all.
+	OnlyIDs []string
+}

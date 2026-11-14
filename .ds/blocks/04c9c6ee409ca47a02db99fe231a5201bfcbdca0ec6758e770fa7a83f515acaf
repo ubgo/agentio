@@ -1,0 +1,14 @@
+func (r *Runner) run(ctx context.Context, h Home, args ...string) ([]byte, error) {
+	if r.a.host.Exec == nil {
+		return nil, agentio.UnsupportedError(ID, "run claude", "the host has no process runner")
+	}
+	cmd := r.a.command(h, args...)
+	res, err := r.a.host.Exec.Run(ctx, cmd, nil)
+	if err != nil {
+		return nil, fmt.Errorf("claude: run %s: %w", cmd.String(), err)
+	}
+	if res.ExitCode != 0 {
+		return nil, fmt.Errorf("claude: %s exited %d: %s", cmd.String(), res.ExitCode, snippet(bytes.TrimSpace(res.Stderr)))
+	}
+	return res.Stdout, nil
+}

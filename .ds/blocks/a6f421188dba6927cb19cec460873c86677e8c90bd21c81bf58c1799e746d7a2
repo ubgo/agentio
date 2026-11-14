@@ -1,0 +1,18 @@
+func NewHost(t testing.TB, opts ...HostOption) agentio.Host {
+	t.Helper()
+	home := t.TempDir()
+	h := agentio.Host{
+		UserHome:  home,
+		User:      fixtureUser,
+		Env:       []string{"HOME=" + home, "PATH=" + fixturePath},
+		Now:       FixedNow,
+		HTTP:      FailingHTTP(t),
+		Secrets:   NewFakeSecrets(),
+		Processes: &FakeProcesses{},
+		Exec:      FailExec{T: t},
+	}
+	for _, o := range opts {
+		o(&h)
+	}
+	return h
+}

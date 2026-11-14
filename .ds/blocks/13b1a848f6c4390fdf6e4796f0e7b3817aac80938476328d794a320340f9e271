@@ -1,0 +1,13 @@
+func (a *Agent) ExecResume(t agentio.Target, id string, o ExecOptions) (agentio.Command, error) {
+	if id == "" {
+		return agentio.Command{}, ErrNoSessionID
+	}
+	b := newBuilder(t)
+	b.flag(FeatureSubExec, subExec, subResume)
+	b.global(o.LaunchOptions, true)
+	if o.OutputSchema != "" {
+		b.flag(FeatureExecResumeOutputSchema)
+	}
+	b.execFlags(o)
+	return a.finish(b, o.Dir, id, execPrompt(o.LaunchOptions))
+}

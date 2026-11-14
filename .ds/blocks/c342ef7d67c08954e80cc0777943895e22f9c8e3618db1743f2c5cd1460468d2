@@ -1,0 +1,1 @@
+	ErrNotInstalled = errors.New("agentio: binary not found on PATH")

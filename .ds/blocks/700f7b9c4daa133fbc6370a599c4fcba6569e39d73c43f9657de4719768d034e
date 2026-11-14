@@ -1,0 +1,12 @@
+func (o *Opt[T]) UnmarshalJSON(b []byte) error {
+	if string(b) == jsonNull {
+		*o = Opt[T]{}
+		return nil
+	}
+	var v T
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	*o = Opt[T]{V: v, Set: true}
+	return nil
+}

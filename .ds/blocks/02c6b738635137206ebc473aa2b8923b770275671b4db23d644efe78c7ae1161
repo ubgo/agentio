@@ -1,0 +1,17 @@
+func (o LaunchOptions) validate() error {
+	switch {
+	case o.OutputFormat != "" && !o.Print:
+		return fmt.Errorf("%w: --output-format needs -p", ErrInvalidLaunch)
+	case o.InputFormat != "" && !o.Print:
+		return fmt.Errorf("%w: --input-format needs -p", ErrInvalidLaunch)
+	case o.IncludePartialMessages && o.OutputFormat != OutputStreamJSON:
+		return fmt.Errorf("%w: --include-partial-messages needs --output-format stream-json", ErrInvalidLaunch)
+	case o.Background && o.Print:
+		return fmt.Errorf("%w: --bg cannot run with -p", ErrInvalidLaunch)
+	case o.Resume != "" && o.Continue:
+		return fmt.Errorf("%w: --resume and --continue are exclusive", ErrInvalidLaunch)
+	case o.Chrome && o.NoChrome:
+		return fmt.Errorf("%w: --chrome and --no-chrome are exclusive", ErrInvalidLaunch)
+	}
+	return nil
+}

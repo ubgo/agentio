@@ -1,0 +1,28 @@
+func (a *Agent) Review(t agentio.Target, r ReviewTarget, o ExecOptions) (agentio.Command, error) {
+	n := 0
+	for _, set := range []bool{r.Uncommitted, r.Base != "", r.Commit != ""} {
+		if set {
+			n++
+		}
+	}
+	if n > 1 {
+		return agentio.Command{}, fmt.Errorf("%w: review takes one of uncommitted, base, commit", ErrInvalidOption)
+	}
+	b := newBuilder(t)
+	b.flag(FeatureSubExec, subExec)
+	b.flag(FeatureSubReview, subReview)
+	switch {
+	case r.Uncommitted:
+		b.args = append(b.args, flagUncommit)
+	case r.Base != "":
+		b.args = append(b.args, flagBase, r.Base)
+	case r.Commit != "":
+		b.args = append(b.args, flagCommit, r.Commit)
+	}
+	if r.Title != "" {
+		b.args = append(b.args, flagTitle, r.Title)
+	}
+	b.global(o.LaunchOptions, true)
+	b.execFlags(o)
+	return a.finish(b, o.Dir)
+}

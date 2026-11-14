@@ -1,0 +1,32 @@
+func (a *Agent) Effective(h Home, q EffectiveQuery) (EffectiveConfig, error) {
+	layers, warns, err := a.layers(h, q)
+	if err != nil {
+		return EffectiveConfig{}, err
+	}
+	out := EffectiveConfig{Origins: map[string]LayerKind{}, NotEvaluated: []LayerKind{LayerMDM, LayerCloud}, Warnings: warns}
+	order := []string{}
+	merged := map[string]tomlEntry{}
+	// layers resolves low → high, Codex's own resolution order, so merging
+	// in slice order lets a later layer win; the listed order is reversed
+	// below to highest first.
+	for _, le := range layers {
+		out.Layers = append(out.Layers, le.layer)
+		for _, e := range le.entries {
+			k := e.key()
+			if _, seen := merged[k]; !seen {
+				order = append(order, k)
+			}
+			merged[k] = e
+			out.Origins[k] = le.layer.Kind
+		}
+	}
+	entries := make([]tomlEntry, 0, len(order))
+	for _, k := range order {
+		entries = append(entries, merged[k])
+	}
+	slices.Reverse(out.Layers)
+	cfg, w, _ := decodeEntries(entries, "")
+	out.Config = cfg
+	out.Warnings = append(out.Warnings, w...)
+	return out, nil
+}

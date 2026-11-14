@@ -1,0 +1,9 @@
+func (a *Agent) UpdateCommand() (agentio.Command, error) {
+	path, err := a.LookPath()
+	if err != nil {
+		return agentio.Command{}, err
+	}
+	cmd := a.command(a.DefaultHome(), subUpdate)
+	cmd.Path = path
+	return cmd, nil
+}

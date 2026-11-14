@@ -1,0 +1,18 @@
+type OAuthAccount struct {
+	AccountUUID, EmailAddress, OrganizationUUID, OrganizationName agentio.Personal
+	OrganizationType                                              OrgType
+	OrganizationRole                                              *string
+	WorkspaceRole                                                 *string
+	OrganizationRateLimitTier                                     *string
+	UserRateLimitTier                                             *string
+	BillingType                                                   BillingType
+	PlanDisplayName, SeatTier                                     *string
+	HasExtraUsageEnabled                                          bool
+	DisplayName, FullName                                         agentio.Personal
+	AccountCreatedAt                                              *time.Time
+	SubscriptionCreatedAt                                         *time.Time
+	ProfileFetchedAt                                              time.Time
+	TrialEndsAt                                                   *time.Time
+	TrialDurationDays                                             *int
+	Unknown                                                       agentio.Unknown
+}

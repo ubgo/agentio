@@ -1,0 +1,8 @@
+func ParseConfig(src []byte, file string) (Config, agentio.Warnings, error) {
+	entries, err := parseTOML(src)
+	if err != nil {
+		return Config{}, nil, err
+	}
+	c, warns := decodeEntriesInto(entries, file)
+	return c, warns, nil
+}

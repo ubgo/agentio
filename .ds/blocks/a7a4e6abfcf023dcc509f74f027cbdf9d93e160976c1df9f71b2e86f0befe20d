@@ -1,0 +1,32 @@
+type LaunchOptions struct {
+	Prompt             string // positional; "" = interactive
+	PromptFromStdin    bool   // exec only: "-"
+	Model              string
+	Profile            string // v2 profile name (-p)
+	Sandbox            SandboxMode
+	Approval           ApprovalPolicy // TUI only; exec renders -c approval_policy
+	ApproveForMe       bool
+	BypassAll          bool // requires Target.AllowDangerous
+	Dir                string
+	AddDirs            []string
+	Images             []string
+	Search             bool
+	OSS                bool
+	LocalProvider      string
+	Overrides          []Override
+	Enable, Disable    []string
+	StrictConfig       bool
+	Worktree           bool
+	NoAltScreen        bool
+	NoDaemon           bool
+	Remote             string
+	RemoteAuthTokenEnv string // a variable NAME, never a token
+	// ProfileCheck is the home's config.toml (ConfigFile) used to refuse a
+	// --profile that collides with a legacy profile before Codex does
+	// (Codex 0.162.1 refuses -p NAME while a legacy [profiles.NAME] exists).
+	// nil skips the check and adds a warning: building stays Pure.
+	ProfileCheck *Config
+	// trailing are LaunchRequest.Args from the neutral launch: appended
+	// last, verbatim (SPEC §5.4).
+	trailing []string
+}

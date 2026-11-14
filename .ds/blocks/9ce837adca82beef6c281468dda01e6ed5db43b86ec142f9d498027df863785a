@@ -1,0 +1,9 @@
+func New(h agentio.Host) *Agent {
+	core, err := agentio.NewCore(Spec(), h)
+	if err != nil {
+		// Spec() is a constant this package controls and a test validates;
+		// a failure here is a programming error in this file.
+		panic("codex: invalid built-in spec: " + err.Error())
+	}
+	return &Agent{host: h, core: core, baseURL: DefaultBaseURL}
+}

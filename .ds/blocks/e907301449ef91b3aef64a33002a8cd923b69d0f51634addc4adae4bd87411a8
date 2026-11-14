@@ -1,0 +1,10 @@
+func readConfigPath(path string) (Config, agentio.Warnings, error) {
+	b, err := os.ReadFile(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return Config{}, nil, nil
+	}
+	if err != nil {
+		return Config{}, nil, fmt.Errorf("codex: read %s: %w", path, err)
+	}
+	return ParseConfig(b, path)
+}

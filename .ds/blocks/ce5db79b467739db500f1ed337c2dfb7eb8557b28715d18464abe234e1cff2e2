@@ -1,0 +1,1 @@
+const osHTTPTimeout = 30 * time.Second

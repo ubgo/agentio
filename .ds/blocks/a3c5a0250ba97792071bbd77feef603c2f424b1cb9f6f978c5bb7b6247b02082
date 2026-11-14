@@ -1,0 +1,7 @@
+func (f Feature) String() string {
+	names := featureSpellings()
+	if int(f) < len(names) {
+		return names[f]
+	}
+	return fmt.Sprintf("%s(%d)", featureKind, uint16(f))
+}

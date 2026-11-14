@@ -1,20 +1,20 @@
 # Codex config.toml
 
-Typed access to Codex configuration: one `config.toml` file as a presence-tracked `codex.Config`, the effective config Codex would apply in a folder (system, user, profile, trusted project layers, `-c` overrides) with the layer each key came from, the two profile systems, and type-safe builders for `-c path=value` overrides.
+Typed access to Codex configuration: one `config.toml` file as a presence-tracked [`codex.Config`](ds:block?id=codex-config-4zvr4t68), the effective config Codex would apply in a folder (system, user, profile, trusted project layers, `-c` overrides) with the layer each key came from, the two profile systems, and type-safe builders for `-c path=value` overrides.
 
 ## Before you start
 
 - Module `github.com/ubgo/agentio/codex` (it carries its own TOML parser; Claude-only callers never download it).
 - A `codex.Agent` and `codex.Home` from [The Codex agent](agent.md).
-- For project layers: a folder with a project-root marker (`.git` by default) and a `.codex/config.toml`, trusted in the user config's `[projects."<dir>"]` table.
+- For project layers: a folder with a project-root marker ([`.git`](ds:block?id=codex-projectroot-645w589u) by default) and a `.codex/config.toml`, trusted in the user config's `[projects."<dir>"]` table.
 
 The snippets come from [`examples/codexconfig`](../../examples/codexconfig/). It trusts its temp project folder in the copied `config.toml`, so the project layer applies.
 
 ## Step 1 — Read config.toml
 
-`ConfigFile` reads `<home>/config.toml` only (an absent file is an empty `Config`); `ConfigFileWarnings` adds the drift warnings. Every scalar is an `Opt[T]` (`codex.Opt` is the root `agentio.Opt`): `.Set` tells an absent key from one set to its zero value. Keys the library does not model stay in `Unknown` (an `UnknownTOML`, dotted key → TOML source text); sections it keeps but does not type yet are `TOMLRaw`. `KeyCount` reports how every leaf key was placed.
+[`ConfigFile`](ds:block?id=codex-readconfigpath-dfhqgu47) reads `<home>/config.toml` only (an absent file is an empty `Config`); [`ConfigFileWarnings`](ds:block?id=codex-agent-configfilewarnings-z5usj78f) adds the drift warnings. Every scalar is an `Opt[T]` ([`codex.Opt`](ds:block?id=codex-opt-d24avffs) is the root `agentio.Opt`): `.Set` tells an absent key from one set to its zero value. Keys the library does not model stay in `Unknown` (an [`UnknownTOML`](ds:block?id=codex-tomldecoder-keep-cd6urynz), dotted key → TOML source text); sections it keeps but does not type yet are [`TOMLRaw`](ds:block?id=codex-tomlraw-j7dab432). [`KeyCount`](ds:block?id=codex-decodeentriesinto-6fcyfvdp) reports how every leaf key was placed.
 
-The config enums (`ApprovalPolicy`, `SandboxMode`, `ReasoningEffort`, `ReasoningSummary`, `Verbosity`, `WebSearchMode`, `TrustLevel`, `AuthMode`, `CredentialStore`, `HistoryPersistence`, …) are open string types: a value newer than the library decodes as-is, and `IsKnown()` tells you whether the library was written against it.
+The config enums (`ApprovalPolicy`, `SandboxMode`, `ReasoningEffort`, `ReasoningSummary`, `Verbosity`, `WebSearchMode`, `TrustLevel`, `AuthMode`, `CredentialStore`, `HistoryPersistence`, …) are open string types: [a value newer than the library decodes as-is](ds:block?id=codex-enumopt-sp5njn2z), and `IsKnown()` tells you whether the library was written against it.
 
 <!-- snippet: examples/codexconfig/config.go#config-file -->
 ```go
@@ -46,7 +46,7 @@ func readConfigFile(w io.Writer, m machine) error {
 }
 ```
 
-`ParseConfig` is the same decoder for bytes you already hold. A syntax error fails the file; a key whose type changed only degrades that key into `Unknown` with a `type-changed` warning.
+[`ParseConfig`](ds:block?id=codex-parseconfig-bbrucwhw) is the same decoder for bytes you already hold. A syntax error fails the file; a key whose type changed only degrades that key into `Unknown` with a [`type-changed`](ds:block?id=codex-tomldecoder-mismatch-z7r3y8m5) warning.
 
 <!-- snippet: examples/codexconfig/config.go#parse-config -->
 ```go
@@ -69,7 +69,7 @@ func parseConfigBytes(w io.Writer) error {
 
 ## Step 2 — Read the effective config
 
-`ConfigLayers(h, dir)` lists the files that apply, highest precedence first (the order Claude and the neutral `ConfigReader` use), including disabled ones with the reason. `Effective(h, EffectiveQuery)` merges them the way Codex does, from lowest to highest: system (only with `IncludeSystem`), user `config.toml`, the legacy `[profiles.X]` the root `profile` selects (only without a v2 profile), the v2 profile file, trusted project layers from the project root down to `Dir` (keys Codex denies in project layers dropped), the `Overrides` you will pass with `-c`, and the legacy `managed_config.toml` (only with `IncludeSystem`). A higher layer wins per key; tables merge. `EffectiveConfig.Layers` lists them highest first, like `ConfigLayers`. `Origins` maps each dotted key to the winning `LayerKind`. `Config.TrustOf(dir)` is the trust level of the nearest configured ancestor; `Config.FeatureOverrides()` flattens `[features]` to name → enabled.
+[`ConfigLayers(h, dir)`](ds:block?id=codex-agent-configlayers-9expgqan) lists the files that apply, highest precedence first (the order Claude and the neutral `ConfigReader` use), including disabled ones with the reason. [`Effective(h, EffectiveQuery)`](ds:block?id=codex-agent-layers-yeww4cy8) merges them the way Codex does, from lowest to highest: system (only with `IncludeSystem`), user `config.toml`, the legacy `[profiles.X]` the root `profile` selects (only without a v2 profile), the v2 profile file, trusted project layers from the project root down to `Dir` (keys Codex denies in project layers dropped), the `Overrides` you will pass with `-c`, and the legacy `managed_config.toml` (only with `IncludeSystem`). [A higher layer wins per key; tables merge.](ds:block?id=codex-agent-effective-zsyuwnnc) `EffectiveConfig.Layers` lists them highest first, like `ConfigLayers`. `Origins` maps each dotted key to the winning `LayerKind`. [`Config.TrustOf(dir)`](ds:block?id=codex-config-trustof-bhxj6vhr) is the trust level of the nearest configured ancestor; [`Config.FeatureOverrides()`](ds:block?id=codex-config-featureoverrides-wqauyv6a) flattens `[features]` to name → enabled.
 
 <!-- snippet: examples/codexconfig/config.go#effective -->
 ```go
@@ -116,7 +116,7 @@ func effectiveConfig(w io.Writer, m machine) error {
 
 ## Step 3 — Read profiles
 
-Codex has two profile systems. Legacy profiles are `[profiles.<name>]` tables in `config.toml` (plus the root `profile = "…"` selector); v2 profiles (Codex 0.131.0 and later) are `<home>/<name>.config.toml` files selected with `codex -p NAME`. `Profiles` lists both (legacy first), `ProfileFiles` only the v2 names, `Config.LegacyProfileNames` the legacy ones. `Config.ProfileConflict(name)` returns `ErrProfileConflict` for a name in both, which Codex refuses.
+Codex has two profile systems. Legacy profiles are `[profiles.<name>]` tables in `config.toml` (plus the root `profile = "…"` selector); v2 profiles (Codex 0.131.0 and later) are `<home>/<name>.config.toml` files selected with `codex -p NAME`. [`Profiles`](ds:block?id=codex-agent-profiles-vhcadz8n) lists both (legacy first), [`ProfileFiles`](ds:block?id=codex-agent-profilefiles-uczzc9je) only the v2 names, [`Config.LegacyProfileNames`](ds:block?id=codex-config-legacyprofilenames-hqw2wzbk) the legacy ones. [`Config.ProfileConflict(name)`](ds:block?id=codex-config-profileconflict-yrme7f58) returns `ErrProfileConflict` when the name is a legacy profile (a `[profiles.<name>]` table or the root `profile`), because Codex 0.162.1 refuses `-p` for such a name.
 
 <!-- snippet: examples/codexconfig/config.go#profiles -->
 ```go
@@ -152,7 +152,7 @@ func readProfiles(w io.Writer, m machine) error {
 
 ## Step 4 — Build config overrides
 
-An `Override` is one `-c path=value`; its `Value` is TOML source text. Build it with `OverrideString`, `OverrideBool`, `OverrideInt` or `OverrideStrings` so quoting is the library's job. `ParseOverride` reads user text exactly like Codex: the value is TOML when it parses as TOML, else a literal string (then quoted). Pass overrides in `LaunchOptions.Overrides` and in `EffectiveQuery.Overrides` to preview their effect.
+An `Override` is one `-c path=value`; its `Value` is TOML source text. Build it with `OverrideString`, `OverrideBool`, `OverrideInt` or [`OverrideStrings`](ds:block?id=codex-overridestrings-qyfnckfz) so quoting is the library's job. [`ParseOverride`](ds:block?id=codex-parseoverride-csjwphzj) reads user text exactly like Codex: the value is TOML when it parses as TOML, else a literal string (then quoted). Pass overrides in `LaunchOptions.Overrides` and in `EffectiveQuery.Overrides` to preview their effect.
 
 <!-- snippet: examples/codexconfig/config.go#overrides -->
 ```go
@@ -224,15 +224,15 @@ rejected: no '='
 
 ## Pitfalls
 
-- **Layers are listed highest first.** `ConfigLayers` and `EffectiveConfig.Layers` put the winning layer first (legacy managed, session, deepest project, ..., user, system), the same order as Claude; earlier releases listed Codex layers lowest first.
-- **Check `.Set`, not the zero value.** An absent `sandbox_mode` is `Set=false` with `V=""`; Codex then uses its own default, which this library does not invent.
-- **Untrusted project layers are skipped.** A project's `.codex/config.toml` applies only when the folder (or an ancestor) is `trust_level = "trusted"`; otherwise `ConfigLayers` lists it with `Disabled = "folder is not trusted"` and `Effective` ignores it. Some keys (for example `notify`) are denied in project layers even when trusted.
-- **MDM and cloud layers are never read.** `EffectiveConfig.NotEvaluated` lists them; the effective config can differ from what Codex sees on a managed machine.
-- **System layers are opt-in and need a system root.** `/etc/codex/config.toml` and `managed_config.toml` are read only with `EffectiveQuery.IncludeSystem`, and only on a Host with `GOOS` and `SystemRoot` set (`HostFromOS` sets them; a fixture host does not, so they are skipped). On Windows the system file is `%ProgramData%\OpenAI\Codex\config.toml` (under `SystemRoot`) and there is no system managed file.
-- **Secrets are never loaded into the struct.** MCP env values, `shell_environment_policy.set` values, `experimental_bearer_token` and inline bearer tokens are kept as names or presence flags only; read one MCP env value on purpose with [`MCPServerEnvValue`](mcp.md#step-1--list-mcp-servers).
-- **`ErrProfileConflict` is real.** Codex 0.162.1 refuses `-p NAME` while a legacy `[profiles.NAME]` table or `profile = "NAME"` exists; the doctor warns (`profile-conflict`) and `LaunchOptions.ProfileCheck` refuses it before launch.
-- **`ParseOverride` needs `=`**, else `ErrBadOverride`. A value that is not valid TOML is quoted as a string: `sandbox_mode=read-only` becomes `sandbox_mode="read-only"`.
-- **Changing config is a vendor command.** The library never writes `config.toml`; use `FeatureCommand` or `MCPAddCommand` ([launch](launch.md#step-3--build-archive-delete-and-queue-commands), [MCP](mcp.md#step-2--build-add-and-remove-commands)).
+- **Layers are listed highest first.** [`ConfigLayers`](ds:block?id=codex-agent-configlayers-9expgqan) and `EffectiveConfig.Layers` put the winning layer first (legacy managed, session, deepest project, ..., user, system), the same order as Claude; earlier releases listed Codex layers lowest first.
+- **Check [`.Set`](ds:block?id=opt-nj39byj3), not the zero value.** An absent `sandbox_mode` is `Set=false` with `V=""`; Codex then uses its own default, which this library does not invent.
+- **Untrusted project layers are skipped.** A project's `.codex/config.toml` applies only when the folder (or an ancestor) is [`trust_level = "trusted"`](ds:block?id=codex-agent-layers-yeww4cy8); otherwise `ConfigLayers` lists it with `Disabled = "folder is not trusted"` and `Effective` ignores it. Some keys (for example [`notify`](ds:block?id=codex-projectdeniedroots-n2zvt35j)) are denied in project layers even when trusted.
+- **MDM and cloud layers are never read.** [`EffectiveConfig.NotEvaluated`](ds:block?id=codex-agent-effective-zsyuwnnc) lists them; the effective config can differ from what Codex sees on a managed machine.
+- **System layers are opt-in for `Effective` and need a system root.** `/etc/codex/config.toml` and `managed_config.toml` are merged by `Effective` only with [`EffectiveQuery.IncludeSystem`](ds:block?id=codex-agent-layers-yeww4cy8) (`ConfigLayers` always lists them), and only on a Host with `GOOS` and `SystemRoot` set (`HostFromOS` sets them; a fixture host does not, so they are skipped). On Windows the system file is [`%ProgramData%\OpenAI\Codex\config.toml`](ds:block?id=codex-agent-systemconfigpaths-bztdnt4n) (under `SystemRoot`) and there is no system managed file.
+- **Secrets are never loaded into the struct.** [MCP env values](ds:block?id=codex-mcpserver-f2ettbda), [`shell_environment_policy.set`](ds:block?id=codex-shellenvironmentpolicy-armg7sww) values, [`experimental_bearer_token`](ds:block?id=codex-modelprovider-d7mxgc59) and inline bearer tokens are kept as names or presence flags only; read one MCP env value on purpose with [`MCPServerEnvValue`](mcp.md#step-1--list-mcp-servers).
+- **[`ErrProfileConflict`](ds:block?id=codex-config-profileconflict-yrme7f58) is real.** Codex 0.162.1 refuses `-p NAME` while a legacy `[profiles.NAME]` table or `profile = "NAME"` exists; the doctor warns ([`profile-conflict`](ds:block?id=codex-agent-profilecheck-eqn24h4u)) and [`LaunchOptions.ProfileCheck`](ds:block?id=codex-builder-profile-wmpsnv3m) refuses it before launch.
+- **`ParseOverride` needs `=`**, else [`ErrBadOverride`](ds:block?id=codex-parseoverride-csjwphzj). A value that is not valid TOML is quoted as a string: `sandbox_mode=read-only` becomes `sandbox_mode="read-only"`.
+- **Changing config is a vendor command.** The library never writes [`config.toml`](ds:block?id=codex-writer-tax23vch); use [`FeatureCommand`](ds:block?id=codex-agent-featurecommand-w47qatyu) or `MCPAddCommand` ([launch](launch.md#step-3--build-archive-delete-and-queue-commands), [MCP](mcp.md#step-2--build-add-and-remove-commands)).
 
 ## Related
 

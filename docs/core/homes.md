@@ -9,7 +9,7 @@ A home is one config dir of one agent: `~/.claude`, `~/.claude-work`, `~/.codex`
 
 ## Step 1 — Get the default home
 
-`DefaultHome()` is Pure: it joins `Host.UserHome` with the Spec's `DefaultHome` and does not check the disk. A `Home`'s fields are unexported, so it can only come from an agent (or `agentio.NewHome`, meant for vendor packages and `Core`); that is how it always knows its owner.
+[`DefaultHome()`](ds:block?id=core-defaulthome-6f4pqnem) is Pure: it joins `Host.UserHome` with the Spec's `DefaultHome` and does not check the disk. A `Home`'s fields are unexported, so it can only come from an agent (or [`agentio.NewHome`](ds:block?id=newhome-u52u4c93), meant for vendor packages and `Core`); that is how it always knows its owner.
 
 <!-- snippet: examples/homes/main.go#default-home -->
 ```go
@@ -30,19 +30,19 @@ func defaultHome(p printer, a *claude.Agent) {
 | Method | Meaning |
 |---|---|
 | `Agent()` | the owning agent's ID |
-| `Dir()` | the absolute, cleaned folder |
-| `Name()` | a short name: `personal` (`agentio.DefaultHomeName`) for the default, else from the folder (`~/.claude-work` is `work`) |
+| `Dir()` | [the absolute, cleaned folder](ds:block?id=newhome-u52u4c93) |
+| `Name()` | a short name: `personal` ([`agentio.DefaultHomeName`](ds:block?id=defaulthomename-2x8teypk)) for the default, else from the folder (`~/.claude-work` is `work`) |
 | `IsDefault()` | the default home, launched with the home variable absent |
 | `Path(elem...)` | a path inside the home |
 | `IsZero()` | a `Home` that was never built |
-| `String()` | `agent:dir`, for messages |
+| `String()` | [`agent:dir`](ds:block?id=home-string-ry64gtnm), for messages |
 | `Target()` | a plain launch target ([Targets and commands](launch.md)) |
 
-A `Home` marshals to JSON as `{"agent", "dir", "is_default", "name"}`.
+A `Home` marshals to JSON as [`{"agent", "dir", "is_default", "name"}`](ds:block?id=home-marshaljson-gwtr45uj).
 
 ## Step 2 — List every home
 
-`Agent.Homes()` lists homes on disk: the default first, then every `ExtraHomes` glob hit sorted (`~/.claude-*` for Claude), then the home the home variable selects if it is not already listed. A folder counts only when it holds at least one home marker, so look-alikes such as `~/.claude-worktrees` are skipped.
+[`Agent.Homes()`](ds:block?id=core-homes-43a2yjev) lists homes on disk: the default first, then every `ExtraHomes` glob hit sorted (`~/.claude-*` for Claude), then the home the home variable selects if it is not already listed. A folder counts only when it holds [at least one home marker](ds:block?id=core-ishome-nxgj8ve9), so look-alikes such as `~/.claude-worktrees` are skipped.
 
 <!-- snippet: examples/homes/main.go#list-homes -->
 ```go
@@ -61,7 +61,7 @@ func listHomes(p printer, a agentio.Agent) error {
 }
 ```
 
-`HomeFromEnv()` returns the home that `Host.Env` selects through the agent's home variable (`CLAUDE_CONFIG_DIR`, `CODEX_HOME`). It reads the Host's env, never the process env:
+[`HomeFromEnv()`](ds:block?id=core-homefromenv-jk7mncfj) returns the home that `Host.Env` selects through the agent's home variable (`CLAUDE_CONFIG_DIR`, `CODEX_HOME`). It reads the Host's env, never the process env:
 
 <!-- snippet: examples/homes/main.go#home-from-env -->
 ```go
@@ -74,7 +74,7 @@ func homeFromEnv(p printer, a agentio.Agent) {
 }
 ```
 
-`IsHome(dir)` asks the same marker question for any folder:
+[`IsHome(dir)`](ds:block?id=core-ishome-nxgj8ve9) asks the same marker question for any folder:
 
 <!-- snippet: examples/homes/main.go#is-home -->
 ```go
@@ -95,7 +95,7 @@ func isHome(p printer, a agentio.Agent, userHome string) error {
 
 ## Step 3 — Open a home by folder
 
-When the user names a folder (a profile file, a `--home` flag, a `CLAUDE_CONFIG_DIR` value), build its Home with the vendor `HomeAt` or `Core.HomeAt`. It is Pure: a relative folder resolves against `Host.UserHome`, the default folder gives back the default home, and the folder does not have to exist yet (useful before creating a new home).
+When the user names a folder (a profile file, a `--home` flag, a `CLAUDE_CONFIG_DIR` value), build its Home with the vendor `HomeAt` or [`Core.HomeAt`](ds:block?id=core-homeat-c4u3jwew). It is Pure: a relative folder resolves against `Host.UserHome`, the default folder gives back the default home, and the folder does not have to exist yet (useful before creating a new home).
 
 <!-- snippet: examples/homes/main.go#open-by-folder -->
 ```go
@@ -121,7 +121,7 @@ func openByFolder(p printer, a *claude.Agent, h agentio.Host) error {
 
 ## Step 4 — Check who owns a home
 
-Every neutral method that takes a Home first checks that it belongs to the agent. `agentio.CheckOwner(id, h)` and `Core.Owns(h)` return an error matching `ErrForeignHome` for another agent's home; the vendor conversion `claude.Agent.HomeOf` applies the same check.
+Every neutral method that takes a Home first checks that it belongs to the agent. [`agentio.CheckOwner(id, h)`](ds:block?id=checkowner-2237brr8) and `Core.Owns(h)` return an error matching `ErrForeignHome` for another agent's home; the vendor conversion [`claude.Agent.HomeOf`](ds:block?id=claude-agent-homeof-qtt8m9qe) applies the same check.
 
 <!-- snippet: examples/homes/main.go#check-owner -->
 ```go
@@ -172,12 +172,12 @@ check owner: own home err=<nil>
 
 ## Pitfalls
 
-- **`DefaultHome` and `HomeAt` never touch the disk.** They return a Home for a folder that may not exist. Use `Homes` or `IsHome` when you need "is there really a home here".
-- **A missing folder is not an error.** `IsHome` returns `(false, nil)` for a folder that does not exist or is a file; only a real stat failure (permissions) is an error.
-- **The default home is launched with the variable ABSENT.** `IsDefault()` homes get `CLAUDE_CONFIG_DIR` removed from the child env, never set to `~/.claude`: Claude Code would switch keychain entries and look logged out ([Targets and commands](launch.md#step-4--change-the-child-environment)).
-- **An empty home variable counts as absent.** `CLAUDE_CONFIG_DIR=` makes `HomeFromEnv` return false, as the vendor CLI falls back to the default home.
-- **`HomeAt` names the home from its folder.** `.claude-ci` becomes `ci` because it starts with the default folder name plus `-`; any other folder takes its base name without the leading dot.
-- **Never build a Home of one agent and pass it to another.** You get `ErrForeignHome`, not a silent read of the wrong files. Get homes from the agent that will use them.
+- **[`DefaultHome` and `HomeAt` never touch the disk.](ds:block?id=core-homeat-c4u3jwew)** They return a Home for a folder that may not exist. Use `Homes` or `IsHome` when you need "is there really a home here".
+- **A missing folder is not an error.** `IsHome` returns [`(false, nil)`](ds:block?id=core-ishome-nxgj8ve9) for a folder that does not exist or is a file; only a real stat failure (permissions) is an error.
+- **[The default home is launched with the variable ABSENT.](ds:block?id=homeenvchange-59nx5j7k)** `IsDefault()` homes get `CLAUDE_CONFIG_DIR` removed from the child env, never set to `~/.claude`: Claude Code would switch keychain entries and look logged out ([Targets and commands](launch.md#step-4--change-the-child-environment)).
+- **[An empty home variable counts as absent.](ds:block?id=core-homefromenv-jk7mncfj)** `CLAUDE_CONFIG_DIR=` makes `HomeFromEnv` return false, as the vendor CLI falls back to the default home.
+- **[`HomeAt` names the home from its folder.](ds:block?id=core-homename-ep9s5ega)** `.claude-ci` becomes `ci` because it starts with the default folder name plus `-`; any other folder takes its base name without the leading dot.
+- **Never build a Home of one agent and pass it to another.** You get [`ErrForeignHome`](ds:block?id=checkowner-2237brr8), not a silent read of the wrong files. Get homes from the agent that will use them.
 
 ## Related
 

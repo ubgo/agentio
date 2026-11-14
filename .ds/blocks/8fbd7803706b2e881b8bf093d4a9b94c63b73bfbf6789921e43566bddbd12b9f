@@ -1,0 +1,8 @@
+func (c *Core) homeName(dir string) string {
+	base := filepath.Base(dir)
+	defBase := filepath.Base(c.spec.DefaultHome)
+	if rest, ok := strings.CutPrefix(base, defBase+homeNameSep); ok && rest != "" {
+		return rest
+	}
+	return strings.TrimPrefix(base, ".")
+}

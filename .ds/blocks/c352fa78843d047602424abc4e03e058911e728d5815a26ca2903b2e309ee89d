@@ -1,0 +1,3 @@
+func sensitiveNameParts() []string {
+	return []string{"TOKEN", "KEY", "SECRET", "PASSWORD", "PASSWD", "CREDENTIAL", "AUTH"}
+}

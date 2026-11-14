@@ -1,0 +1,23 @@
+func (r Runner) Version(ctx context.Context) (Version, error) {
+	c := r.core
+	if c == nil || len(c.spec.VersionArgs) == 0 {
+		return Version{}, UnsupportedError(r.id(), "binary version", "no version args")
+	}
+	cmd, err := c.Command(c.DefaultHome().Target(), "", c.spec.VersionArgs, nil)
+	if err != nil {
+		return Version{}, err
+	}
+	res, err := r.Run(ctx, cmd, nil)
+	if err != nil {
+		return Version{}, fmt.Errorf("agentio: %s version: %w", c.spec.ID, err)
+	}
+	if res.ExitCode != 0 {
+		return Version{}, fmt.Errorf("agentio: %s version: exit %d", c.spec.ID, res.ExitCode)
+	}
+	for _, out := range [][]byte{res.Stdout, res.Stderr} {
+		if v, ok := ParseVersion(string(out)); ok {
+			return v, nil
+		}
+	}
+	return Version{}, fmt.Errorf("agentio: %s version: no version in output", c.spec.ID)
+}

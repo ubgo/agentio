@@ -1,0 +1,10 @@
+func (c *Core) HomeAt(dir string) Home {
+	if !filepath.IsAbs(dir) {
+		dir = filepath.Join(c.host.UserHome, dir)
+	}
+	dir = filepath.Clean(dir)
+	if dir == filepath.Clean(c.defaultHomeDir()) {
+		return c.DefaultHome()
+	}
+	return NewHome(c.spec.ID, dir, false, c.homeName(dir))
+}

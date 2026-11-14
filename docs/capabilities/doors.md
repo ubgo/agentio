@@ -1,11 +1,11 @@
 # Doors: Runner, Prober and Writer
 
-Most of agentio reads files. Anything else goes through a door: a separate value you must ask for before you can make the call. The Runner runs the vendor binary (Process, may touch the login), the Prober spends a little of the account's quota, and the Writer changes files the vendor CLI owns, always backing them up first. Holding the door is the opt-in, so a reviewer can see every risky call by searching for `.Runner()`, `.Prober()` and `.Writer()`. `HomeLinker` is the neutral write door for linking shared files into a new home.
+Most of agentio reads files. Anything else goes through a door: a separate value you must ask for before you can make the call. The Runner runs the vendor binary (Process, may touch the login), the Prober spends a little of the account's quota, and the Writer changes files the vendor CLI owns, [always backing them up first](ds:block?id=claude-writer-t5gq26t8). Holding the door is the opt-in, so a reviewer can see every risky call by searching for `.Runner()`, `.Prober()` and `.Writer()`. [`HomeLinker`](ds:block?id=homelinker-ek5zfyg7) is the neutral write door for linking shared files into a new home.
 
 ## Before you start
 
 - Modules: `github.com/ubgo/agentio`, `github.com/ubgo/agentio/claude`, `github.com/ubgo/agentio/codex`.
-- Runner: `Host.Exec`, a `ProcessRunner`. `HostFromOS` uses `os/exec`; tests use `agenttest.FakeExec` or a canned runner.
+- Runner: `Host.Exec`, a `ProcessRunner`. `HostFromOS` uses [`os/exec`](ds:block?id=osrunner-a75g5r5m); tests use `agenttest.FakeExec` or a canned runner.
 - Prober: `Host.HTTP`; in tests, `claude.New(h).WithBaseURL(srv.URL)` with an `httptest` server.
 - Writer and HomeLinker: a home you are allowed to change. Examples and tests copy a fixture first.
 
@@ -13,7 +13,7 @@ Most of agentio reads files. Anything else goes through a door: a separate value
 
 ## Step 1 — Run the vendor binary through a Runner
 
-`claude.Agent.Runner()` and `codex.Agent.Runner()` return the vendor Runners: `BinaryVersion` plus vendor subcommands with typed results (Claude `AuthStatus`, `Plugins`, `Marketplaces`; Codex `LoginStatus`, `Features`, `BundledModels`). The root `agentio.Core.Runner()` works for any Spec: `Run(ctx, cmd, stdin)` runs a command through `Host.Exec`, and `Version(ctx)` runs the Spec's `VersionArgs` and parses the first version in the output.
+[`claude.Agent.Runner()`](ds:block?id=claude-agent-runner-8mqvmpgg) and [`codex.Agent.Runner()`](ds:block?id=codex-agent-runner-v8k7es62) return the vendor Runners: `BinaryVersion` plus vendor subcommands with typed results (Claude [`AuthStatus`](ds:block?id=claude-runner-authstatus-ktzmqmsf), `Plugins`, `Marketplaces`; Codex `LoginStatus`, `Features`, [`BundledModels`](ds:block?id=codex-runner-bundledmodels-cpzy9yw7)). The root [`agentio.Core.Runner()`](ds:block?id=core-runner-4jzfzpz9) works for any Spec: [`Run(ctx, cmd, stdin)`](ds:block?id=runner-run-5rn5nerj) runs a command through `Host.Exec`, and [`Version(ctx)`](ds:block?id=runner-version-87cgudkv) runs the Spec's `VersionArgs` and parses the first version in the output.
 
 <!-- snippet: examples/doors/main.go#runner -->
 ```go
@@ -53,11 +53,11 @@ func useRunners(ctx context.Context, w io.Writer, h agentio.Host) error {
 }
 ```
 
-`Runner.Run` reports a non-zero exit in `ProcessResult.ExitCode` with a nil error; the error means the program could not run at all. The vendor Runners turn a non-zero exit into an error carrying a stderr snippet. Details: [Claude runner](../claude/runner.md), [Codex install](../codex/install.md#step-3--run-the-binary-through-the-runner).
+`Runner.Run` reports a non-zero exit in [`ProcessResult.ExitCode`](ds:block?id=osrunner-run-hm7czx3q) with a nil error; the error means the program could not run at all. [The vendor Runners turn a non-zero exit into an error](ds:block?id=claude-runner-run-af4j3992) carrying a stderr snippet, except Codex `LoginStatus`, which reads the exit code itself. Details: [Claude runner](../claude/runner.md), [Codex install](../codex/install.md#step-3--run-the-binary-through-the-runner).
 
 ## Step 2 — Spend quota through a Prober
 
-`claude.Agent.Prober()` returns the Prober. `TokenUsage(ctx, cred)` sends one minimal request with a long-lived plan token and reads the plan windows from the rate-limit headers of the reply. It returns the rich `claude.Usage`; the neutral `TokenProberOf` accessor returns the same as `agentio.Usage`.
+[`claude.Agent.Prober()`](ds:block?id=claude-agent-prober-cgcpxdhn) returns the Prober. [`TokenUsage(ctx, cred)`](ds:block?id=claude-quota-door-tokenusage-j2fw66uu) sends one minimal request with a long-lived plan token and reads the plan windows from the rate-limit headers of the reply. It returns the rich `claude.Usage`; the neutral [`TokenProberOf`](ds:block?id=claude-neutral-tokenusage-m94wnsb5) accessor returns the same as `agentio.Usage`.
 
 <!-- snippet: examples/doors/main.go#prober -->
 ```go
@@ -77,17 +77,17 @@ func useProber(ctx context.Context, w io.Writer, h agentio.Host, baseURL string)
 }
 ```
 
-Codex has no Prober: it has no token login to probe. See [Claude usage](../claude/usage.md#step-4--probe-a-tokens-usage) and [Logins and tokens](logins.md#step-3--probe-a-token).
+[Codex has no Prober](ds:block?id=codex-neutral-unsupportedreason-evgu3az7): it has no token login to probe. See [Claude usage](../claude/usage.md#step-4--probe-a-tokens-usage) and [Logins and tokens](logins.md#step-3--probe-a-token).
 
 ## Step 3 — Write through a Writer
 
-`claude.Agent.Writer()` returns the Writer. Every method that overwrites something copies it first to `<file>.agentio-bak-<UTC stamp>` (never overwriting an earlier backup) and returns an `agentio.Backup` listing each original and its copy. Writes are atomic (temp file, then rename) and keep keys they do not touch byte for byte. Methods: `SetUserSetting`, `SetProjectSetting`, `AddHook`, `RemoveHooks`, `MoveHistory`, `ApplyMove`, `ApplyHomeLinks`.
+[`claude.Agent.Writer()`](ds:block?id=claude-agent-writer-bwuq47c6) returns the Writer. Every method that overwrites something copies it first to [`<file>.agentio-bak-<UTC stamp>`](ds:block?id=backuppath-tfjr5hjr) (never overwriting an earlier backup) and returns an `agentio.Backup` listing each original and its copy. [Writes are atomic](ds:block?id=claude-writer-writerawsettings-6sjvkkgu) (temp file, then rename) and keep the values of keys they do not touch, though the file is re-indented with its keys sorted. Methods: `SetUserSetting`, `SetProjectSetting`, `AddHook`, `RemoveHooks`, `MoveHistory`, `ApplyMove`, `ApplyHomeLinks`.
 
 <!-- snippet: examples/doors/main.go#writer -->
 ```go
 // useWriter changes one top-level key of the default home's settings.json.
 // The Writer backs the file up first and returns where the copy went; other
-// keys stay byte for byte. Codex's Writer exists but has no methods yet:
+// keys keep their values (the file is rewritten indented). Codex's Writer exists but has no methods yet:
 // Codex config changes are vendor commands.
 func useWriter(w io.Writer, h agentio.Host) error {
 	c := claude.New(h)
@@ -110,11 +110,11 @@ func useWriter(w io.Writer, h agentio.Host) error {
 }
 ```
 
-`codex.Agent.Writer()` exists but has no methods yet: Codex config changes are vendor commands built as data (such as `FeatureCommand` and `MCPAddCommand`), so there is no Codex file agentio writes today. Details: [Claude writer](../claude/writer.md).
+[`codex.Agent.Writer()`](ds:block?id=codex-writer-tax23vch) exists but has no methods yet: Codex config changes are vendor commands built as data (such as `FeatureCommand` and `MCPAddCommand`), so there is no Codex file agentio writes today. Details: [Claude writer](../claude/writer.md).
 
 ## Step 4 — Link shared home files
 
-A new home (say `~/.claude-work`) starts empty. `HomeLinkerOf(a)` returns the neutral `HomeLinker`: `PlanHomeLinks(def, home)` plans one symlink per shared file of the default home (from the Spec's `SharedHomeFiles`: for Claude, `CLAUDE.md`, `skills` and `settings.json`), and `ApplyHomeLinks(links)` creates them. Logins, history and caches stay per home.
+A new home (say `~/.claude-work`) starts empty. [`HomeLinkerOf(a)`](ds:block?id=homelinkerof-fk3qdrnr) returns the neutral `HomeLinker`: [`PlanHomeLinks(def, home)`](ds:block?id=core-planhomelinks-zybhmbpb) plans one symlink per shared file of the default home (from the Spec's `SharedHomeFiles`: for Claude, `CLAUDE.md`, `skills` and [`settings.json`](ds:block?id=claude-sharedhomefiles-3vpa9mqk)), and [`ApplyHomeLinks(links)`](ds:block?id=core-applyhomelinks-q5mmu4xp) creates them. Logins, history and caches stay per home.
 
 <!-- snippet: examples/doors/main.go#linker -->
 ```go
@@ -186,14 +186,14 @@ Only the four Runner calls reached `Host.Exec`; the probe, the write and the lin
 
 ## Pitfalls
 
-- **Every Runner call may touch the login.** Vendor CLIs can refresh and rewrite credentials when they start. Never call a Runner method in a loop over homes or on a timer, and never call one implicitly; nothing in the library does.
-- **A Host without `Exec` has no Runner.** Vendor Runner methods return an `ErrUnsupported` error ("the host has no process runner"); the root `Runner.Run` returns an error too.
-- **Never loop the Prober.** Each call spends quota. An API key is never probed (`ErrBilledPerToken`).
-- **The Writer never edits `~/.claude.json` or a project `.mcp.json`.** Those are changed through vendor commands built as data (for example `claude mcp add`); run them yourself.
+- [**Every Runner call may touch the login.**](ds:block?id=claude-runner-dbm6t8tp) Vendor CLIs can refresh and rewrite credentials when they start. Never call a Runner method in a loop over homes or on a timer, and never call one implicitly; nothing in the library does.
+- **A Host without `Exec` has no Runner.** [Claude Runner methods](ds:block?id=claude-runner-run-af4j3992) return an `ErrUnsupported` error ("the host has no process runner"); Codex Runner methods and the root [`Runner.Run`](ds:block?id=runner-run-5rn5nerj) return a plain error ("no process runner in host") that does not match `ErrUnsupported`.
+- **Never loop the Prober.** Each call spends quota. An API key is never probed ([`ErrBilledPerToken`](ds:block?id=claude-quota-door-tokenusage-j2fw66uu)).
+- **The Writer never edits [`~/.claude.json`](ds:block?id=claude-writer-t5gq26t8) or a project `.mcp.json`.** Those are changed through vendor commands built as data (for example `claude mcp add`); run them yourself.
 - **Keep the `Backup`.** It is the only record of where the original went; show it to the user or store it. Backups are never cleaned up by the library.
-- **`ApplyHomeLinks` returns no `Backup`.** It only creates symlinks, skips entries that already exist (`Exists` true) and never replaces a file, so there is nothing to back up. Re-planning after applying shows every link as existing.
-- **`ApplyHomeLinks` checks ownership.** Each `HomeLink` carries the `Agent` that planned it; the neutral `HomeLinker` and `claude.Writer.ApplyHomeLinks` refuse a link of another agent with `agentio.ErrForeignHome` before linking anything, as `ApplyMove` does.
-- **Codex has no write methods.** `codex.Agent.Writer()` is an empty door today; do not expect a Codex settings writer.
+- **`ApplyHomeLinks` returns no [`Backup`](ds:block?id=applyhomelinks-svx7cuvm).** It only creates symlinks, skips entries that already exist (`Exists` true) and never replaces a file, so there is nothing to back up. [Re-planning after applying shows every link as existing](ds:block?id=planhomelinks-yg65h8jg).
+- **`ApplyHomeLinks` checks ownership.** Each `HomeLink` carries the `Agent` that planned it; the neutral `HomeLinker` and [`claude.Writer.ApplyHomeLinks`](ds:block?id=claude-writer-applyhomelinks-39hcpw7p) refuse a link of another agent with [`agentio.ErrForeignHome`](ds:block?id=core-applyhomelinks-q5mmu4xp) before linking anything, as `ApplyMove` does.
+- **Codex has no write methods.** [`codex.Agent.Writer()`](ds:block?id=codex-writer-tax23vch) is an empty door today; do not expect a Codex settings writer.
 
 ## Related
 

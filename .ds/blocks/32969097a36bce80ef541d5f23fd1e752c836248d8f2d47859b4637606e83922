@@ -1,0 +1,5 @@
+type FeatureUnavailableError struct {
+	Feature      Feature
+	Installed    agentio.Version
+	Since, Until agentio.Version
+}

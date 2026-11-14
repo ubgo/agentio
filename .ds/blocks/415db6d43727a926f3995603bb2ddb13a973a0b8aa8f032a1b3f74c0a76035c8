@@ -1,0 +1,7 @@
+func (a *Agent) plainCommand(h Home, args []string) agentio.Command {
+	cmd, err := a.core.Command(h.Target(), "", args, nil)
+	if err != nil {
+		return agentio.Command{Path: Binary, Args: args}
+	}
+	return cmd
+}

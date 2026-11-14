@@ -1,0 +1,14 @@
+func readRawSettings(path string) (map[string]json.RawMessage, error) {
+	data, found, err := readFileBounded(path, maxJSONFileBytes)
+	if err != nil {
+		return nil, err
+	}
+	m := map[string]json.RawMessage{}
+	if !found || len(data) == 0 {
+		return m, nil
+	}
+	if err := json.Unmarshal(data, &m); err != nil {
+		return nil, fmt.Errorf("claude: %s is not a JSON object; not rewriting it: %w", path, err)
+	}
+	return m, nil
+}

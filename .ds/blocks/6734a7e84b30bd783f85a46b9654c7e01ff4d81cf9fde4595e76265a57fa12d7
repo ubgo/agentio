@@ -1,0 +1,1 @@
+type Opt[T agentio.Scalar] = agentio.Opt[T]

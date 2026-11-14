@@ -1,0 +1,4 @@
+func (c Command) MarshalJSON() ([]byte, error) {
+	r := c.Redacted()
+	return marshalJSON(commandJSON{Path: r.Path, Args: r.Args, Env: r.Env, Dir: r.Dir, Warnings: r.Warnings})
+}

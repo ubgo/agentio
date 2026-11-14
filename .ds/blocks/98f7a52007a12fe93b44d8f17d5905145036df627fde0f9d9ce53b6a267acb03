@@ -1,0 +1,3 @@
+func (a *Agent) Queue(h Home, threadID, message string) agentio.Command {
+	return a.plainCommand(h, []string{subQueue, flagThread, threadID, flagMessage, message})
+}

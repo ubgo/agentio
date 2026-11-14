@@ -1,0 +1,1 @@
+	ErrUnknownVersion = errors.New("agentio: unknown vendor format version")

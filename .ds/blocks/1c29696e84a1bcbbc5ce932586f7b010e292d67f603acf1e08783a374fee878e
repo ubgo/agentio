@@ -1,0 +1,22 @@
+func backupMoveItems(plan MovePlan, now time.Time) (Backup, error) {
+	if len(plan.Items) == 0 {
+		return Backup{}, nil
+	}
+	root, err := BackupPath(plan.From.Dir(), now)
+	if err != nil {
+		return Backup{}, err
+	}
+	var b Backup
+	for _, it := range plan.Items {
+		rel, err := filepath.Rel(plan.From.Dir(), it.From)
+		if err != nil {
+			return Backup{}, fmt.Errorf("agentio: backup path for %s: %w", it.From, err)
+		}
+		dst := filepath.Join(root, rel)
+		if err := CopyTree(it.From, dst); err != nil {
+			return Backup{}, fmt.Errorf("agentio: backup %s: %w", it.From, err)
+		}
+		b.Entries = append(b.Entries, BackupEntry{Original: it.From, Copy: dst})
+	}
+	return b, nil
+}

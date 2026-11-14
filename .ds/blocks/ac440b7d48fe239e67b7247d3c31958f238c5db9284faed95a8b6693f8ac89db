@@ -1,0 +1,4 @@
+func MustVersion(s string) Version {
+	v, _ := ParseVersion(s)
+	return v
+}

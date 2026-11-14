@@ -1,0 +1,3 @@
+func (c Credential) Expired(now time.Time) bool {
+	return c.ExpiresAt != nil && !now.Before(*c.ExpiresAt)
+}

@@ -36,7 +36,8 @@ func (h Home) Dir() string { return h.dir }
 // Pure.
 func (h Home) IsDefault() bool { return h.isDefault }
 
-// Name is a suggested short name ("default", "work" from ~/.claude-work). Pure.
+// Name is a suggested short name ("personal" for the default home, see
+// DefaultHomeName; "work" from ~/.claude-work). Pure.
 func (h Home) Name() string { return h.name }
 
 // IsZero reports a Home that was never built. Pure.
@@ -80,9 +81,10 @@ type Target struct {
 	Home Home
 	// ExtraArgs go before the request's own args (profile args).
 	ExtraArgs []string
-	// ExtraEnv is applied onto Host.Env before the credential and home rules,
-	// so it can never override the home variable or reintroduce a scrubbed
-	// credential variable.
+	// ExtraEnv is applied after the scrub of inherited credential variables
+	// (so a credential set here on purpose is kept for a home login) and
+	// before a token login and the home rule, so it can never override the
+	// home variable or beat a token (Core.EnvChanges).
 	ExtraEnv []EnvChange
 	// Billing is the caller's billing hint for this target; BillingUnknown lets the agent decide.
 	Billing Billing

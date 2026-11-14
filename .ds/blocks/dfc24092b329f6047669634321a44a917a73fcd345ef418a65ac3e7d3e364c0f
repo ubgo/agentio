@@ -1,0 +1,6 @@
+func (o Opt[T]) Or(def T) T {
+	if o.Set {
+		return o.V
+	}
+	return def
+}

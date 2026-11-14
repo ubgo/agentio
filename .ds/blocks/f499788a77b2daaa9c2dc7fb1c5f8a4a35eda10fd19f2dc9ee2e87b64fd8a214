@@ -1,0 +1,6 @@
+func (h Host) SystemPath(rel string) (string, bool) {
+	if h.SystemRoot == "" || h.GOOS == "" {
+		return "", false
+	}
+	return filepath.Join(h.SystemRoot, filepath.FromSlash(rel)), true
+}

@@ -1,0 +1,14 @@
+type ModelProvider struct {
+	Name, BaseURL, EnvKey, EnvKeyInstructions, ModelCatalogURL Opt[string]
+	WireAPI                                                    Opt[WireAPI]
+	// QueryParams and HTTPHeaders are RedactedString upstream: names only,
+	// values left empty. EnvHTTPHeaders maps header → env var name.
+	QueryParams, HTTPHeaders, EnvHTTPHeaders   map[string]string
+	RequestMaxRetries, StreamMaxRetries        Opt[int64]
+	StreamIdleTimeout, WebsocketConnectTimeout Opt[time.Duration] // *_ms keys
+	RequiresOpenAIAuth, SupportsWebsockets     Opt[bool]
+	SupportsStandaloneWebSearch                Opt[bool]
+	HasExperimentalBearerToken                 bool // value never loaded
+	Auth, AWS, GatewayOAuth, Capabilities      TOMLRaw
+	Unknown                                    UnknownTOML
+}

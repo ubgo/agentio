@@ -1,0 +1,86 @@
+func (b *builder) global(o LaunchOptions, exec bool) {
+	b.trailing = o.trailing
+	for _, ov := range o.Overrides {
+		if ov.Path == "" {
+			b.fail(fmt.Errorf("%w: empty override path", ErrInvalidOption))
+			return
+		}
+		b.flag(FeatureFlagConfig, flagConfig, ov.String())
+	}
+	for _, e := range o.Enable {
+		b.flag(FeatureFlagEnable, flagEnable, e)
+	}
+	for _, d := range o.Disable {
+		b.flag(FeatureFlagDisable, flagDisable, d)
+	}
+	if o.StrictConfig {
+		b.flag(FeatureFlagStrictConfig, flagStrict)
+	}
+	for _, img := range o.Images {
+		b.flag(FeatureFlagImage, flagImage, img)
+	}
+	if o.Model != "" {
+		b.flag(FeatureFlagModel, flagModel, o.Model)
+	}
+	if o.OSS {
+		b.flag(FeatureFlagOSS, flagOSS)
+	}
+	if o.LocalProvider != "" {
+		b.flag(FeatureFlagLocalProvider, flagLocalProv, o.LocalProvider)
+	}
+	if o.Profile != "" {
+		b.profile(o)
+	}
+	if o.Sandbox != "" {
+		if !o.Sandbox.IsKnown() || o.Sandbox == ModeExternalSandbox {
+			b.fail(fmt.Errorf("%w: sandbox %q", ErrInvalidOption, o.Sandbox))
+			return
+		}
+		b.flag(FeatureFlagSandbox, flagSandbox, string(o.Sandbox))
+	}
+	if o.Approval != "" {
+		if o.Approval != ApprovalOnRequest && o.Approval != ApprovalNever && o.Approval != ApprovalUntrusted && o.Approval != ApprovalOnFailure {
+			b.fail(fmt.Errorf("%w: approval %q", ErrInvalidOption, o.Approval))
+			return
+		}
+		if exec {
+			b.flag(FeatureFlagConfig, flagConfig, OverrideString(keyApproval, string(o.Approval)).String())
+		} else {
+			b.flag(FeatureFlagApproval, flagApproval, string(o.Approval))
+		}
+	}
+	if o.ApproveForMe {
+		b.flag(FeatureFlagApproveForMe, flagApprove)
+	}
+	if o.BypassAll {
+		if !b.t.AllowDangerous {
+			b.fail(agentio.ErrDangerousNotAllowed)
+			return
+		}
+		b.flag(FeatureFlagBypassApprovalsAndSandbox, flagBypass)
+	}
+	if o.Dir != "" {
+		b.flag(FeatureFlagCd, flagCd, o.Dir)
+	}
+	if o.Worktree {
+		b.flag(FeatureFlagWorktree, flagWorktree)
+	}
+	for _, d := range o.AddDirs {
+		b.flag(FeatureFlagAddDir, flagAddDir, d)
+	}
+	if o.Search {
+		b.flag(FeatureFlagSearch, flagSearch)
+	}
+	if o.NoAltScreen {
+		b.flag(FeatureFlagNoAltScreen, flagNoAlt)
+	}
+	if o.NoDaemon {
+		b.flag(FeatureFlagNoDaemon, flagNoDaemon)
+	}
+	if o.Remote != "" {
+		b.flag(FeatureFlagRemote, flagRemote, o.Remote)
+	}
+	if o.RemoteAuthTokenEnv != "" {
+		b.flag(FeatureFlagRemoteAuthTokenEnv, flagRemoteEnv, o.RemoteAuthTokenEnv)
+	}
+}

@@ -1,0 +1,1 @@
+func sharedHomeFiles() []string { return []string{memoryFileName, skillsDir, settingsFile} }

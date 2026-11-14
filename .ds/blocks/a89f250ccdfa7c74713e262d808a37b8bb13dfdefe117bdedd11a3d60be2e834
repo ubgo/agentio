@@ -1,0 +1,15 @@
+func BackupPath(path string, now time.Time) (string, error) {
+	base := path + backupInfix + now.UTC().Format(backupStamp)
+	for i := 1; i <= maxBackupSuffix; i++ {
+		p := base
+		if i > 1 {
+			p = base + "-" + strconv.Itoa(i)
+		}
+		if _, err := os.Lstat(p); errors.Is(err, fs.ErrNotExist) {
+			return p, nil
+		} else if err != nil {
+			return "", fmt.Errorf("agentio: backup name %s: %w", p, err)
+		}
+	}
+	return "", fmt.Errorf("agentio: no free backup name for %s", path)
+}

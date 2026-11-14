@@ -1,0 +1,18 @@
+func (a *Agent) finish(b *builder, dir string, positional ...string) (agentio.Command, error) {
+	if b.err != nil {
+		return agentio.Command{}, b.err
+	}
+	args := append(b.args, b.t.ExtraArgs...)
+	for _, p := range positional {
+		if p != "" {
+			args = append(args, p)
+		}
+	}
+	args = append(args, b.trailing...)
+	cmd, err := a.core.Command(b.t, dir, args, nil)
+	if err != nil {
+		return agentio.Command{}, err
+	}
+	cmd.Warnings = append(cmd.Warnings, b.warns...)
+	return cmd, nil
+}

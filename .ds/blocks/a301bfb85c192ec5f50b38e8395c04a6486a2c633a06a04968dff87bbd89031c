@@ -1,0 +1,9 @@
+func (osProcesses) Processes(ctx context.Context) ([]Process, error) {
+	switch runtime.GOOS {
+	case goosLinux:
+		return linuxProcesses()
+	case goosDarwin:
+		return darwinProcesses(ctx)
+	}
+	return nil, UnsupportedError("", "process table", "no reader for "+runtime.GOOS)
+}

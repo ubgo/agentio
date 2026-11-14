@@ -1,0 +1,1 @@
+func (m InstallMethod) IsKnown() bool { return isKnown(m, InstallMethodValues()) }

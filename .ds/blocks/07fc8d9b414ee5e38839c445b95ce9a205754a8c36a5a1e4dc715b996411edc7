@@ -1,0 +1,1 @@
+func (o Opt[T]) Get() (T, bool) { return o.V, o.Set }

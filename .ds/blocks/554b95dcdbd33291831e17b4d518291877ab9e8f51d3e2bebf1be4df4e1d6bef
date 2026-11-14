@@ -1,0 +1,39 @@
+func (d *DB) Turns(ctx context.Context, threadID string) ([]Turn, error) {
+	c, err := d.ready(ctx, FileThreadHistory)
+	if err != nil {
+		return nil, err
+	}
+	have, err := d.columns(ctx, FileThreadHistory, tableTurns)
+	if err != nil {
+		return nil, err
+	}
+	q := "SELECT " + selectList(have, "", turnColumns()) + " FROM " + tableTurns +
+		" WHERE thread_id = ? ORDER BY rollout_ordinal LIMIT ?"
+	rows, err := c.QueryContext(ctx, q, threadID, maxLimit)
+	if err != nil {
+		return nil, fmt.Errorf("codex/state: turns: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var out []Turn
+	for rows.Next() {
+		var t Turn
+		var root, status, errJSON, firstUser, finalAgent sql.NullString
+		var started, completed, durMs, ord, off, endOrd, endOff sql.NullInt64
+		if err := rows.Scan(&t.ThreadID, &t.TurnID, &root, &status, &errJSON, &started, &completed,
+			&durMs, &firstUser, &finalAgent, &ord, &off, &endOrd, &endOff); err != nil {
+			return nil, fmt.Errorf("codex/state: turns: %w", err)
+		}
+		t.RootTurnID = strPtr(root)
+		t.Status = TurnStatus(status.String)
+		if errJSON.String != "" {
+			t.Error = agentio.Raw(errJSON.String)
+		}
+		t.Started, t.Completed = fromSeconds(started), fromSeconds(completed)
+		t.Duration = time.Duration(durMs.Int64) * time.Millisecond
+		t.FirstUserItemID, t.FinalAgentItemID = strPtr(firstUser), strPtr(finalAgent)
+		t.RolloutOrdinal = ord.Int64
+		t.RolloutByteOffset, t.RolloutEndOrdinal, t.RolloutEndOffset = int64Ptr(off), int64Ptr(endOrd), int64Ptr(endOff)
+		out = append(out, t)
+	}
+	return out, rows.Err()
+}

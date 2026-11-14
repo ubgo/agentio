@@ -1,0 +1,3 @@
+func (a *Agent) HistoryDir(h Home, dir string) string {
+	return filepath.Join(h.Dir(), projectsDir, EncodePath(filepath.Clean(dir)))
+}

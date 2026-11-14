@@ -1,0 +1,6 @@
+func NewCore(s Spec, h Host) (*Core, error) {
+	if err := s.Validate(); err != nil {
+		return nil, err
+	}
+	return &Core{spec: s, host: h}, nil
+}

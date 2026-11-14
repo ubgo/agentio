@@ -6,7 +6,7 @@ By participating, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md
 
 ## Development setup
 
-You need Go (the version in the root `go.mod` or newer) and [Task](https://taskfile.dev). [golangci-lint](https://golangci-lint.run) v2 is required for `task check` (config in `.golangci.yml`); [staticcheck](https://staticcheck.dev) is optional and runs when it is installed.
+You need Go (the version in the root `go.mod` or newer), [Task](https://taskfile.dev) and the docsync CLI `ds` for the docs gate (`go install github.com/ubgo/docsync/cli/cmd/ds@latest`). [golangci-lint](https://golangci-lint.run) v2 is required for `task check` (config in `.golangci.yml`); [staticcheck](https://staticcheck.dev) is optional and runs when it is installed.
 
 The repository holds several Go modules. A `go.work` ties them together for local development; it is gitignored and never committed, so create it once after cloning:
 
@@ -34,12 +34,24 @@ Run these before you open a pull request:
 | Command | What it does |
 |---|---|
 | `task lint` | golangci-lint on every module (`.golangci.yml`) |
-| `task check` | the full gate: gofmt, `go vet`, staticcheck (if installed), golangci-lint, race tests, cross-compile for 6 platforms with CGO off, standalone (`GOWORK=off`) builds of every module |
+| `task check` | the full gate: gofmt, `go vet`, staticcheck (if installed), golangci-lint, race tests, cross-compile for 6 platforms with CGO off, standalone (`GOWORK=off`) builds of every module, then `task docs:check` |
 | `task test:quick` | unit tests of every module, cached, no race detector (fast loop while you work) |
-| `task docs:check` | fails when a Go snippet in the docs differs from the example source it is synced from |
+| `task docs:check` | `internal/docscheck` (snippets in sync with their example source, links and anchors, no hard wraps, no local paths, no attribution), then `ds check` (docsync: a sentence whose cited code changed since it was acked) |
 | `task docs:snippets` | rewrites the docs snippets from their example sources |
 
 Code snippets in the docs are copied from compiled examples, not written by hand. Mark a region in Go source with `// snippet:start NAME` and `// snippet:end NAME`, put `<!-- snippet: examples/<dir>/<file>.go#NAME -->` above the fenced block in the markdown, write the code first, then run `task docs:snippets`.
+
+## Docs bound to code (docsync)
+
+Behavioural sentences in `README.md` and the guides under `docs/` cite the Go declaration that implements them with a docsync link, `[`HostFromOS`](ds:block?id=hostfromos-…)`. The ids are defined in the `ds:def` comment block near the end of `README.md`, each as a remote def (`file=… pick=symbol:Name` or `pick=symbol:Type.Method`); never put a `ds:def` in a `.go` file. `.ds/` (config, ledger, refs, acks, blocks) is committed; its `.gitignore` keeps the machine-local cache and lock out.
+
+When you change code that a sentence cites, `task docs:check` fails with `unacked` and shows the diff. Then:
+
+1. Read the cited sentence. If it is no longer true, edit it first.
+2. Record that it is true for the code as it is now: `ds ack <id> --doc <file> --line <n> --note "<why it still holds>"` (the exact command is printed under the finding; `--all` acks every citation of the id).
+3. Run `ds scan` so the ledger records the new state, and commit `.ds/` with the code and doc change.
+
+To bind a new sentence, add a `ds:def` line to the README block (or reuse an existing id), link the sentence to it, run `ds scan`, check the sentence against the code, and `ds ack` it. `ds check` must report 0 errors. A docsync workflow exists in `.github/workflows/docsync.yml`, manual only (`workflow_dispatch`): it never runs on push or pull request because Actions minutes are billed on this private repository.
 
 ## Rules every change keeps
 
@@ -72,7 +84,7 @@ These are easy to break and the reviews check them. Most are also enforced by `i
 ## Pull request checklist
 
 - [ ] The change is scoped and described (link the issue it closes).
-- [ ] `task check` passes; `task docs:check` passes when docs or examples changed.
+- [ ] `task check` passes (it includes `task docs:check`); after changing cited code, every flagged sentence was checked and acked (`ds ack`) and `.ds/` is committed.
 - [ ] New behaviour has tests against fixtures, and each new guard has a test that fails when the guard is removed.
 - [ ] New vendor shapes come from a real sample, recorded as a fixture with values replaced.
 - [ ] Docs and CHANGELOG updated for user-facing changes.

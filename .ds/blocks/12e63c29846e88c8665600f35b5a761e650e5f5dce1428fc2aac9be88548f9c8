@@ -1,0 +1,3 @@
+func (a *Agent) MCPServer(h Home) agentio.Command {
+	return a.plainCommand(h, []string{subMCPServer})
+}

@@ -1,0 +1,14 @@
+func ApplyHomeLinks(links []HomeLink) error {
+	for _, l := range links {
+		if l.Exists {
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(l.To), backupDirPerm); err != nil {
+			return fmt.Errorf("agentio: link %s: %w", l.Name, err)
+		}
+		if err := os.Symlink(l.From, l.To); err != nil {
+			return fmt.Errorf("agentio: link %s: %w", l.Name, err)
+		}
+	}
+	return nil
+}

@@ -1,0 +1,7 @@
+func tokenBoundary(s string, i int) bool {
+	if i == 0 {
+		return true
+	}
+	c := s[i-1]
+	return !isAlnum(c) && !strings.ContainsRune(versionWordBytes, rune(c))
+}

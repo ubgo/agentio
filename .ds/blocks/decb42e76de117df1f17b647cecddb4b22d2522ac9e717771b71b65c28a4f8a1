@@ -1,0 +1,1 @@
+func (a *Agent) Neutral() agentio.Agent { return neutral{Core: a.core, a: a} }

@@ -1,0 +1,21 @@
+func (w *Writer) AddHook(h Home, p *Project, s SettingsScope, ev HookEvent, m HookMatcher) (agentio.Backup, error) {
+	path, err := w.a.settingsPath(h, p, s)
+	if err != nil {
+		return agentio.Backup{}, err
+	}
+	raw, err := readRawSettings(path)
+	if err != nil {
+		return agentio.Backup{}, err
+	}
+	hooks, err := readHooks(raw)
+	if err != nil {
+		return agentio.Backup{}, err
+	}
+	hooks[ev] = append(hooks[ev], m)
+	enc, err := json.Marshal(hooks)
+	if err != nil {
+		return agentio.Backup{}, err
+	}
+	raw[keyHooks] = enc
+	return w.writeRawSettings(path, raw)
+}

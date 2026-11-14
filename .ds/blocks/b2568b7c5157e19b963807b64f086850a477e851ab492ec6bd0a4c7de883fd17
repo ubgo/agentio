@@ -1,0 +1,8 @@
+func enumUnmarshal[E enum8](dst *E, text []byte, kind string, names []string) error {
+	v, ok := enumParse[E](string(text), names)
+	if !ok {
+		return fmt.Errorf("agentio: unknown %s %q", kind, text)
+	}
+	*dst = v
+	return nil
+}

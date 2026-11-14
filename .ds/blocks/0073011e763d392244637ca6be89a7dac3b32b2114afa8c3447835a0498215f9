@@ -1,0 +1,6 @@
+func (a *Agent) TokenLifetime(k agentio.TokenKind) time.Duration {
+	if k == agentio.TokenOAuthToken {
+		return SetupTokenLifetime
+	}
+	return 0
+}

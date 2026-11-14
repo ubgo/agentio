@@ -1,0 +1,38 @@
+type Thread struct {
+	ID               string
+	RolloutPath      string // absolute; the reason Codex conversations cannot move (invariant 6)
+	Cwd              string
+	Title            string
+	Name             *string // user-set name (0041); nil when unset
+	Preview          string
+	FirstUserMessage string
+	Created          time.Time
+	Updated          time.Time
+	Recency          time.Time
+	ArchivedAt       *time.Time
+	Archived         bool
+	Pinned           bool // is_pinned or the built-in Pinned section
+	HasUserEvent     bool
+	Source           codex.SessionSource
+	ThreadSource     *string // user | subagent | guardian_review …
+	Originator       *string // "codex-tui", "Codex Desktop", …
+	ModelProvider    string
+	Model            *string
+	ReasoningEffort  codex.ReasoningEffort
+	Sandbox          codex.SandboxPolicy
+	Approval         codex.ApprovalPolicy
+	TokensUsed       int64
+	CLIVersion       agentio.Version // zero when the column is empty or absent
+	Git              *codex.GitInfo
+	Agent            *SubAgentInfo
+	MemoryMode       *string
+	HistoryMode      HistoryMode
+	ProjectID        *string
+	SectionID        *string
+	CreatorUserID    agentio.Personal
+	CreatorAccountID agentio.Personal
+	// Warnings lists columns whose value did not decode (e.g. a
+	// sandbox_policy shape this library has not seen); the rest of the row
+	// still reads (invariant 17).
+	Warnings agentio.Warnings
+}

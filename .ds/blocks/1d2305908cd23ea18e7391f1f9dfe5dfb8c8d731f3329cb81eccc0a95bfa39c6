@@ -1,0 +1,37 @@
+func JSONKeys(t reflect.Type) []string {
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	if t.Kind() != reflect.Struct {
+		return nil
+	}
+	unknownType := reflect.TypeFor[Unknown]()
+	var out []string
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		if f.Type == unknownType {
+			continue
+		}
+		tag := f.Tag.Get(jsonTag)
+		if tag == jsonTagSkip {
+			continue
+		}
+		name, opts, _ := strings.Cut(tag, jsonTagSep)
+		if f.Anonymous && name == "" {
+			out = append(out, JSONKeys(f.Type)...)
+			continue
+		}
+		if opts == jsonTagInline {
+			out = append(out, JSONKeys(f.Type)...)
+			continue
+		}
+		if !f.IsExported() {
+			continue
+		}
+		if name == "" {
+			name = f.Name
+		}
+		out = append(out, name)
+	}
+	return out
+}

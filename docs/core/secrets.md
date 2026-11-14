@@ -1,6 +1,6 @@
 # Tokens and redacted values
 
-agentio carries every secret and every piece of personal data in a type that refuses to print it. `Token` holds a credential (OAuth access token, setup-token, API key), `EnvValue` a secret-bearing environment value from a vendor config (an MCP server's env), and `Personal` an email, display name, org name or account id. All three print `[redacted]` through every `fmt` verb, JSON and `slog`, so a log line, an error or a `--json` dump cannot leak them by accident. You want this page whenever you pass a token to a launch or show account data.
+agentio carries every secret and every piece of personal data in a type that refuses to print it. `Token` holds a credential (OAuth access token, setup-token, API key), `EnvValue` a secret-bearing environment value from a vendor config (an MCP server's env), and `Personal` an email, display name, org name or account id. All three print [`[redacted]`](ds:block?id=redact-8fhquzvy) through every `fmt` verb, JSON and `slog`, so a log line, an error or a `--json` dump cannot leak them by accident. You want this page whenever you pass a token to a launch or show account data.
 
 ## Before you start
 
@@ -9,7 +9,7 @@ agentio carries every secret and every piece of personal data in a type that ref
 
 ## Step 1 — Wrap a secret in a Token
 
-`agentio.NewToken(value)` wraps a secret. Its only field is unexported, so a Token cannot be read by accident; `Reveal()` is the one deliberate way out, meant for an HTTP auth header or for decoding a credential blob a `SecretStore` returned, never for argv, errors, logs or output. `LogValue` makes `slog` print it redacted.
+[`agentio.NewToken(value)`](ds:block?id=newtoken-xgarx7tt) wraps a secret. Its only field is unexported, so a Token cannot be read by accident; `Reveal()` is the one deliberate way out, meant for an HTTP auth header or for decoding a credential blob a `SecretStore` returned, never for argv, errors, logs or output. [`LogValue`](ds:block?id=token-logvalue-55q96ejj) makes `slog` print it redacted.
 
 <!-- snippet: examples/launch/secrets.go#wrap-token -->
 ```go
@@ -43,11 +43,11 @@ func wrapToken(p printer) error {
 }
 ```
 
-A `Token` also decodes from a JSON string (`UnmarshalJSON`), so a vendor credential struct can hold one directly. `IsZero()` reports an empty token.
+A `Token` also decodes from a JSON string ([`UnmarshalJSON`](ds:block?id=token-unmarshaljson-5rwgenx7)), so a vendor credential struct can hold one directly. [`IsZero()`](ds:block?id=token-iszero-9tp4s4fb) reports an empty token.
 
 ## Step 2 — Put a token in a child env
 
-To launch an agent with a token instead of the home's own login, pass an `agentio.TokenCredential` (the `TokenKind` plus the `Token`) in `LaunchRequest.Credential`. The agent maps it to its variable (`CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY` for Claude) with `EnvSetSecret`, scrubs its other credential variables first, and the value ends up only in `Command.Env`:
+To launch an agent with a token instead of the home's own login, pass an [`agentio.TokenCredential`](ds:block?id=claude-agent-tokenenv-tatsnfw8) (the `TokenKind` plus the `Token`) in `LaunchRequest.Credential`. The agent maps it to its variable (`CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY` for Claude) with `EnvSetSecret`, [scrubs its other credential variables first](ds:block?id=core-envchanges-f8hrn3we), and the value ends up only in `Command.Env`:
 
 <!-- snippet: examples/launch/secrets.go#token-launch -->
 ```go
@@ -69,11 +69,11 @@ func tokenLaunch(p printer, a agentio.Agent, t agentio.Target) error {
 }
 ```
 
-When you build an env yourself, `agentio.EnvSetSecret(name, token)` is the same building block: the value shows as `[redacted]` everywhere except the `Env` that `ApplyEnv` or `NewCommand` builds ([Targets and commands](launch.md#step-4--change-the-child-environment)).
+When you build an env yourself, [`agentio.EnvSetSecret(name, token)`](ds:block?id=envsetsecret-tf8w23qe) is the same building block: the value shows as `[redacted]` everywhere except the `Env` that `ApplyEnv` or `NewCommand` builds ([Targets and commands](launch.md#step-4--change-the-child-environment)).
 
 ## Step 3 — Redact personal values
 
-`EnvValue` (`NewEnvValue`) and `Personal` (`NewPersonal`) follow the same rules as `Token`. Vendor structs decode emails and org names straight into `Personal` fields, and the neutral `MCPServer` carries env names only while vendor MCP types carry `EnvValue`. A program that must show an email (a `whoami` command) calls `Reveal()` explicitly.
+`EnvValue` ([`NewEnvValue`](ds:block?id=envvalue-sjcyhx97)) and `Personal` ([`NewPersonal`](ds:block?id=personal-yfzy8bms)) follow the same rules as `Token`. Vendor structs decode emails and org names straight into `Personal` fields, and the neutral [`MCPServer`](ds:block?id=mcpserver-dpx2w5v3) carries env names only while vendor MCP types carry `EnvValue`. A program that must show an email (a `whoami` command) calls `Reveal()` explicitly.
 
 <!-- snippet: examples/launch/secrets.go#personal-values -->
 ```go
@@ -138,13 +138,13 @@ The example's test also checks that neither the token nor the shell's API key ap
 
 ## Pitfalls
 
-- **An empty value prints as empty, not `[redacted]`.** Presence is not a secret, and `[redacted]` for an empty token would suggest a login exists. Check `IsZero()` rather than the printed text.
-- **Every verb prints the same bare text.** `Format` ignores the verb, so `%q` gives `[redacted]` without quotes and `%x` does not hex-encode anything.
-- **`Reveal()` is a promise you make.** Never pass its result to argv, an error message, a log or a file; the library itself calls it only for an HTTP auth header and when parsing a credential blob.
-- **A token never travels on argv.** Builders put it in `Command.Env` only; if you need to pass one to a child process, use `EnvSetSecret`.
-- **Never refresh an OAuth token yourself.** The library never does: refreshing rotates the refresh token and logs the vendor CLI out. An expired login is reported as `ErrExpired`; one interactive run of the vendor CLI refreshes it ([Errors](errors.md)).
-- **`Command.Env` is the one place with the real value.** Print commands with `Redacted()`, `String()` or JSON.
-- **A token kind the agent does not take is refused.** Claude accepts `oauth-token` and `api-key`; any other `TokenKind` returns `ErrUnsupported` from `Launch`.
+- **[An empty value prints as empty, not `[redacted]`.](ds:block?id=redact-8fhquzvy)** Presence is not a secret, and `[redacted]` for an empty token would suggest a login exists. Check `IsZero()` rather than the printed text.
+- **Every verb prints the same bare text.** [`Format`](ds:block?id=token-format-wcqqk5x2) ignores the verb, so `%q` gives `[redacted]` without quotes and `%x` does not hex-encode anything.
+- **[`Reveal()`](ds:block?id=token-reveal-8wam7b8k) is a promise you make.** Never pass its result to argv, an error message, a log or a file; the library itself calls it only to build `Command.Env`, for an HTTP auth header, when parsing a credential blob, to classify a token or read its expiry, and to scrub a token out of an error body.
+- **A token never travels on argv.** Builders put it in `Command.Env` only; if you need to pass one to a child process, use [`EnvSetSecret`](ds:block?id=envsetsecret-tf8w23qe).
+- **Never refresh an OAuth token yourself.** The library never does: refreshing rotates the refresh token and logs the vendor CLI out. An expired login is reported as [`ErrExpired`](ds:block?id=claude-agent-usablecredential-e8k4sjep); one interactive run of the vendor CLI refreshes it ([Errors](errors.md)).
+- **[`Command.Env` is the one place with the real value.](ds:block?id=command-c4wdgewr)** Print commands with `Redacted()`, `String()` or JSON.
+- **[A token kind the agent does not take is refused.](ds:block?id=claude-agent-tokenenv-tatsnfw8)** Claude accepts `oauth-token` and `api-key`; any other `TokenKind` returns `ErrUnsupported` from `Launch`.
 
 ## Related
 

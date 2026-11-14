@@ -1,0 +1,37 @@
+func (a *Agent) Conversations(ctx context.Context, h Home, q ConversationQuery) ([]Conversation, error) {
+	p := a.Paths(h)
+	files, err := walkRollouts(p.Sessions, false)
+	if err != nil {
+		return nil, err
+	}
+	if q.IncludeArchived {
+		arch, err := walkRollouts(p.ArchivedSessions, true)
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, arch...)
+	}
+	sort.SliceStable(files, func(i, j int) bool { return files[i].mod.After(files[j].mod) })
+	titles, err := readTitles(p.SessionIndex)
+	if err != nil {
+		return nil, err
+	}
+	var out []Conversation
+	for _, f := range files {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		if q.Limit > 0 && len(out) >= q.Limit {
+			break
+		}
+		if !q.Since.IsZero() && f.mod.Before(q.Since) {
+			break // newest first: everything after is older
+		}
+		c, ok := conversationFrom(h, f, titles)
+		if !ok || !matchQuery(c, q) {
+			continue
+		}
+		out = append(out, c)
+	}
+	return out, nil
+}

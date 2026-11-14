@@ -1,0 +1,7 @@
+func checkFeature(t agentio.Target, f Feature) error {
+	span := FeatureInfo(f)
+	if span.In(t.Version) {
+		return nil
+	}
+	return &FeatureUnavailableError{Feature: f, Installed: t.Version, Since: span.Since, Until: span.Until}
+}

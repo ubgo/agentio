@@ -1,0 +1,7 @@
+func enumOpt[T ~string](d *tomlDecoder, dst *Opt[T], e tomlEntry) {
+	if e.val.kind != tomlString {
+		d.mismatch(e, tomlString)
+		return
+	}
+	*dst = agentio.Some(T(e.val.str))
+}

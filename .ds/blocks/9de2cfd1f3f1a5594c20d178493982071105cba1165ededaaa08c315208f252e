@@ -1,0 +1,1 @@
+func (b Backup) IsEmpty() bool { return len(b.Entries) == 0 }

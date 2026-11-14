@@ -1,0 +1,16 @@
+func (c Config) TrustOf(dir string) (TrustLevel, bool) {
+	dir = filepath.Clean(dir)
+	best, bestLen := TrustLevel(""), -1
+	for k, p := range c.Projects {
+		if !p.TrustLevel.Set {
+			continue
+		}
+		key := filepath.Clean(k)
+		if dir == key || strings.HasPrefix(dir, key+string(filepath.Separator)) || key == string(filepath.Separator) {
+			if len(key) > bestLen {
+				best, bestLen = p.TrustLevel.V, len(key)
+			}
+		}
+	}
+	return best, bestLen >= 0
+}

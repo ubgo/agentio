@@ -1,0 +1,16 @@
+func (r *Runner) LoginStatus(ctx context.Context, h Home) (LoginStatus, error) {
+	cmd := r.a.plainCommand(h, []string{subLogin, subStatus})
+	res, err := r.core.Run(ctx, cmd, nil)
+	if err != nil {
+		return LoginStatus{}, err
+	}
+	text := strings.TrimSpace(string(res.Stdout) + string(res.Stderr))
+	st := LoginStatus{LoggedIn: res.ExitCode == 0 && !strings.Contains(text, statusNotLogged), Text: text}
+	switch {
+	case strings.Contains(text, statusChatGPT):
+		st.Method = AuthChatGPT
+	case strings.Contains(text, statusAPIKey):
+		st.Method = AuthAPIKey
+	}
+	return st, nil
+}

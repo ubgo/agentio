@@ -1,0 +1,6 @@
+type HomeLinker interface {
+	// PlanHomeLinks is Disk · Read, over Spec.SharedHomeFiles.
+	PlanHomeLinks(def, h Home) ([]HomeLink, error)
+	// ApplyHomeLinks is Disk · Write: symlinks only, skips Exists, nothing to back up.
+	ApplyHomeLinks(links []HomeLink) error
+}

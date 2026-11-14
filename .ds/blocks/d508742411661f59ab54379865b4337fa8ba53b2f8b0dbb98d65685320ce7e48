@@ -1,0 +1,3 @@
+func (a *Agent) KeyringEntry(h Home) KeyringEntry {
+	return KeyringEntry{Service: KeyringService, Account: KeyringAccount(h.Dir())}
+}

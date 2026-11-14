@@ -1,0 +1,15 @@
+func (a *Agent) Subscription(ctx context.Context, h Home) (agentio.Subscription, error) {
+	c, err := a.usableCredential(ctx, h)
+	if err != nil {
+		return agentio.Subscription{}, err
+	}
+	body, err := a.get(ctx, profilePath, c.AccessToken)
+	if err != nil {
+		return agentio.Subscription{}, err
+	}
+	s, err := ParseProfile(body)
+	if err == nil {
+		s.Raw = agentio.Raw(body)
+	}
+	return s, err
+}

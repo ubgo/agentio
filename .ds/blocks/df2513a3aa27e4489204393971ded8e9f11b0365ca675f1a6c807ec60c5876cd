@@ -1,0 +1,9 @@
+func (p Plan) IsWorkspace() bool {
+	switch p {
+	case PlanTeam, PlanSelfServeBusinessProLite, PlanSelfServeBusinessUsageBased, PlanBusiness,
+		PlanEnt26, PlanEnterpriseCBPAutomation, PlanEnterpriseCBPUsageBased, PlanEnterprise,
+		PlanEdu, PlanEduPlus, PlanEduPro:
+		return true
+	}
+	return false
+}

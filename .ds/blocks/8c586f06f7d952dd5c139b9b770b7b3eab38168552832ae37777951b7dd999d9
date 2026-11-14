@@ -1,0 +1,4 @@
+func (o LaunchOptions) Args() ([]string, error) {
+	b, err := o.build()
+	return b.args, err
+}

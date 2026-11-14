@@ -150,7 +150,8 @@ func (w *Writer) applyPatch(path string, patch SettingsPatch) (agentio.Backup, e
 }
 
 // SetUserSetting edits top-level keys of <home>/settings.json; other keys
-// are kept byte for byte. cost: Disk · Write.
+// keep their values, but the file is rewritten indented with sorted keys
+// (writeRawSettings), so hand formatting is not kept. cost: Disk · Write.
 func (w *Writer) SetUserSetting(h Home, patch SettingsPatch) (agentio.Backup, error) {
 	return w.applyPatch(filepath.Join(h.Dir(), settingsFile), patch)
 }

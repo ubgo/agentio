@@ -1,0 +1,12 @@
+type Usage struct {
+	Email               agentio.Personal
+	Plan                Plan
+	LimitReached        bool
+	Windows             []UsageWindow
+	Credits             agentio.Raw // shape unseen (null on the sample home)
+	IndividualLimit     agentio.Raw // shape unseen (null on the sample home)
+	SpendControlReached *bool
+	ObservedAt          time.Time // server fetch time for Usage, record time for CachedUsage
+	Source              agentio.UsageSource
+	Raw                 agentio.Raw // vendor body (server) or the token_count payload (cached)
+}

@@ -1,0 +1,3 @@
+func (f finding) baselineKey() string {
+	return strings.Join([]string{string(f.vendor), string(f.kind), f.source, f.detail}, "\t")
+}

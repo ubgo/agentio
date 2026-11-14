@@ -1,0 +1,19 @@
+func (b *builder) profile(o LaunchOptions) {
+	v := b.t.Version
+	legacyOnly := !v.IsZero() && v.Compare(agentio.MustVersion(profileV2Since)) < 0
+	switch {
+	case legacyOnly:
+		// below 0.131.0 -p selects a legacy [profiles.NAME]: no conflict exists
+	case o.ProfileCheck == nil:
+		b.warns.Add(agentio.WarnVersionUnknown, fileConfig, "profiles", "--profile conflict with a legacy profile not checked (no config given)")
+	default:
+		if err := o.ProfileCheck.ProfileConflict(o.Profile); err != nil {
+			b.fail(err)
+			return
+		}
+	}
+	if !legacyOnly && !v.IsZero() && v.Compare(agentio.MustVersion(profileV2Certain)) < 0 {
+		b.warns.Add(agentio.WarnVersionUnknown, "", flagProfile, "meaning of --profile between 0.131.0 and 0.162.1 is unverified; built as a v2 profile")
+	}
+	b.flag(FeatureFlagProfile, flagProfile, o.Profile)
+}

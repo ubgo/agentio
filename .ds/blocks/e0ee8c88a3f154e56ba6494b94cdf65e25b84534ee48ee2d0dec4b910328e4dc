@@ -1,0 +1,7 @@
+func (a *Agent) Account(h Home) (*OAuthAccount, error) {
+	g, err := a.GlobalConfig(h)
+	if err != nil {
+		return nil, err
+	}
+	return g.OAuthAccount, nil
+}

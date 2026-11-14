@@ -1,0 +1,23 @@
+func (w *Writer) MoveHistory(h Home, from, to string) (agentio.HistoryMove, error) {
+	src, dst := w.a.HistoryDir(h, from), w.a.HistoryDir(h, to)
+	entries, err := os.ReadDir(src)
+	if isNotExist(err) {
+		return agentio.HistoryMove{}, nil
+	} else if err != nil {
+		return agentio.HistoryMove{}, fmt.Errorf("claude: read history: %w", err)
+	}
+	if pids := w.a.livePIDs(filepath.Clean(from), transcriptIDs(entries), h); len(pids) > 0 {
+		return agentio.HistoryMove{}, &LiveSessionError{Dir: filepath.Clean(from), PIDs: pids}
+	}
+	if fileExists(dst) {
+		return agentio.HistoryMove{}, fmt.Errorf("%w: %s", ErrHistoryExists, dst)
+	}
+	b, err := agentio.BackupFile(src, w.a.now())
+	if err != nil {
+		return agentio.HistoryMove{Backup: b}, err
+	}
+	if err := os.Rename(src, dst); err != nil {
+		return agentio.HistoryMove{Backup: b}, fmt.Errorf("claude: move history: %w", err)
+	}
+	return agentio.HistoryMove{Moved: true, Backup: b}, nil
+}

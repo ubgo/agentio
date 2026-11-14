@@ -1,0 +1,6 @@
+func CheckOwner(agent ID, h Home) error {
+	if h.agent != agent {
+		return fmt.Errorf("%w: %s home passed to %s", ErrForeignHome, h.agent, agent)
+	}
+	return nil
+}

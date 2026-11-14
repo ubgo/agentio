@@ -1,0 +1,1 @@
+	ErrExpired = errors.New("agentio: login expired")

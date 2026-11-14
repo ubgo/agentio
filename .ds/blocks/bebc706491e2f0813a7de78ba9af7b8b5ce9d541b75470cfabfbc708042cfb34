@@ -1,0 +1,9 @@
+func (a *Agent) TargetFor(h Home) (agentio.Target, error) {
+	t := h.Target()
+	in, err := a.Install()
+	if err != nil && !errors.Is(err, agentio.ErrNotInstalled) {
+		return t, err
+	}
+	t.Version = in.Version
+	return t, nil
+}

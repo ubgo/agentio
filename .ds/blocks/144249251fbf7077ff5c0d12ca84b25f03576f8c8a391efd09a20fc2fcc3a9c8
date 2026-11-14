@@ -1,0 +1,16 @@
+func (r *report) loadBaseline(path string) error {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	r.baseline = map[string]bool{}
+	for _, line := range strings.Split(string(b), "\n") {
+		cols := strings.Split(line, "\t")
+		if len(cols) != numCols {
+			continue
+		}
+		f := finding{vendor: agentio.ID(cols[colVendor]), home: cols[colHome], kind: findingKind(cols[colKind]), source: cols[colSource], detail: cols[colDetail]}
+		r.baseline[f.baselineKey()] = true
+	}
+	return nil
+}

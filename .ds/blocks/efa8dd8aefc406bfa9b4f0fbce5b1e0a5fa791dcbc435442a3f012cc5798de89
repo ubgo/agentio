@@ -1,0 +1,12 @@
+func (r *Runner) run(ctx context.Context, h Home, args ...string) ([]byte, error) {
+	cmd := r.a.plainCommand(h, args)
+	res, err := r.core.Run(ctx, cmd, nil)
+	if err != nil {
+		return nil, err
+	}
+	if res.ExitCode != 0 {
+		first, _, _ := bytes.Cut(bytes.TrimSpace(res.Stderr), []byte{newline})
+		return res.Stdout, fmt.Errorf("codex %s: exit %d: %s", strings.Join(args, " "), res.ExitCode, snippet(first))
+	}
+	return res.Stdout, nil
+}

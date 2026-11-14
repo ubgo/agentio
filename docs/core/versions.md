@@ -1,6 +1,6 @@
 # Versions
 
-`agentio.Version` is a vendor CLI version such as `2.1.325`, `0.162.1` or `1.0.0-beta.2`. The library reads it from disk (the npm `package.json`, the native versions folder) or from `--version` output, compares it against the range each vendor module was tested with, and passes it to launch builders so they can check flags. The zero `Version` means unknown, and everything that consumes a version treats unknown as "build and warn", never as a refusal. You want this page to parse, compare or display a version.
+[`agentio.Version`](ds:block?id=version-6rz8b62k) is a vendor CLI version such as `2.1.325`, `0.162.1` or `1.0.0-beta.2`. The library reads it from disk (the npm `package.json`, the native versions folder) or from `--version` output, compares it against the range each vendor module was tested with, and passes it to launch builders so they can check flags. The zero `Version` means unknown, and everything that consumes a version treats unknown as "build and warn", never as a refusal. You want this page to parse, compare or display a version.
 
 ## Before you start
 
@@ -9,7 +9,7 @@
 
 ## Step 1 — Parse a version
 
-`agentio.ParseVersion(s)` finds the first number in `s` that starts a word and parses it, with an optional `-pre` suffix. It scans instead of parsing strictly because vendor `--version` output wraps the number in product text that changes between releases. It returns `(Version, bool)`; `ok` is false when there is no number. `MustVersion(s)` is for constants known at compile time and yields the zero Version on a typo, never a panic.
+[`agentio.ParseVersion(s)`](ds:block?id=parseversion-7jguuyeq) finds the first number in `s` that starts a word and parses it, with an optional `-pre` suffix. It scans instead of parsing strictly because vendor `--version` output wraps the number in product text that changes between releases. It returns `(Version, bool)`; `ok` is false when there is no number. [`MustVersion(s)`](ds:block?id=mustversion-tdb8tu6r) is for constants known at compile time and yields the zero Version on a typo, never a panic.
 
 <!-- snippet: examples/values/versions.go#parse-version -->
 ```go
@@ -36,11 +36,11 @@ func parseVersions(p printer) error {
 }
 ```
 
-`Version` has `Major`, `Minor`, `Patch`, `Pre` (the pre-release without the dash) and `Raw` (the text it was parsed from). `String()` renders `M.m.p[-pre]` and is empty for the zero Version; it also implements `MarshalText` / `UnmarshalText`, so it reads and writes as a plain string in JSON and YAML.
+`Version` has `Major`, `Minor`, `Patch`, `Pre` (the pre-release without the dash) and `Raw` (the text it was parsed from). [`String()`](ds:block?id=version-string-q29jucvt) renders `M.m.p[-pre]` and is empty for the zero Version; it also implements [`MarshalText`](ds:block?id=version-marshaltext-a4cb9h34) / [`UnmarshalText`](ds:block?id=version-unmarshaltext-ejqmnmf4), so it reads and writes as a plain string in JSON and YAML.
 
 ## Step 2 — Compare versions
 
-`Compare` orders versions semver-style and returns -1, 0 or +1: a release sorts after its pre-releases, and pre-release parts compare numerically when both are numbers (`beta.2` before `beta.11`). `Raw` is ignored. It fits `slices.SortFunc` directly.
+[`Compare`](ds:block?id=version-compare-fnfvjejx) orders versions semver-style and returns -1, 0 or +1: a release sorts after its pre-releases, and pre-release parts compare numerically when both are numbers (`beta.2` before [`beta.11`](ds:block?id=comparepre-u6e53wq3)). `Raw` is ignored. It fits `slices.SortFunc` directly.
 
 <!-- snippet: examples/values/versions.go#compare-versions -->
 ```go
@@ -65,7 +65,7 @@ func compareVersions(p printer) error {
 }
 ```
 
-To check an installed version against the range a vendor module was tested with, use `Compat.Check` and `Compat.Warning` ([Tested vendor versions](../compat/compat.md)); to check one flag or file, use `FeatureSpan.In` ([Per-feature version table](../compat/features.md)).
+To check an installed version against the range a vendor module was tested with, use [`Compat.Check`](ds:block?id=compat-check-yqab46pa) and `Compat.Warning` ([Tested vendor versions](../compat/compat.md)); to check one flag or file, use [`FeatureSpan.In`](ds:block?id=featurespan-in-vh7rmz94) ([Per-feature version table](../compat/features.md)).
 
 ## Try it
 
@@ -90,12 +90,12 @@ unknown: IsZero=true String=""
 
 ## Pitfalls
 
-- **`ParseVersion` takes the first number that starts a word.** A number inside a word is skipped: the `86` and `64` in `x86_64`, the `1` in `dev1.2`, the `18` in `node-18` (a digit after a letter, digit, `_`, `.`, `-` or `+` is inside the word; a leading `v` is allowed). So `x86_64 build 7` parses as `7.0.0`. Pass it the version text itself, not a whole line of unrelated output.
-- **Missing parts are zero.** `v1.2` is `1.2.0`; the `v` prefix is accepted.
-- **The zero Version is "unknown", not `0.0.0`.** `IsZero()` is true and `String()` is `""`. A real `0.0.0` cannot be told apart, which no vendor ships.
-- **Vendor `ParseVersion` has the same shape.** `claude.ParseVersion` and `codex.ParseVersion` return `(agentio.Version, bool)` like the root function; parsing text with no version is not an error.
-- **Unknown never refuses.** `Compat.Check` gives `CompatUnknown`, `FeatureSpan.In` gives true, and launch builders add a `version-unknown` warning and build anyway.
-- **`UnmarshalText` never fails.** Text without a version decodes to the zero Version, so a bad value in a config file silently becomes "unknown"; check `IsZero()` when the version is required.
+- **[`ParseVersion`](ds:block?id=parseversion-7jguuyeq) takes the first number that starts a word.** A number inside a word is skipped: the `86` and `64` in `x86_64`, the `1` in `dev1.2`, the `18` in `node-18` (a digit after a letter, digit, `_`, `.`, `-` or `+` is inside the word; a leading `v` is allowed). So [`x86_64 build 7`](ds:block?id=tokenboundary-e9swk823) parses as `7.0.0`. Pass it the version text itself, not a whole line of unrelated output.
+- **Missing parts are zero.** [`v1.2`](ds:block?id=parseversionat-wdv3pw7u) is `1.2.0`; the `v` prefix is accepted.
+- **The zero Version is "unknown", not `0.0.0`.** [`IsZero()`](ds:block?id=version-iszero-k7c3px3j) is true and `String()` is `""`. A real `0.0.0` cannot be told apart, which no vendor ships.
+- **Vendor `ParseVersion` has the same shape.** [`claude.ParseVersion`](ds:block?id=claude-parseversion-n4kvb682) and [`codex.ParseVersion`](ds:block?id=codex-parseversion-zx9z9rav) return `(agentio.Version, bool)` like the root function; parsing text with no version is not an error.
+- **Unknown never refuses.** [`Compat.Check`](ds:block?id=compat-check-yqab46pa) gives `CompatUnknown`, [`FeatureSpan.In`](ds:block?id=featurespan-in-vh7rmz94) gives true, and [launch builders add a](ds:block?id=claude-versionwarnings-82bmgcbc) `version-unknown` warning and build anyway.
+- **[`UnmarshalText`](ds:block?id=version-unmarshaltext-ejqmnmf4) never fails.** Text without a version decodes to the zero Version, so a bad value in a config file silently becomes "unknown"; check `IsZero()` when the version is required.
 
 ## Related
 

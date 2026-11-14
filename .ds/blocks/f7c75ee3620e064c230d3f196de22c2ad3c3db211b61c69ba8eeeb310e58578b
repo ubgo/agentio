@@ -1,0 +1,14 @@
+type ConfigReader interface {
+	// ConfigLayers lists the config files that apply to h and dir, highest
+	// precedence first, for every vendor: Claude managed, CLI, local,
+	// project, user; Codex legacy managed, session (-c), project (deepest
+	// first), profile, user, system. Why highest first: answering "which
+	// file sets this value" scans from the top and stops at the first layer
+	// that has it, and both vendors document their precedence in this
+	// order. Merge by applying the slice last to first. Disk · Read.
+	ConfigLayers(h Home, dir string) ([]ConfigLayer, error)
+	// ProjectTrust is Disk · Read.
+	ProjectTrust(h Home, dir string) (Trust, error)
+	// Defaults is Disk · Read.
+	Defaults(h Home, dir string) (Defaults, error)
+}

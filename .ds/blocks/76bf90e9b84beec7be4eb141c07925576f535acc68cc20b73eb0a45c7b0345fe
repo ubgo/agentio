@@ -1,0 +1,3 @@
+func CheckIDValues() []CheckID {
+	return []CheckID{CheckBinary, CheckHome, CheckHomeEnv, CheckAPIBillingEnv, CheckVersionTested, CheckLogin}
+}

@@ -1,0 +1,6 @@
+func CheckAutonomy(t Target, a Autonomy) error {
+	if a == AutonomyFull && !t.AllowDangerous {
+		return ErrDangerousNotAllowed
+	}
+	return nil
+}

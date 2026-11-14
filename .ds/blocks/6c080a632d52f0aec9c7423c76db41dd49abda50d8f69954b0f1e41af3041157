@@ -1,0 +1,24 @@
+func (d *DB) Goal(ctx context.Context, threadID string) (Goal, bool, error) {
+	c, err := d.ready(ctx, FileGoals)
+	if err != nil {
+		return Goal{}, false, err
+	}
+	var g Goal
+	var status string
+	var budget, created, updated sql.NullInt64
+	var secs int64
+	err = c.QueryRowContext(ctx, "SELECT thread_id, goal_id, objective, status, token_budget, tokens_used, time_used_seconds, created_at_ms, updated_at_ms FROM "+
+		tableGoals+" WHERE thread_id = ?", threadID).
+		Scan(&g.ThreadID, &g.GoalID, &g.Objective, &status, &budget, &g.TokensUsed, &secs, &created, &updated)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Goal{}, false, nil
+	}
+	if err != nil {
+		return Goal{}, false, fmt.Errorf("codex/state: goal: %w", err)
+	}
+	g.Status = GoalStatus(status)
+	g.TokenBudget = int64Ptr(budget)
+	g.TimeUsed = time.Duration(secs) * time.Second
+	g.Created, g.Updated = fromMillis(created), fromMillis(updated)
+	return g, true, nil
+}

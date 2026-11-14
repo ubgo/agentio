@@ -134,7 +134,7 @@ func useProber(ctx context.Context, w io.Writer, h agentio.Host, baseURL string)
 // snippet:start writer
 // useWriter changes one top-level key of the default home's settings.json.
 // The Writer backs the file up first and returns where the copy went; other
-// keys stay byte for byte. Codex's Writer exists but has no methods yet:
+// keys keep their values (the file is rewritten indented). Codex's Writer exists but has no methods yet:
 // Codex config changes are vendor commands.
 func useWriter(w io.Writer, h agentio.Host) error {
 	c := claude.New(h)

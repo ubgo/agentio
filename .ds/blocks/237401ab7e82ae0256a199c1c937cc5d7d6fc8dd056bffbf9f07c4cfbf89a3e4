@@ -1,0 +1,13 @@
+func ApplyEnv(base []string, changes ...EnvChange) []string {
+	out := slices.Clone(base)
+	for _, c := range changes {
+		out = removeEnv(out, c.name)
+		switch c.op {
+		case EnvSetOp:
+			out = append(out, c.name+envSep+c.value)
+		case EnvSetSecretOp:
+			out = append(out, c.name+envSep+c.secret.Reveal())
+		}
+	}
+	return out
+}

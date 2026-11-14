@@ -1,16 +1,16 @@
 # Tested vendor versions
 
-Each vendor module states the range of vendor versions it was tested against: `claude.TestedMin`..`claude.TestedMax` for Claude Code and `codex.TestedMin`..`codex.TestedMax` for Codex. Use the range to tell a user "this Claude Code is newer than the library has seen" before you trust every field, or to show the status in a doctor screen. The library never refuses to work outside the range: it builds and reads as usual and attaches a warning.
+Each vendor module states the range of vendor versions it was tested against: [`claude.TestedMin`](ds:block?id=claude-testedmin-8f2tgsg2)..`claude.TestedMax` for Claude Code and [`codex.TestedMin`](ds:block?id=codex-testedmin-vxn77phg)..`codex.TestedMax` for Codex. Use the range to tell a user "this Claude Code is newer than the library has seen" before you trust every field, or to show the status in a doctor screen. [The library never refuses to work outside the range](ds:block?id=claude-versionwarnings-82bmgcbc): it builds and reads as usual and attaches a warning.
 
 ## Before you start
 
-- Modules `github.com/ubgo/agentio` plus `claude` and/or `codex`. Everything on this page is Pure (no disk, no process, no network) except reading the installed version, which comes from `Install()` (Disk · Read) or a Runner's `BinaryVersion` (Process · Read).
+- Modules `github.com/ubgo/agentio` plus `claude` and/or `codex`. Everything on this page is Pure (no disk, no process, no network) except reading the installed version, which comes from [`Install()`](ds:block?id=claude-agent-install-472s4jn6) (Disk · Read) or a Runner's [`BinaryVersion`](ds:block?id=claude-runner-binaryversion-p4863j5t) (Process · Read).
 - Versions are `agentio.Version` values; see [Versions](../core/versions.md) for parsing and comparing.
 - The code is [examples/compat/main.go](../../examples/compat/main.go).
 
 ## Step 1 — Read the tested range
 
-`TestedMin` and `TestedMax` are string constants; `claude.Compat()` and `codex.Compat()` parse them into an `agentio.Compat{Min, Max}`. A range moves only when a fixture home for a new vendor version is added to the module's `testdata/homes` (see [Fixture homes](../testing/fixtures.md)), so the range is exactly the set of versions whose real files the readers were tested on.
+`TestedMin` and `TestedMax` are string constants; [`claude.Compat()`](ds:block?id=claude-compat-ngsh97c9) and [`codex.Compat()`](ds:block?id=codex-compat-s6qau3qq) parse them into an `agentio.Compat{Min, Max}`. A range moves only when a fixture home for a new vendor version is added to the module's `testdata/homes` (see [Fixture homes](../testing/fixtures.md)), so the range is exactly the set of versions whose real files the readers were tested on.
 
 <!-- snippet: examples/compat/main.go#ranges -->
 ```go
@@ -26,7 +26,7 @@ func printRanges(w io.Writer) {
 
 ## Step 2 — Check the installed version
 
-`Compat.Check(v)` places a version against the range and returns a `CompatStatus`: `CompatInRange`, `CompatNewer`, `CompatOlder`, or `CompatUnknown` for a zero (unknown) version or an unset range. `Compat.Warning(v)` returns the `agentio.Warning` the launch builders attach to `Command.Warnings` for the same case: `untested-version` outside the range, `version-unknown` for an unknown version, and nothing inside it.
+[`Compat.Check(v)`](ds:block?id=compat-check-yqab46pa) places a version against the range and returns a `CompatStatus`: `CompatInRange`, `CompatNewer`, `CompatOlder`, or `CompatUnknown` for a zero (unknown) version or an unset range. [`Compat.Warning(v)`](ds:block?id=compat-warning-yeqfn6xw) returns the `agentio.Warning` the launch builders attach to `Command.Warnings` for the same case: `untested-version` outside the range, `version-unknown` for an unknown version, and nothing inside it.
 
 <!-- snippet: examples/compat/main.go#check -->
 ```go
@@ -49,7 +49,7 @@ func printChecks(w io.Writer) {
 }
 ```
 
-In a real program the version comes from the install: `inst, err := a.Install()` then `claude.Compat().Check(inst.Version)`. The [drift check](drift.md) prints exactly that line for each vendor.
+In a real program the version comes from the install: `inst, err := a.Install()` then `claude.Compat().Check(inst.Version)`. The [drift check](drift.md) [prints exactly that line for each vendor](ds:block?id=examples-drift-versionline-4gjggnvh).
 
 ## Try it
 
@@ -86,11 +86,11 @@ The first seven lines are this page; the rest is the [per-feature version table]
 
 ## Pitfalls
 
-- Outside the range is a warning, never a refusal. Do not turn `CompatNewer` into an error: a newer vendor usually works, and the readers keep unknown keys in typed `Unknown` fields instead of dropping them.
-- An older version is reported with the same `untested-version` warning as a newer one; branch on the `CompatStatus` (`CompatOlder` vs `CompatNewer`) when the direction matters.
-- A zero `agentio.Version` means unknown, and `Check` returns `CompatUnknown` for it. `Home.Target()` leaves `Target.Version` zero; set it from `Install()` if you want launch warnings and feature checks to use the real version.
-- The Codex range is a single version today (`0.162.1..0.162.1`): only one Codex fixture home exists, so every other Codex version is untested.
-- Three `ParseVersion` functions exist with different results: `agentio.ParseVersion(s)` returns `(Version, bool)`, while `claude.ParseVersion` and `codex.ParseVersion` parse a vendor `--version` output and return `(agentio.Version, error)`. Use the root one for plain version strings.
+- [Outside the range is a warning, never a refusal.](ds:block?id=compat-check-yqab46pa) Do not turn `CompatNewer` into an error: a newer vendor usually works, and the readers keep unknown keys in typed `Unknown` fields instead of dropping them.
+- An older version is reported with the same [`untested-version`](ds:block?id=compat-warning-yeqfn6xw) warning as a newer one; branch on the `CompatStatus` (`CompatOlder` vs `CompatNewer`) when the direction matters.
+- A zero `agentio.Version` means unknown, and `Check` returns [`CompatUnknown`](ds:block?id=compat-check-yqab46pa) for it. [`Home.Target()`](ds:block?id=home-target-heq5sahh) leaves `Target.Version` zero; set it from `Install()` if you want launch warnings and feature checks to use the real version.
+- The Codex range is a single version today ([`0.162.1..0.162.1`](ds:block?id=codex-testedmin-vxn77phg)): only one Codex fixture home exists, so every other Codex version is untested.
+- Three `ParseVersion` functions exist with the same shape: `agentio.ParseVersion(s)`, [`claude.ParseVersion`](ds:block?id=claude-parseversion-n4kvb682) and `codex.ParseVersion` all return `(agentio.Version, bool)` (the vendor ones call the root function), so parsing text with no version is not an error.
 - `TestedMin`/`TestedMax` are per module, not per feature. A flag can need a newer version than `TestedMin`; check flags with the [per-feature table](features.md).
 
 ## Related

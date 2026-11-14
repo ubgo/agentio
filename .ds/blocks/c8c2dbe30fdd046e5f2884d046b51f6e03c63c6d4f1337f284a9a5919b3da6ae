@@ -1,0 +1,10 @@
+type HomeLink struct {
+	// Agent owns both homes; ApplyHomeLinks refuses a plan of another
+	// agent with ErrForeignHome, as ApplyMove does for a MovePlan.
+	Agent ID
+	Name  string
+	// From is the entry in the default home; To is the path in the new home.
+	From, To string
+	// Exists means To is already present; it is never overwritten.
+	Exists bool
+}

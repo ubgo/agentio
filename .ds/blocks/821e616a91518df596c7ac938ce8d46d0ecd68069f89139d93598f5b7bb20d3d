@@ -1,0 +1,20 @@
+func (r *Runner) Plugins(ctx context.Context, h Home, available bool) ([]RunnerPlugin, error) {
+	args := []string{subPlugin, subList, flagJSON}
+	if available {
+		args = append(args, flagAvailable)
+	}
+	out, err := r.run(ctx, h, args...)
+	if err != nil {
+		return nil, err
+	}
+	var w []wirePluginListItem
+	if err := json.Unmarshal(out, &w); err != nil {
+		return nil, fmt.Errorf("claude: decode plugin list: %w", err)
+	}
+	res := make([]RunnerPlugin, len(w))
+	for i, p := range w {
+		res[i] = RunnerPlugin{ID: p.ID, Version: p.Version, Scope: p.Scope, Enabled: p.Enabled, ProjectEnabled: p.ProjectEnabled,
+			InstallPath: p.InstallPath, InstalledAt: p.InstalledAt, LastUpdated: p.LastUpdated}
+	}
+	return res, nil
+}

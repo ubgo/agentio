@@ -1,0 +1,6 @@
+func (a *Agent) globalConfigPath(h Home) string {
+	if h.IsDefault() {
+		return filepath.Join(a.host.UserHome, globalConfigFile)
+	}
+	return filepath.Join(h.Dir(), globalConfigFile)
+}

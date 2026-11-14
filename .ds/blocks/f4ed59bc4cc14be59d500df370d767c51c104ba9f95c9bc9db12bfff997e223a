@@ -1,0 +1,28 @@
+func ParseUsage(body []byte) (Usage, error) {
+	var w wireUsage
+	if err := json.Unmarshal(body, &w); err != nil {
+		return Usage{}, fmt.Errorf("claude: decode usage: %w", err)
+	}
+	limits := w.Limits
+	if len(limits) == 0 {
+		limits = legacyLimits(w)
+	}
+	if len(limits) == 0 {
+		return Usage{}, ErrNoLimits
+	}
+	u := Usage{Usage: agentio.Usage{Agent: ID, Billing: agentio.BillingSubscription, Raw: agentio.Raw(bytes.Clone(body))}, Limits: limits}
+	for _, l := range limits {
+		u.Windows = append(u.Windows, l.window())
+	}
+	if len(w.ExtraUsage) > 0 && string(w.ExtraUsage) != jsonNull {
+		extra, err := parseExtra(w.ExtraUsage)
+		if err != nil {
+			return Usage{}, err
+		}
+		u.Extra = extra
+		if extra.IsEnabled && extra.Utilization != nil {
+			u.Windows = append(u.Windows, agentio.Window{Label: labelExtraUsage, Percent: *extra.Utilization, VendorKind: vendorKindExtra})
+		}
+	}
+	return u, nil
+}

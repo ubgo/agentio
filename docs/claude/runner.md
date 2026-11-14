@@ -1,18 +1,18 @@
 # Claude Runner
 
-Some facts only the `claude` binary knows: its exact version, the plugin and marketplace state as it resolves them, its background agents, its auto-mode configuration. `a.Runner()` is the Process door to those reads: each method runs one `claude` subcommand through `Host.Exec` with the home rule applied and no terminal, and decodes its output. Use it when the disk reads are not enough and the user has agreed to run the binary; nothing in the library calls a Runner method on its own.
+Some facts only the `claude` binary knows: its exact version, the plugin and marketplace state as it resolves them, its background agents, its auto-mode configuration. [`a.Runner()`](ds:block?id=claude-runner-dbm6t8tp) is the Process door to those reads: each method runs one `claude` subcommand through `Host.Exec` [with the home rule applied and no terminal](ds:block?id=claude-runner-run-af4j3992), and decodes its output. Use it when the disk reads are not enough and the user has agreed to run the binary; nothing in the library calls a Runner method on its own.
 
 ## Before you start
 
 - `go get github.com/ubgo/agentio/claude`.
-- `Host.Exec`: a process runner. `HostFromOS` gives the real one; tests and examples use a fake that answers canned output. A host without one returns an `agentio.ErrUnsupported` error.
+- `Host.Exec`: a process runner. `HostFromOS` gives the real one; tests and examples use a fake that answers canned output. [A host without one returns an `agentio.ErrUnsupported` error.](ds:block?id=claude-runner-run-af4j3992)
 - Every method is labelled "may touch login": vendor subcommands are never assumed side-effect free.
 
 The snippets come from [`examples/claudelaunch`](../../examples/claudelaunch/), whose process runner answers each argv line with recorded-shape JSON (placeholder values) and never starts a process.
 
 ## Step 1 — Read the binary version
 
-`r.BinaryVersion(ctx)` runs `claude --version` for the default home and parses `2.1.325 (Claude Code)` with `claude.ParseVersion`. Prefer [`a.TargetFor(h)`](launch.md#step-3--fill-the-target-version), which reads the version from the install path without running anything; use the Runner when the install layout does not carry a version (a Homebrew cask) or to confirm what actually runs.
+[`r.BinaryVersion(ctx)`](ds:block?id=claude-runner-binaryversion-p4863j5t) runs `claude --version` for the default home and parses `2.1.325 (Claude Code)` with `claude.ParseVersion`. Prefer [`a.TargetFor(h)`](launch.md#step-3--fill-the-target-version), which reads the version from the install path without running anything; use the Runner when the install layout does not carry a version (a Homebrew cask) or to confirm what actually runs.
 
 <!-- snippet: examples/claudelaunch/main.go#version -->
 ```go
@@ -30,7 +30,7 @@ func runnerVersion(ctx context.Context, w io.Writer, r *claude.Runner) error {
 
 ## Step 2 — List plugins and marketplaces
 
-`r.Plugins(ctx, h, available)` runs `claude plugin list --json` (with `--available` when asked) and returns `[]claude.RunnerPlugin`: `ID`, `Version`, `Scope`, `Enabled`, `ProjectEnabled`, `InstallPath`, `InstalledAt`, `LastUpdated`. `r.Marketplaces(ctx, h)` runs `claude plugin marketplace list --json` and returns `[]claude.RunnerMarketplace` (`Name`, `Source`, `Repo`, `InstallLocation`). The disk readers in [Claude plugins](plugins.md) give the same lists from `installed_plugins.json` and `known_marketplaces.json` without a process; the Runner shows the binary's merged view.
+[`r.Plugins(ctx, h, available)`](ds:block?id=claude-runner-plugins-5mz2n2aw) runs `claude plugin list --json` (with `--available` when asked) and returns `[]claude.RunnerPlugin`: `ID`, `Version`, `Scope`, `Enabled`, `ProjectEnabled`, `InstallPath`, `InstalledAt`, `LastUpdated`. [`r.Marketplaces(ctx, h)`](ds:block?id=claude-runner-marketplaces-f5xgxq7b) runs `claude plugin marketplace list --json` and returns `[]claude.RunnerMarketplace` (`Name`, `Source`, `Repo`, `InstallLocation`). The disk readers in [Claude plugins](plugins.md) give the same lists from `installed_plugins.json` and `known_marketplaces.json` without a process; the Runner shows the binary's merged view.
 
 <!-- snippet: examples/claudelaunch/main.go#plugins -->
 ```go
@@ -57,7 +57,7 @@ func runnerPlugins(ctx context.Context, w io.Writer, r *claude.Runner, h claude.
 
 ## Step 3 — Read background agents and auto mode
 
-`r.BackgroundAgents(ctx, h, all)` runs `claude agents --json` (with `--all` for finished ones too) and returns `[]claude.BackgroundAgent` (`ID`, `PID`, `SessionID`, `Name`, `Cwd`, `Kind`, `State`, `Status`, `StartedAt`, `Unknown`). [Claude live sessions](sessions.md#step-3--read-jobs-and-the-daemon) reads the same jobs from disk. `r.AutoModeConfig(ctx, h)` and `r.AutoModeDefaults(ctx, h)` run `claude auto-mode config` and `claude auto-mode defaults` and return the output as `agentio.Raw`: no sample of their shape is recorded yet, so the library does not type it.
+[`r.BackgroundAgents(ctx, h, all)`](ds:block?id=claude-runner-backgroundagents-2943yj66) runs `claude agents --json` (with `--all` for finished ones too) and returns `[]claude.BackgroundAgent` (`ID`, `PID`, `SessionID`, `Name`, `Cwd`, `Kind`, `State`, `Status`, `StartedAt`, `Unknown`). [Claude live sessions](sessions.md#step-3--read-jobs-and-the-daemon) reads the same jobs from disk. [`r.AutoModeConfig(ctx, h)`](ds:block?id=claude-runner-automodeconfig-ed2d3mz9) and [`r.AutoModeDefaults(ctx, h)`](ds:block?id=claude-runner-automodedefaults-8p2z5nv4) run `claude auto-mode config` and `claude auto-mode defaults` and return the output as `agentio.Raw`: no sample of their shape is recorded yet, so the library does not type it.
 
 <!-- snippet: examples/claudelaunch/main.go#agents -->
 ```go
@@ -105,10 +105,10 @@ auto mode config {"enabled": true}, defaults {"enabled": false}
 
 - **Every call starts a process.** Each method is Process · Read; do not call them in a render loop. Cache results and refresh on demand.
 - **"May touch login" is literal.** `claude auth status` (see [Claude account and identity](account.md#step-3--read-auth-status-through-the-runner)) is documented to create `~/.claude.json` when missing; other subcommands are not verified side-effect free. Ask the user before running them on their machine.
-- **A non-zero exit is an error.** The error names the command and carries a short, single-line stderr snippet; a missing binary is the runner's own error (wrapped with the command line).
-- **The home rule applies.** Runner calls for the default home have `CLAUDE_CONFIG_DIR` absent; for another home it is set. `BinaryVersion` always uses the default home.
-- **Output shapes come from recorded samples.** Unknown keys of `BackgroundAgent` land in `Unknown`; the plugin and marketplace rows drop keys they do not model.
-- **Tests use a fake runner keyed by argv.** `agenttest.FakeExec` answers by `Command.String()` (for example `claude plugin list --json`) and records calls, so a test can assert which commands ran and that none carried a token.
+- **[A non-zero exit is an error.](ds:block?id=claude-runner-run-af4j3992)** The error names the command and carries a short, single-line stderr snippet; a missing binary is the runner's own error (wrapped with the command line).
+- **[The home rule applies.](ds:block?id=homeenvchange-59nx5j7k)** Runner calls for the default home have `CLAUDE_CONFIG_DIR` absent; for another home it is set. [`BinaryVersion` always uses the default home](ds:block?id=claude-runner-binaryversion-p4863j5t).
+- **Output shapes come from recorded samples.** [Unknown keys of `BackgroundAgent` land in `Unknown`](ds:block?id=claude-runner-backgroundagents-2943yj66); the plugin and marketplace rows drop keys they do not model.
+- **Tests use a fake runner keyed by argv.** [`agenttest.FakeExec`](ds:block?id=agenttest-fakeexec-run-cg8fa6zc) answers by `Command.String()` (for example `claude plugin list --json`) and records calls, so a test can assert which commands ran and that none carried a token.
 
 ## Related
 

@@ -1,0 +1,13 @@
+type ExecOptions struct {
+	LaunchOptions
+	JSON               bool
+	OutputLastMessage  string
+	OutputSchema       string
+	Color              string // always | never | auto
+	SkipGitRepoCheck   bool
+	Ephemeral          bool
+	IgnoreUserConfig   bool
+	IgnoreRules        bool
+	ThreadSource       string
+	CyberAccessProgram string
+}

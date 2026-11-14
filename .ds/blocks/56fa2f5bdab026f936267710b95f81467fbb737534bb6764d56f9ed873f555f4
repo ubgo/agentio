@@ -1,0 +1,17 @@
+func ParseVersion(s string) (Version, bool) {
+	raw := strings.TrimSpace(s)
+	for i := 0; i < len(raw); i++ {
+		if !isDigit(raw[i]) {
+			continue
+		}
+		if !versionStart(raw, i) {
+			continue
+		}
+		v, ok := parseVersionAt(raw[i:])
+		if ok {
+			v.Raw = raw
+			return v, true
+		}
+	}
+	return Version{}, false
+}

@@ -1,0 +1,7 @@
+func (a *Agent) InstallationID(h Home) (agentio.Personal, error) {
+	b, err := os.ReadFile(a.Paths(h).InstallationID)
+	if err != nil {
+		return agentio.Personal{}, fmt.Errorf("codex: read %s: %w", fileInstallationID, err)
+	}
+	return agentio.NewPersonal(strings.TrimSpace(string(b))), nil
+}

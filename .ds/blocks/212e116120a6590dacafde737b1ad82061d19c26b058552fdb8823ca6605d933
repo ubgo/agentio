@@ -1,0 +1,19 @@
+func (a *Agent) keychainGet(ctx context.Context, service string) (agentio.Token, bool, error) {
+	if a.host.Secrets == nil {
+		return agentio.Token{}, false, nil
+	}
+	if acct := a.keychainAccount(); acct != "" {
+		t, ok, err := a.host.Secrets.Get(ctx, service, acct)
+		if errors.Is(err, agentio.ErrUnsupported) {
+			return agentio.Token{}, false, nil
+		}
+		if err != nil || ok {
+			return t, ok, err
+		}
+	}
+	t, ok, err := a.host.Secrets.Get(ctx, service, "")
+	if errors.Is(err, agentio.ErrUnsupported) {
+		return agentio.Token{}, false, nil
+	}
+	return t, ok, err
+}

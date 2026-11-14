@@ -1,0 +1,16 @@
+func (w *Writer) applyPatch(path string, patch SettingsPatch) (agentio.Backup, error) {
+	m, err := readRawSettings(path)
+	if err != nil {
+		return agentio.Backup{}, err
+	}
+	for _, k := range patch.Delete {
+		delete(m, k)
+	}
+	for k, v := range patch.Set {
+		if !json.Valid(v) {
+			return agentio.Backup{}, fmt.Errorf("claude: settings value for %q is not valid JSON", k)
+		}
+		m[k] = json.RawMessage(v)
+	}
+	return w.writeRawSettings(path, m)
+}

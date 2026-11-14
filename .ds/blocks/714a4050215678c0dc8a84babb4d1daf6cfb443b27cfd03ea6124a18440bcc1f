@@ -1,0 +1,7 @@
+func (a *Agent) PluginListCommand(h Home, available bool) agentio.Command {
+	args := []string{subPlugin, subList, flagJSON}
+	if available {
+		args = append(args, flagAvailable)
+	}
+	return a.plainCommand(h, args)
+}

@@ -1,0 +1,14 @@
+func capabilityOf[I comparable](a Agent, c Capability) (I, bool) {
+	var zero I
+	if a == nil {
+		return zero, false
+	}
+	v, ok := a.(I)
+	if !ok {
+		return zero, false
+	}
+	if g, gated := a.(CapabilityGate); gated && !g.HasCapability(c) {
+		return zero, false
+	}
+	return v, true
+}

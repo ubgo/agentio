@@ -1,0 +1,9 @@
+func versionWarnings(v agentio.Version) agentio.Warnings {
+	if v.IsZero() {
+		return agentio.Warnings{{Kind: agentio.WarnVersionUnknown, Detail: "installed Claude Code version unknown; flags not checked"}}
+	}
+	if w, ok := Compat().Warning(v); ok {
+		return agentio.Warnings{w}
+	}
+	return nil
+}

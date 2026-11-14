@@ -1,0 +1,3 @@
+func InstallMethodValues() []InstallMethod {
+	return []InstallMethod{InstallNPM, InstallBun, InstallPNPM, InstallBrew, InstallNative, InstallStandalone, InstallUnknown}
+}

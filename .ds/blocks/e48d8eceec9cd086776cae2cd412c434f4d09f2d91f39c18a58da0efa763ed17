@@ -1,0 +1,1 @@
+func (c Conversation) Neutral() agentio.Conversation { return c.Conversation }

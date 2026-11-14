@@ -1,0 +1,8 @@
+func (c Command) String() string {
+	parts := make([]string, 0, len(c.Args)+1)
+	parts = append(parts, shellQuote(c.Path))
+	for _, a := range c.Args {
+		parts = append(parts, shellQuote(a))
+	}
+	return strings.Join(parts, " ")
+}

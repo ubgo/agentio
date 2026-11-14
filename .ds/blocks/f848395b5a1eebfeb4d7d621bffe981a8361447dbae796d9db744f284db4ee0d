@@ -1,0 +1,19 @@
+func legacyLimits(w wireUsage) []Limit {
+	var out []Limit
+	add := func(win *wireWindow, kind, group, model string) {
+		if win == nil {
+			return
+		}
+		l := Limit{Kind: kind, Group: group, Percent: win.Utilization, ResetsAt: win.ResetsAt}
+		if model != "" {
+			name := model
+			l.Scope = &Scope{Model: &ScopeRef{DisplayName: &name}}
+		}
+		out = append(out, l)
+	}
+	add(w.FiveHour, kindSession, groupSession, "")
+	add(w.SevenDay, kindWeeklyAll, groupWeekly, "")
+	add(w.SevenDayOpus, kindWeeklyScoped, groupWeekly, labelOpus)
+	add(w.SevenDaySonnet, kindWeeklyScoped, groupWeekly, labelSonnet)
+	return out
+}

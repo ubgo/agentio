@@ -1,0 +1,32 @@
+func usageFromSnapshot(r Record) Usage {
+	rl := r.Event.RateLimits
+	u := Usage{
+		ObservedAt: r.Time, Source: agentio.UsageTranscript,
+		Credits: rl.Credits, IndividualLimit: rl.IndividualLimit, SpendControlReached: rl.SpendControlReached,
+		LimitReached: rl.RateLimitReachedType != "",
+	}
+	if rl.PlanType != "" {
+		u.Plan = ParsePlan(rl.PlanType)
+	}
+	var payload struct {
+		Payload json.RawMessage `json:"payload"`
+	}
+	if json.Unmarshal(r.Raw, &payload) == nil {
+		u.Raw = agentio.Raw(payload.Payload)
+	}
+	for _, pair := range []struct {
+		w      *RateLimitWindow
+		vendor string
+	}{{rl.Primary, vendorPrimaryL}, {rl.Secondary, vendorSecondL}} {
+		if pair.w == nil {
+			continue
+		}
+		uw := UsageWindow{Length: time.Duration(pair.w.WindowMinutes) * time.Minute, Percent: pair.w.UsedPercent, LimitID: rl.LimitID, Vendor: pair.vendor}
+		if pair.w.ResetsAt > 0 {
+			t := time.Unix(pair.w.ResetsAt, 0).UTC()
+			uw.ResetsAt = &t
+		}
+		u.Windows = append(u.Windows, uw)
+	}
+	return u
+}

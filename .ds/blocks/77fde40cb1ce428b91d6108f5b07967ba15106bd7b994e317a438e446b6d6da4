@@ -1,0 +1,10 @@
+func EnvLookup(env []string, key string) (string, bool) {
+	prefix := key + envSep
+	val, found := "", false
+	for _, kv := range env {
+		if v, ok := strings.CutPrefix(kv, prefix); ok {
+			val, found = v, true
+		}
+	}
+	return val, found
+}

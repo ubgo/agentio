@@ -1,0 +1,18 @@
+func ParseID(s string) (ID, error) {
+	if s == "" || len(s) > maxIDLen {
+		return "", fmt.Errorf("%w: %q: length must be 1..%d", ErrInvalidID, s, maxIDLen)
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case c >= 'a' && c <= 'z':
+		case (c >= '0' && c <= '9') || c == '-':
+			if i == 0 {
+				return "", fmt.Errorf("%w: %q: must start with a letter", ErrInvalidID, s)
+			}
+		default:
+			return "", fmt.Errorf("%w: %q: only [a-z0-9-] allowed", ErrInvalidID, s)
+		}
+	}
+	return ID(s), nil
+}

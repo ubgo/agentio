@@ -1,0 +1,14 @@
+func (a *Agent) LastUpdate(h Home) (*UpdateResult, error) {
+	p := filepath.Join(h.Dir(), lastUpdateFile)
+	data, found, err := readFileBounded(p, maxResponseBytes)
+	if err != nil || !found {
+		return nil, err
+	}
+	var w wireUpdateResult
+	unknown, _, err := decodeLenient(lastUpdateFile, data, reflect.TypeFor[wireUpdateResult](), func(b []byte) error { return json.Unmarshal(b, &w) })
+	if err != nil {
+		return nil, err
+	}
+	return &UpdateResult{At: w.Timestamp, Path: w.Path, Outcome: w.Outcome, Status: w.Status,
+		From: agentio.MustVersion(w.VersionFrom), To: agentio.MustVersion(w.VersionTo), ErrorCode: w.ErrorCode, Unknown: unknown}, nil
+}

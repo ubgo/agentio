@@ -1,0 +1,12 @@
+func (a *Agent) CachedUsage(h Home) (Usage, bool, error) {
+	c, err := a.CachedUsageBody(h)
+	if err != nil || c == nil || len(c.Body) == 0 {
+		return Usage{}, false, err
+	}
+	u, err := ParseUsage(c.Body)
+	if err != nil {
+		return Usage{}, true, err
+	}
+	u.Source, u.ObservedAt = agentio.UsageCache, c.FetchedAt
+	return u, true, nil
+}

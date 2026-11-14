@@ -1,0 +1,7 @@
+type Conversation struct {
+	Agent            ID
+	Home             Home
+	ID, Title, Dir   string
+	Path             string
+	Created, Updated time.Time
+}

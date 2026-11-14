@@ -1,0 +1,28 @@
+func (d *DB) Memories(ctx context.Context, limit int) ([]Memory, error) {
+	c, err := d.ready(ctx, FileMemories)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := c.QueryContext(ctx, "SELECT thread_id, source_updated_at, raw_memory, rollout_summary, rollout_slug, generated_at, usage_count, last_usage, selected_for_phase2 FROM "+
+		tableStage1+" ORDER BY source_updated_at DESC, thread_id DESC LIMIT ?", clampLimit(limit))
+	if err != nil {
+		return nil, fmt.Errorf("codex/state: memories: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var out []Memory
+	for rows.Next() {
+		var m Memory
+		var src, gen, usage, last sql.NullInt64
+		var slug sql.NullString
+		var sel int64
+		if err := rows.Scan(&m.ThreadID, &src, &m.RawMemory, &m.RolloutSummary, &slug, &gen, &usage, &last, &sel); err != nil {
+			return nil, fmt.Errorf("codex/state: memories: %w", err)
+		}
+		m.SourceUpdated, m.Generated = fromSeconds(src), fromSeconds(gen)
+		m.RolloutSlug, m.UsageCount = strPtr(slug), int64Ptr(usage)
+		m.LastUsage = timePtr(fromSeconds(last))
+		m.SelectedPhase2 = sel != 0
+		out = append(out, m)
+	}
+	return out, rows.Err()
+}

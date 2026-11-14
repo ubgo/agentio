@@ -1,0 +1,15 @@
+func BackupFile(path string, now time.Time) (Backup, error) {
+	if _, err := os.Lstat(path); errors.Is(err, fs.ErrNotExist) {
+		return Backup{}, nil
+	} else if err != nil {
+		return Backup{}, fmt.Errorf("agentio: backup %s: %w", path, err)
+	}
+	dst, err := BackupPath(path, now)
+	if err != nil {
+		return Backup{}, err
+	}
+	if err := CopyTree(path, dst); err != nil {
+		return Backup{}, fmt.Errorf("agentio: backup %s: %w", path, err)
+	}
+	return Backup{Entries: []BackupEntry{{Original: path, Copy: dst}}}, nil
+}

@@ -1,0 +1,9 @@
+func (c Config) ProfileConflict(name string) error {
+	if name == "" {
+		return nil
+	}
+	if _, ok := c.Profiles[name]; ok || (c.Profile.Set && c.Profile.V == name) {
+		return fmt.Errorf("%w: %q (rename or remove the legacy profile, or use a different v2 profile name)", ErrProfileConflict, name)
+	}
+	return nil
+}

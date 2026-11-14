@@ -1,22 +1,22 @@
 # Claude launch and resume
 
-`a.Launch(target, opts)` turns typed Claude Code flags into an `agentio.Command` (binary, argv, full child environment, warnings) that you run yourself: with `exec.Cmd`, `syscall.Exec`, a terminal multiplexer, or by printing it for a dry run. It applies the home rule, checks every flag against the installed version, and rejects flag combinations Claude Code refuses. Use it to start Claude Code in a chosen home, resume or fork a conversation, or start a headless run whose output you decode with [Claude stream decoding](stream.md).
+[`a.Launch(target, opts)`](ds:block?id=claude-agent-launch-b9s8bctp) turns typed Claude Code flags into an `agentio.Command` (binary, argv, full child environment, warnings) that you run yourself: with `exec.Cmd`, `syscall.Exec`, a terminal multiplexer, or by printing it for a dry run. It applies the home rule, checks every flag against the installed version, and rejects flag combinations Claude Code refuses. Use it to start Claude Code in a chosen home, resume or fork a conversation, or start a headless run whose output you decode with [Claude stream decoding](stream.md).
 
 ## Before you start
 
 - `go get github.com/ubgo/agentio/claude`.
-- A target: `h.Target()` for a home, with `Version` filled by `a.TargetFor(h)` (Step 3) so flags can be checked.
-- Nothing is run by building. Resolve the binary with `a.LookPath()` (a `PATH` walk, never a shell) when you execute the command.
+- A target: `h.Target()` for a home, with `Version` filled by [`a.TargetFor(h)`](ds:block?id=claude-agent-targetfor-c8cb3m3m) (Step 3) so flags can be checked.
+- Nothing is run by building. Resolve the binary with [`a.LookPath()`](ds:block?id=core-lookpath-ke3ntet7) (a `PATH` walk, never a shell) when you execute the command.
 
 The snippets come from [`examples/claudelaunch`](../../examples/claudelaunch/). It lays out a temp dir like a native install (`~/.local/share/claude/versions/2.1.325`, an empty file, and a `claude` symlink on `PATH`) so the version is read from disk; homes come from the checked-in 2.1.325 fixture.
 
 ## Step 1 — Build a launch command
 
-`claude.LaunchOptions` models Claude Code's flags; zero values emit nothing. Print mode (`Print`, `OutputFormat`, `InputFormat`, `IncludePartialMessages`, `Verbose`, `JSONSchema`, `MaxBudgetUSD`, `NoSessionPersistence`), model and agents (`Model`, `FallbackModels`, `Effort`, `Agent`, `Agents`), permissions (`PermissionMode`, `AllowedTools`, `DisallowedTools`, `Tools`, `DangerouslySkipPermissions`), context (`AddDirs`, `MCPConfigs`, `Settings`, `SettingSources`, system prompt flags, plugin dirs), session (`Resume`, `Continue`, `ForkSession`, `SessionID`, `Name`, `FromPR`, `Worktree`, `Background`) and more; `ExtraArgs` are appended verbatim for flags not modelled. The prompt goes last after `--`, so a prompt starting with `-` is never read as a flag.
+[`claude.LaunchOptions`](ds:block?id=claude-launchoptions-5jyjfngt) models Claude Code's flags; zero values emit nothing. Print mode (`Print`, `OutputFormat`, `InputFormat`, `IncludePartialMessages`, `Verbose`, `JSONSchema`, `MaxBudgetUSD`, `NoSessionPersistence`), model and agents (`Model`, `FallbackModels`, `Effort`, `Agent`, `Agents`), permissions (`PermissionMode`, `AllowedTools`, `DisallowedTools`, `Tools`, `DangerouslySkipPermissions`), context (`AddDirs`, `MCPConfigs`, `Settings`, `SettingSources`, system prompt flags, plugin dirs), session (`Resume`, `Continue`, `ForkSession`, `SessionID`, `Name`, `FromPR`, `Worktree`, `Background`) and more; `ExtraArgs` are appended verbatim for flags not modelled. [The prompt goes last after `--`](ds:block?id=claude-launchoptions-build-78wzjpre), so a prompt starting with `-` is never read as a flag.
 
-`opts.Args()` renders just the flags (no version check). A combination Claude Code rejects returns `claude.ErrInvalidLaunch` before anything is built: `--output-format` or `--input-format` without `-p`, `--include-partial-messages` without stream-json, `--bg` with `-p`, `--resume` with `--continue`, `--chrome` with `--no-chrome`. `a.PurgeCommand(dir, dryRun)` builds `claude purge <dir> [--dry-run]`.
+[`opts.Args()`](ds:block?id=claude-launchoptions-args-t9vscnsz) renders just the flags (no version check). A combination Claude Code rejects returns [`claude.ErrInvalidLaunch`](ds:block?id=claude-launchoptions-validate-tgdhh8yc) before anything is built: `--output-format` or `--input-format` without `-p`, `--include-partial-messages` without stream-json, `--bg` with `-p`, `--resume` with `--continue`, `--chrome` with `--no-chrome`. [`a.PurgeCommand(dir, dryRun)`](ds:block?id=claude-agent-purgecommand-379a3tjz) builds `claude purge <dir> [--dry-run]`.
 
-For the default home the command's env has `CLAUDE_CONFIG_DIR` removed (the variable must be absent, not pointing at `~/.claude`); for any other home it is set to the home dir exactly once.
+For the default home the command's env has [`CLAUDE_CONFIG_DIR` removed](ds:block?id=homeenvchange-59nx5j7k) (the variable must be absent, not pointing at `~/.claude`); for any other home it is set to the home dir [exactly once](ds:block?id=applyenv-9fc572ee).
 
 <!-- snippet: examples/claudelaunch/main.go#launch -->
 ```go
@@ -49,7 +49,7 @@ func buildLaunch(w io.Writer, a *claude.Agent, t agentio.Target) error {
 
 ## Step 2 — Resume a conversation
 
-Three options pick up earlier work. `Resume` takes a conversation id, a session name or a transcript path (`claude --resume <id>`); `Continue` resumes the most recent conversation in the working folder (`--continue`); `ForkSession` with `Resume` starts a new conversation from the old one's history, optionally under a fixed `SessionID`. Resume in the home that holds the conversation: a transcript lives under one home's `projects/` dir, so the target's home must match (see [Claude conversations](conversations.md#step-4--plan-a-move) to move it). The neutral `LaunchRequest.ResumeID` maps onto `Resume`.
+Three options pick up earlier work. `Resume` takes a conversation id, a session name or a transcript path (`claude --resume <id>`); `Continue` resumes the most recent conversation in the working folder (`--continue`); `ForkSession` with `Resume` starts a new conversation from the old one's history, optionally under a fixed `SessionID`. Resume in the home that holds the conversation: a transcript lives under one home's `projects/` dir, so the target's home must match (see [Claude conversations](conversations.md#step-4--plan-a-move) to move it). [The neutral `LaunchRequest.ResumeID` maps onto `Resume`](ds:block?id=claude-launchfromrequest-tr947xnr).
 
 <!-- snippet: examples/claudelaunch/main.go#resume -->
 ```go
@@ -83,7 +83,7 @@ func resume(w io.Writer, a *claude.Agent, t agentio.Target, work claude.Home) er
 
 ## Step 3 — Fill the Target version
 
-`a.TargetFor(h)` returns `h.Target()` with `Version` set from the install on disk: the versioned path of a native install or the `package.json` of an npm install. It never runs `claude --version` (for that, see [Claude Runner](runner.md#step-1--read-the-binary-version)). When `claude` is not on `PATH` the version stays zero and the error is nil; other read errors are returned with the target as far as it was filled.
+[`a.TargetFor(h)`](ds:block?id=claude-agent-targetfor-c8cb3m3m) returns `h.Target()` with `Version` set from the install on disk: the versioned path of a native install or [the `package.json` of an npm install](ds:block?id=claude-methodandversion-8h4tytjj). It never runs `claude --version` (for that, see [Claude Runner](runner.md#step-1--read-the-binary-version)). When `claude` is not on `PATH` the version stays zero and the error is nil; other read errors are returned with the target as far as it was filled.
 
 <!-- snippet: examples/claudelaunch/main.go#target -->
 ```go
@@ -101,11 +101,11 @@ func targetFor(w io.Writer, a *claude.Agent, h claude.Home) (agentio.Target, err
 
 ## Step 4 — Handle unavailable features
 
-Every flag a launch emits is checked against `Target.Version` using the per-feature table (`claude.Features`, from the vendor changelog):
+Every flag a launch emits is checked against `Target.Version` using the per-feature table ([`claude.Features`](ds:block?id=claude-checkfeature-am2yhjzp), from the vendor changelog):
 
-- the version provably lacks the flag: `Launch` returns a `*claude.FeatureUnavailableError` (`Feature`, `Installed`, `Since`, `Until`) that matches `agentio.ErrFeatureUnavailable` with `errors.Is`;
-- the version is zero (unknown): the command is built with an `agentio.WarnVersionUnknown` warning, flags unchecked;
-- the version is outside the tested range (`claude.TestedMin`..`claude.TestedMax`): the command is built with an `agentio.WarnUntestedVersion` warning.
+- the version provably lacks the flag: `Launch` returns a [`*claude.FeatureUnavailableError`](ds:block?id=claude-featureunavailableerror-is-anzr93zz) (`Feature`, `Installed`, `Since`, `Until`) that matches `agentio.ErrFeatureUnavailable` with `errors.Is`;
+- the version is zero (unknown): the command is built with an [`agentio.WarnVersionUnknown`](ds:block?id=claude-versionwarnings-82bmgcbc) warning, flags unchecked;
+- the version is outside the tested range ([`claude.TestedMin`](ds:block?id=claude-compat-ngsh97c9)..`claude.TestedMax`): the command is built with an [`agentio.WarnUntestedVersion`](ds:block?id=compat-warning-yeqfn6xw) warning.
 
 Show warnings to the user (or log them) rather than dropping them: they are how drift between the library and a newer Claude Code becomes visible. See [Per-feature version table](../compat/features.md#step-3--handle-featureunavailableerror) for the table itself.
 
@@ -175,14 +175,14 @@ untested version: claude --worktree
 
 ## Pitfalls
 
-- **`Command.Path` is the bare name `claude`.** Building is Pure and never walks `PATH`; resolve it with `a.LookPath()` before `exec`. Never resolve it through a shell: `claude` is often also a shell function or alias.
-- **Print `Command.Env` only through `Redacted()`.** The env is the full child environment and is where a token login lives; `String()` and JSON never include it.
-- **Default home means the variable is absent.** Setting `CLAUDE_CONFIG_DIR=~/.claude` is not the same: Claude Code then uses a hashed keychain name and looks logged out. `Launch` handles this; hand-built commands must too.
-- **Inherited credential variables are removed.** `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` and `CLAUDE_CODE_OAUTH_TOKEN` in the base env would silently override the home's login, so every launch (and `LoginCommand`) unsets them. Use a token login or `Target.ExtraEnv` to launch with a key on purpose.
-- **A zero version skips checks, it does not fail.** If you never call `TargetFor`, every launch builds with a `version-unknown` warning and no flag is checked.
-- **Since dates come only from explicit changelog lines.** Many flags have no known `since`; they are treated as always available, so an old Claude Code may still reject a flag the library allowed.
-- **`ExtraArgs` are not checked.** They go in verbatim after the modelled flags and before the prompt; validation and version checks do not see them.
-- **`Tools` and `Worktree` are pointers on purpose.** `Tools: &[]string{}` emits `--tools ""` (no tools) while nil emits nothing; `Worktree: &""` emits `--worktree` with no name.
+- **`Command.Path` is the bare name `claude`.** [Building is Pure and never walks `PATH`](ds:block?id=claude-spec-yq7hsrb6); resolve it with `a.LookPath()` before `exec`. Never resolve it through a shell: `claude` is often also a shell function or alias.
+- **Print `Command.Env` only through [`Redacted()`](ds:block?id=command-redacted-qbsw6442).** The env is the full child environment and is where a token login lives; `String()` never includes it and [JSON shows it only redacted](ds:block?id=command-marshaljson-gy7a7qs2).
+- **Default home means the variable is absent.** Setting `CLAUDE_CONFIG_DIR=~/.claude` is not the same: Claude Code then uses a hashed keychain name and looks logged out. [`Launch` handles this](ds:block?id=homeenvchange-59nx5j7k); hand-built commands must too.
+- **Inherited credential variables are removed.** `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` and `CLAUDE_CODE_OAUTH_TOKEN` in the base env would silently override the home's login, so [every launch (and `LoginCommand`) unsets them](ds:block?id=core-envchanges-f8hrn3we). Use a token login or `Target.ExtraEnv` to launch with a key on purpose.
+- **[A zero version skips checks, it does not fail.](ds:block?id=featurespan-in-vh7rmz94)** If you never call `TargetFor`, every launch builds with a `version-unknown` warning and no flag is checked.
+- **Since dates come only from explicit changelog lines.** Many flags have no known `since`; [they are treated as always available](ds:block?id=featurespan-in-vh7rmz94), so an old Claude Code may still reject a flag the library allowed.
+- **[`ExtraArgs` are not checked.](ds:block?id=claude-launchoptions-build-78wzjpre)** They go in verbatim after the modelled flags and before the prompt; validation and version checks do not see them.
+- **[`Tools` and `Worktree` are pointers on purpose.](ds:block?id=claude-launchoptions-build-78wzjpre)** `Tools: &[]string{}` emits `--tools ""` (no tools) while nil emits nothing; `Worktree: &""` emits `--worktree` with no name.
 
 ## Related
 

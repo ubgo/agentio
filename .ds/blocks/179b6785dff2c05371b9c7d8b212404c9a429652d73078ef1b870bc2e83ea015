@@ -1,0 +1,20 @@
+func (osRunner) Run(ctx context.Context, c Command, stdin io.Reader) (ProcessResult, error) {
+	cmd := exec.CommandContext(ctx, c.Path, c.Args...)
+	cmd.Env = c.Env
+	cmd.Dir = c.Dir
+	cmd.Stdin = stdin
+	cmd.WaitDelay = osWaitDelay
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	err := cmd.Run()
+	res := ProcessResult{Stdout: stdout.Bytes(), Stderr: stderr.Bytes()}
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) && ctx.Err() == nil {
+		res.ExitCode = exitErr.ExitCode()
+		return res, nil
+	}
+	if err != nil {
+		return res, fmt.Errorf("agentio: run %s: %w", filepath.Base(c.Path), err)
+	}
+	return res, nil
+}

@@ -1,0 +1,5 @@
+type FeatureFlag struct {
+	Name    string
+	Stage   FeatureStage
+	Enabled bool
+}

@@ -1,6 +1,6 @@
 # Claude install and updates
 
-`a.Install()` tells you where Claude Code is installed, how (native installer, npm, Homebrew cask), which version is on disk and what the last auto-update did, all without running `claude`. Use it for a status screen, a doctor check, or to pick the `Target.Version` a launch is checked against.
+[`a.Install()`](ds:block?id=claude-agent-install-472s4jn6) tells you where Claude Code is installed, how (native installer, npm, Homebrew cask), which version is on disk and what the last auto-update did, all without running `claude`. Use it for a status screen, a doctor check, or to pick the `Target.Version` a launch is checked against.
 
 ## Before you start
 
@@ -11,7 +11,7 @@ The snippets come from [`examples/claudesettings`](../../examples/claudesettings
 
 ## Step 1 — Read the install
 
-`Install` walks `PATH` from `Host.Env` (never a shell), resolves symlinks and derives the method from the real path: a `.../.local/share/claude/versions/<v>` path is `agentio.InstallNative` (version from the file name), a `node_modules/@anthropic-ai/claude-code` path is `claude.InstallNPMGlobal` (version from its `package.json`), a Caskroom path is `claude.InstallHomebrewCask` (no version on disk). It also lists other `claude` entries on `PATH` (`Shadowed`) and copies the default home's update facts: `RawMethod` and `AutoUpdates` from `.claude.json`, `Channel` from `settings.json`, `LastUpdate` from `.last-update-result.json`. `claude.ParseVersion` parses the `claude --version` text (`2.1.325 (Claude Code)`) for callers that ran the binary themselves.
+`Install` [walks `PATH` from `Host.Env` (never a shell)](ds:block?id=core-lookpath-ke3ntet7), resolves symlinks and derives the method from the real path: a `.../.local/share/claude/versions/<v>` path is [`agentio.InstallNative`](ds:block?id=claude-methodandversion-8h4tytjj) (version from the file name), a `node_modules/@anthropic-ai/claude-code` path is `claude.InstallNPMGlobal` (version from its `package.json`), a Caskroom path is `claude.InstallHomebrewCask` (no version on disk). It also lists other `claude` entries on `PATH` ([`Shadowed`](ds:block?id=claude-agent-install-472s4jn6)) and copies the default home's update facts: `RawMethod` and `AutoUpdates` from `.claude.json`, `Channel` from `settings.json`, `LastUpdate` from `.last-update-result.json`. [`claude.ParseVersion`](ds:block?id=claude-parseversion-n4kvb682) parses the `claude --version` text (`2.1.325 (Claude Code)`) for callers that ran the binary themselves.
 
 <!-- snippet: examples/claudesettings/main.go#install -->
 ```go
@@ -56,7 +56,7 @@ func showInstall(p printer, host agentio.Host) error {
 
 ## Step 2 — Read the last update
 
-`a.LastUpdate(h)` decodes `<home>/.last-update-result.json` into `UpdateResult` (`At`, `From`, `To`, `Outcome`, `Status`, `ErrorCode`, unknown keys kept); it returns `nil` when the file is absent. `a.Changelog(h)` reads the cached `cache/changelog.md` (bounded to 4 MiB) and returns `""` when absent. Both are Disk reads of the default home. A failed update keeps its `ErrorCode`, which is what a status screen wants to show:
+[`a.LastUpdate(h)`](ds:block?id=claude-agent-lastupdate-yzagpxbk) decodes `<home>/.last-update-result.json` into `UpdateResult` (`At`, `From`, `To`, `Outcome`, `Status`, `ErrorCode`, unknown keys kept); it returns `nil` when the file is absent. [`a.Changelog(h)`](ds:block?id=claude-agent-changelog-uybujjbm) reads the cached `cache/changelog.md` (bounded to 4 MiB) and returns `""` when absent. Both are Disk reads of the home you pass (the example uses the default home). A failed update keeps its `ErrorCode`, which is what a status screen wants to show:
 
 ```go
 // lastUpdate prints what the last auto-update did and how large the cached
@@ -89,7 +89,7 @@ On the fixture home this prints `2026-11-12T22:39:35Z: 2.1.323 -> 2.1.325 outcom
 
 ## Step 3 — Build install and update commands
 
-`a.UpdateCommand()` is `claude update` with `claude` resolved on `Host.Env` `PATH` (a Disk read; `agentio.ErrNotInstalled` when PATH has none), the same `(agentio.Command, error)` method shape as `codex.Agent.UpdateCommand`. `a.InstallCommand(target)` is `claude install <target>` where target is `stable`, `latest` or a version; it is Pure. Both return an `agentio.Command` (path, args, env) that you print or run yourself. Nothing in the library runs them.
+[`a.UpdateCommand()`](ds:block?id=claude-agent-updatecommand-c272nqjs) is `claude update` with `claude` resolved on `Host.Env` `PATH` (a Disk read; `agentio.ErrNotInstalled` when PATH has none), the same `(agentio.Command, error)` method shape as `codex.Agent.UpdateCommand`. [`a.InstallCommand(target)`](ds:block?id=claude-agent-installcommand-a9f2e6k8) is `claude install <target>` where target is `stable`, `latest` or a version; it is Pure. Both return an `agentio.Command` (path, args, env) that you print or run yourself. Nothing in the library runs them.
 
 ```go
 // installCommands prints the update and install commands. They build an
@@ -131,12 +131,12 @@ install command: claude install stable
 
 ## Pitfalls
 
-- `Install` returns `agentio.ErrNotInstalled` when `claude` is not on the Host's `PATH`. With `agentio.HostFromOS()` that is the process `PATH`, which under a launchd job, cron or an IDE is often shorter than your shell's.
+- [`Install` returns `agentio.ErrNotInstalled`](ds:block?id=lookpath-f56nfyzk) when `claude` is not on the Host's `PATH`. With `agentio.HostFromOS()` that is the process `PATH`, which under a launchd job, cron or an IDE is often shorter than your shell's.
 - The version is what is on disk, not what is running. A session started before an auto-update keeps running the old binary; live sessions report their own version.
-- A Homebrew cask install has no version on disk, so `Version` is the zero value. Use `Runner().BinaryVersion` (runs `claude --version`, a Process cost) if you need it; see [Claude runner](runner.md).
-- `claude.ParseVersion` returns `(agentio.Version, bool)`, the same shape as `agentio.ParseVersion` and `codex.ParseVersion`.
-- `UpdateCommand` reads disk: it walks `Host.Env` `PATH` for `claude` and returns `agentio.ErrNotInstalled` when there is none. `codex.Agent.UpdateCommand` has the same shape.
-- The update facts (`RawMethod`, `AutoUpdates`, `Channel`, `LastUpdate`) always come from the default home, whichever home you work with.
+- A Homebrew cask install has no version on disk, [so `Version` is the zero value](ds:block?id=claude-methodandversion-8h4tytjj). Use [`Runner().BinaryVersion`](ds:block?id=claude-runner-binaryversion-p4863j5t) (runs `claude --version`, a Process cost) if you need it; see [Claude runner](runner.md).
+- [`claude.ParseVersion` returns `(agentio.Version, bool)`](ds:block?id=claude-parseversion-n4kvb682), the same shape as `agentio.ParseVersion` and `codex.ParseVersion`.
+- [`UpdateCommand` reads disk](ds:block?id=claude-agent-updatecommand-c272nqjs): it walks `Host.Env` `PATH` for `claude` and returns `agentio.ErrNotInstalled` when there is none. `codex.Agent.UpdateCommand` has the same shape.
+- The update facts (`RawMethod`, `AutoUpdates`, `Channel`, `LastUpdate`) [always come from the default home](ds:block?id=claude-agent-install-472s4jn6), whichever home you work with.
 
 ## Related
 

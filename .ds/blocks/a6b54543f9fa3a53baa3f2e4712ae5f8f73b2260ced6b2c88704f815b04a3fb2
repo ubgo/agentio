@@ -1,0 +1,34 @@
+func ParseProbeHeaders(h http.Header) (agentio.Usage, error) {
+	claim := h.Get(hdrRepresentative)
+	u := agentio.Usage{Agent: ID, Billing: agentio.BillingSubscription, Source: agentio.UsageProbe}
+	var absent []string
+	for _, pw := range []struct{ infix, kind, group, claim string }{
+		{probeInfix5h, kindSession, groupSession, claim5h},
+		{probeInfix7d, kindWeeklyAll, groupWeekly, claim7d},
+	} {
+		base := hdrPrefix + pw.infix
+		utilRaw, resetRaw := h.Get(base+hdrUtilization), h.Get(base+hdrReset)
+		if utilRaw == "" && resetRaw == "" {
+			absent = append(absent, base+hdrUtilization)
+			continue
+		}
+		if utilRaw == "" || resetRaw == "" {
+			return agentio.Usage{}, fmt.Errorf("%w: %s pair incomplete", ErrProbeHeaders, base)
+		}
+		util, err := strconv.ParseFloat(utilRaw, 64)
+		if err != nil || util < 0 || math.IsNaN(util) || math.IsInf(util, 0) {
+			return agentio.Usage{}, fmt.Errorf("%w: %s is not a fraction", ErrProbeHeaders, base+hdrUtilization)
+		}
+		secs, err := strconv.ParseInt(resetRaw, 10, 64)
+		if err != nil || secs <= 0 {
+			return agentio.Usage{}, fmt.Errorf("%w: %s is not a unix time", ErrProbeHeaders, base+hdrReset)
+		}
+		reset := time.Unix(secs, 0).UTC()
+		l := Limit{Kind: pw.kind, Group: pw.group, Percent: util * percentPerFraction, Severity: h.Get(base + hdrStatus), ResetsAt: &reset, IsActive: claim == pw.claim}
+		u.Windows = append(u.Windows, l.window())
+	}
+	if len(u.Windows) == 0 {
+		return agentio.Usage{}, fmt.Errorf("%w: %s missing", ErrProbeHeaders, strings.Join(absent, ", "))
+	}
+	return u, nil
+}

@@ -1,0 +1,48 @@
+func (d *DB) Threads(ctx context.Context, f ThreadStatusFilter) ([]Thread, error) {
+	c, have, err := d.threadsTable(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// Every filter is always bound with a "no filter" sentinel so the
+	// query has a fixed parameter list (database/sql's variadic takes the
+	// empty interface, which this module never names).
+	archived := int64(noFilter)
+	if f.Archived != nil {
+		archived = boolInt(*f.Archived)
+	}
+	pinned := int64(noFilter)
+	if f.Pinned != nil {
+		pinned = boolInt(*f.Pinned)
+	}
+	project := "NULL"
+	if have[colProjectID] {
+		project = colProjectID
+	}
+	order := colUpdatedAtSeconds
+	if have[colUpdatedAtMs] {
+		order = "COALESCE(" + colUpdatedAtMs + ", " + colUpdatedAtSeconds + " * 1000)"
+	}
+	q := "SELECT " + selectList(have, "", threadColumns()) + " FROM " + tableThreads +
+		" WHERE (? < 0 OR " + colArchived + " = ?)" +
+		" AND (? = '' OR " + colCwd + " = ?)" +
+		" AND (? = '' OR " + project + " = ?)" +
+		" AND (? < 0 OR " + pinnedExpr(have) + " = ?)" +
+		" ORDER BY " + order + " DESC, " + colThreadID + " DESC LIMIT ?"
+	rows, err := c.QueryContext(ctx, q, archived, archived, f.Dir, f.Dir, f.ProjectID, f.ProjectID, pinned, pinned, clampLimit(f.Limit))
+	if err != nil {
+		return nil, fmt.Errorf("codex/state: threads: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var out []Thread
+	for rows.Next() {
+		t, err := scanThread(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("codex/state: threads: %w", err)
+	}
+	return out, nil
+}

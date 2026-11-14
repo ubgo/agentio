@@ -1,0 +1,15 @@
+func ParseFeatureList(out []byte) []FeatureFlag {
+	var flags []FeatureFlag
+	for _, line := range strings.Split(string(out), "\n") {
+		f := strings.Fields(line)
+		if len(f) < featuresListCols {
+			continue
+		}
+		last := f[len(f)-1]
+		if last != "true" && last != "false" {
+			continue
+		}
+		flags = append(flags, FeatureFlag{Name: f[0], Stage: FeatureStage(strings.Join(f[1:len(f)-1], " ")), Enabled: last == "true"})
+	}
+	return flags
+}

@@ -1,0 +1,14 @@
+func (d *tomlDecoder) keep(e tomlEntry) {
+	d.counts.Unknown++
+	if d.target == nil {
+		return
+	}
+	if *d.target == nil {
+		*d.target = UnknownTOML{}
+	}
+	key := dottedKey(rest(e, d.prefix))
+	if key == "" {
+		key = e.key()
+	}
+	(*d.target)[key] = TOMLRaw(e.val.raw)
+}

@@ -1,0 +1,9 @@
+func newBuilder(t agentio.Target, sub ...string) *builder {
+	b := &builder{t: t, args: slices.Clone(sub)}
+	if t.Version.IsZero() {
+		b.warns.Add(agentio.WarnVersionUnknown, "", "", "installed codex version unknown; flags not checked against it")
+	} else if w, ok := Compat().Warning(t.Version); ok {
+		b.warns = append(b.warns, w)
+	}
+	return b
+}

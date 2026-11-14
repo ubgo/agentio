@@ -1,17 +1,17 @@
 # Codex paths and inventory
 
-`codex.Paths` names every file and directory Codex uses in one home (config, auth, rollouts, the six SQLite stores, caches, desktop-app state), so your code never hard-codes a file name. `Inventory` then says which of them exist, and lists top-level entries the library does not know yet.
+[`codex.Paths`](ds:block?id=codex-paths-mgfjercg) names every file and directory Codex uses in one home (config, auth, rollouts, the six SQLite stores, caches, desktop-app state), so your code never hard-codes a file name. [`Inventory`](ds:block?id=codex-agent-inventory-ukxqm5eh) then says which of them exist, and lists top-level entries the library does not know yet.
 
 ## Before you start
 
 - Module `github.com/ubgo/agentio/codex`; a `codex.Agent` and a `codex.Home` from [The Codex agent](agent.md).
-- `Paths` and `PathsWith` are pure: they compute names and never check the disk. `Inventory` stats each path once.
+- `Paths` and [`PathsWith`](ds:block?id=codex-agent-pathswith-tqqdjxqc) are pure: they compute names and never check the disk. [`Inventory`](ds:block?id=codex-agent-inventory-ukxqm5eh) stats each path once.
 
 The snippets come from [`examples/codexconfig`](../../examples/codexconfig/).
 
 ## Step 1 — Get home paths
 
-`a.Paths(h)` assumes the SQLite files and logs live in the home. When the config may move them, read the config and call `a.PathsWith(h, cfg)`: it honours `sqlite_home` and `log_dir` from `config.toml`, and `CODEX_SQLITE_HOME` from `Host.Env` (which wins over `sqlite_home`). `Paths.ProfileConfig(name)` is the v2 profile file `<home>/<name>.config.toml`.
+[`a.Paths(h)`](ds:block?id=codex-agent-paths-37cc6b4n) assumes the SQLite files and logs live in the home. When the config may move them, read the config and call [`a.PathsWith(h, cfg)`](ds:block?id=codex-agent-pathswith-tqqdjxqc): it honours `sqlite_home` and `log_dir` from `config.toml`, and `CODEX_SQLITE_HOME` from `Host.Env` (which wins over `sqlite_home`). [`Paths.ProfileConfig(name)`](ds:block?id=codex-paths-profileconfig-k6ajnjam) is the v2 profile file `<home>/<name>.config.toml`.
 
 <!-- snippet: examples/codexconfig/config.go#paths -->
 ```go
@@ -37,7 +37,7 @@ func homePaths(w io.Writer, m machine) error {
 
 ## Step 2 — List the home inventory
 
-`Inventory` returns one `InventoryEntry` per known path (`Name` is the `Paths` field name, plus `Exists`, `IsDir`, `Size`, `ModTime`) and `Unknown`, the top-level names `Paths` does not cover.
+`Inventory` returns one [`InventoryEntry`](ds:block?id=codex-agent-inventory-ukxqm5eh) per known path (`Name` is the `Paths` field name, or `Marker` for a home marker, plus `Exists`, `IsDir`, `Size`, `ModTime`) and `Unknown`, the top-level names `Paths` does not cover.
 
 <!-- snippet: examples/codexconfig/config.go#inventory -->
 ```go
@@ -80,10 +80,10 @@ unknown top-level entries: 0
 
 ## Pitfalls
 
-- **Use `PathsWith` before opening SQLite.** `Paths` ignores `sqlite_home` and `CODEX_SQLITE_HOME`; [`state.Open`](state.md#step-1--open-the-state-database) takes whatever `Paths` you give it, so pass `PathsWith`.
-- **Paths are not existence checks.** A path in `Paths` may not exist (a fresh home has no `state_5.sqlite`); check `Inventory` or handle `fs.ErrNotExist`.
-- **Desktop-app paths are listed only.** `DesktopState`, `DesktopDB`, `IPCSocket`, `ChatProcesses`, `ComputerUse`, `Browser` and `Visualizations` are named so callers can find them; apart from `ChatProcesses` and `DaemonSocket` ([sessions](sessions.md#step-3--list-processes-and-chat-processes)) nothing decodes them.
-- **`Inventory` does not walk directories.** `Size` is 0 for directories; unknown entries are reported by name only, never read.
+- **Use `PathsWith` before opening SQLite.** `Paths` ignores `sqlite_home` and [`CODEX_SQLITE_HOME`](ds:block?id=codex-agent-paths-37cc6b4n); [`state.Open`](state.md#step-1--open-the-state-database) takes whatever `Paths` you give it, so pass `PathsWith`.
+- **Paths are not existence checks.** A path in `Paths` may not exist (a fresh home has no `state_5.sqlite`); check [`Inventory`](ds:block?id=codex-paths-mgfjercg) or handle `fs.ErrNotExist`.
+- **Desktop-app paths are listed only.** [`DesktopState`](ds:block?id=codex-paths-mgfjercg), `DesktopDB`, `IPCSocket`, `ChatProcesses`, `ComputerUse`, `Browser` and `Visualizations` are named so callers can find them; apart from `ChatProcesses` and [`DaemonSocket`](ds:block?id=codex-agent-daemonsocket-5k6q3q87) ([sessions](sessions.md#step-3--list-processes-and-chat-processes)) nothing decodes them.
+- **[`Inventory`](ds:block?id=codex-agent-inventory-ukxqm5eh) does not walk directories.** `Size` is 0 for directories; unknown entries are reported by name only, never read.
 
 ## Related
 

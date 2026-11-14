@@ -1,0 +1,32 @@
+func (c *Core) Checks(_ context.Context, h Home) []Check {
+	var out []Check
+	if p, err := c.LookPath(); err != nil {
+		out = append(out, Check{ID: CheckBinary, Status: CheckFail, Message: c.spec.Binary + " not found on PATH"})
+	} else {
+		out = append(out, Check{ID: CheckBinary, Status: CheckOK, Message: p})
+	}
+	if err := c.Owns(h); err != nil {
+		out = append(out, Check{ID: CheckHome, Status: CheckFail, Message: err.Error()})
+	} else if ok, err := c.IsHome(h.Dir()); err != nil {
+		out = append(out, Check{ID: CheckHome, Status: CheckFail, Message: err.Error()})
+	} else if !ok {
+		out = append(out, Check{ID: CheckHome, Status: CheckWarn, Message: h.Dir() + " is not a home (missing or no marker)"})
+	} else {
+		out = append(out, Check{ID: CheckHome, Status: CheckOK, Message: h.Dir()})
+	}
+	if c.spec.HomeEnv != "" {
+		if v, ok := c.host.Getenv(c.spec.HomeEnv); ok {
+			out = append(out, Check{ID: CheckHomeEnv, Status: CheckInfo, Message: c.spec.HomeEnv + " is set in the base env (selects " + v + "); launches of the default home remove it"})
+		}
+	}
+	var billing []string
+	for _, n := range c.spec.APIBillingEnv {
+		if _, ok := c.host.Getenv(n); ok {
+			billing = append(billing, n)
+		}
+	}
+	if len(billing) > 0 {
+		out = append(out, Check{ID: CheckAPIBillingEnv, Status: CheckWarn, Message: strings.Join(billing, ", ") + " set: launches bill per token"})
+	}
+	return out
+}

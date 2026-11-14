@@ -1,0 +1,11 @@
+func (f File) MaxKnownMigration() int64 {
+	switch f {
+	case FileState:
+		return maxMigrationState
+	case FileThreadHistory:
+		return maxMigrationThreadHistory
+	case FileGoals, FileQueue, FileMemories, FileLogs:
+		return maxMigrationSmall
+	}
+	return 0
+}

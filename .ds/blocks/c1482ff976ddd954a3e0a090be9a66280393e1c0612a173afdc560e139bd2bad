@@ -1,0 +1,1 @@
+var ErrAmbiguousID = errors.New("claude: ambiguous conversation prefix")

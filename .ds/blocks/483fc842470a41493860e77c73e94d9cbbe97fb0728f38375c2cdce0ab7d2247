@@ -1,0 +1,22 @@
+func (d *DB) conn(f File) (*sql.DB, error) {
+	if f >= fileCount {
+		return nil, fmt.Errorf("codex/state: unknown file %d", uint8(f))
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if c := d.conns[f]; c != nil {
+		return c, nil
+	}
+	if d.paths[f] == "" {
+		return nil, &NoPathError{File: f}
+	}
+	if _, err := os.Stat(d.paths[f]); err != nil {
+		return nil, fmt.Errorf("codex/state: %s: %w", f, err)
+	}
+	c, err := sql.Open(driverName, dsn(d.paths[f]))
+	if err != nil {
+		return nil, fmt.Errorf("codex/state: open %s: %w", f, err)
+	}
+	d.conns[f] = c
+	return c, nil
+}

@@ -1,0 +1,1 @@
+	ErrUnsupported = errors.New("agentio: unsupported")

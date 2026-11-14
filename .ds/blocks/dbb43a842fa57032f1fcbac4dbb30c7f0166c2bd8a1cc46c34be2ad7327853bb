@@ -1,0 +1,3 @@
+func roleNames() []string {
+	return []string{"user", "assistant"}
+}

@@ -1,0 +1,21 @@
+func (a *Agent) Profiles(h Home) ([]ProfileInfo, error) {
+	c, err := a.ConfigFile(h)
+	if err != nil {
+		return nil, err
+	}
+	cfgPath := a.Paths(h).Config
+	var out []ProfileInfo
+	for _, name := range c.LegacyProfileNames() {
+		_, table := c.Profiles[name]
+		out = append(out, ProfileInfo{Name: name, Kind: ProfileLegacy, Path: cfgPath,
+			Selected: c.Profile.Set && c.Profile.V == name, HasTable: table})
+	}
+	v2, err := a.ProfileFiles(h)
+	if err != nil {
+		return nil, err
+	}
+	for _, name := range v2 {
+		out = append(out, ProfileInfo{Name: name, Kind: ProfileV2, Path: a.Paths(h).ProfileConfig(name)})
+	}
+	return out, nil
+}

@@ -1,6 +1,6 @@
 # Claude account and identity
 
-Who is logged into a Claude home, on which plan, and through which store: the `claude` module answers from disk (the `oauthAccount` record in `.claude.json` plus the stored credential), decodes the profile endpoint's organization, and can ask the `claude` binary itself through the Runner door. Use it for an account switcher, a "which home is my work account" screen, or a status line. Personal values (email, names, org) come back as `agentio.Personal` and print redacted.
+Who is logged into a Claude home, on which plan, and through which store: the `claude` module answers from disk (the `oauthAccount` record in `.claude.json` plus the stored credential), decodes the profile endpoint's organization, and can ask the `claude` binary itself through the Runner door. Use it for an account switcher, a "which home is my work account" screen, or a status line. Personal values (email, names, org) come back as [`agentio.Personal`](ds:block?id=personal-yfzy8bms) and print redacted.
 
 ## Before you start
 
@@ -12,9 +12,9 @@ The snippets come from [`examples/claudeaccount`](../../examples/claudeaccount/)
 
 ## Step 1 — Read the identity
 
-`a.Identity(h)` returns a `claude.Identity`: the neutral `agentio.Identity` (`LoggedIn`, `Email`, `Org`, `PlanLabel`, `Billing`, `Credential` store, `ExpiresAt`) plus `Account` (the full `*claude.OAuthAccount`) and `Credential` (a `*claude.CredentialSummary`: source, location, expiry, scopes, plan; never the token). `Neutral()` gives the shared view that [`agentio.IdentityOf`](../capabilities/install-identity.md#step-3--read-the-signed-in-identity) returns for any agent. Cost: disk plus a keychain lookup; never a network call and never runs `claude`.
+[`a.Identity(h)`](ds:block?id=claude-agent-identity-5vqz5ezp) returns a `claude.Identity`: the neutral `agentio.Identity` (`LoggedIn`, `Email`, `Org`, `PlanLabel`, `Billing`, `Credential` store, `ExpiresAt`) plus `Account` (the full `*claude.OAuthAccount`) and `Credential` (a `*claude.CredentialSummary`: source, location, expiry, scopes, plan; never the token). [`Neutral()`](ds:block?id=claude-identity-neutral-t8ajmes2) gives the shared view that [`agentio.IdentityOf`](../capabilities/install-identity.md#step-3--read-the-signed-in-identity) returns for any agent. Cost: disk plus a keychain lookup; never a network call and never runs `claude`.
 
-`LoggedIn` needs a credential: a home that has an account record but no stored login reads as logged out, with `Email` and `PlanLabel` still filled from the record. The plan label prefers the account's organization type and tier and falls back to the credential's.
+[`LoggedIn` needs a credential](ds:block?id=claude-agent-identity-5vqz5ezp): a home that has an account record but no stored login reads as logged out, with `Email` and `PlanLabel` still filled from the record. The plan label prefers the account's organization type and tier and falls back to the credential's.
 
 <!-- snippet: examples/claudeaccount/main.go#identity -->
 ```go
@@ -36,9 +36,9 @@ func readIdentity(w io.Writer, a *claude.Agent, h claude.Home) error {
 
 ## Step 2 — Read the OAuth account
 
-`a.Account(h)` returns the `oauthAccount` record of the home's `.claude.json` as a `*claude.OAuthAccount` (nil when Claude Code never logged in there): `OrganizationType` (a `claude.OrgType` such as `claude.OrgMax`), `BillingType`, rate-limit tiers, `PlanDisplayName`, `SeatTier`, roles, `HasExtraUsageEnabled`, account and subscription dates, trial fields, and `Unknown` for keys this version does not model. UUIDs, email and names are `agentio.Personal`.
+[`a.Account(h)`](ds:block?id=claude-agent-account-fy6cq5vn) returns the `oauthAccount` record of the home's `.claude.json` as a `*claude.OAuthAccount` (nil when Claude Code never logged in there): `OrganizationType` (a `claude.OrgType` such as `claude.OrgMax`), `BillingType`, rate-limit tiers, `PlanDisplayName`, `SeatTier`, roles, `HasExtraUsageEnabled`, account and subscription dates, trial fields, and `Unknown` for keys this version does not model. [UUIDs, email and names are `agentio.Personal`.](ds:block?id=claude-oauthaccount-jqh4rx7y)
 
-`claude.PlanLabel(subscriptionType, rateLimitTier)` renders the plan the way claude.ai does: `"claude_max"` (the `claude_` prefix is dropped) with `"default_claude_max_20x"` is `Max (20x)`; an empty subscription is `""`. `claude.ParseProfile(body)` decodes an `/api/oauth/profile` body into an `agentio.Subscription` (`Plan`, `Status`, `BillingType`, `StartedAt`) without decoding personal fields; a body with no organization is `claude.ErrNoOrganization`. `a.Subscription(ctx, h)` fetches that body for a home's login (Network · Read; see [Claude plan usage](usage.md)).
+[`claude.PlanLabel(subscriptionType, rateLimitTier)`](ds:block?id=claude-planlabel-8fuqam6b) renders the plan the way claude.ai does: `"claude_max"` (the `claude_` prefix is dropped) with `"default_claude_max_20x"` is `Max (20x)`; an empty subscription is `""`. [`claude.ParseProfile(body)`](ds:block?id=claude-parseprofile-eg8cknwb) decodes an `/api/oauth/profile` body into an `agentio.Subscription` (`Plan`, `Status`, `BillingType`, `StartedAt`) without decoding personal fields; a body with no organization is `claude.ErrNoOrganization`. [`a.Subscription(ctx, h)`](ds:block?id=claude-agent-subscription-rtkahzpe) fetches that body for a home's login (Network · Read; see [Claude plan usage](usage.md)).
 
 <!-- snippet: examples/claudeaccount/main.go#account -->
 ```go
@@ -72,7 +72,7 @@ func readAccount(w io.Writer, a *claude.Agent, h claude.Home) error {
 
 ## Step 3 — Read auth status through the Runner
 
-`a.Runner().AuthStatus(ctx, h)` runs `claude auth status --json` for the home through `Host.Exec` and decodes it into a `claude.AuthStatus`: `LoggedIn`, `AuthMethod`, `APIProvider`, `ConfigDirectory`, `ProjectsDirectory`, `LoginExpiresAt`, `SubscriptionType`, `PlanTier`, `StoredClaudeAILogin`, the personal `Email`, `OrgID`, `OrgName`, and `Unknown`. `claude.ParseAuthStatus(b)` decodes output you captured yourself. This is the binary's own view (it also sees environment logins the disk reads cannot), but it runs a process that may touch the login, so the library never calls it implicitly: see [Claude Runner](runner.md).
+[`a.Runner().AuthStatus(ctx, h)`](ds:block?id=claude-runner-authstatus-ktzmqmsf) runs `claude auth status --json` for the home through `Host.Exec` and decodes it into a `claude.AuthStatus`: `LoggedIn`, `AuthMethod`, `APIProvider`, `ConfigDirectory`, `ProjectsDirectory`, `LoginExpiresAt`, `SubscriptionType`, `PlanTier`, `StoredClaudeAILogin`, the personal `Email`, `OrgID`, `OrgName`, and `Unknown`. [`claude.ParseAuthStatus(b)`](ds:block?id=claude-parseauthstatus-3kuerg58) decodes output you captured yourself. This is the binary's own view (it also sees environment logins the disk reads cannot), but it runs a process that may touch the login, so the library never calls it implicitly: see [Claude Runner](runner.md).
 
 <!-- snippet: examples/claudeaccount/main.go#authstatus -->
 ```go
@@ -114,12 +114,12 @@ parsed offline: subscription max, unknown keys 0
 
 ## Pitfalls
 
-- **Personal values print redacted on purpose.** `fmt`, `%v`, `%#v`, JSON and `slog` all show `[redacted]` for `agentio.Personal`; call `Reveal()` only where you mean to show the value to its owner.
-- **An account record does not mean logged in.** `Identity` reports `LoggedIn` false when no credential is found, even if `.claude.json` still names an account (a logout keeps the record).
-- **`Account` is nil, not an error, for a home that never logged in.** Check the pointer before reading fields.
+- **[Personal values print redacted on purpose.](ds:block?id=personal-yfzy8bms)** `fmt`, `%v`, `%#v`, JSON and `slog` all show `[redacted]` for `agentio.Personal`; call `Reveal()` only where you mean to show the value to its owner.
+- **An account record does not mean logged in.** [`Identity` reports `LoggedIn` false when no credential is found](ds:block?id=claude-agent-identity-5vqz5ezp), even if `.claude.json` still names an account (a logout keeps the record).
+- **[`Account` is nil, not an error, for a home that never logged in.](ds:block?id=claude-agent-account-fy6cq5vn)** Check the pointer before reading fields.
 - **`AuthStatus` may touch the login.** The vendor documents that it creates `~/.claude.json` when missing; whether it refreshes a token is unverified. Prefer `Identity` in loops and status lines; call `AuthStatus` when the user asks.
-- **The Runner needs `Host.Exec`.** A host without a process runner returns an `agentio.ErrUnsupported` error; a non-zero exit is an error carrying a short stderr snippet.
-- **`ParseProfile` reads the organization only.** Personal fields of the profile body are not decoded; `Subscription.Raw` keeps the body when you fetch it with `a.Subscription`.
+- **[The Runner needs `Host.Exec`.](ds:block?id=claude-runner-run-af4j3992)** A host without a process runner returns an `agentio.ErrUnsupported` error; a non-zero exit is an error carrying a short stderr snippet.
+- **[`ParseProfile` reads the organization only.](ds:block?id=claude-parseprofile-eg8cknwb)** Personal fields of the profile body are not decoded; `Subscription.Raw` keeps the body when you fetch it with `a.Subscription`.
 
 ## Related
 

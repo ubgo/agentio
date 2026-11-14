@@ -1,0 +1,6 @@
+func (o Opt[T]) MarshalJSON() ([]byte, error) {
+	if !o.Set {
+		return []byte(jsonNull), nil
+	}
+	return json.Marshal(o.V)
+}

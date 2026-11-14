@@ -1,15 +1,15 @@
 # Host: the only door to the machine
 
-A `Host` is the machine agentio looks at: the user home, the base environment, the clock, an HTTP client, the keychain, the process table and a way to run a program. No function in the library reads `$HOME`, `os.Environ`, the keychain, the clock or the network except through the Host you pass in. That is what lets a test point every input at a fixture, and lets one program inspect two machines' worth of homes side by side.
+A `Host` is the machine agentio looks at: the user home, the base environment, the clock, an HTTP client, the keychain, the process table and a way to run a program. No function in the library reads `$HOME`, [`os.Environ`](ds:block?id=host-4pbbeq6s), the keychain, the clock or the network except through the Host you pass in. That is what lets a test point every input at a fixture, and lets one program inspect two machines' worth of homes side by side.
 
 ## Before you start
 
 - Module: `github.com/ubgo/agentio` (stdlib only).
-- Nothing on disk is required to build a Host; `HostFromOS` only resolves the home dir.
+- Nothing on disk is required to build a Host; `HostFromOS` [only resolves the home dir](ds:block?id=hostfromos-yvmqkxwe).
 
 ## Step 1 — Build a Host from the OS
 
-`agentio.HostFromOS` is the one constructor that touches the real machine. It fills `UserHome` from `os.UserHomeDir`, `Env` from `os.Environ`, `Now` with `time.Now`, an HTTP client with a 30 second timeout, the macOS keychain (a not-found store elsewhere), the process table (`/proc` on Linux, `ps` on macOS), an `os/exec` runner, `GOOS` from `runtime.GOOS` and `SystemRoot` (`/` on unix, the system drive root on Windows).
+[`agentio.HostFromOS`](ds:block?id=hostfromos-yvmqkxwe) is the one constructor that touches the real machine. It fills `UserHome` from `os.UserHomeDir`, `Env` from `os.Environ`, `Now` with `time.Now`, an HTTP client with a [30 second timeout](ds:block?id=oshttptimeout-3nmmj9j5), the macOS keychain (elsewhere a store whose `Get` returns `ErrUnsupported`), the process table [(`/proc` on Linux, `ps` on macOS)](ds:block?id=osprocesses-processes-q5hpmdr9), an `os/exec` runner, `GOOS` from `runtime.GOOS` and `SystemRoot` (`/` on unix, the system drive root on Windows).
 
 <!-- snippet: examples/quickstart/main.go#host-from-os -->
 ```go
@@ -25,7 +25,7 @@ func osHost() (agentio.Host, error) {
 }
 ```
 
-Build it once at program start and pass it down; every agent constructor (`claude.New`, `codex.New`, `builtin.New`, `agentio.FromSpec`) takes it.
+Build it once at program start and pass it down; every agent constructor (`claude.New`, `codex.New`, `builtin.New`, [`agentio.FromSpec`](ds:block?id=fromspec-4tcd24bd)) takes it.
 
 ## Step 2 — Build a Host by hand
 
@@ -34,15 +34,15 @@ Build it once at program start and pass it down; every agent constructor (`claud
 | Field | Type | Used for | nil / empty means |
 |---|---|---|---|
 | `UserHome` | `string` | where default homes live (`~/.claude`, `~/.codex`) | relative paths resolve against "" |
-| `User` | `string` | the OS login name; Claude keychain lookups name it as the account | service-only lookup |
+| `User` | `string` | the OS login name; Claude keychain lookups name it as the account | [service-only lookup](ds:block?id=claude-agent-keychainget-uj32ktdh) |
 | `Env` | `[]string` (`K=V`) | `PATH` lookups, the home variable, the base env of every built `Command` | empty child env, nothing found on PATH |
-| `Now` | `func() time.Time` | expiry checks, backup names, `Retry-After` dates | zero time |
-| `HTTP` | `*http.Client` | usage, subscription and probe calls | every network call returns `ErrUnsupported` |
-| `Secrets` | `SecretStore` | keychain / keyring reads (`Get(ctx, service, account)`) | no secret is ever found |
+| `Now` | `func() time.Time` | expiry checks, backup names, `Retry-After` dates | [zero time](ds:block?id=claude-agent-now-xsb7g62h) |
+| `HTTP` | `*http.Client` | usage, subscription and probe calls | [every network call returns `ErrUnsupported`](ds:block?id=claude-agent-httpclient-e4beyzpg) |
+| `Secrets` | `SecretStore` | keychain / keyring reads (`Get(ctx, service, account)`) | [no secret is ever found](ds:block?id=claude-agent-keychainget-uj32ktdh) |
 | `Processes` | `ProcessLister` | live sessions, process classification (`Processes`, `Cwd`) | no process is alive |
-| `Exec` | `ProcessRunner` | running the vendor binary, only from Runner doors (`Run` returns a `ProcessResult`) | Runner calls return an error |
-| `GOOS` | `string` | which OS's system and managed locations apply (`linux`, `darwin`, `windows`) | no system locations |
-| `SystemRoot` | `string` | the root system and managed paths resolve under (`/etc/claude-code`, `/etc/codex`); `Host.SystemPath(rel)` joins it | no system locations: managed settings, managed `CLAUDE.md` and MCP files and `/etc/codex` layers are never read |
+| `Exec` | `ProcessRunner` | running the vendor binary, only from Runner doors (`Run` returns a `ProcessResult`) | [Runner calls return an error](ds:block?id=runner-run-5rn5nerj) |
+| `GOOS` | `string` | which OS's system and managed locations apply (`linux`, `darwin`, `windows`) | [no system locations](ds:block?id=host-systempath-7azvt62d) |
+| `SystemRoot` | `string` | the root system and managed paths resolve under (`/etc/claude-code`, `/etc/codex`); [`Host.SystemPath(rel)`](ds:block?id=host-systempath-7azvt62d) joins it | no system locations: managed settings, managed `CLAUDE.md` and MCP files and `/etc/codex` layers are never read |
 
 A minimal fixture Host needs only a home and an env:
 
@@ -65,7 +65,7 @@ func fixtureHost(userHome, pathList string) agentio.Host {
 }
 ```
 
-Read the Host's environment with `Host.Getenv`, or any `K=V` slice with `agentio.EnvLookup`. Both return the last entry of a name, which is the one a child process sees, and tell an empty value apart from an absent one:
+Read the Host's environment with `Host.Getenv`, or any `K=V` slice with [`agentio.EnvLookup`](ds:block?id=envlookup-ef3y8bwk). Both return the last entry of a name, which is the one a child process sees, and tell an empty value apart from an absent one:
 
 <!-- snippet: examples/quickstart/main.go#host-getenv -->
 ```go
@@ -83,13 +83,13 @@ func hostEnv(p printer, h agentio.Host) {
 }
 ```
 
-The three interfaces are small enough to implement yourself (for example over a secrets manager), but for tests the `agenttest` package already has fakes for each one (`FakeSecrets`, `FakeProcesses`, `FakeExec`) and `agenttest.NewHost` builds a fixture Host whose network and exec fail loudly. See [agenttest fakes](../testing/agenttest.md).
+The three interfaces are small enough to implement yourself (for example over a secrets manager), but for tests the `agenttest` package already has fakes for each one (`FakeSecrets`, `FakeProcesses`, `FakeExec`) and [`agenttest.NewHost`](ds:block?id=agenttest-newhost-ep2mcqr8) builds a fixture Host whose network and exec fail loudly. See [agenttest fakes](../testing/agenttest.md).
 
-`ProcessRunner.Run` reports a non-zero exit in `ProcessResult.ExitCode` with a nil error; its error is only for "could not run at all" (missing binary, cancelled context). `SecretStore.Get` returns `found == false` with a nil error when there is no entry.
+[`ProcessRunner.Run`](ds:block?id=osrunner-run-hm7czx3q) reports a non-zero exit in `ProcessResult.ExitCode` with a nil error; its error is only for "could not run at all" (missing binary, cancelled context). [`SecretStore.Get`](ds:block?id=ossecrets-get-ux5ua2mu) returns `found == false` with a nil error when there is no entry.
 
 ## Step 3 — Find a binary on PATH
 
-agentio finds a binary by walking the `PATH` value itself. It never asks a shell, because a shell may answer with an alias or a function wrapper instead of a file. `LookPath` returns the first regular executable file, `LookPathAll` every hit in order (the first is what runs, the rest are shadowed copies):
+agentio finds a binary by walking the `PATH` value itself. It never asks a shell, because a shell may answer with an alias or a function wrapper instead of a file. [`LookPath`](ds:block?id=lookpath-f56nfyzk) returns the first regular executable file, [`LookPathAll`](ds:block?id=lookpathall-u48etgc3) every hit in order (the first is what runs, the rest are shadowed copies):
 
 <!-- snippet: examples/quickstart/main.go#find-binary -->
 ```go
@@ -105,7 +105,7 @@ func findBinary(p printer, pathList string) {
 }
 ```
 
-Every agent has `Agent.LookPath()`, which does the same with its own binary name and `Host.Env`'s `PATH`. A miss is an error matching `agentio.ErrNotInstalled`:
+Every agent has [`Agent.LookPath()`](ds:block?id=core-lookpath-ke3ntet7), which does the same with its own binary name and `Host.Env`'s `PATH`. A miss is an error matching `agentio.ErrNotInstalled`:
 
 <!-- snippet: examples/quickstart/main.go#not-installed -->
 ```go
@@ -148,15 +148,15 @@ empty PATH: agentio: binary not found on PATH: claude
 
 ## Pitfalls
 
-- **Only `HostFromOS` reads the real machine.** If a test sees your real homes, something called it; build the Host by hand or with `agenttest.NewHost`.
-- **PATH lookups skip empty and relative entries.** An empty `PATH` element means "current dir" to a shell; agentio never runs a binary from the current dir, so `PATH=:/usr/bin` only searches `/usr/bin`.
-- **An absolute name is checked as is.** `LookPath(path, "/opt/claude/bin/claude")` ignores `PATH` and only checks that file.
-- **A file must be executable to count.** A non-executable `claude` file earlier on PATH is skipped, the same as the shell does.
-- **Duplicate env entries: the last wins.** `EnvLookup` and `Getenv` return the last `K=` entry; `ApplyEnv` removes every duplicate when it changes a name ([Targets and commands](launch.md#step-4--change-the-child-environment)).
-- **System locations need `GOOS` and `SystemRoot`.** Only `HostFromOS` fills them, so a Host you build yourself never reads `/etc/claude-code` or `/etc/codex` and fixture output cannot change with the machine. To test managed files, put them under a temp dir and pass `agenttest.WithSystem("linux", dir)`.
-- **`Exec` is only reached through a Runner door.** Building a launch command never runs anything; holding a Runner is the explicit opt-in to process calls ([Doors](../capabilities/doors.md)).
-- **A nil `HTTP` means "no network".** Every vendor network call (Claude usage, profile and probe, Codex usage) returns `ErrUnsupported` with the reason `Host.HTTP is nil`; the library never builds a client of its own, `HostFromOS` is the one place that does. In a test, prefer `agenttest.FailingHTTP` so an unexpected request fails loudly instead of returning a quiet `ErrUnsupported`.
-- **On macOS the process table comes from `ps`.** Arguments are split on spaces, so an argument that contains a space shows up as two.
+- **Only [`HostFromOS`](ds:block?id=hostfromos-yvmqkxwe) reads the real machine.** If a test sees your real homes, something called it; build the Host by hand or with `agenttest.NewHost`.
+- **PATH lookups [skip empty and relative entries](ds:block?id=lookpathall-u48etgc3).** An empty `PATH` element means "current dir" to a shell; agentio never runs a binary from the current dir, so `PATH=:/usr/bin` only searches `/usr/bin`.
+- **[An absolute name is checked as is.](ds:block?id=lookpathall-u48etgc3)** `LookPath(path, "/opt/claude/bin/claude")` ignores `PATH` and only checks that file.
+- **[A file must be executable to count.](ds:block?id=isexecutable-395kvm4u)** A non-executable `claude` file earlier on PATH is skipped, the same as the shell does.
+- **Duplicate env entries: the last wins.** [`EnvLookup`](ds:block?id=envlookup-ef3y8bwk) and `Getenv` return the last `K=` entry; [`ApplyEnv`](ds:block?id=applyenv-9fc572ee) removes every duplicate when it changes a name ([Targets and commands](launch.md#step-4--change-the-child-environment)).
+- **System locations need `GOOS` and `SystemRoot`.** [Only `HostFromOS` fills them](ds:block?id=hostfromos-yvmqkxwe), so a Host you build yourself never reads `/etc/claude-code` or `/etc/codex` and fixture output cannot change with the machine. To test managed files, put them under a temp dir and pass [`agenttest.WithSystem("linux", dir)`](ds:block?id=agenttest-withsystem-dpvygedy).
+- **[`Exec` is only reached through a Runner door.](ds:block?id=runner-run-5rn5nerj)** Building a launch command never runs anything; holding a Runner is the explicit opt-in to process calls ([Doors](../capabilities/doors.md)).
+- **A nil `HTTP` means "no network".** Every vendor network call (Claude usage, profile and probe, Codex usage) returns `ErrUnsupported` with the reason [`Host.HTTP is nil`](ds:block?id=claude-reasonnohttp-mb8pg2zh); the library never builds a client of its own, `HostFromOS` is the one place that does. In a test, prefer [`agenttest.FailingHTTP`](ds:block?id=agenttest-failinghttp-8vye27y9) so an unexpected request fails loudly instead of returning a quiet `ErrUnsupported`.
+- **On macOS the process table comes from `ps`.** [Arguments are split on spaces](ds:block?id=darwinprocesses-h9y8tzsg), so an argument that contains a space shows up as two.
 
 ## Related
 

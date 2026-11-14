@@ -1,0 +1,7 @@
+func (a *Agent) credentialStore(h Home) CredentialStore {
+	c, _, err := readConfigPath(a.Paths(h).Config)
+	if err != nil || !c.CLIAuthCredentialsStore.Set || !c.CLIAuthCredentialsStore.V.IsKnown() {
+		return StoreFile
+	}
+	return c.CLIAuthCredentialsStore.V
+}

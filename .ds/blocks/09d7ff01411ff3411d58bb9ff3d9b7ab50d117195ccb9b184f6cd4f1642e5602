@@ -1,0 +1,30 @@
+type Host struct {
+	// UserHome is the user's home directory (absolute).
+	UserHome string
+	// User is the OS login name. Claude keychain lookups name it as the
+	// account first (invariant 3): stale same-service entries exist.
+	User string
+	// Env is the base environment ("K=V"); PATH lookups use it, never a shell.
+	Env []string
+	// Now is the clock.
+	Now func() time.Time
+	// HTTP is used for usage, subscription and probe calls.
+	HTTP *http.Client
+	// Secrets is the keychain / keyring, or a fake.
+	Secrets SecretStore
+	// Processes lists running processes (live sessions, process matching).
+	Processes ProcessLister
+	// Exec runs a program; reached only from Runner doors.
+	Exec ProcessRunner
+	// GOOS is the operating system whose system locations apply ("linux",
+	// "darwin", "windows"), so a vendor never branches on runtime.GOOS and a
+	// test can inspect another OS's layout. "" = no system locations.
+	GOOS string
+	// SystemRoot is the root that system and managed locations are resolved
+	// under: "/" on unix and the system drive root on Windows from
+	// HostFromOS, a temp dir in a test that models /etc. "" (the fixture
+	// default) = the host has no system locations, so managed settings,
+	// managed CLAUDE.md and MCP files and /etc/codex layers are never read
+	// and fixture output cannot depend on the test machine's /etc.
+	SystemRoot string
+}

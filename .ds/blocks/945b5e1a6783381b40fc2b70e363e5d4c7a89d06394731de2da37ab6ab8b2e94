@@ -1,0 +1,66 @@
+type LaunchOptions struct {
+	Prompt                 string
+	Print                  bool
+	OutputFormat           OutputFormat
+	InputFormat            InputFormat
+	IncludePartialMessages bool
+	IncludeHookEvents      bool
+	ReplayUserMessages     bool
+	ForwardSubagentText    bool
+	Verbose                bool
+	JSONSchema             agentio.Raw
+	MaxBudgetUSD           *float64
+	NoSessionPersistence   bool
+
+	Model          string
+	FallbackModels []string
+	Effort         Effort
+	Agent          string
+	Agents         map[string]SubagentDef
+
+	PermissionMode                  PermissionMode
+	PermissionPrompts               string
+	DangerouslySkipPermissions      bool
+	AllowDangerouslySkipPermissions bool
+	AllowedTools, DisallowedTools   []string
+	// Tools: nil = default; &[]string{} = "" (no tools).
+	Tools *[]string
+
+	AddDirs         []string
+	MCPConfigs      []string
+	StrictMCPConfig bool
+	Settings        string
+	SettingSources  []SettingsScope
+
+	SystemPrompt, AppendSystemPrompt         string
+	SystemPromptFile, AppendSystemPromptFile string
+	SystemPromptSnapshot                     string
+	ExcludeDynamicSystemPromptSections       bool
+	PluginDirs, PluginURLs                   []string
+	Bare, SafeMode, Restricted               bool
+	DisableSlashCommands                     bool
+
+	// Resume is an id, a name or a transcript path.
+	Resume      string
+	Continue    bool
+	ForkSession bool
+	SessionID   string
+	Name        string
+	FromPR      string
+	// Worktree: nil = no flag; &"" = --worktree with no name.
+	Worktree      *string
+	Tmux          string
+	Background    bool
+	Debug         string
+	DebugFile     string
+	IDE           bool
+	Chrome        bool
+	NoChrome      bool
+	Brief         bool
+	Autocompact   string
+	RemoteControl *string
+	Betas         []string
+	Files         []string
+	// ExtraArgs are appended last, verbatim.
+	ExtraArgs []string
+}

@@ -1,0 +1,11 @@
+func (a *Agent) ConfigLayers(h Home, dir string) ([]Layer, error) {
+	layers, _, err := a.layers(h, EffectiveQuery{Dir: dir, IncludeSystem: true})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]Layer, 0, len(layers))
+	for i := len(layers) - 1; i >= 0; i-- {
+		out = append(out, layers[i].layer)
+	}
+	return out, nil
+}

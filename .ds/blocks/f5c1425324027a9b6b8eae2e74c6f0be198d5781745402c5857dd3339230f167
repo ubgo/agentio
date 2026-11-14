@@ -1,0 +1,15 @@
+func (a *Agent) LoginCommand(h Home, f agentio.LoginFlow) (agentio.Command, error) {
+	args := []string{subLogin}
+	switch f {
+	case agentio.LoginBrowser:
+	case agentio.LoginDevice:
+		args = append(args, flagDeviceAuth)
+	case agentio.LoginAPIKeyStdin:
+		args = append(args, flagWithAPIKey)
+	case agentio.LoginAccessTokenStdin:
+		args = append(args, flagWithAccessToken)
+	default:
+		return agentio.Command{}, agentio.UnsupportedError(ID, "login flow "+f.String(), "codex login has no such flow")
+	}
+	return a.plainCommand(h, args), nil
+}

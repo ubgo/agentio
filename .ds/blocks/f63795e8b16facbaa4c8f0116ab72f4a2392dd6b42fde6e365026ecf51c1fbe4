@@ -1,0 +1,42 @@
+func (d *DB) Items(ctx context.Context, threadID string, after int64, limit int) ([]Item, error) {
+	c, err := d.ready(ctx, FileThreadHistory)
+	if err != nil {
+		return nil, err
+	}
+	have, err := d.columns(ctx, FileThreadHistory, tableItems)
+	if err != nil {
+		return nil, err
+	}
+	cols := []string{"thread_id", "turn_id", "item_id", "item_type", "rollout_ordinal", "created_at_ms", "started_at_ms", "completed_at_ms", "item_json"}
+	q := "SELECT " + selectList(have, "", cols) + " FROM " + tableItems +
+		" WHERE thread_id = ? AND rollout_ordinal > ? ORDER BY rollout_ordinal LIMIT ?"
+	rows, err := c.QueryContext(ctx, q, threadID, after, clampLimit(limit))
+	if err != nil {
+		return nil, fmt.Errorf("codex/state: items: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var out []Item
+	for rows.Next() {
+		var it Item
+		var typ, body sql.NullString
+		var created, started, completed sql.NullInt64
+		if err := rows.Scan(&it.ThreadID, &it.TurnID, &it.ItemID, &typ, &it.RolloutOrdinal, &created, &started, &completed, &body); err != nil {
+			return nil, fmt.Errorf("codex/state: items: %w", err)
+		}
+		it.Type = ItemType(typ.String)
+		if it.Type == "" && body.String != "" {
+			var head map[string]json.RawMessage
+			if json.Unmarshal([]byte(body.String), &head) == nil {
+				var s string
+				if json.Unmarshal(head[itemTypeKey], &s) == nil {
+					it.Type = ItemType(s)
+				}
+			}
+		}
+		it.Created = fromMillis(created)
+		it.Started, it.Completed = timePtr(fromMillis(started)), timePtr(fromMillis(completed))
+		it.JSON = agentio.Raw(body.String)
+		out = append(out, it)
+	}
+	return out, rows.Err()
+}

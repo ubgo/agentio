@@ -1,0 +1,3 @@
+func billingNames() []string {
+	return []string{"unknown", "subscription", "per-token"}
+}

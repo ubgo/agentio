@@ -1,0 +1,1 @@
+func (c Command) SecretEnvNames() []string { return slices.Clone(c.secretNames) }

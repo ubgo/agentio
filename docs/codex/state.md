@@ -1,18 +1,18 @@
 # Codex SQLite state (codex/state)
 
-Codex keeps an authoritative index of its conversations and several side stores in SQLite files in the home: threads (`state_5.sqlite`), turns and items (`thread_history_1.sqlite`), goals, the message queue, memories and logs. The `codex/state` module reads them read-only and returns typed rows. Use it when rollout files are not enough: titles and previews as Codex shows them, token totals, archive and pin flags, sub-agent trees, Desktop projects, paginated turn history, goals and logs.
+Codex keeps an authoritative index of its conversations and several side stores in SQLite files in the home: threads (`state_5.sqlite`), turns and items (`thread_history_1.sqlite`), goals, the message queue, memories and logs. The `codex/state` module reads them [read-only](ds:block?id=codex-state-dsn-8wm86fpy) and returns typed rows. Use it when rollout files are not enough: titles and previews as Codex shows them, token totals, archive and pin flags, sub-agent trees, Desktop projects, paginated turn history, goals and logs.
 
 ## Before you start
 
 - Add the module: `go get github.com/ubgo/agentio/codex/state`. It is separate from `codex` because it needs a SQLite driver (`modernc.org/sqlite`, pure Go, so `CGO_ENABLED=0` builds work); callers of `codex` alone never download it.
 - A `codex.Paths` for the home, preferably from `a.PathsWith(h, cfg)` so `sqlite_home` and `CODEX_SQLITE_HOME` are honoured ([paths](paths.md#step-1--get-home-paths)).
-- The files must exist. A missing store fails its first query with an error matching `fs.ErrNotExist`.
+- The files must exist. A missing store fails its first query with an error matching [`fs.ErrNotExist`](ds:block?id=codex-state-db-conn-hd4czcs6).
 
 The snippets come from [`examples/codexstate`](../../examples/codexstate/). No database is checked in: the example builds the six stores in a temp home from the upstream migrations kept in `codex/state/testdata/migrations` (the SQL Codex itself runs), inserts a few made-up rows, and reads them only through `state.DB`.
 
 ## Step 1 — Open the state database
 
-`state.Open(paths)` prepares a `*state.DB` and reads nothing: each file is opened read-only on its first query, so listing threads never touches the logs store (tens of MB on a real machine). Only the stores you query need a path: a store whose path is empty fails with a `*state.NoPathError` (matching `state.ErrNoPath`) when you use it, never at `Open`, so `state.Open(codex.Paths{StateDB: p})` is enough to list threads. `DB.Path(f)` is the file behind a `state.File` (`FileState`, `FileThreadHistory`, `FileGoals`, `FileQueue`, `FileMemories`, `FileLogs`), `DB.SchemaVersion(ctx, f)` the newest applied migration, `f.MaxKnownMigration()` the newest one this library was written against, and `DB.Close` releases every connection. A store whose schema is newer fails with a `*state.SchemaTooNewError` (matching `state.ErrSchemaTooNew`) instead of guessing at renamed columns.
+[`state.Open(paths)`](ds:block?id=codex-state-open-uc95e9x7) prepares a `*state.DB` and reads nothing: each file is opened read-only on its first query, so listing threads never touches the logs store (tens of MB on a real machine). Only the stores you query need a path: a store whose path is empty fails with a [`*state.NoPathError`](ds:block?id=codex-state-db-conn-hd4czcs6) (matching `state.ErrNoPath`) when you use it, never at `Open`, so `state.Open(codex.Paths{StateDB: p})` is enough to list threads. [`DB.Path(f)`](ds:block?id=codex-state-db-path-md2jjs9y) is the file behind a `state.File` (`FileState`, `FileThreadHistory`, `FileGoals`, `FileQueue`, `FileMemories`, `FileLogs`), [`DB.SchemaVersion(ctx, f)`](ds:block?id=codex-state-db-schemaversion-rmgwh9hv) the newest applied migration, [`f.MaxKnownMigration()`](ds:block?id=codex-state-file-maxknownmigration-wh72f5ht) the newest one this library was written against, and [`DB.Close`](ds:block?id=codex-state-db-close-zsgjpsr6) releases every connection. A store whose schema is newer fails with a [`*state.SchemaTooNewError`](ds:block?id=codex-state-db-ready-p24c56dj) (matching `state.ErrSchemaTooNew`) instead of guessing at renamed columns.
 
 <!-- snippet: examples/codexstate/main.go#open -->
 ```go
@@ -46,7 +46,7 @@ func openState(w io.Writer, a *codex.Agent) (*state.DB, error) {
 
 ## Step 2 — List threads
 
-`DB.Threads(ctx, ThreadStatusFilter)` lists threads, most recently updated first; the filter narrows by `Archived`, `Pinned` (both `*bool`, nil = either), exact `Dir`, `ProjectID` and `Limit` (0 = 200, capped at 10000). `DB.Thread(ctx, id)` returns one row or `state.ErrNotFound` (the root `agentio.ErrNotFound`). A `Thread` carries title, preview, first user message, created/updated/recency times, archive and pin flags, `Source`, model and reasoning effort, the decoded `Sandbox` policy and `Approval`, tokens used, CLI version, git info, sub-agent info, history mode, project id and per-column decode `Warnings`. `Thread.Conversation(h)` projects a row onto the same `codex.Conversation` the rollout lister returns. `DB.SubAgents(ctx, parent)` lists the `SpawnEdge`s a thread opened; `DB.Projects(ctx)` lists Desktop projects with their root folders.
+[`DB.Threads(ctx, ThreadStatusFilter)`](ds:block?id=codex-state-db-threads-aukevzn9) lists threads, most recently updated first; the filter narrows by `Archived`, `Pinned` (both `*bool`, nil = either), exact `Dir`, `ProjectID` and `Limit` [(0 = 200, capped at 10000)](ds:block?id=codex-state-clamplimit-hfwegkws). `DB.Thread(ctx, id)` returns one row or [`state.ErrNotFound`](ds:block?id=codex-state-db-thread-ju2qdyus) (the root `agentio.ErrNotFound`). A `Thread` carries title, preview, first user message, created/updated/recency times, archive and pin flags, `Source`, model and reasoning effort, the decoded `Sandbox` policy and `Approval`, tokens used, CLI version, git info, sub-agent info, history mode, project id and per-column decode `Warnings`. [`Thread.Conversation(h)`](ds:block?id=codex-state-thread-conversation-n596sbdw) projects a row onto the same `codex.Conversation` the rollout lister returns. [`DB.SubAgents(ctx, parent)`](ds:block?id=codex-state-db-subagents-pkqv7bsk) lists the `SpawnEdge`s a thread opened; [`DB.Projects(ctx)`](ds:block?id=codex-state-db-projects-nxrrpgj2) lists Desktop projects with their root folders.
 
 <!-- snippet: examples/codexstate/main.go#threads -->
 ```go
@@ -104,7 +104,7 @@ func listThreads(ctx context.Context, w io.Writer, db *state.DB, h codex.Home) e
 
 ## Step 3 — Read turns and items
 
-`DB.Turns(ctx, thread)` lists a thread's turns in rollout order (`Status`, `Error` as raw JSON, start/completion times, `Duration`, the first user and final agent item ids, and the byte range the turn occupies in the rollout). `DB.Items(ctx, thread, after, limit)` pages through items with `rollout_ordinal > after` (0 = 200 per page, capped at 10000): a typed header (`Type`, ordinal, timestamps) plus the vendor `JSON`, which stays raw because its schema moves fast.
+[`DB.Turns(ctx, thread)`](ds:block?id=codex-state-db-turns-23y7cksp) lists a thread's turns in rollout order (`Status`, `Error` as raw JSON, start/completion times, `Duration`, the first user and final agent item ids, and the byte range the turn occupies in the rollout). [`DB.Items(ctx, thread, after, limit)`](ds:block?id=codex-state-db-items-px499grq) pages through items with `rollout_ordinal > after` (0 = 200 per page, capped at 10000): a typed header (`Type`, ordinal, timestamps) plus the vendor `JSON`, which stays raw because its schema moves fast.
 
 <!-- snippet: examples/codexstate/main.go#turns -->
 ```go
@@ -149,7 +149,7 @@ func readTurnsItems(ctx context.Context, w io.Writer, db *state.DB) error {
 
 ## Step 4 — Read goals, queue, memories and logs
 
-`DB.Goal(ctx, thread)` returns a thread's `/goal` objective with status, token budget (nil = none), tokens and time used; `found=false` when there is none. `DB.Queue(ctx, thread)` lists messages queued while the thread was busy, in send order. `DB.Memories(ctx, limit)` lists stage-1 memories extracted from rollouts; `DB.MemoryJobs(ctx)` the background extraction and consolidation jobs (the worker ownership token is never read). `DB.Logs(ctx, LogQuery)` returns log lines newest first, filtered by `ThreadID`, exact `Level`, `Since`, and bounded by `Limit` (0 = 200).
+[`DB.Goal(ctx, thread)`](ds:block?id=codex-state-db-goal-krbpqfcr) returns a thread's `/goal` objective with status, token budget (nil = none), tokens and time used; `found=false` when there is none. [`DB.Queue(ctx, thread)`](ds:block?id=codex-state-db-queue-jeaufcxk) lists messages queued while the thread was busy, in send order. [`DB.Memories(ctx, limit)`](ds:block?id=codex-state-db-memories-99nm34aa) lists stage-1 memories extracted from rollouts; [`DB.MemoryJobs(ctx)`](ds:block?id=codex-state-db-memoryjobs-c2g7z8mg) the background extraction and consolidation jobs (the worker ownership token is never read). [`DB.Logs(ctx, LogQuery)`](ds:block?id=codex-state-db-logs-6duhjxu2) returns log lines newest first, filtered by `ThreadID`, exact `Level`, `Since`, and bounded by `Limit` (0 = 200).
 
 <!-- snippet: examples/codexstate/main.go#small -->
 ```go
@@ -232,16 +232,16 @@ log 2026-10-26T07:33:30Z WARN codex_core "slow tool call"
 
 ## Pitfalls
 
-- **Read-only, always.** Every connection is opened read-only with `query_only`; nothing here writes. Archive, delete and queue changes go through Codex's own commands ([launch](launch.md#step-3--build-archive-delete-and-queue-commands)), because Codex keeps rollouts, threads and thread history consistent itself.
-- **WAL is honoured, `immutable` is never used.** Codex writes these files live in WAL mode; an immutable open would skip the WAL and miss the newest rows. Expect to see rows Codex wrote a moment ago.
-- **`Open` cannot fail; a missing path fails on use.** `Open` returns only a `*DB`. A store you gave no path for is `*state.NoPathError` (`errors.Is(err, state.ErrNoPath)`) on its first query; a path to a file that does not exist wraps `fs.ErrNotExist`.
-- **A newer Codex can stop the reader.** When Codex upgrades a store past `MaxKnownMigration` (0059 for state, 0008 for thread history, 0002 for the others at Codex 0.162.1), queries on that store return `*SchemaTooNewError` until this library is updated. Other stores keep working.
-- **Older schemas still read.** Columns added by later migrations come back as zero, nil or their default (for example `HistoryMode` legacy, `Model` nil); `Projects` and `SubAgents` return nil on a schema that has no such table.
-- **Legacy threads have no turns here.** Only threads with `HistoryMode` paginated have rows in `thread_history_1.sqlite`; for legacy threads read the rollout ([turns](conversations.md#step-2--read-turns)). `Turn.Error` is nil when the turn has no error; check `len(t.Error) > 0`. JSON encoding leaves a nil `Error` out (`omitempty`) instead of writing `null`.
-- **Pass `PathsWith`, not `Paths`.** With `sqlite_home` or `CODEX_SQLITE_HOME` set, `Paths` points at the wrong directory and every query fails with a not-exist error.
-- **`RolloutPath` is absolute.** It is why Codex conversations cannot move between homes; do not rewrite it.
-- **Per-column degradation.** A column value the library cannot decode (an unseen `sandbox_policy` shape, a garbage `cli_version`) adds an entry to `Thread.Warnings`; the rest of the row still reads.
-- **Personal ids redact.** `CreatorUserID` and `CreatorAccountID` are `agentio.Personal`.
+- **Read-only, always.** Every connection is opened read-only with [`query_only`](ds:block?id=codex-state-dsn-8wm86fpy); nothing here writes. Archive, delete and queue changes go through Codex's own commands ([launch](launch.md#step-3--build-archive-delete-and-queue-commands)), because Codex keeps rollouts, threads and thread history consistent itself.
+- **WAL is honoured, [`immutable`](ds:block?id=codex-state-dsn-8wm86fpy) is never used.** Codex writes these files live in WAL mode; an immutable open would skip the WAL and miss the newest rows. Expect to see rows Codex wrote a moment ago.
+- **`Open` cannot fail; a missing path fails on use.** `Open` returns only a [`*DB`](ds:block?id=codex-state-open-uc95e9x7). A store you gave no path for is [`*state.NoPathError`](ds:block?id=codex-state-db-conn-hd4czcs6) (`errors.Is(err, state.ErrNoPath)`) on its first query; a path to a file that does not exist wraps `fs.ErrNotExist`.
+- **A newer Codex can stop the reader.** When Codex upgrades a store past [`MaxKnownMigration`](ds:block?id=codex-state-file-maxknownmigration-wh72f5ht) (0059 for state, 0008 for thread history, 0002 for the others at Codex 0.162.1), queries on that store return [`*SchemaTooNewError`](ds:block?id=codex-state-db-ready-p24c56dj) until this library is updated. Other stores keep working.
+- **Older schemas still read.** Columns added by later migrations come back as zero, nil or their default (for example [`HistoryMode`](ds:block?id=codex-state-scanthread-kngeb5w2) legacy, `Model` nil); [`Projects`](ds:block?id=codex-state-db-projects-nxrrpgj2) and [`SubAgents`](ds:block?id=codex-state-db-subagents-pkqv7bsk) return nil on a schema that has no such table.
+- **Legacy threads have no turns here.** Only threads with `HistoryMode` paginated have rows in `thread_history_1.sqlite`; for legacy threads read the rollout ([turns](conversations.md#step-2--read-turns)). [`Turn.Error`](ds:block?id=codex-state-turn-bv9j4pzn) is nil when the turn has no error; check `len(t.Error) > 0`. JSON encoding leaves a nil `Error` out (`omitempty`) instead of writing `null`.
+- **Pass [`PathsWith`](ds:block?id=codex-agent-pathswith-tqqdjxqc), not `Paths`.** With `sqlite_home` or `CODEX_SQLITE_HOME` set, `Paths` points at the wrong directory and every query fails with a not-exist error.
+- **[`RolloutPath`](ds:block?id=codex-state-thread-r6p6ea25) is absolute.** It is why Codex conversations cannot move between homes; do not rewrite it.
+- **Per-column degradation.** A column value the library cannot decode (an unseen `sandbox_policy` shape, a garbage `cli_version`) adds an entry to [`Thread.Warnings`](ds:block?id=codex-state-scanthread-kngeb5w2); the rest of the row still reads.
+- **Personal ids redact.** [`CreatorUserID`](ds:block?id=codex-state-thread-r6p6ea25) and `CreatorAccountID` are `agentio.Personal`.
 
 ## Related
 

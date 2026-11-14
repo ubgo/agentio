@@ -1,0 +1,11 @@
+func (a *Agent) Homes() ([]Home, error) {
+	hs, err := a.core.Homes()
+	if err != nil {
+		return nil, err
+	}
+	out := make([]Home, 0, len(hs))
+	for _, h := range hs {
+		out = append(out, Home{h: h})
+	}
+	return out, nil
+}

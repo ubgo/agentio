@@ -1,0 +1,3 @@
+func (a *Agent) liveBlockers(dir string, ids []string, homes ...Home) []string {
+	return (&LiveSessionError{Dir: dir, PIDs: a.livePIDs(dir, ids, homes...)}).Blockers()
+}

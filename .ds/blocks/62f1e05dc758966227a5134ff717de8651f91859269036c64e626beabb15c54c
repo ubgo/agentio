@@ -1,0 +1,1 @@
+	ErrNotLoggedIn = errors.New("agentio: not logged in")

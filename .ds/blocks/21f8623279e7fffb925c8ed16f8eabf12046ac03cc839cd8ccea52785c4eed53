@@ -1,0 +1,9 @@
+func NewCommand(path string, args []string, base []string, dir string, changes ...EnvChange) Command {
+	return Command{
+		Path:        path,
+		Args:        slices.Clone(args),
+		Env:         ApplyEnv(base, changes...),
+		Dir:         dir,
+		secretNames: secretNamesOf(changes),
+	}
+}

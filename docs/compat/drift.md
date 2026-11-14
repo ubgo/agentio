@@ -5,12 +5,12 @@ Vendor CLIs change their files without notice: a new key in `settings.json`, a n
 ## Before you start
 
 - The check is the example program [examples/drift](../../examples/drift/) in the `examples` module; it is not part of the library API.
-- Cost: Disk · Read plus one process-table read (live sessions). It never runs a vendor binary, never calls the network and never spends quota; the only secret-store read is Codex `Identity` on a home whose login is kept in the OS keyring.
-- Output names files, keys and enum spellings only, never a value: map keys (project paths, server names) print as `{}` and string fields are never printed, so a report is safe to paste into an issue.
+- Cost: Disk · Read plus one process-table read (live sessions). It never runs a vendor binary, never calls the network and never spends quota; the only secret-store read is Codex [`Identity`](ds:block?id=examples-drift-codexdrift-xspx77gd) on a home whose login is kept in the OS keyring.
+- Output names files, keys and enum spellings only, never a value: map keys (project paths, server names) print as [`{}`](ds:block?id=examples-drift-walker-walk-22f5frvq) and string fields are never printed, so a report is safe to paste into an issue.
 
 ## Step 1 — Run the drift check
 
-`task drift` (or `cd examples && go run ./drift`) checks the real homes of whoever runs it, through `agentio.HostFromOS()`. `-fixtures` checks the fixture homes in this repository instead, which gives the same report on every machine. Both paths call the same `run` with a different Host:
+`task drift` (or `cd examples && go run ./drift`) checks the real homes of whoever runs it, through [`agentio.HostFromOS()`](ds:block?id=examples-drift-pickhost-k35cnr56). [`-fixtures`](ds:block?id=examples-drift-fixturehost-sm5ek39g) checks the fixture homes in this repository instead, which gives the same report on every machine. Both paths call the same `run` with a different Host:
 
 <!-- snippet: examples/drift/main.go#pickhost -->
 ```go
@@ -102,22 +102,22 @@ func driftHost(t *testing.T) agentio.Host {
 }
 ```
 
-The report starts with one line per vendor comparing the installed version with the tested range (`installed 2.1.326, tested 2.1.323..2.1.325: newer`, or `install not found` when the binary is not on PATH), then one header line per home, with the number of transcripts read and the record versions seen in them for Claude.
+The report starts with one line per vendor comparing the installed version with the tested range (`installed 2.1.326, tested 2.1.323..2.1.325: newer`, or [`install not found`](ds:block?id=examples-drift-versionline-4gjggnvh) when the binary is not on PATH), then a header line per home; for Claude a second line gives the number of transcripts read and the record versions seen in them.
 
 ## Step 2 — Read the findings
 
-After a blank line come the findings, one per line, tab-separated so a saved report can be read back: `vendor`, `home`, `kind`, `source`, `detail`, `(xN)` where N counts identical findings. `source` names the reader (`settings`, `global-config`, `sessions`, `transcript assistant`, `config.toml`, …) and `detail` is a path into the decoded value (`Settings.Unknown.futureKey`, `[]` for a slice element, `{}` for a map value).
+After a blank line come the findings, one per line, tab-separated so a saved report can be read back: `vendor`, `home`, `kind`, `source`, `detail`, [`(xN)`](ds:block?id=examples-drift-report-print-pgxsfup3) where N counts identical findings. `source` names the reader (`settings`, `global-config`, `sessions`, `transcript assistant`, `config.toml`, …) and `detail` is a path into the decoded value ([`Settings.Unknown.futureKey`](ds:block?id=examples-drift-walker-walk-22f5frvq), `[]` for a slice element, `{}` for a map value).
 
 | Kind | Meaning | What to do |
 |---|---|---|
-| `unknown-key` | A key reached an `agentio.Unknown` field: the vendor writes it, no struct field models it. | Add a field when a caller needs the value; otherwise it is kept as raw JSON and harmless. |
-| `unknown-enum` | An open enum value whose `IsKnown()` is false, printed with its type and spelling, e.g. `PermissionMode="futureMode"`. | Add the constant to the enum. |
-| `unknown-record` | A transcript record type the library has no constant for. | Model the record type. |
-| `new-record-key` | A top-level key on a transcript record of a type, first written by a Claude Code version newer than `claude.TestedMin` (among the sampled transcripts). | Check whether the record view needs it. |
-| `warning` | A decode warning the reader returned (`agentio.Warnings`): kind, file, key, detail. | Read the detail; usually a value of an unexpected shape. |
-| `format-version` | A file declares a format version the library has no sample for (`ErrUnknownVersion`); only that reader fails. | Record a sample and support the version. |
-| `read-error` | Any other reader error. A missing file (`ErrNotFound`) or unsupported read (`ErrUnsupported`) is not a finding. | Investigate; usually a malformed file. |
-| `flag-not-in-table` | A long flag in a saved `claude --help` that no `features.tsv` row names (Step 3). | Candidate feature row. |
+| [`unknown-key`](ds:block?id=examples-drift-walker-walk-22f5frvq) | A key reached an `agentio.Unknown` field: the vendor writes it, no struct field models it. | Add a field when a caller needs the value; otherwise it is kept as raw JSON and harmless. |
+| [`unknown-enum`](ds:block?id=examples-drift-walker-walk-22f5frvq) | An open enum value whose `IsKnown()` is false, printed with its type and spelling, e.g. `PermissionMode="futureMode"`. | Add the constant to the enum. |
+| [`unknown-record`](ds:block?id=examples-drift-transcriptdrift-3bba7jgq) | A transcript record type the library has no constant for. | Model the record type. |
+| [`new-record-key`](ds:block?id=examples-drift-transcriptdrift-3bba7jgq) | A top-level key on a transcript record of a type, first written by a Claude Code version newer than `claude.TestedMin` (among the sampled transcripts). | Check whether the record view needs it. |
+| [`warning`](ds:block?id=examples-drift-walker-walk-22f5frvq) | A decode warning the reader returned (`agentio.Warnings`): kind, file, key, detail. | Read the detail; usually a value of an unexpected shape. |
+| [`format-version`](ds:block?id=examples-drift-walker-read-nhu7788k) | A file declares a format version the library has no sample for (`ErrUnknownVersion`); only that reader fails. | Record a sample and support the version. |
+| [`read-error`](ds:block?id=examples-drift-walker-read-nhu7788k) | Any other reader error. A missing file (`ErrNotFound`) or unsupported read (`ErrUnsupported`) is not a finding. | Investigate; usually a malformed file. |
+| [`flag-not-in-table`](ds:block?id=examples-drift-helpdrift-bd9jjgwy) | A long flag in a saved `claude --help` that no `features.tsv` row names (Step 3). | Candidate feature row. |
 
 This test writes a new settings key and an unknown permission mode into the copied home and finds both:
 
@@ -140,7 +140,7 @@ func TestNewKeyAndEnum(t *testing.T) {
 
 ## Step 3 — Compare with a baseline
 
-A real home has many known-unknown keys, so the useful question after a release is "what is new since last time". Save a report and pass it back with `-baseline last.tsv`: every finding whose vendor, kind, source and detail appear in the saved file is skipped, and the summary line counts how many were suppressed. Home and count are not part of the comparison, so the same key in another home, or seen more often, is not new drift.
+A real home has many known-unknown keys, so the useful question after a release is "what is new since last time". Save a report and pass it back with [`-baseline last.tsv`](ds:block?id=examples-drift-report-loadbaseline-4xbs9yxq): every finding whose vendor, kind, source and detail appear in the saved file is skipped, and [the summary line counts how many were suppressed](ds:block?id=examples-drift-run-xbppew9s). [Home and count are not part of the comparison](ds:block?id=examples-drift-finding-baselinekey-bm3savct), so the same key in another home, or seen more often, is not new drift.
 
 <!-- snippet: examples/drift/main_test.go#baseline -->
 ```go
@@ -162,7 +162,7 @@ func TestBaseline(t *testing.T) {
 }
 ```
 
-`-claude-help help.txt` takes a saved `claude --help` text and lists every long flag no row of `claude/features.tsv` names. The table only holds features the library emits or gates, so a hit is a candidate row, not an error. Save the text yourself (`claude --help > help.txt`); the drift check never runs the binary.
+[`-claude-help help.txt`](ds:block?id=examples-drift-helpdrift-bd9jjgwy) takes a saved `claude --help` text and lists every long flag no row of `claude/features.tsv` names. The table only holds features the library emits or gates, so a hit is a candidate row, not an error. Save the text yourself (`claude --help > help.txt`); the drift check never runs the binary.
 
 <!-- snippet: examples/drift/main_test.go#help -->
 ```go
@@ -223,13 +223,13 @@ ok  	github.com/ubgo/agentio/examples/drift	0.131s
 
 ## Pitfalls
 
-- Without `-fixtures` the check reads the real homes of the user running it (that is the point of `task drift`). In tests, always pass a fixture Host to `run`.
-- The check samples to stay fast on large homes: the newest 200 conversations per home, the last 256 KiB of each transcript, and the newest 2000 prompt-history entries. Drift that lives only in older data is not seen.
-- `new-record-key` compares against the oldest version that wrote a key among the sampled transcripts. When every sampled transcript is newer than `claude.TestedMin` (the 2.1.325 fixture only has 2.1.325 records, so it reports 129 such findings), every key looks new. Use a baseline to see only what changed.
-- Codex is checked for `config.toml` (with its warnings), the login (`auth.json`) and conversations only; other Codex files are not walked yet.
-- A baseline must be a saved report: only lines with exactly six tab-separated columns are read, the header lines are ignored. Edited or reformatted files silently suppress nothing.
-- `-claude-help` matches long flags only (`--name`); a flag that `features.tsv` spells together with a value (`--output-format stream-json`) counts as known by its first token.
-- `install not found` is reported, not an error: the homes are still checked. A home with no files for a reader is quiet, not a finding.
+- Without [`-fixtures`](ds:block?id=examples-drift-pickhost-k35cnr56) the check reads the real homes of the user running it (that is the point of `task drift`). In tests, always pass a fixture Host to `run`.
+- The check samples to stay fast on large homes: [the newest 200 conversations per home](ds:block?id=examples-drift-transcriptsample-22745jby), the last 256 KiB of each transcript, and the newest 2000 prompt-history entries. Drift that lives only in older data is not seen.
+- [`new-record-key`](ds:block?id=examples-drift-transcriptdrift-3bba7jgq) compares against the oldest version that wrote a key among the sampled transcripts. When every sampled transcript is newer than `claude.TestedMin` (the 2.1.325 fixture only has 2.1.325 records, so it reports 129 such findings), every key looks new. Use a baseline to see only what changed.
+- Codex is checked for [`config.toml`](ds:block?id=examples-drift-codexdrift-xspx77gd) (with its warnings), the login (`auth.json`) and conversations only; other Codex files are not walked yet.
+- A baseline must be a saved report: only lines with [exactly six tab-separated columns](ds:block?id=examples-drift-report-loadbaseline-4xbs9yxq) are read, the header lines are ignored. Edited or reformatted files silently suppress nothing.
+- [`-claude-help`](ds:block?id=examples-drift-helpdrift-bd9jjgwy) matches long flags only (`--name`); a flag that `features.tsv` spells together with a value (`--output-format stream-json`) counts as known by each `--` token in its spelling.
+- [`install not found`](ds:block?id=examples-drift-versionline-4gjggnvh) is reported, not an error: the homes are still checked. A home with no files for a reader is quiet, not a finding.
 
 ## Related
 

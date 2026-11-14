@@ -1,0 +1,18 @@
+func HostFromOS() (Host, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return Host{}, fmt.Errorf("agentio: user home: %w", err)
+	}
+	return Host{
+		UserHome:   home,
+		User:       osAccount(),
+		Env:        os.Environ(),
+		Now:        time.Now,
+		HTTP:       &http.Client{Timeout: osHTTPTimeout},
+		Secrets:    osSecrets{},
+		Processes:  osProcesses{},
+		Exec:       osRunner{},
+		GOOS:       runtime.GOOS,
+		SystemRoot: osSystemRoot(),
+	}, nil
+}

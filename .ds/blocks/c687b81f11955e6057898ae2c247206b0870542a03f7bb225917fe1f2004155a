@@ -1,0 +1,6 @@
+func (a *Agent) httpClient(what string) (*http.Client, error) {
+	if a.host.HTTP == nil {
+		return nil, agentio.UnsupportedError(ID, what, reasonNoHTTP)
+	}
+	return a.host.HTTP, nil
+}

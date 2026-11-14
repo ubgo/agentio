@@ -1,0 +1,14 @@
+func ParseProfile(body []byte) (agentio.Subscription, error) {
+	var w wireProfile
+	if err := json.Unmarshal(body, &w); err != nil {
+		return agentio.Subscription{}, fmt.Errorf("claude: decode profile: %w", err)
+	}
+	if w.Organization == nil {
+		return agentio.Subscription{}, ErrNoOrganization
+	}
+	o := w.Organization
+	return agentio.Subscription{
+		Plan: PlanLabel(o.OrganizationType, o.RateLimitTier), Status: o.SubscriptionStatus,
+		BillingType: o.BillingType, StartedAt: o.SubscriptionCreatedAt,
+	}, nil
+}

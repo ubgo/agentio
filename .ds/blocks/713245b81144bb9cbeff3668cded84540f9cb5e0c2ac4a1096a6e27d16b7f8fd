@@ -1,0 +1,3 @@
+func (w *Writer) SetUserSetting(h Home, patch SettingsPatch) (agentio.Backup, error) {
+	return w.applyPatch(filepath.Join(h.Dir(), settingsFile), patch)
+}

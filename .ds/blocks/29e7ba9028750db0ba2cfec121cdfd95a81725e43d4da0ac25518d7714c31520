@@ -1,0 +1,40 @@
+type Spec struct {
+	ID ID
+	// Name is the display name; Binary the executable name looked up on PATH.
+	Name, Binary string
+	// HomeEnv selects a non-default home; "" = one home only.
+	HomeEnv string
+	// DefaultHome is relative to Host.UserHome, e.g. ".codex".
+	DefaultHome string
+	// ExtraHomes is a glob relative to Host.UserHome, e.g. ".claude-*"; "" = none.
+	ExtraHomes string
+	// HomeMarkers are entries that make a dir a real home; empty = any dir.
+	HomeMarkers []string
+	// NewArgs and ResumeArgs are argv templates with {args} (where the
+	// computed args go; appended when absent) and {id} (resume id).
+	NewArgs, ResumeArgs []string
+	// ModelArgs ({model}) and AddDirArgs ({dir}, repeated per dir) are
+	// optional templates; absent = ErrUnsupported for that request field.
+	ModelArgs, AddDirArgs []string
+	// PromptArgs ({prompt}) passes an initial prompt; absent = Prompt is
+	// ErrUnsupported. Added beyond SPEC §5.6 so a config agent can take one.
+	PromptArgs []string
+	// VersionArgs enables BinaryVersion through a Runner (e.g. ["--version"]).
+	VersionArgs []string
+	// LoginArgs enables LoginCommander (browser flow only for config agents).
+	LoginArgs []string
+	// LogoutArgs is the logout argv; empty = LogoutCommand returns a zero Command.
+	// Added beyond SPEC §5.6 because LoginCommander needs a logout command.
+	LogoutArgs []string
+	// SharedHomeFiles enables HomeLinker: entries of the default home a new
+	// home reaches through a symlink.
+	SharedHomeFiles []string
+	// CredentialEnv are the inherited variables that would override a
+	// home's stored login; every launch scrubs them from the base env, and a
+	// token login scrubs them again after Target.ExtraEnv (invariant 9).
+	CredentialEnv []string
+	// APIBillingEnv are variables that switch the agent to per-token billing.
+	APIBillingEnv []string
+	// Process recognises a process row as this agent.
+	Process ProcessMatch
+}

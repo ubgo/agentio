@@ -1,0 +1,17 @@
+func PlanHomeLinks(def, h Home, names []string) ([]HomeLink, error) {
+	if def.Agent() != h.Agent() {
+		return nil, fmt.Errorf("%w: link %s into %s", ErrForeignHome, def, h)
+	}
+	out := make([]HomeLink, 0, len(names))
+	for _, n := range names {
+		l := HomeLink{Agent: h.Agent(), Name: n, From: def.Path(n), To: h.Path(n)}
+		if _, err := os.Stat(l.From); err != nil {
+			continue
+		}
+		if _, err := os.Lstat(l.To); !errors.Is(err, fs.ErrNotExist) {
+			l.Exists = true
+		}
+		out = append(out, l)
+	}
+	return out, nil
+}

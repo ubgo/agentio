@@ -1,0 +1,1 @@
+func (a *Agent) DefaultHome() Home { return Home{h: a.core.DefaultHome()} }

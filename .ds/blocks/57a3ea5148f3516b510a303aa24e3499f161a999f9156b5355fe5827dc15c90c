@@ -1,0 +1,7 @@
+func (a *Agent) PathsWith(h Home, c Config) Paths {
+	sqlite := c.SQLiteHome.V
+	if v, ok := lookupEnv(a.host.Env, EnvSQLiteHome); ok && v != "" {
+		sqlite = v
+	}
+	return pathsFor(h.Dir(), sqlite, c.LogDir.V)
+}

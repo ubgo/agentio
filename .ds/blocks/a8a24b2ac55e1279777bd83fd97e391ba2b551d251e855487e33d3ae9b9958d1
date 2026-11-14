@@ -1,0 +1,30 @@
+func (d *DB) SubAgents(ctx context.Context, parentID string) ([]SpawnEdge, error) {
+	c, err := d.ready(ctx, FileState)
+	if err != nil {
+		return nil, err
+	}
+	have, err := d.columns(ctx, FileState, tableSpawnEdges)
+	if err != nil {
+		return nil, err
+	}
+	if len(have) == 0 {
+		return nil, nil // table predates migration 0021
+	}
+	rows, err := c.QueryContext(ctx, "SELECT parent_thread_id, child_thread_id, status FROM "+tableSpawnEdges+
+		" WHERE parent_thread_id = ? ORDER BY child_thread_id", parentID)
+	if err != nil {
+		return nil, fmt.Errorf("codex/state: spawn edges: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var out []SpawnEdge
+	for rows.Next() {
+		var e SpawnEdge
+		var status string
+		if err := rows.Scan(&e.ParentID, &e.ChildID, &status); err != nil {
+			return nil, fmt.Errorf("codex/state: spawn edges: %w", err)
+		}
+		e.Status = EdgeStatus(status)
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}

@@ -1,0 +1,3 @@
+func costClassNames() []string {
+	return []string{"pure", "disk", "process", "network", "quota"}
+}

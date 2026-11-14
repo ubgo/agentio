@@ -1,0 +1,9 @@
+func Supported(a Agent) []Capability {
+	var out []Capability
+	for _, r := range capabilityTable() {
+		if r.has(a) {
+			out = append(out, r.cap)
+		}
+	}
+	return out
+}

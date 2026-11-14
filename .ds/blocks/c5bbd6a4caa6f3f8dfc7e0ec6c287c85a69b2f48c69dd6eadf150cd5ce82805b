@@ -1,0 +1,8 @@
+func (v Version) Compare(o Version) int {
+	for _, d := range [...]int{v.Major - o.Major, v.Minor - o.Minor, v.Patch - o.Patch} {
+		if d != 0 {
+			return sign(d)
+		}
+	}
+	return comparePre(v.Pre, o.Pre)
+}

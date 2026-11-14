@@ -1,0 +1,25 @@
+func (d *DB) Queue(ctx context.Context, threadID string) ([]QueuedItem, error) {
+	c, err := d.ready(ctx, FileQueue)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := c.QueryContext(ctx, "SELECT id, thread_id, queue_order, payload_json, created_at_ms, updated_at_ms FROM "+
+		tableQueue+" WHERE thread_id = ? ORDER BY queue_order LIMIT ?", threadID, maxLimit)
+	if err != nil {
+		return nil, fmt.Errorf("codex/state: queue: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	var out []QueuedItem
+	for rows.Next() {
+		var q QueuedItem
+		var payload string
+		var created, updated sql.NullInt64
+		if err := rows.Scan(&q.ID, &q.ThreadID, &q.Order, &payload, &created, &updated); err != nil {
+			return nil, fmt.Errorf("codex/state: queue: %w", err)
+		}
+		q.Payload = agentio.Raw(payload)
+		q.Created, q.Updated = fromMillis(created), fromMillis(updated)
+		out = append(out, q)
+	}
+	return out, rows.Err()
+}

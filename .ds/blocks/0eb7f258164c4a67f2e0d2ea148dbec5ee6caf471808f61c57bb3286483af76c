@@ -1,0 +1,9 @@
+func (d *tomlDecoder) mismatch(e tomlEntry, want tomlKind) {
+	d.keep(e)
+	d.warns = append(d.warns, agentio.Warning{
+		Kind:   agentio.WarnTypeChanged,
+		File:   d.file,
+		Key:    e.key(),
+		Detail: "expected " + want.String() + ", found " + e.val.kind.String(),
+	})
+}

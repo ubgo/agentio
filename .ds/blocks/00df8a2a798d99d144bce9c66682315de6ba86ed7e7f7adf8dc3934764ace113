@@ -1,0 +1,35 @@
+func (a *Agent) get(ctx context.Context, path string, tok agentio.Token) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, a.baseURL+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("claude: build request: %w", err)
+	}
+	req.Header.Set(headerAuthorization, bearerPrefix+tok.Reveal())
+	req.Header.Set(oauthBetaHeader, oauthBetaValue)
+	req.Header.Set(headerAccept, mimeJSON)
+	req.Header.Set(headerUserAgent, userAgent)
+	client, err := a.httpClient(path)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("claude: request %s: %w", path, err)
+	}
+	// The body is fully read (bounded) below; closing only releases the connection.
+	defer func() { _ = resp.Body.Close() }()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
+	if err != nil {
+		return nil, fmt.Errorf("claude: read response: %w", err)
+	}
+	switch {
+	case resp.StatusCode == http.StatusForbidden && scopeInsufficient(body):
+		return nil, fmt.Errorf("%w: use a home login, not a `claude setup-token` token, for account reads", agentio.ErrScopeLimited)
+	case resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden:
+		return nil, fmt.Errorf("%w (HTTP %d%s)", agentio.ErrUnauthorized, resp.StatusCode, apiMessage(body, tok.Reveal()))
+	case resp.StatusCode == http.StatusTooManyRequests:
+		return nil, agentio.RateLimitError(resp.Header, a.now())
+	case resp.StatusCode != http.StatusOK:
+		return nil, fmt.Errorf("claude: unexpected HTTP %d: %s", resp.StatusCode, snippet([]byte(redactIn(string(body), tok.Reveal()))))
+	}
+	return body, nil
+}

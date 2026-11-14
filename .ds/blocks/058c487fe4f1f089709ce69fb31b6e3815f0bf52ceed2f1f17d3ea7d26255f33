@@ -1,0 +1,14 @@
+func (a *Agent) DetectTokenKind(t agentio.Token) (agentio.TokenKind, bool, error) {
+	v := strings.TrimSpace(t.Reveal())
+	switch {
+	case strings.HasPrefix(v, oauthAccessPrefix):
+		return agentio.TokenOAuthToken, true, nil
+	case strings.HasPrefix(v, apiKeyPrefix):
+		return agentio.TokenAPIKey, true, nil
+	case strings.HasPrefix(v, oauthRefreshPrefix):
+		return agentio.TokenKindUnknown, true, fmt.Errorf("%w: it is an OAuth refresh token; use the token `claude setup-token` prints", ErrUnusableToken)
+	case strings.HasPrefix(v, adminKeyPrefix):
+		return agentio.TokenKindUnknown, true, fmt.Errorf("%w: it is an Admin API key", ErrUnusableToken)
+	}
+	return agentio.TokenKindUnknown, false, nil
+}

@@ -1,0 +1,33 @@
+func (m ProcessMatch) Match(p Process) bool {
+	if m.IsZero() {
+		return false
+	}
+	fields := append([]string{p.Exe}, p.Argv...)
+	for _, ex := range m.Exclude {
+		for _, f := range fields {
+			if ex != "" && strings.Contains(f, ex) {
+				return false
+			}
+		}
+	}
+	var names []string
+	if p.Exe != "" {
+		names = append(names, filepath.Base(p.Exe))
+	}
+	if len(p.Argv) > 0 && p.Argv[0] != "" {
+		names = append(names, filepath.Base(p.Argv[0]))
+	}
+	for _, n := range names {
+		if slices.Contains(m.Basenames, n) {
+			return true
+		}
+	}
+	for _, sub := range m.ArgvContains {
+		for _, a := range p.Argv {
+			if sub != "" && strings.Contains(a, sub) {
+				return true
+			}
+		}
+	}
+	return false
+}

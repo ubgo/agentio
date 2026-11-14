@@ -1,0 +1,6 @@
+func redact(v string) string {
+	if v == "" {
+		return ""
+	}
+	return redactedText
+}

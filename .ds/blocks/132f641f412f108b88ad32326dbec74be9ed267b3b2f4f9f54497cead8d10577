@@ -1,0 +1,3 @@
+func FailingHTTP(t testing.TB) *http.Client {
+	return &http.Client{Transport: failingTransport{t: t}}
+}

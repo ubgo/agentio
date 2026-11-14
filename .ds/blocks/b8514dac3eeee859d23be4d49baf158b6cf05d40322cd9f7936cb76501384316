@@ -1,0 +1,41 @@
+func (c *Core) Homes() ([]Home, error) {
+	var out []Home
+	seen := map[string]bool{}
+	add := func(h Home) error {
+		if seen[h.Dir()] {
+			return nil
+		}
+		ok, err := c.IsHome(h.Dir())
+		if err != nil {
+			return err
+		}
+		if ok {
+			seen[h.Dir()] = true
+			out = append(out, h)
+		}
+		return nil
+	}
+	if c.spec.DefaultHome != "" {
+		if err := add(c.DefaultHome()); err != nil {
+			return nil, err
+		}
+	}
+	if c.spec.ExtraHomes != "" {
+		matches, err := filepath.Glob(filepath.Join(c.host.UserHome, c.spec.ExtraHomes))
+		if err != nil {
+			return nil, fmt.Errorf("agentio: %s homes: %w", c.spec.ID, err)
+		}
+		slices.Sort(matches)
+		for _, m := range matches {
+			if err := add(c.HomeAt(m)); err != nil {
+				return nil, err
+			}
+		}
+	}
+	if h, ok := c.HomeFromEnv(); ok {
+		if err := add(h); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}

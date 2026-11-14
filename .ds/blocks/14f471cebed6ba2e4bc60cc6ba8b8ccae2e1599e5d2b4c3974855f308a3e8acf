@@ -1,0 +1,7 @@
+func (a *Agent) Delete(h Home, id string, force bool) agentio.Command {
+	args := []string{subDelete}
+	if force {
+		args = append(args, flagForce)
+	}
+	return a.plainCommand(h, append(args, id))
+}

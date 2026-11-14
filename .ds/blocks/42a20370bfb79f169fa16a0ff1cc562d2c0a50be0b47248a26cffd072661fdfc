@@ -1,0 +1,8 @@
+func CheckLinksOwner(agent ID, links []HomeLink) error {
+	for _, l := range links {
+		if l.Agent != agent {
+			return fmt.Errorf("%w: %s link %s", ErrForeignHome, l.Agent, l.Name)
+		}
+	}
+	return nil
+}

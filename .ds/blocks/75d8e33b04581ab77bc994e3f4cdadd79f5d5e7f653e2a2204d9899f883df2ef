@@ -1,0 +1,26 @@
+func (a *Agent) UpdateCommand() (agentio.Command, error) {
+	in, err := a.Install()
+	if err != nil {
+		return agentio.Command{}, err
+	}
+	var tool string
+	var args []string
+	switch in.Method {
+	case agentio.InstallNPM:
+		tool, args = toolNPM, []string{argInstall, argGlobal, npmPkg}
+	case agentio.InstallBun:
+		tool, args = toolBun, []string{argInstall, argGlobal, npmPkg}
+	case agentio.InstallPNPM:
+		tool, args = toolPNPM, []string{argAdd, argGlobal, npmPkg}
+	case agentio.InstallBrew:
+		tool, args = toolBrew, []string{argUpgrade, argCask, Binary}
+	default:
+		return agentio.Command{}, agentio.UnsupportedError(ID, whatUpdate, reasonNoCmd+string(in.Method))
+	}
+	pathList, _ := lookupEnv(a.host.Env, envPath)
+	path, err := agentio.LookPath(pathList, tool)
+	if err != nil {
+		return agentio.Command{}, fmt.Errorf("codex: update with %s: %w", tool, err)
+	}
+	return agentio.NewCommand(path, args, a.host.Env, ""), nil
+}

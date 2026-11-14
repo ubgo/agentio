@@ -1,0 +1,11 @@
+func (r *Runner) Marketplaces(ctx context.Context, h Home) ([]RunnerMarketplace, error) {
+	out, err := r.run(ctx, h, subPlugin, subMarketplace, subList, flagJSON)
+	if err != nil {
+		return nil, err
+	}
+	var w []RunnerMarketplace
+	if err := json.Unmarshal(out, &w); err != nil {
+		return nil, fmt.Errorf("claude: decode marketplace list: %w", err)
+	}
+	return w, nil
+}

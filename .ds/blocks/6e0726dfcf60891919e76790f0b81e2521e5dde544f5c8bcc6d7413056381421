@@ -1,0 +1,135 @@
+func (o LaunchOptions) build() (argBuilder, error) {
+	var b argBuilder
+	if err := o.validate(); err != nil {
+		return b, err
+	}
+	b.on(FeatureFlagPrint, flagPrint, o.Print)
+	if o.OutputFormat == OutputStreamJSON {
+		b.flag(FeatureFlagStreamJSON, flagOutputFormat, string(o.OutputFormat))
+	} else {
+		b.str(FeatureFlagOutputFormat, flagOutputFormat, string(o.OutputFormat))
+	}
+	b.str(FeatureFlagInputFormat, flagInputFormat, string(o.InputFormat))
+	b.on(FeatureFlagIncludePartialMessages, flagIncludePartialMessages, o.IncludePartialMessages)
+	b.on(FeatureFlagIncludeHookEvents, flagIncludeHookEvents, o.IncludeHookEvents)
+	b.on(FeatureFlagReplayUserMessages, flagReplayUserMessages, o.ReplayUserMessages)
+	b.on(FeatureFlagForwardSubagentText, flagForwardSubagentText, o.ForwardSubagentText)
+	b.on(FeatureFlagVerbose, flagVerbose, o.Verbose)
+	if len(o.JSONSchema) > 0 {
+		b.flag(FeatureFlagJSONSchema, flagJSONSchema, string(o.JSONSchema))
+	}
+	if o.MaxBudgetUSD != nil {
+		b.flag(FeatureFlagMaxBudgetUSD, flagMaxBudgetUSD, strconv.FormatFloat(*o.MaxBudgetUSD, 'f', -1, 64))
+	}
+	b.on(FeatureFlagNoSessionPersistence, flagNoSessionPersistence, o.NoSessionPersistence)
+	b.str(FeatureFlagModel, flagModel, o.Model)
+	if len(o.FallbackModels) > 0 {
+		f := FeatureFlagFallbackModel
+		if !o.Print {
+			f = FeatureFallbackModelInteractive
+		}
+		b.flag(f, flagFallbackModel, strings.Join(o.FallbackModels, listSep))
+	}
+	b.str(FeatureFlagEffort, flagEffort, string(o.Effort))
+	b.str(FeatureFlagAgent, flagAgent, o.Agent)
+	if len(o.Agents) > 0 {
+		js, err := EncodeAgentsFlag(o.Agents)
+		if err != nil {
+			return b, err
+		}
+		b.flag(FeatureFlagAgents, flagAgents, js)
+	}
+	if o.PermissionMode != "" {
+		f := FeatureFlagPermissionMode
+		if o.PermissionMode == ModeManual {
+			f = FeaturePermissionModeManual
+		}
+		b.flag(f, flagPermissionMode, string(o.PermissionMode))
+	}
+	b.str(FeatureFlagPermissionPrompts, flagPermissionPrompts, o.PermissionPrompts)
+	b.on(FeatureFlagDangerouslySkipPermissions, flagDangerouslySkip, o.DangerouslySkipPermissions)
+	b.on(FeatureFlagAllowDangerouslySkipPermissions, flagAllowDangerouslySkip, o.AllowDangerouslySkipPermissions)
+	b.list(FeatureFlagAllowedTools, flagAllowedTools, o.AllowedTools)
+	b.list(FeatureFlagDisallowedTools, flagDisallowedTools, o.DisallowedTools)
+	if o.Tools != nil {
+		b.flag(FeatureFlagTools, flagTools, strings.Join(*o.Tools, listSep))
+	}
+	for _, d := range o.AddDirs {
+		b.flag(FeatureFlagAddDir, flagAddDir, d)
+	}
+	b.list(FeatureFlagMCPConfig, flagMCPConfig, o.MCPConfigs)
+	b.on(FeatureFlagStrictMCPConfig, flagStrictMCPConfig, o.StrictMCPConfig)
+	b.str(FeatureFlagSettings, flagSettings, o.Settings)
+	if len(o.SettingSources) > 0 {
+		parts := make([]string, len(o.SettingSources))
+		for i, s := range o.SettingSources {
+			parts[i] = string(s)
+		}
+		b.flag(FeatureFlagSettingSources, flagSettingSources, strings.Join(parts, listSep))
+	}
+	b.str(FeatureFlagSystemPrompt, flagSystemPrompt, o.SystemPrompt)
+	b.str(FeatureFlagAppendSystemPrompt, flagAppendSystemPrompt, o.AppendSystemPrompt)
+	b.str(FeatureFlagSystemPromptFile, flagSystemPromptFile, o.SystemPromptFile)
+	b.str(FeatureFlagAppendSystemPromptFile, flagAppendSystemPromptFile, o.AppendSystemPromptFile)
+	b.str(FeatureFlagSystemPromptSnapshot, flagSystemPromptSnapshot, o.SystemPromptSnapshot)
+	b.on(FeatureFlagExcludeDynamicSystemPromptSections, flagExcludeDynamicSections, o.ExcludeDynamicSystemPromptSections)
+	for _, d := range o.PluginDirs {
+		f := FeatureFlagPluginDir
+		if strings.HasSuffix(d, zipExt) {
+			f = FeaturePluginDirZip
+		}
+		b.flag(f, flagPluginDir, d)
+	}
+	for _, u := range o.PluginURLs {
+		b.flag(FeatureFlagPluginURL, flagPluginURL, u)
+	}
+	b.on(FeatureFlagBare, flagBare, o.Bare)
+	b.on(FeatureFlagSafeMode, flagSafeMode, o.SafeMode)
+	b.on(FeatureFlagRestricted, flagRestricted, o.Restricted)
+	b.on(FeatureFlagDisableSlashCommands, flagDisableSlashCommands, o.DisableSlashCommands)
+	b.str(FeatureFlagResume, flagResume, o.Resume)
+	b.on(FeatureFlagContinue, flagContinue, o.Continue)
+	b.on(FeatureFlagForkSession, flagForkSession, o.ForkSession)
+	if o.SessionID != "" {
+		f := FeatureFlagSessionID
+		if o.ForkSession {
+			f = FeatureSessionIDWithFork
+		}
+		b.flag(f, flagSessionID, o.SessionID)
+	}
+	b.str(FeatureFlagName, flagName, o.Name)
+	b.str(FeatureFlagFromPR, flagFromPR, o.FromPR)
+	if o.Worktree != nil {
+		if *o.Worktree == "" {
+			b.flag(FeatureFlagWorktree, flagWorktree)
+		} else {
+			b.flag(FeatureFlagWorktree, flagWorktree, *o.Worktree)
+		}
+	}
+	b.str(FeatureFlagTmux, flagTmux, o.Tmux)
+	b.on(FeatureFlagBackground, flagBackground, o.Background)
+	b.str(FeatureFlagDebug, flagDebug, o.Debug)
+	b.str(FeatureFlagDebugFile, flagDebugFile, o.DebugFile)
+	b.on(FeatureFlagIDE, flagIDE, o.IDE)
+	b.on(FeatureFlagChrome, flagChrome, o.Chrome)
+	b.on(FeatureFlagNoChrome, flagNoChrome, o.NoChrome)
+	b.on(FeatureFlagBrief, flagBrief, o.Brief)
+	b.str(FeatureFlagAutocompact, flagAutocompact, o.Autocompact)
+	if o.RemoteControl != nil {
+		if *o.RemoteControl == "" {
+			b.flag(FeatureFlagRemoteControl, flagRemoteControl)
+		} else {
+			b.flag(FeatureFlagRemoteControl, flagRemoteControl, *o.RemoteControl)
+		}
+	}
+	b.list(FeatureFlagBetas, flagBetas, o.Betas)
+	for _, f := range o.Files {
+		b.flag(FeatureFlagFile, flagFile, f)
+	}
+	b.args = append(b.args, o.ExtraArgs...)
+	if o.Prompt != "" {
+		// "--" keeps a prompt starting with '-' from being read as a flag.
+		b.args = append(b.args, argsEnd, o.Prompt)
+	}
+	return b, nil
+}

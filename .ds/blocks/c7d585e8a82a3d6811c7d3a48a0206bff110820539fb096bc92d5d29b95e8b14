@@ -1,0 +1,12 @@
+func (s FeatureSpan) In(v Version) bool {
+	if v.IsZero() {
+		return true
+	}
+	if !s.Since.IsZero() && v.Compare(s.Since) < 0 {
+		return false
+	}
+	if !s.Until.IsZero() && v.Compare(s.Until) >= 0 {
+		return false
+	}
+	return true
+}

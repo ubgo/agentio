@@ -1,0 +1,9 @@
+func secretNamesOf(changes []EnvChange) []string {
+	var out []string
+	for _, c := range changes {
+		if c.op == EnvSetSecretOp && !slices.Contains(out, c.name) {
+			out = append(out, c.name)
+		}
+	}
+	return out
+}

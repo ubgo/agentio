@@ -1,0 +1,29 @@
+func (a *Agent) loadAuth(ctx context.Context, h Home) (storedAuth, error) {
+	mode := a.credentialStore(h)
+	switch mode {
+	case StoreKeyring:
+		return a.loadKeyring(ctx, h)
+	case StoreAuto:
+		k, kerr := a.loadKeyring(ctx, h)
+		if kerr == nil && k.found {
+			return k, nil
+		}
+		f, ferr := a.loadFile(h)
+		if ferr != nil {
+			return f, ferr
+		}
+		f.keyring = k.keyring
+		if !f.found {
+			// Upstream only warns about a failed keyring read before using
+			// the file; with no file either the failure is the answer, so
+			// a keychain prompt that timed out is not reported as logged out.
+			f.store = StoreAuto
+			return f, kerr
+		}
+		return f, nil
+	case StoreEphemeral:
+		return storedAuth{store: StoreEphemeral},
+			agentio.UnsupportedError(ID, "ephemeral login", "cli_auth_credentials_store = \"ephemeral\" keeps the login in the running codex process's memory only (storage.rs:543-584)")
+	}
+	return a.loadFile(h)
+}

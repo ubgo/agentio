@@ -1,0 +1,19 @@
+func (d *DB) Thread(ctx context.Context, id string) (Thread, error) {
+	c, have, err := d.threadsTable(ctx)
+	if err != nil {
+		return Thread{}, err
+	}
+	q := "SELECT " + selectList(have, "", threadColumns()) + " FROM " + tableThreads + " WHERE " + colThreadID + " = ?"
+	rows, err := c.QueryContext(ctx, q, id)
+	if err != nil {
+		return Thread{}, fmt.Errorf("codex/state: thread: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	if !rows.Next() {
+		if err := rows.Err(); err != nil {
+			return Thread{}, fmt.Errorf("codex/state: thread: %w", err)
+		}
+		return Thread{}, fmt.Errorf("thread %q: %w", id, ErrNotFound)
+	}
+	return scanThread(rows)
+}

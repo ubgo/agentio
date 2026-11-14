@@ -1,0 +1,7 @@
+func ScrubEnv(names []string) []EnvChange {
+	out := make([]EnvChange, 0, len(names))
+	for _, n := range names {
+		out = append(out, EnvUnset(n))
+	}
+	return out
+}

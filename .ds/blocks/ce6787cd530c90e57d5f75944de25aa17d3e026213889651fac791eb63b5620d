@@ -1,0 +1,9 @@
+func (c *Core) PlanHomeLinks(def, h Home) ([]HomeLink, error) {
+	if err := c.Owns(def); err != nil {
+		return nil, err
+	}
+	if err := c.Owns(h); err != nil {
+		return nil, err
+	}
+	return PlanHomeLinks(def, h, c.spec.SharedHomeFiles)
+}

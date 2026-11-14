@@ -1,0 +1,3 @@
+func autonomyNames() []string {
+	return []string{"default", "read-only", "ask", "accept-edits", "full"}
+}

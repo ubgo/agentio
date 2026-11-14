@@ -1,0 +1,8 @@
+func Conformance(t *testing.T, a agentio.Agent, fixtureHome agentio.Home) {
+	t.Helper()
+	t.Run("home-env", func(t *testing.T) { conformHomeEnv(t, a, fixtureHome) })
+	t.Run("resume", func(t *testing.T) { conformResume(t, a) })
+	t.Run("supported", func(t *testing.T) { conformSupported(t, a) })
+	t.Run("read-accessors", func(t *testing.T) { conformReads(t, a, fixtureHome) })
+	t.Run("token-redaction", func(t *testing.T) { conformToken(t, a) })
+}

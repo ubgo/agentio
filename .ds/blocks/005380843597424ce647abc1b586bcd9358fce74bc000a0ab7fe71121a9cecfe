@@ -1,0 +1,3 @@
+func loginFlowNames() []string {
+	return []string{"browser", "device", "api-key-stdin", "access-token-stdin"}
+}
