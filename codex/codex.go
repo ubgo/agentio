@@ -86,6 +86,9 @@ func Spec() agentio.Spec {
 type Agent struct {
 	host agentio.Host
 	core *agentio.Core
+	// baseURL is the ChatGPT backend origin for usage calls;
+	// WithBaseURL points it at an httptest server or a proxy.
+	baseURL string
 }
 
 // New builds the Codex agent. Nothing is read at construction. Pure.
@@ -96,7 +99,17 @@ func New(h agentio.Host) *Agent {
 		// a failure here is a programming error in this file.
 		panic("codex: invalid built-in spec: " + err.Error())
 	}
-	return &Agent{host: h, core: core}
+	return &Agent{host: h, core: core, baseURL: DefaultBaseURL}
+}
+
+// WithBaseURL returns a copy that sends network calls to base (an origin
+// such as an httptest server URL, a trailing slash is dropped) instead of
+// chatgpt.com/backend-api, the same mechanism as claude.Agent.WithBaseURL,
+// so tests and proxies need no custom transport. cost: Pure.
+func (a *Agent) WithBaseURL(base string) *Agent {
+	c := *a
+	c.baseURL = strings.TrimRight(base, "/")
+	return &c
 }
 
 // ID returns codex.ID. Pure.

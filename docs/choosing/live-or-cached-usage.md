@@ -67,7 +67,7 @@ On the Claude fixture home the cached reading is older than a day and the stored
 - **Cached readings can be very old.** `ObservedAt` is when the CLI fetched or recorded it, not when you read it. Show the age.
 - **Window labels are vendor text.** Group windows by `Class()` or `Length`, not by `Label`.
 - **Codex's cached reading comes from a rollout.** A home with no recent conversation has no snapshot, and the windows are named `primary` / `secondary` rather than the server's `primary_window` / `secondary_window`.
-- **Claude's live calls go through `WithBaseURL` in tests; Codex's do not.** `codex.Agent.Usage` always calls `codex.UsageEndpoint`, so tests redirect it with a `Host.HTTP` client whose transport sends requests to an `httptest` server (as `examples/usage` does).
+- **Both vendors' live calls go through `WithBaseURL` in tests.** `claude.Agent.WithBaseURL` and `codex.Agent.WithBaseURL` send requests to an `httptest` server (as `examples/usage` does), so no custom transport is needed.
 - **Give the Host an HTTP client on purpose.** For tests, `agenttest.FailingHTTP` makes any unexpected network call fail loudly instead of reaching the vendor.
 - **Subscription is a separate network read.** `agentio.SubscriptionOf(a)` fetches the plan; the plan label in `IdentityOf` comes from disk and is usually enough.
 

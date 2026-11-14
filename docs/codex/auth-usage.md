@@ -98,14 +98,15 @@ func newKeyringHome(a *codex.Agent, dir string) (codex.Home, error) {
 
 ## Step 2 — Read live usage
 
-`Usage(ctx, h)` makes one `GET` to `codex.UsageEndpoint` with the home's access token and returns the plan, `LimitReached` and the rate-limit `Windows` (each with `Length` as a `time.Duration`, `Percent`, `ResetsAt`). `ParseUsage` decodes a body you fetched yourself. `Subscription(ctx, h)` answers from the id_token claims on disk and only falls back to one usage fetch when the plan claim is absent; its `Source` says which.
+`Usage(ctx, h)` makes one `GET` to `codex.UsageEndpoint` (or `<base>/wham/usage` on a copy from `a.WithBaseURL(base)`) with the home's access token and returns the plan, `LimitReached` and the rate-limit `Windows` (each with `Length` as a `time.Duration`, `Percent`, `ResetsAt`). `ParseUsage` decodes a body you fetched yourself. `Subscription(ctx, h)` answers from the id_token claims on disk and only falls back to one usage fetch when the plan claim is absent; its `Source` says which.
 
 <!-- snippet: examples/codexaccount/main.go#usage -->
 ```go
 // readUsage makes one GET to the usage endpoint with the home's access
-// token (here answered by the local server). Call it once; never poll.
-func readUsage(w io.Writer, host agentio.Host) error {
-	a := codex.New(host)
+// token. WithBaseURL sends it to baseURL (here the local server) instead of
+// chatgpt.com. Call it once; never poll.
+func readUsage(w io.Writer, host agentio.Host, baseURL string) error {
+	a := codex.New(host).WithBaseURL(baseURL)
 	ctx := context.Background()
 	u, err := a.Usage(ctx, a.DefaultHome())
 	switch {
@@ -218,7 +219,7 @@ logout             codex logout
 - **`Usage` is a network read that may 429.** A 429 maps to `agentio.ErrRateLimited` (with the server's retry-after), 401/403 to `agentio.ErrUnauthorized`; there is no retry. Call it once per user action, never in a loop; prefer `CachedUsage` for dashboards.
 - **API-key logins have no plan usage.** `Usage` returns `agentio.ErrBilledPerToken`; `Identity.Neutral()` reports per-token billing.
 - **No stored login is not an error.** `Identity` returns `LoggedIn=false` with a nil error. An `ephemeral` store returns `agentio.ErrUnsupported`.
-- **Codex has no base-URL option.** The usage endpoint is the constant `codex.UsageEndpoint`; to test against a local server, give `Host.HTTP` a transport that sends the request there, as the example does.
+- **Use `WithBaseURL` for a test server or proxy.** `a.WithBaseURL(srv.URL)` returns a copy that calls `<base>/wham/usage` instead of `codex.UsageEndpoint` (`codex.DefaultBaseURL` + `/wham/usage`), as the example does; set `Host.HTTP` to the server's client.
 - **The usage endpoint is undocumented** and parsed defensively: `Credits` and `IndividualLimit` stay raw, and a body without windows is `codex.ErrNoWindows`.
 - **Cached windows name themselves differently.** Server windows have `Vendor` `primary_window` / `secondary_window`; snapshot windows have `primary` / `secondary` and a `LimitID`.
 - **Personal values redact in every output** (`%v`, `%+v`, JSON, `slog`). Call `Reveal()` only to pass a value on, never to print it.

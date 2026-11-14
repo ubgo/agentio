@@ -459,9 +459,9 @@ const usageBody = `{"email":"user@example.test","plan_type":"plus","rate_limit":
 "secondary_window":{"used_percent":10,"limit_window_seconds":604800}}}`
 
 func TestUsageHTTP(t *testing.T) {
-	var gotAuth, gotAcct string
+	var gotAuth, gotAcct, gotPath string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		gotAuth, gotAcct = r.Header.Get(headerAuth), r.Header.Get(headerAccountID)
+		gotAuth, gotAcct, gotPath = r.Header.Get(headerAuth), r.Header.Get(headerAccountID), r.URL.Path
 		if r.Method != http.MethodGet {
 			t.Errorf("method %s", r.Method)
 		}
@@ -470,12 +470,15 @@ func TestUsageHTTP(t *testing.T) {
 	defer srv.Close()
 	before := func() time.Time { return time.Unix(1789995000, 0) }
 	a, h := setup(t, agenttest.WithHTTP(srv.Client()), agenttest.WithNow(before))
-	u, err := a.usageAt(context.Background(), h, srv.URL)
+	u, err := a.WithBaseURL(srv.URL+"/").Usage(context.Background(), h)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(gotAuth, bearerPrefix) || gotAcct != "acct-0000" {
-		t.Fatal("request headers")
+	if !strings.HasPrefix(gotAuth, bearerPrefix) || gotAcct != "acct-0000" || gotPath != usagePath {
+		t.Fatalf("request headers or path %q", gotPath)
+	}
+	if DefaultBaseURL+usagePath != UsageEndpoint {
+		t.Fatal("UsageEndpoint must be DefaultBaseURL + the usage path")
 	}
 	n := u.Neutral()
 	if len(n.Windows) != 2 || n.Windows[0].Class() != agentio.WindowShort || n.Windows[1].Class() != agentio.WindowWeek || n.Windows[0].Percent != 42.5 {
@@ -487,7 +490,7 @@ func TestUsageHTTP(t *testing.T) {
 
 	after := func() time.Time { return time.Unix(1790000001, 0) }
 	a2, h2 := setup(t, agenttest.WithHTTP(agenttest.FailingHTTP(t)), agenttest.WithNow(after))
-	if _, err := a2.usageAt(context.Background(), h2, srv.URL); !errors.Is(err, agentio.ErrExpired) {
+	if _, err := a2.WithBaseURL(srv.URL).Usage(context.Background(), h2); !errors.Is(err, agentio.ErrExpired) {
 		t.Fatalf("expired: %v", err)
 	}
 
@@ -497,7 +500,7 @@ func TestUsageHTTP(t *testing.T) {
 	}))
 	defer limited.Close()
 	a3, h3 := setup(t, agenttest.WithHTTP(limited.Client()), agenttest.WithNow(before))
-	if _, err := a3.usageAt(context.Background(), h3, limited.URL); !errors.Is(err, agentio.ErrRateLimited) {
+	if _, err := a3.WithBaseURL(limited.URL).Usage(context.Background(), h3); !errors.Is(err, agentio.ErrRateLimited) {
 		t.Fatalf("429: %v", err)
 	}
 	if _, err := ParseUsage([]byte(`{"rate_limit":{}}`)); !errors.Is(err, ErrNoWindows) {

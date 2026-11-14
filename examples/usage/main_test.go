@@ -12,10 +12,7 @@ import (
 func TestRun(t *testing.T) {
 	srv := fakeAPI()
 	defer srv.Close()
-	client, err := localClient(srv)
-	if err != nil {
-		t.Fatal(err)
-	}
+	client := srv.Client()
 	h, err := setup(t.TempDir(), client)
 	if err != nil {
 		t.Fatal(err)

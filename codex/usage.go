@@ -17,7 +17,13 @@ import (
 // Usage endpoint and request details (agx provider/codex/codex.go, the
 // endpoint the Codex CLI's /status reads; undocumented, parsed defensively).
 const (
-	UsageEndpoint    = "https://chatgpt.com/backend-api/wham/usage"
+	// DefaultBaseURL is the ChatGPT backend origin; Agent.WithBaseURL
+	// replaces it (tests with httptest, proxies).
+	DefaultBaseURL = "https://chatgpt.com/backend-api"
+	// usagePath is the usage request path under the base URL.
+	usagePath = "/wham/usage"
+	// UsageEndpoint is the default usage URL, DefaultBaseURL + usagePath.
+	UsageEndpoint    = DefaultBaseURL + usagePath
 	headerAccountID  = "ChatGPT-Account-Id"
 	headerAuth       = "Authorization"
 	headerAccept     = "Accept"
@@ -124,10 +130,7 @@ func ParseUsage(body []byte) (Usage, error) {
 // (plus Process · Read via Host.Secrets for keyring homes): call once,
 // never poll.
 func (a *Agent) Usage(ctx context.Context, h Home) (Usage, error) {
-	return a.usageAt(ctx, h, UsageEndpoint)
-}
-
-func (a *Agent) usageAt(ctx context.Context, h Home, endpoint string) (Usage, error) {
+	endpoint := a.baseURL + usagePath
 	tok, account, mode, apiKey, err := a.readAccess(ctx, h)
 	if err != nil {
 		return Usage{}, err

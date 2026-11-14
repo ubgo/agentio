@@ -284,7 +284,7 @@ Areas follow the library's layers: L1 is the neutral core every agent shares, L2
 | Feature | Package | Guide | Example |
 |---|---|---|---|
 | `Agent.Identity`, `IdentityContext`, `ParseAuth`, `ParsePlan`, `Plan`, `KeyringAccount`, `KeyringEntry`, `KeyringError` | `codex` | [Codex auth, identity and usage](../codex/auth-usage.md#step-1--read-the-identity) | [codexaccount](../../examples/codexaccount/), [drift](../../examples/drift/) |
-| `Agent.Usage`, `ParseUsage`, `Usage`, `UsageWindow`, `Agent.Subscription`, `Subscription` | `codex` | [Codex auth, identity and usage](../codex/auth-usage.md#step-2--read-live-usage) | [codexaccount](../../examples/codexaccount/) |
+| `Agent.Usage`, `Agent.WithBaseURL`, `DefaultBaseURL`, `UsageEndpoint`, `ParseUsage`, `Usage`, `UsageWindow`, `Agent.Subscription`, `Subscription` | `codex` | [Codex auth, identity and usage](../codex/auth-usage.md#step-2--read-live-usage) | [codexaccount](../../examples/codexaccount/) |
 | `Agent.CachedUsage` (rollout `token_count`) | `codex` | [Codex auth, identity and usage](../codex/auth-usage.md#step-3--read-cached-usage) | [codexaccount](../../examples/codexaccount/) |
 | `LoginCommand`, `LogoutCommand` | `codex` | [Codex auth, identity and usage](../codex/auth-usage.md#step-4--build-login-commands) | [codexaccount](../../examples/codexaccount/) |
 | `Agent.Conversations`, `ConversationQuery`, `Conversation`, `Titles`, `Agent.Conversation`, `HasHistory`, `MoveUnsupportedReason` | `codex` | [Codex conversations and history](../codex/conversations.md#step-1--list-conversations) | [codexconversations](../../examples/codexconversations/), [drift](../../examples/drift/) |

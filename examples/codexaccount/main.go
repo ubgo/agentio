@@ -16,7 +16,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -87,7 +86,7 @@ func run(w io.Writer, fixture string) error {
 	if err := readKeyringIdentity(w, host, secrets); err != nil {
 		return err
 	}
-	if err := readUsage(w, host); err != nil {
+	if err := readUsage(w, host, srv.URL); err != nil {
 		return err
 	}
 	fmt.Fprintf(w, "server saw a bearer token: %v\n", sawAuth)
@@ -97,39 +96,21 @@ func run(w io.Writer, fixture string) error {
 	return loginCommands(w, host)
 }
 
-// buildHost copies the fixture to ~/.codex and routes Host.HTTP to srv.
+// buildHost copies the fixture to ~/.codex and uses srv's client as
+// Host.HTTP; readUsage points the agent at srv with WithBaseURL.
 func buildHost(userHome, fixture string, srv *httptest.Server, secrets *agenttest.FakeSecrets) (agentio.Host, error) {
 	if err := agentio.CopyTree(fixture, filepath.Join(userHome, codexDir)); err != nil {
 		return agentio.Host{}, err
 	}
-	base, err := url.Parse(srv.URL)
-	if err != nil {
-		return agentio.Host{}, err
-	}
 	return agentio.Host{
-		UserHome: userHome,
-		User:     fixtureUser,
-		Env:      []string{"HOME=" + userHome, "PATH=" + filepath.Join(userHome, "no-bin")},
-		Now:      fixtureNow,
-		// Codex has no base-URL option: the usage endpoint is fixed, so the
-		// example swaps the transport to send that request to srv instead.
-		HTTP:      &http.Client{Transport: redirect{to: base, next: srv.Client().Transport}},
+		UserHome:  userHome,
+		User:      fixtureUser,
+		Env:       []string{"HOME=" + userHome, "PATH=" + filepath.Join(userHome, "no-bin")},
+		Now:       fixtureNow,
+		HTTP:      srv.Client(),
 		Secrets:   secrets,
 		Processes: &agenttest.FakeProcesses{},
 	}, nil
-}
-
-// redirect sends every request to one local server, keeping path and headers.
-type redirect struct {
-	to   *url.URL
-	next http.RoundTripper
-}
-
-// RoundTrip rewrites the scheme and host. Pure (the next transport does I/O).
-func (r redirect) RoundTrip(req *http.Request) (*http.Response, error) {
-	out := req.Clone(req.Context())
-	out.URL.Scheme, out.URL.Host = r.to.Scheme, r.to.Host
-	return r.next.RoundTrip(out)
 }
 
 // snippet:start identity
@@ -214,9 +195,10 @@ func newKeyringHome(a *codex.Agent, dir string) (codex.Home, error) {
 
 // snippet:start usage
 // readUsage makes one GET to the usage endpoint with the home's access
-// token (here answered by the local server). Call it once; never poll.
-func readUsage(w io.Writer, host agentio.Host) error {
-	a := codex.New(host)
+// token. WithBaseURL sends it to baseURL (here the local server) instead of
+// chatgpt.com. Call it once; never poll.
+func readUsage(w io.Writer, host agentio.Host, baseURL string) error {
+	a := codex.New(host).WithBaseURL(baseURL)
 	ctx := context.Background()
 	u, err := a.Usage(ctx, a.DefaultHome())
 	switch {

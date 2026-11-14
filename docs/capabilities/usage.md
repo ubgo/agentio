@@ -150,7 +150,7 @@ The fixture's Codex login is expired, so live usage is refused locally; the Code
 - **`ErrNotLoggedIn`, `ErrUnauthorized`, `ErrScopeLimited`** are the other answers to expect: no login, a rejected token, and (Claude) a token that lacks the profile scope. Match them with `errors.Is`.
 - **Cached readings can be very old.** The example's Claude reading is 16 days old. Compare `ObservedAt` with `Host.Now()` before you call it "current".
 - **`found == false` is not an error.** A home that never fetched usage (the Claude work home here) has nothing cached.
-- **Codex's usage endpoint is fixed.** There is no `WithBaseURL` for Codex; tests swap `Host.HTTP` for a client whose transport routes requests to a test server, as `examples/usage` does with its `localOnly` round tripper.
+- **Point both vendors at a test server with `WithBaseURL`.** `claude.Agent.WithBaseURL` and `codex.Agent.WithBaseURL` replace the API origin (`codex.DefaultBaseURL` is `https://chatgpt.com/backend-api`), so a test passes an `httptest` server's client as `Host.HTTP` and its URL as the base, with no custom transport; `examples/usage` does this for both.
 - **Window labels come from the vendor.** Labels like `Fable` or `7d` are whatever the vendor sent; group by `Class()` or `Length`, not by label.
 
 ## Related

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -70,30 +69,6 @@ func fakeAPI() *httptest.Server {
 			http.NotFound(w, r)
 		}
 	}))
-}
-
-// localOnly sends every request to the fake API whatever host it names, so
-// no call made by this example can leave the process (Codex's usage URL is
-// fixed; this keeps it local too).
-type localOnly struct {
-	target *url.URL
-	next   http.RoundTripper
-}
-
-// RoundTrip rewrites the scheme and host and forwards the request.
-func (l localOnly) RoundTrip(r *http.Request) (*http.Response, error) {
-	c := r.Clone(r.Context())
-	c.URL.Scheme, c.URL.Host, c.Host = l.target.Scheme, l.target.Host, l.target.Host
-	return l.next.RoundTrip(c)
-}
-
-// localClient is an HTTP client bound to srv. Pure.
-func localClient(srv *httptest.Server) (*http.Client, error) {
-	u, err := url.Parse(srv.URL)
-	if err != nil {
-		return nil, err
-	}
-	return &http.Client{Transport: localOnly{target: u, next: srv.Client().Transport}}, nil
 }
 
 // repoRoot walks up from the working directory to the folder holding the

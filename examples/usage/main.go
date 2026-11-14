@@ -39,10 +39,7 @@ func main() {
 func runMain(w io.Writer) error {
 	srv := fakeAPI()
 	defer srv.Close()
-	client, err := localClient(srv)
-	if err != nil {
-		return err
-	}
+	client := srv.Client()
 	tmp, err := os.MkdirTemp("", "agentio-usage-")
 	if err != nil {
 		return err
@@ -56,10 +53,10 @@ func runMain(w io.Writer) error {
 	return run(context.Background(), w, h, srv.URL)
 }
 
-// run prints each step. baseURL is the fake API origin the Claude agent is
-// pointed at with WithBaseURL.
+// run prints each step. baseURL is the fake API origin both agents are
+// pointed at with WithBaseURL, so no request leaves the process.
 func run(ctx context.Context, w io.Writer, h agentio.Host, baseURL string) error {
-	agents := []agentio.Agent{claude.New(h).WithBaseURL(baseURL).Neutral(), codex.New(h).Neutral()}
+	agents := []agentio.Agent{claude.New(h).WithBaseURL(baseURL).Neutral(), codex.New(h).WithBaseURL(baseURL).Neutral()}
 	steps := []struct {
 		title string
 		fn    func() error
