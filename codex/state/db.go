@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -191,13 +192,39 @@ func (d *DB) Close() error {
 
 // dsn builds a read-only URI for path. mode=ro plus query_only(1) means a
 // bug here cannot write; busy_timeout gives one bounded wait on a lock.
+// The path is turned into a URI path first (fileURIPath), so a Windows
+// path becomes file:///C:/... instead of an invalid authority.
 func dsn(path string) string {
 	q := url.Values{}
 	q.Set("mode", "ro")
 	q.Add("_pragma", "query_only(1)")
 	q.Add("_pragma", fmt.Sprintf("busy_timeout(%d)", busyTimeout.Milliseconds()))
-	u := url.URL{Scheme: "file", Path: path, RawQuery: q.Encode()}
+	u := url.URL{Scheme: "file", Path: fileURIPath(filepath.ToSlash(path)), RawQuery: q.Encode()}
 	return u.String()
+}
+
+// fileURIPath turns a slash-separated file path into the path part of a
+// file: URI as SQLite reads it (sqlite.org/uri.html). A drive path
+// "C:/Users/x" gets a leading slash, "/C:/Users/x", so url.URL renders
+// "file:///C:/Users/x" (empty authority; SQLite on Windows drops the slash
+// before the drive again). Without it the URI reads as "file://C:..." and
+// SQLite rejects "C:" as an authority. POSIX paths, UNC paths ("//host/
+// share") and relative paths are returned unchanged. Pure; takes slashes
+// so it behaves the same on every OS (dsn converts with filepath.ToSlash).
+func fileURIPath(slashed string) string {
+	if isDrivePath(slashed) {
+		return "/" + slashed
+	}
+	return slashed
+}
+
+// isDrivePath reports a Windows drive path such as "C:/x" or "c:". Pure.
+func isDrivePath(p string) bool {
+	if len(p) < len("C:") || p[1] != ':' {
+		return false
+	}
+	c := p[0] | ('a' - 'A') // fold to lower case
+	return c >= 'a' && c <= 'z'
 }
 
 // conn opens f once. A store without a path is *NoPathError; a missing
