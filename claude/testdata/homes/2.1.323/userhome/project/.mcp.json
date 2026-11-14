@@ -1,0 +1,1 @@
+{"mcpServers": {"proj-db": {"command": "fixture-db-mcp", "args": ["--ro"], "env": {"DB_PASSWORD": "fixture-secret"}}}}

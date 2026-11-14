@@ -1,0 +1,26 @@
+{
+  "pid": 4242,
+  "sessionId": "6d50c0ec-647e-18aa-84c7-04170288be89",
+  "cwd": "/work/proj4",
+  "startedAt": 1794597025793,
+  "procStart": "330472961",
+  "version": "2.1.323",
+  "peerProtocol": 1,
+  "peerFeatures": [
+    "notify_idle",
+    "reply_across_default_dirs",
+    "artifact_yield"
+  ],
+  "kind": "interactive",
+  "entrypoint": "cli",
+  "pidDomain": "linux:00000000000000000000000000000000:pid:[4026531836]",
+  "asksForConvertedSkills": null,
+  "tmux": "<s>",
+  "messagingSocketPath": "/work/proj5",
+  "name": "fixture-session-0",
+  "nameSource": "derived",
+  "nameSince": 1794597025793,
+  "status": "busy",
+  "updatedAt": 1794597049705,
+  "statusUpdatedAt": 1794597049705
+}
