@@ -25,12 +25,20 @@ jobs:
       - uses: actions/setup-go@v5
         with: { go-version: "1.27.x" }
       - name: workspace
-        run: go work init . ./claude ./codex ./codex/state ./builtin ./examples
+        # go.work with version-specific replaces: the runner cannot fetch the
+        # private sibling modules at their pinned pseudo-versions.
+        run: bash scripts/workspace.sh
       - name: test every module
+        # Every module runs even after a failure; the step fails at the end
+        # with the list, so one failing module never hides the others.
         run: |
+          failed=""
           for m in . claude codex codex/state builtin examples; do
-            (cd "$m" && go test -count=1 ./...) || { echo "FAIL $m"; exit 1; }
+            echo "::group::$m"
+            if ! (cd "$m" && go test -count=1 ./...); then failed="$failed $m"; fi
+            echo "::endgroup::"
           done
+          if [ -n "$failed" ]; then echo "FAILED modules:$failed"; exit 1; fi
       - name: agentinfo -fixtures
         working-directory: examples
         run: go run ./agentinfo -fixtures
