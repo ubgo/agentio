@@ -1,10 +1,10 @@
 # docsync: fails when code that a doc sentence cites (ds:block links) changed
 # since the sentence was acked. Same check as `task docs:check` locally.
 #
-# Manual only (workflow_dispatch), on purpose: the repository is private and
-# GitHub Actions minutes are billed, so this never runs on push or pull
-# request. `task check` / `task docs:check` locally is the real gate; start
-# this from the Actions tab when you want CI to agree.
+# Manual only (workflow_dispatch), on purpose: the maintainer decides
+# whether it also runs on push or pull request. `task check` /
+# `task docs:check` locally is the gate; start this from the Actions tab
+# when you want CI to agree.
 name: docsync
 on:
   workflow_dispatch:

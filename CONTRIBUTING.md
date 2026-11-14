@@ -51,7 +51,7 @@ When you change code that a sentence cites, `task docs:check` fails with `unacke
 2. Record that it is true for the code as it is now: `ds ack <id> --doc <file> --line <n> --note "<why it still holds>"` (the exact command is printed under the finding; `--all` acks every citation of the id).
 3. Run `ds scan` so the ledger records the new state, and commit `.ds/` with the code and doc change.
 
-To bind a new sentence, add a `ds:def` line to the README block (or reuse an existing id), link the sentence to it, run `ds scan`, check the sentence against the code, and `ds ack` it. `ds check` must report 0 errors. A docsync workflow exists in `.github/workflows/docsync.yml`, manual only (`workflow_dispatch`): it never runs on push or pull request because Actions minutes are billed on this private repository.
+To bind a new sentence, add a `ds:def` line to the README block (or reuse an existing id), link the sentence to it, run `ds scan`, check the sentence against the code, and `ds ack` it. `ds check` must report 0 errors. A docsync workflow exists in `.github/workflows/docsync.yml`, manual only (`workflow_dispatch`); whether it also runs on push or pull request is the maintainer's decision, so do not add those triggers in a contribution.
 
 ## Rules every change keeps
 

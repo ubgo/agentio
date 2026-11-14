@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # workspace.sh writes a go.work over every module of the repository so the
-# modules resolve each other locally, on a machine with no access to the
-# private repository (a CI runner, a container).
+# modules resolve each other from this checkout (a CI runner, a container),
+# never from their pinned versions on the module proxy, which lag behind the
+# working tree.
 #
 # `use` alone is not enough: workspace mode still loads the go.mod of the
-# pinned pseudo-version each module requires of its siblings (a go get of
-# the private repo, which fails without credentials). A version-specific
+# pinned pseudo-version each module requires of its siblings (a network
+# fetch, which failed while the repository was private). A version-specific
 # replace of every pinned sibling version to its local directory stops
 # that fetch. go.work stays untracked; the standalone (GOWORK=off) builds
 # in `task check` keep proving the pinned versions themselves.

@@ -52,7 +52,7 @@ Managed settings follow the managed settings docs per OS. On Windows the policy 
 
 - **Any machine:** `task check` runs every module's tests, including the per-OS matrix tests (they set `Host.GOOS` and use the Windows fixture homes under `claude/testdata/windows/` and `codex/testdata/windows/`, with backslash paths, CRLF and BOM files and `.cmd` shims), and compiles every package and test binary for Windows (`task check:windows`).
 - **Linux distributions:** `task test:distros` runs the tests, `agentinfo -fixtures`, and `agentinfo` on an empty and a seeded home in Debian, Alpine (musl), Fedora and Arch containers. It needs Docker and network and is not part of `task check`.
-- **Windows and macOS for real:** `.github/workflows/platforms.yml` runs every module's tests (all modules, then fails with the list) and `agentinfo -fixtures` on GitHub's Windows, macOS and Linux runners; `scripts/workspace.sh` gives the runner a `go.work` that resolves the private sibling modules locally. It is manual (`workflow_dispatch`) because Actions minutes are billed on this private repository.
+- **Windows and macOS for real:** `.github/workflows/platforms.yml` runs every module's tests (all modules, then fails with the list) and `agentinfo -fixtures` on GitHub's Windows, macOS and Linux runners; `scripts/workspace.sh` gives the runner a `go.work` that resolves the sibling modules locally instead of fetching their pinned versions. It is manual (`workflow_dispatch`); the maintainer decides when it runs.
 - **By hand:** `cd examples && go run ./agentinfo -fixtures` prints the same report on every OS; `go run ./agentinfo` reads your machine.
 
 ## Pitfalls

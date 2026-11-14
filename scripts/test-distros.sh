@@ -11,11 +11,10 @@
 set -euo pipefail
 
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-# The modules pin each other at pushed pseudo-versions of this private
-# repository; the containers have no GitHub credentials, so they read those
-# (and every public module already downloaded here) from this machine's
-# module cache through a read-only file:// proxy, falling back to the
-# public proxy for anything missing.
+# The containers read every module already downloaded here (the pinned
+# sibling pseudo-versions included) from this machine's module cache through
+# a read-only file:// proxy, falling back to the public proxy for anything
+# missing, so a run does not depend on what the proxy has fetched yet.
 modcache="$(go env GOMODCACHE)/cache/download"
 modules=". claude codex codex/state builtin examples"
 go_version="${GO_VERSION:-1.27.1}"
@@ -33,7 +32,7 @@ inner=$(cat <<'INNER'
 set -eu
 if [ -n "$SETUP" ]; then sh -c "$SETUP"; fi
 export GOTOOLCHAIN=auto GOFLAGS=-buildvcs=false
-export GOPROXY=file:///modcache,https://proxy.golang.org GONOSUMDB='github.com/ubgo/*' GOPRIVATE=
+export GOPROXY=file:///modcache,https://proxy.golang.org
 cp -a /src /work && cd /work
 . /etc/os-release
 echo "== $PRETTY_NAME, $(go version), libc: $(ldd --version 2>&1 | head -1)"

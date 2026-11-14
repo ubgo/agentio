@@ -3,10 +3,9 @@
 # shims, the PowerShell process table, case-insensitive env) run on a real
 # Windows; locally `task check` only compiles them for Windows.
 #
-# Manual only (workflow_dispatch), on purpose: the repository is private and
-# GitHub Actions minutes are billed (Windows and macOS minutes at a
-# multiple), so this never runs on push or pull request. Ask the owner
-# before starting it from the Actions tab.
+# Manual only (workflow_dispatch), on purpose: the maintainer decides
+# whether it also runs on push or pull request. Start it from the Actions
+# tab.
 name: platforms
 on:
   workflow_dispatch:
