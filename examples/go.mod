@@ -3,11 +3,11 @@ module github.com/ubgo/agentio/examples
 go 1.26.4
 
 require (
-	github.com/ubgo/agentio v0.0.0-20261114095910-6a597c7858ac
-	github.com/ubgo/agentio/builtin v0.0.0-20261114095910-6a597c7858ac
-	github.com/ubgo/agentio/claude v0.0.0-20261114095910-6a597c7858ac
-	github.com/ubgo/agentio/codex v0.0.0-20261114095910-6a597c7858ac
-	github.com/ubgo/agentio/codex/state v0.0.0-20261114095910-6a597c7858ac
+	github.com/ubgo/agentio v0.0.0-20261114102048-9d74cce8c4ee
+	github.com/ubgo/agentio/builtin v0.0.0-20261114102048-9d74cce8c4ee
+	github.com/ubgo/agentio/claude v0.0.0-20261114102048-9d74cce8c4ee
+	github.com/ubgo/agentio/codex v0.0.0-20261114102048-9d74cce8c4ee
+	github.com/ubgo/agentio/codex/state v0.0.0-20261114102048-9d74cce8c4ee
 )
 
 require (
