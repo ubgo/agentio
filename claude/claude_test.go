@@ -38,6 +38,16 @@ func fixtureVersions(t *testing.T) []string {
 	return out
 }
 
+// forEachFixture runs fn once per fixture version as a subtest, handing it
+// the version's user-home tree, so an older fixture keeps guarding renamed
+// and removed keys (SPEC §10).
+func forEachFixture(t *testing.T, fn func(t *testing.T, fixture string)) {
+	t.Helper()
+	for _, v := range fixtureVersions(t) {
+		t.Run(v, func(t *testing.T) { fn(t, filepath.Join("testdata", "homes", v, "userhome")) })
+	}
+}
+
 // fixtureAgent copies a fixture user home to a temp dir and builds an agent
 // on it with fakes for every host input.
 func fixtureAgent(t *testing.T, version string, opts ...agenttest.HostOption) (*Agent, string) {

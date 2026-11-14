@@ -222,6 +222,24 @@ type MessageUsage struct {
 	Unknown       agentcli.Unknown `json:"-"`
 }
 
+// usageFile names a usage block in decode warnings.
+const usageFile = "usage"
+
+// UnmarshalJSON decodes the counts and keeps every other key (server tool
+// use, iterations, cache_creation split, speed, …) in Unknown, so the same
+// type serves transcripts and stream-json. cost: Pure.
+func (u *MessageUsage) UnmarshalJSON(data []byte) error {
+	type plain MessageUsage // no methods: avoids recursing into this one
+	var p plain
+	unknown, _, err := decodeLenient(usageFile, data, reflect.TypeFor[plain](), func(d []byte) error { p = plain{}; return json.Unmarshal(d, &p) })
+	if err != nil {
+		return err
+	}
+	*u = MessageUsage(p)
+	u.Unknown = unknown
+	return nil
+}
+
 // Neutral maps onto the shared counts. cost: Pure.
 func (u MessageUsage) Neutral() agentcli.TokenCounts {
 	return agentcli.TokenCounts{Input: u.Input, CachedInput: u.CacheRead, CacheWrite: u.CacheCreation, Output: u.Output}
@@ -258,12 +276,8 @@ func (r Record) AsAssistant() (AssistantRecord, error) {
 	out := AssistantRecord{Record: r, MessageID: w.Message.ID, RequestID: w.RequestID, Model: w.Message.Model,
 		RequestedModel: w.RequestedModel, StopReason: w.Message.StopReason, Effort: w.Effort, Content: w.Message.Content}
 	if len(w.Message.Usage) > 0 && string(w.Message.Usage) != jsonNull {
-		type plain MessageUsage
-		var u plain
-		unknown, _, err := decodeLenient("usage", w.Message.Usage, reflect.TypeFor[plain](), func(d []byte) error { return json.Unmarshal(d, &u) })
-		if err == nil {
-			mu := MessageUsage(u)
-			mu.Unknown = unknown
+		var mu MessageUsage
+		if err := json.Unmarshal(w.Message.Usage, &mu); err == nil {
 			out.Usage = &mu
 		}
 	}
