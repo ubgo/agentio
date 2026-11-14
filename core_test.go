@@ -215,7 +215,7 @@ func TestSupportedAndGates(t *testing.T) {
 	t.Parallel()
 	a, _ := newToy(t)
 	got := agentio.Supported(a)
-	want := []agentio.Capability{agentio.CapBinaryVersion, agentio.CapLoginCommander, agentio.CapProcessClassifier, agentio.CapHomeLinker, agentio.CapDoctor}
+	want := []agentio.Capability{agentio.CapInstaller, agentio.CapBinaryVersion, agentio.CapLoginCommander, agentio.CapProcessClassifier, agentio.CapHomeLinker, agentio.CapDoctor}
 	if !slices.Equal(got, want) {
 		t.Errorf("Supported = %v, want %v", got, want)
 	}
@@ -228,7 +228,7 @@ func TestSupportedAndGates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := agentio.Supported(m); !slices.Equal(got, []agentio.Capability{agentio.CapDoctor}) {
+	if got := agentio.Supported(m); !slices.Equal(got, []agentio.Capability{agentio.CapInstaller, agentio.CapDoctor}) {
 		t.Errorf("minimal Supported = %v", got)
 	}
 	// Every capability has a non-zero cost row except the pure ones.

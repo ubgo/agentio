@@ -12,6 +12,7 @@ var (
 	_ LoginCommander      = specAgent{}
 	_ HomeLinker          = specAgent{}
 	_ BinaryVersion       = specAgent{}
+	_ Installer           = specAgent{}
 	_ Doctor              = specAgent{}
 	_ CapabilityGate      = specAgent{}
 	_ UnsupportedReasoner = specAgent{}
@@ -43,7 +44,7 @@ func (a specAgent) HasCapability(c Capability) bool {
 		return len(s.SharedHomeFiles) > 0
 	case CapBinaryVersion:
 		return len(s.VersionArgs) > 0
-	case CapDoctor:
+	case CapDoctor, CapInstaller:
 		return true
 	}
 	return false
