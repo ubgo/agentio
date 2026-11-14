@@ -589,7 +589,7 @@ func TestRunnerBuiltNotRun(t *testing.T) {
 		"claude --version":           {Stdout: []byte("2.1.323 (Claude Code)\n")},
 		"claude auth status --json":  {Stdout: []byte(`{"loggedIn":true,"authMethod":"claude.ai","email":"user@example.com","planTier":"max_20x","newKey":1}`)},
 		"claude plugin list --json":  {Stdout: []byte(`[{"id":"p@m","version":"1","scope":"user","enabled":true,"installPath":"/x"}]`)},
-		"claude agents --json --all": {Stdout: []byte(`[{"id":"ab","pid":1,"sessionId":"s","kind":"bg","state":"running","startedAt":1794000000000}]`)},
+		"claude agents --json --all": {Stdout: []byte(`[{"id":"ab","pid":1,"sessionId":"s","kind":"bg","state":"running","startedAt":1794000000000,"newAgentKey":"x"}]`)},
 		"claude auto-mode config":    {Stdout: []byte(`{}`)},
 	}}
 	a, dir := fixtureAgent(t, fixtureVersions(t)[0], agenttest.WithExec(fx))
@@ -608,7 +608,7 @@ func TestRunnerBuiltNotRun(t *testing.T) {
 	if ps, err := r.Plugins(context.Background(), a.DefaultHome(), false); err != nil || len(ps) != 1 {
 		t.Fatal(ps, err)
 	}
-	if bg, err := r.BackgroundAgents(context.Background(), a.DefaultHome(), true); err != nil || len(bg) != 1 {
+	if bg, err := r.BackgroundAgents(context.Background(), a.DefaultHome(), true); err != nil || len(bg) != 1 || bg[0].Unknown["newAgentKey"] == nil {
 		t.Fatal(bg, err)
 	}
 	if _, err := r.AutoModeConfig(context.Background(), a.DefaultHome()); err != nil {

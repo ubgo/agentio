@@ -197,12 +197,27 @@ func (r *Runner) BackgroundAgents(ctx context.Context, h Home, all bool) ([]Back
 	if err != nil {
 		return nil, err
 	}
-	var w []BackgroundAgent
-	if err := json.Unmarshal(out, &w); err != nil {
+	var items []json.RawMessage
+	if err := json.Unmarshal(out, &items); err != nil {
 		return nil, fmt.Errorf("claude: decode agents: %w", err)
+	}
+	// Each entry decodes leniently so keys a newer Claude Code adds land in
+	// Unknown instead of being dropped (invariant 13).
+	w := make([]BackgroundAgent, 0, len(items))
+	for _, it := range items {
+		var ba BackgroundAgent
+		unknown, _, err := decodeLenient(agentsSource, it, reflect.TypeFor[BackgroundAgent](), func(d []byte) error { ba = BackgroundAgent{}; return json.Unmarshal(d, &ba) })
+		if err != nil {
+			return nil, err
+		}
+		ba.Unknown = unknown
+		w = append(w, ba)
 	}
 	return w, nil
 }
+
+// agentsSource names `claude agents --json` output in decode errors.
+const agentsSource = "claude agents --json"
 
 // AutoModeConfig runs `claude auto-mode config`; Raw until a sample is
 // recorded. cost: Process · Read · may touch login.
