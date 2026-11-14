@@ -1,0 +1,98 @@
+package agentcli
+
+import (
+	"context"
+	"io"
+	"net/http"
+	"strings"
+	"time"
+)
+
+// Host is the machine the library looks at: user home, base environment,
+// clock, HTTP client, keychain, process table and the way to run a program
+// (SPEC §5.1). Nothing in the library reads $HOME, os.Environ, the keychain,
+// the clock or the network except through a Host, so a test points every
+// input at a fixture and two homes can be inspected side by side.
+// HostFromOS builds the real one; agenttest.NewHost builds a fixture one.
+type Host struct {
+	// UserHome is the user's home directory (absolute).
+	UserHome string
+	// User is the OS login name. Claude keychain lookups name it as the
+	// account first (invariant 3): stale same-service entries exist.
+	User string
+	// Env is the base environment ("K=V"); PATH lookups use it, never a shell.
+	Env []string
+	// Now is the clock.
+	Now func() time.Time
+	// HTTP is used for usage, subscription and probe calls.
+	HTTP *http.Client
+	// Secrets is the keychain / keyring, or a fake.
+	Secrets SecretStore
+	// Processes lists running processes (live sessions, process matching).
+	Processes ProcessLister
+	// Exec runs a program; reached only from Runner doors.
+	Exec ProcessRunner
+}
+
+// Getenv returns the value of key in Host.Env and whether it is present.
+// An entry "K=" is present with value "". Pure.
+func (h Host) Getenv(key string) (string, bool) { return EnvLookup(h.Env, key) }
+
+// Process is one row of the process table. Start guards against pid reuse:
+// a pid with another start time is another process.
+type Process struct {
+	PID, PPID int
+	Start     time.Time
+	// Exe is the executable path when known (linux /proc/{pid}/exe), else argv[0].
+	Exe string
+	// Argv is the command line. On darwin it is split on spaces from `ps`
+	// output, so an argument containing a space is split too.
+	Argv []string
+}
+
+// ProcessLister reads the process table.
+type ProcessLister interface {
+	// Processes is Process · Read: one process-table read.
+	Processes(ctx context.Context) ([]Process, error)
+	// Cwd is Process · Read: the working directory of pid.
+	Cwd(ctx context.Context, pid int) (string, error)
+}
+
+// SecretStore reads the keychain or keyring.
+type SecretStore interface {
+	// Get is Process · Read. account "" is a service-only lookup, used only
+	// as the documented fallback after the named-account lookup (invariant
+	// 3). found is false (with a nil error) when no entry exists. Never
+	// writes, never lists values.
+	Get(ctx context.Context, service, account string) (Token, bool, error)
+}
+
+// ProcessRunner runs a program once and collects its output.
+type ProcessRunner interface {
+	// Run is Process · Read; reached only from Runner doors. A non-zero exit
+	// is reported in ProcessResult.ExitCode with a nil error; the error is
+	// for "could not run at all" (missing binary, context cancelled).
+	Run(ctx context.Context, c Command, stdin io.Reader) (ProcessResult, error)
+}
+
+// ProcessResult is a finished run.
+type ProcessResult struct {
+	Stdout, Stderr []byte
+	ExitCode       int
+}
+
+// envSep separates key and value in an environment entry.
+const envSep = "="
+
+// EnvLookup returns the last value of key in env (the one a child process
+// sees on most platforms) and whether it is present. Pure.
+func EnvLookup(env []string, key string) (string, bool) {
+	prefix := key + envSep
+	val, found := "", false
+	for _, kv := range env {
+		if v, ok := strings.CutPrefix(kv, prefix); ok {
+			val, found = v, true
+		}
+	}
+	return val, found
+}
