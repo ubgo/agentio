@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -445,7 +444,7 @@ func (a *Agent) loadAuth(ctx context.Context, h Home) (storedAuth, error) {
 func (a *Agent) loadFile(h Home) (storedAuth, error) {
 	p := a.Paths(h).Auth
 	out := storedAuth{store: StoreFile, source: p}
-	b, err := os.ReadFile(p)
+	b, err := readFile(p)
 	if errors.Is(err, fs.ErrNotExist) {
 		return out, nil
 	}

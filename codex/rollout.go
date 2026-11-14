@@ -518,7 +518,9 @@ func (r *RolloutReader) readLine() ([]byte, error) {
 		switch {
 		case err == nil:
 			r.offset += agentio.Offset(len(buf))
-			return buf, nil
+			// The offset counts the raw bytes; a BOM at the start of the
+			// file is dropped from the line itself.
+			return agentio.StripBOM(buf), nil
 		case errors.Is(err, bufio.ErrBufferFull):
 			continue
 		case errors.Is(err, io.EOF):
@@ -614,6 +616,7 @@ func readHeadMeta(path string) (SessionMeta, bool) {
 		}
 		line = append(append([]byte{}, line...), rest...)
 	}
+	line = agentio.StripBOM(line)
 	rec, perr := ParseRecord(bytes.TrimSpace(line))
 	if perr != nil || rec.SessionMeta == nil || rec.SessionMeta.ID == "" {
 		return SessionMeta{}, false

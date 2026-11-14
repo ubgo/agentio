@@ -129,7 +129,7 @@ func (a *Agent) Paths(h Home) Paths {
 // from Host.Env (it wins over sqlite_home, state/src/lib.rs:133). Pure.
 func (a *Agent) PathsWith(h Home, c Config) Paths {
 	sqlite := c.SQLiteHome.V
-	if v, ok := lookupEnv(a.host.Env, EnvSQLiteHome); ok && v != "" {
+	if v, ok := a.host.Getenv(EnvSQLiteHome); ok && v != "" {
 		sqlite = v
 	}
 	return pathsFor(h.Dir(), sqlite, c.LogDir.V)

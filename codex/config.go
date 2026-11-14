@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
 	"sort"
 	"strconv"
 	"time"
@@ -392,7 +391,7 @@ func (a *Agent) ConfigFileWarnings(h Home) (Config, agentio.Warnings, error) {
 }
 
 func readConfigPath(path string) (Config, agentio.Warnings, error) {
-	b, err := os.ReadFile(path)
+	b, err := readFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
 		return Config{}, nil, nil
 	}

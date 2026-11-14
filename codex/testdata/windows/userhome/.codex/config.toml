@@ -1,0 +1,5 @@
+﻿model = "o3"
+approval_policy = "on-request"
+
+[projects.'C:\Users\user\proj']
+trust_level = "trusted"

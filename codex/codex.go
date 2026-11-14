@@ -73,7 +73,10 @@ func Spec() agentio.Spec {
 		SharedHomeFiles: nil,
 		// Only the variable that overrides a home login; see EnvAPIKey.
 		CredentialEnv: []string{EnvCodexAPIKey},
-		APIBillingEnv: []string{EnvAPIKey, EnvCodexAPIKey},
+		// Only what Codex auth reads; OPENAI_API_KEY bills per token only
+		// through a model provider whose env_key names it, which the doctor
+		// checks against config.toml (providerKeyCheck).
+		APIBillingEnv: []string{EnvCodexAPIKey},
 		Process: agentio.ProcessMatch{
 			Basenames:    []string{Binary},
 			ArgvContains: []string{npmPackage},
@@ -202,12 +205,12 @@ func (a *Agent) HomeEnv(base []string, h Home) []string {
 	if !ok {
 		return base
 	}
-	return agentio.ApplyEnv(base, c)
+	return a.host.ApplyEnv(base, c)
 }
 
 // InstallationID reads <home>/installation_id (a uuid). Disk · Read.
 func (a *Agent) InstallationID(h Home) (agentio.Personal, error) {
-	b, err := os.ReadFile(a.Paths(h).InstallationID)
+	b, err := readFile(a.Paths(h).InstallationID)
 	if err != nil {
 		return agentio.Personal{}, fmt.Errorf("codex: read %s: %w", fileInstallationID, err)
 	}
@@ -242,5 +245,10 @@ func (a *Agent) plainCommand(h Home, args []string) agentio.Command {
 	return cmd
 }
 
-// lookupEnv reads a variable from an env list.
-func lookupEnv(env []string, key string) (string, bool) { return agentio.EnvLookup(env, key) }
+// readFile is os.ReadFile with a leading UTF-8 BOM removed (agentio.StripBOM),
+// so config.toml, auth.json and the other files read the same when an
+// editor on Windows saved them with one. Disk · Read.
+func readFile(path string) ([]byte, error) {
+	b, err := os.ReadFile(path)
+	return agentio.StripBOM(b), err
+}

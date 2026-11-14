@@ -115,7 +115,7 @@ type layerEntries struct {
 
 func readLayer(kind LayerKind, path string) (layerEntries, error) {
 	le := layerEntries{layer: Layer{Kind: kind, File: path}}
-	b, err := os.ReadFile(path)
+	b, err := readFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
 		return le, nil
 	}
@@ -393,7 +393,7 @@ var ErrNoEnvValue = errors.New("codex: mcp server env key not found")
 // <home>/config.toml as a redacting EnvValue (never logged or printed).
 // Disk · Read.
 func (a *Agent) MCPServerEnvValue(h Home, server, key string) (agentio.EnvValue, error) {
-	b, err := os.ReadFile(a.Paths(h).Config)
+	b, err := readFile(a.Paths(h).Config)
 	if err != nil {
 		return agentio.EnvValue{}, fmt.Errorf("codex: read %s: %w", fileConfig, err)
 	}

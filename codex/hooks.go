@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
 	"time"
 
 	"github.com/ubgo/agentio"
@@ -161,7 +160,7 @@ func decodeHookHandlerJSON(raw json.RawMessage) (HookHandler, bool) {
 // HooksFile reads <home>/hooks.json; found=false when absent. Disk · Read.
 func (a *Agent) HooksFile(h Home) (HooksFile, bool, error) {
 	path := a.Paths(h).Hooks
-	b, err := os.ReadFile(path)
+	b, err := readFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
 		return HooksFile{}, false, nil
 	}

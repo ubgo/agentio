@@ -307,7 +307,7 @@ type ChatProcess struct {
 // keys, not the container: a top-level array, or an object holding one
 // array of entries, are both read. Disk · Read.
 func (a *Agent) ChatProcesses(h Home) ([]ChatProcess, error) {
-	b, err := os.ReadFile(a.Paths(h).ChatProcesses)
+	b, err := readFile(a.Paths(h).ChatProcesses)
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, nil
 	}

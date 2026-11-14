@@ -1233,3 +1233,40 @@ func TestUpdateCommand(t *testing.T) {
 		t.Fatalf("standalone: %v, want ErrUnsupported", err)
 	}
 }
+
+// TestDoctorBillingEnvMatchesUpstream: Codex auth reads only CODEX_API_KEY
+// (rust-v0.162.1 load_auth), so the api-billing-env warning names it, and
+// names OPENAI_API_KEY only when a configured model provider's env_key
+// reads it.
+func TestDoctorBillingEnvMatchesUpstream(t *testing.T) {
+	billing := func(a *Agent, h Home) []string {
+		var out []string
+		for _, c := range a.Checks(context.Background(), h) {
+			if c.ID == agentio.CheckAPIBillingEnv {
+				out = append(out, c.Message)
+			}
+		}
+		return out
+	}
+	a, h := setup(t, agenttest.WithEnv("PATH=/nonexistent", EnvAPIKey+"=sk-x"))
+	if got := billing(a, h); len(got) != 0 {
+		t.Fatalf("OPENAI_API_KEY with no provider reading it warned: %q", got)
+	}
+	a, h = setup(t, agenttest.WithEnv("PATH=/nonexistent", EnvCodexAPIKey+"=k"))
+	if got := billing(a, h); len(got) != 1 || !strings.Contains(got[0], EnvCodexAPIKey) {
+		t.Fatalf("CODEX_API_KEY: %q", got)
+	}
+	a, h = setup(t, agenttest.WithEnv("PATH=/nonexistent", EnvAPIKey+"=sk-x"))
+	cfg := filepath.Join(h.Dir(), fileConfig)
+	b, err := os.ReadFile(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b = append(b, []byte("\n[model_providers.openai-direct]\nname = \"OpenAI\"\nenv_key = \"OPENAI_API_KEY\"\n")...)
+	if err := os.WriteFile(cfg, b, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := billing(a, h); len(got) != 1 || !strings.Contains(got[0], "openai-direct") || !strings.Contains(got[0], EnvAPIKey) {
+		t.Fatalf("provider env_key: %q", got)
+	}
+}

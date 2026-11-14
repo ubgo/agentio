@@ -23,13 +23,17 @@ const (
 // Install-path facts (install-context/src/lib.rs:121-131, 304-316; a real
 // Mac: /opt/homebrew/bin/codex → ../lib/node_modules/@openai/codex/bin/codex.js).
 const (
-	envPath           = "PATH"
-	nodeModulesMarker = "node_modules/@openai/codex"
-	fileCaskroom      = "/Caskroom/"
-	dirStandalone     = "packages/standalone"
-	filePackageJSON   = "package.json"
-	bunMarker         = "/.bun/"
-	pnpmMarker        = "/pnpm/"
+	nodeModulesMarker   = "node_modules/@openai/codex"
+	fileCaskroom        = "/Caskroom/"
+	dirStandalone       = "packages/standalone"
+	filePackageJSON     = "package.json"
+	bunMarker           = "/.bun/"
+	pnpmMarker          = "/pnpm/"
+	dirCellarCodex      = "/Cellar/codex/"
+	dirBunHome          = ".bun"
+	dirVoltaHome        = ".volta"
+	dirVoltaHomeWindows = "volta"
+	dirBin              = "bin"
 )
 
 // Install is the on-disk install of the codex binary.
@@ -43,13 +47,23 @@ type Install struct {
 // agentio.ParseVersion shape: ok is false when s holds no version. Pure.
 func ParseVersion(s string) (agentio.Version, bool) { return agentio.ParseVersion(s) }
 
-// Install finds codex on Host.Env PATH (a walk, never a shell), resolves
-// symlinks, infers the method from the real path, and reads the npm
-// package version from package.json. Never runs codex. ErrNotInstalled
-// when no PATH entry has it. Disk · Read.
+// Install finds codex on Host.Env PATH (a walk under Host.GOOS's rules:
+// PATHEXT on Windows finds codex.cmd; never a shell), resolves symlinks and
+// launcher shims, infers the method, and reads the npm package version from
+// package.json. Layouts recognised, on every OS:
+//   - a symlink into node_modules/@openai/codex (npm, nvm and Homebrew-node
+//     prefixes; bun when the path holds /.bun/, pnpm when it holds /pnpm/);
+//   - a cmd-shim script (npm on Windows: %APPDATA%\npm\codex.cmd; pnpm on
+//     every OS) naming node_modules/@openai/codex (agentio.ShimTarget);
+//   - a bun bin dir (~/.bun/bin/codex[.exe]) whose package is in
+//     ~/.bun/install/global/node_modules/@openai/codex;
+//   - a Volta bin dir (~/.volta/bin, %LOCALAPPDATA%\Volta\bin);
+//   - a Homebrew cask (/Caskroom/) or formula (/Cellar/codex/<version>/);
+//   - the standalone installer (packages/standalone).
+//
+// Never runs codex. ErrNotInstalled when no PATH entry has it. Disk · Read.
 func (a *Agent) Install() (Install, error) {
-	pathList, _ := lookupEnv(a.host.Env, envPath)
-	hits := agentio.LookPathAll(pathList, Binary)
+	hits := a.host.LookPathAll(Binary)
 	if len(hits) == 0 {
 		return Install{}, fmt.Errorf("%w: %s", agentio.ErrNotInstalled, Binary)
 	}
@@ -59,29 +73,93 @@ func (a *Agent) Install() (Install, error) {
 		real = hits[0]
 	}
 	in.RealPath = real
-	slashed := filepath.ToSlash(real)
-	switch {
-	case strings.Contains(slashed, nodeModulesMarker):
-		i := strings.Index(slashed, nodeModulesMarker)
-		in.PackageRoot = filepath.FromSlash(slashed[:i+len(nodeModulesMarker)])
-		in.Method = agentio.InstallNPM
-		switch {
-		case strings.Contains(slashed, bunMarker):
-			in.Method = agentio.InstallBun
-		case strings.Contains(slashed, pnpmMarker):
-			in.Method = agentio.InstallPNPM
-		}
+	detectInstall(&in, hits[0], real)
+	if in.PackageRoot != "" && in.Version.IsZero() {
 		in.Version = packageVersion(filepath.Join(in.PackageRoot, filePackageJSON))
-	case strings.Contains(slashed, fileCaskroom):
-		in.Method = agentio.InstallBrew
-	case strings.Contains(slashed, dirStandalone):
-		in.Method = agentio.InstallStandalone
 	}
 	return in, nil
 }
 
+// detectInstall fills Method and PackageRoot (and Version for a Homebrew
+// formula) from the PATH hit and its resolved path. Disk · Read (shim and
+// package dir checks).
+func detectInstall(in *Install, hit, real string) {
+	if root, ok := npmPackageRoot(real); ok {
+		in.PackageRoot, in.Method = root, npmFamily(filepath.ToSlash(real))
+		return
+	}
+	if target, ok := agentio.ShimTarget(hit); ok {
+		if root, ok := npmPackageRoot(target); ok {
+			in.PackageRoot, in.Method = root, npmFamily(filepath.ToSlash(target)+" "+filepath.ToSlash(hit))
+			return
+		}
+	}
+	binDir := filepath.Dir(hit)
+	switch base := strings.ToLower(filepath.Base(filepath.Dir(binDir))); {
+	case base == dirBunHome && strings.EqualFold(filepath.Base(binDir), dirBin):
+		in.Method = agentio.InstallBun
+		in.PackageRoot = filepath.Join(filepath.Dir(binDir), "install", "global", "node_modules", "@openai", "codex")
+		return
+	case (base == dirVoltaHome || base == dirVoltaHomeWindows) && strings.EqualFold(filepath.Base(binDir), dirBin):
+		in.Method = agentio.InstallVolta
+		in.PackageRoot = voltaPackageRoot(filepath.Dir(binDir))
+		return
+	}
+	slashed := filepath.ToSlash(real)
+	switch {
+	case strings.Contains(slashed, fileCaskroom):
+		in.Method = agentio.InstallBrew
+	case strings.Contains(slashed, dirCellarCodex):
+		in.Method = agentio.InstallBrew
+		rest := slashed[strings.Index(slashed, dirCellarCodex)+len(dirCellarCodex):]
+		v, _, _ := strings.Cut(rest, "/")
+		in.Version, _ = agentio.ParseVersion(v)
+	case strings.Contains(slashed, dirStandalone):
+		in.Method = agentio.InstallStandalone
+	}
+}
+
+// npmPackageRoot returns the node_modules/@openai/codex dir that p is
+// inside, with OS separators. Pure.
+func npmPackageRoot(p string) (string, bool) {
+	slashed := filepath.ToSlash(p)
+	i := strings.Index(slashed, nodeModulesMarker)
+	if i < 0 {
+		return "", false
+	}
+	return filepath.FromSlash(slashed[:i+len(nodeModulesMarker)]), true
+}
+
+// npmFamily names which npm-style manager owns a path (bun and pnpm keep
+// their globals under their own dirs; everything else, nvm included, is
+// npm). Pure.
+func npmFamily(slashed string) agentio.InstallMethod {
+	switch {
+	case strings.Contains(slashed, bunMarker):
+		return agentio.InstallBun
+	case strings.Contains(strings.ToLower(slashed), pnpmMarker):
+		return agentio.InstallPNPM
+	}
+	return agentio.InstallNPM
+}
+
+// voltaPackageRoot is where Volta keeps a global package: under
+// tools/image/packages/<pkg>, in lib/node_modules on unix and node_modules
+// on Windows (Volta docs, "Volta directory layout"). The first that holds a
+// package.json wins; "" when neither does. Disk · Read.
+func voltaPackageRoot(voltaHome string) string {
+	base := filepath.Join(voltaHome, "tools", "image", "packages", "@openai", "codex")
+	for _, sub := range [][]string{{"lib", "node_modules"}, {"node_modules"}} {
+		p := filepath.Join(append(append([]string{base}, sub...), "@openai", "codex")...)
+		if _, err := os.Stat(filepath.Join(p, filePackageJSON)); err == nil {
+			return p
+		}
+	}
+	return ""
+}
+
 func packageVersion(path string) agentio.Version {
-	b, err := os.ReadFile(path)
+	b, err := readFile(path)
 	if err != nil {
 		return agentio.Version{}
 	}
@@ -102,6 +180,7 @@ const (
 	toolBun     = "bun"
 	toolPNPM    = "pnpm"
 	toolBrew    = "brew"
+	toolVolta   = "volta"
 	argInstall  = "install"
 	argAdd      = "add"
 	argGlobal   = "-g"
@@ -113,8 +192,9 @@ const (
 
 // UpdateCommand is the vendor's own update command for the codex on Host
 // PATH: the install method comes from Install, and the package manager
-// (npm, bun, pnpm, brew) is resolved on Host PATH like every binary the
-// library names, never left as a bare name. ErrNotInstalled when codex or
+// (npm, bun, pnpm, brew, volta) is resolved on Host PATH under Host.GOOS's
+// rules (npm.cmd on Windows) like every binary the library names, never
+// left as a bare name. A Homebrew formula install upgrades without --cask. ErrNotInstalled when codex or
 // the package manager is not on PATH; ErrUnsupported for a standalone or
 // unknown install (standalone re-runs the installer script, not modelled).
 // Never run by the library. cost: Disk · Read (PATH walk, symlink and
@@ -135,15 +215,20 @@ func (a *Agent) UpdateCommand() (agentio.Command, error) {
 		tool, args = toolPNPM, []string{argAdd, argGlobal, npmPkg}
 	case agentio.InstallBrew:
 		tool, args = toolBrew, []string{argUpgrade, argCask, Binary}
+		if strings.Contains(filepath.ToSlash(in.RealPath), dirCellarCodex) {
+			// a Homebrew formula (Cellar), not the cask: no --cask
+			tool, args = toolBrew, []string{argUpgrade, Binary}
+		}
+	case agentio.InstallVolta:
+		tool, args = toolVolta, []string{argInstall, npmPkg}
 	default:
 		return agentio.Command{}, agentio.UnsupportedError(ID, whatUpdate, reasonNoCmd+string(in.Method))
 	}
-	pathList, _ := lookupEnv(a.host.Env, envPath)
-	path, err := agentio.LookPath(pathList, tool)
+	path, err := a.host.LookPath(tool)
 	if err != nil {
 		return agentio.Command{}, fmt.Errorf("codex: update with %s: %w", tool, err)
 	}
-	return agentio.NewCommand(path, args, a.host.Env, ""), nil
+	return a.host.NewCommand(path, args, ""), nil
 }
 
 // UpdateCache is <home>/version.json, written only by the TUI's startup
@@ -164,7 +249,7 @@ type updateCacheWire struct {
 
 // UpdateCache reads version.json; found=false when absent. Disk · Read.
 func (a *Agent) UpdateCache(h Home) (UpdateCache, bool, error) {
-	b, err := os.ReadFile(a.Paths(h).VersionCache)
+	b, err := readFile(a.Paths(h).VersionCache)
 	if errors.Is(err, fs.ErrNotExist) {
 		return UpdateCache{}, false, nil
 	}

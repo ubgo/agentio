@@ -266,7 +266,7 @@ func newestSubdir(dir string) (string, bool) {
 
 func readPlugin(vdir, market, name string, cfg Config) Plugin {
 	pl := Plugin{Name: name, Marketplace: market, Version: filepath.Base(vdir), Dir: vdir}
-	if b, err := os.ReadFile(filepath.Join(vdir, filePluginManifest)); err == nil {
+	if b, err := readFile(filepath.Join(vdir, filePluginManifest)); err == nil {
 		var w pluginManifestWire
 		if json.Unmarshal(b, &w) == nil {
 			if w.Name != "" {
@@ -283,7 +283,7 @@ func readPlugin(vdir, market, name string, cfg Config) Plugin {
 			pl.Unknown, _ = agentio.ExtractUnknown(b, pluginManifestKnownKeys())
 		}
 	}
-	if b, err := os.ReadFile(filepath.Join(vdir, fileRemoteInstall)); err == nil {
+	if b, err := readFile(filepath.Join(vdir, fileRemoteInstall)); err == nil {
 		var w remoteInstallWire
 		if json.Unmarshal(b, &w) == nil {
 			pl.RemoteID = w.RemotePluginID

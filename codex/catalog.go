@@ -214,7 +214,7 @@ const jsonNull = "null"
 
 // Models reads models_cache.json. Disk · Read.
 func (a *Agent) Models(h Home) (ModelCatalog, error) {
-	b, err := os.ReadFile(a.Paths(h).ModelsCache)
+	b, err := readFile(a.Paths(h).ModelsCache)
 	if err != nil {
 		return ModelCatalog{}, fmt.Errorf("codex: read %s: %w", fileModelsCache, err)
 	}

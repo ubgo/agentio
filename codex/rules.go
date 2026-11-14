@@ -82,7 +82,7 @@ func (a *Agent) Rules(h Home, dir string) ([]PrefixRule, []RuleParseIssue, error
 		sort.Strings(names)
 		for _, n := range names {
 			path := filepath.Join(d, n)
-			b, err := os.ReadFile(path)
+			b, err := readFile(path)
 			if err != nil {
 				return nil, nil, fmt.Errorf("codex: read %s: %w", path, err)
 			}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -49,6 +50,9 @@ func (a *Agent) Checks(ctx context.Context, h Home) []agentio.Check {
 		out = append(out, agentio.Check{ID: CheckConfigParse, Status: agentio.CheckWarn, Message: fmt.Sprintf("%d config.toml key(s) changed type; kept raw", len(warns))})
 	default:
 		out = append(out, agentio.Check{ID: CheckConfigParse, Status: agentio.CheckOK, Message: a.Paths(h).Config})
+	}
+	if c, ok := a.providerKeyCheck(cfg); ok {
+		out = append(out, c)
 	}
 	out = append(out, a.loginCheck(ctx, h))
 	if c, ok := a.profileCheck(h, cfg); ok {
@@ -218,4 +222,26 @@ func (a *Agent) profileCheck(h Home, cfg Config) (agentio.Check, bool) {
 		msg += "; v2 file(s) already collide: " + strings.Join(clash, ", ")
 	}
 	return agentio.Check{ID: CheckProfileConflict, Status: agentio.CheckWarn, Message: msg}, true
+}
+
+// providerKeyCheck warns (api-billing-env) when a variable that is set in
+// Host.Env is the env_key of a configured model provider: that provider
+// then authenticates with the key and bills per token. This is how
+// OPENAI_API_KEY affects Codex at all (rust-v0.162.1 auth never reads it).
+// Names only, never the value. Pure.
+func (a *Agent) providerKeyCheck(cfg Config) (agentio.Check, bool) {
+	var hits []string
+	for _, name := range slices.Sorted(maps.Keys(cfg.ModelProviders)) {
+		key, ok := cfg.ModelProviders[name].EnvKey.Get()
+		if !ok || key == "" {
+			continue
+		}
+		if v, set := a.host.Getenv(key); set && v != "" {
+			hits = append(hits, key+" (model provider "+name+")")
+		}
+	}
+	if len(hits) == 0 {
+		return agentio.Check{}, false
+	}
+	return agentio.Check{ID: agentio.CheckAPIBillingEnv, Status: agentio.CheckWarn, Message: strings.Join(hits, ", ") + " set: that provider bills per token"}, true
 }
