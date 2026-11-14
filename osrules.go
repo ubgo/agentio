@@ -12,7 +12,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"path/filepath"
+	"path"
 	"runtime"
 	"slices"
 	"strings"
@@ -101,13 +101,17 @@ func LookPathAllFor(goos, pathList, pathExt, name string) []string {
 // cannot store exec bits (Windows), without weakening the rule.
 type statFunc func(string) (os.FileInfo, error)
 
-// lookPathAll is LookPathAllFor with the stat seam.
+// lookPathAll is LookPathAllFor with the stat seam. Every step uses goos's
+// path syntax, never the runner's filepath: which entries count as
+// absolute (isAbsFor) and how a dir and a file name are joined (joinFor).
+// A rule therefore gives the same answer on every host, and a Windows
+// rooted entry such as \tools is not dropped as relative.
 func lookPathAll(goos, pathList, pathExt, name string, stat statFunc) []string {
 	if name == "" {
 		return nil
 	}
 	cands := lookCandidates(goos, pathExt, name)
-	if filepath.IsAbs(name) {
+	if isAbsFor(goos, name) {
 		var out []string
 		for _, c := range cands {
 			if runnableOn(goos, c, stat) {
@@ -118,11 +122,15 @@ func lookPathAll(goos, pathList, pathExt, name string, stat statFunc) []string {
 	}
 	var out []string
 	for _, dir := range strings.Split(pathList, PathListSeparatorFor(goos)) {
+		if goos == OSWindows {
+			// Windows PATH entries may be quoted ("C:\Program Files\x").
+			dir = strings.Trim(dir, `"`)
+		}
 		if dir == "" || !isAbsFor(goos, dir) {
 			continue
 		}
 		for _, c := range cands {
-			p := filepath.Join(dir, c)
+			p := joinFor(goos, dir, c)
 			if runnableOn(goos, p, stat) && !slices.Contains(out, p) {
 				out = append(out, p)
 			}
@@ -131,10 +139,28 @@ func lookPathAll(goos, pathList, pathExt, name string, stat statFunc) []string {
 	return out
 }
 
+// joinFor joins a PATH dir and a file name with goos's syntax. POSIX uses
+// package path. Windows accepts both separators, so the name is joined with
+// the separator the entry itself uses (backslash unless the entry has only
+// forward slashes): C:\bin + codex.cmd is C:\bin\codex.cmd, and a forward
+// slash entry (a fixture dir when the Windows rule runs on Linux in tests)
+// stays openable there. Pure.
+func joinFor(goos, dir, name string) string {
+	if goos != OSWindows {
+		return path.Join(dir, name)
+	}
+	sep := `\`
+	if !strings.Contains(dir, `\`) && strings.Contains(dir, "/") {
+		sep = "/"
+	}
+	return strings.TrimRight(dir, `\/`) + sep + name
+}
+
 // lookCandidates are the file names tried for name: name itself, plus on
 // Windows name+ext for each PATHEXT extension when name has none.
 func lookCandidates(goos, pathExt, name string) []string {
-	if goos != OSWindows || filepath.Ext(name) != "" {
+	base := name[strings.LastIndexAny(name, `\/`)+1:]
+	if goos != OSWindows || path.Ext(base) != "" {
 		return []string{name}
 	}
 	if pathExt == "" {
@@ -159,18 +185,16 @@ func runnableOn(goos, p string, stat statFunc) bool {
 	return goos == OSWindows || fi.Mode().Perm()&execBits != 0
 }
 
-// isAbsFor reports an absolute directory for goos. A Windows path such as
-// C:\bin or \\server\share is absolute there even when the program runs
-// elsewhere (tests); a "/..." path is accepted on every OS so fixture dirs
-// work in a Windows-rule test on Linux.
-func isAbsFor(goos, dir string) bool {
-	if filepath.IsAbs(dir) || strings.HasPrefix(dir, "/") {
-		return true
-	}
+// isAbsFor reports an absolute (or, on Windows, rooted) path for goos.
+// POSIX: starts with "/". Windows: a drive path (C:\bin, C:/bin), a UNC
+// path (\\server\share) or a rooted path without a drive (\bin, /bin),
+// which Windows resolves on the current drive and never against the
+// current directory, so it is as safe as an absolute entry. Pure.
+func isAbsFor(goos, p string) bool {
 	if goos != OSWindows {
-		return false
+		return strings.HasPrefix(p, "/")
 	}
-	return windowsAbs(dir)
+	return windowsAbs(p) || strings.HasPrefix(p, `\`) || strings.HasPrefix(p, "/")
 }
 
 // windowsAbs reports a drive-letter path (C:\x, C:/x) or a UNC path.

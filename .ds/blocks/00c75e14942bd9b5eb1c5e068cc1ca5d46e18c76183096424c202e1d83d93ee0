@@ -1,0 +1,3 @@
+func LookPathAll(pathList, name string) []string {
+	return LookPathAllFor(runtime.GOOS, pathList, "", name)
+}

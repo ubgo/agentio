@@ -680,7 +680,7 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), whi
 <!-- ds:def id=installmethod-isknown-yqgegrt9 file=capability.go pick=symbol:InstallMethod.IsKnown owner=@khanakia -->
 <!-- ds:def id=installmethodvalues-ru5s5eaq file=capability.go pick=symbol:InstallMethodValues owner=@khanakia -->
 <!-- ds:def id=instructionscopenames-ncxf2q89 file=enums.go pick=symbol:instructionScopeNames owner=@khanakia -->
-<!-- ds:def id=isexecutable-395kvm4u file=core.go pick=symbol:isExecutable owner=@khanakia -->
+<!-- ds:def id=isexecutable-395kvm4u file=osrules.go pick=symbol:runnableOn owner=@khanakia -->
 <!-- ds:def id=jsonkeys-pjrw66pn file=value.go pick=symbol:JSONKeys owner=@khanakia -->
 <!-- ds:def id=loginflownames-a7bkqn6w file=enums.go pick=symbol:loginFlowNames owner=@khanakia -->
 <!-- ds:def id=lookpath-f56nfyzk file=core.go pick=symbol:LookPath owner=@khanakia -->

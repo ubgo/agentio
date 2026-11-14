@@ -49,18 +49,19 @@ func TestEnvNamesFoldOnWindows(t *testing.T) {
 
 // TestLookPathPerOS: Windows splits PATH on ';', tries PATHEXT extensions
 // for a bare name (codex.cmd from npm, claude.exe from the native
-// installer) and needs no exec bit; unix needs the exec bit and splits on
-// ':'. The rules run on a fake stat, so a case means the same on every OS
-// (a Windows filesystem cannot store exec bits); Host.LookPath then runs
-// the Windows rule on real files.
+// installer), needs no exec bit and accepts rooted entries without a drive
+// (\pa); unix needs the exec bit and splits on ':'. The rules run on a fake
+// stat keyed by each rule's own path syntax, written literally (never with
+// the runner's filepath), so a case means the same on every OS; Host.LookPath
+// then runs the Windows rule on real files.
 func TestLookPathPerOS(t *testing.T) {
 	t.Parallel()
-	a, b := filepath.FromSlash("/pa"), filepath.FromSlash("/pb")
 	files := map[string]os.FileMode{
-		filepath.Join(a, "codex.cmd"):  0o644,
-		filepath.Join(b, "claude.exe"): 0o644,
-		filepath.Join(b, "codex"):      0o755,
-		filepath.Join(a, "claude"):     0o644, // no exec bit: never a unix hit
+		`\pa\codex.cmd`:    0o644,
+		`\pb\claude.exe`:   0o644,
+		`C:\pc\gemini.cmd`: 0o644,
+		"/pb/codex":        0o755,
+		"/pa/claude":       0o644, // no exec bit: never a unix hit
 	}
 	base, err := os.Stat(t.TempDir())
 	if err != nil {
@@ -76,11 +77,13 @@ func TestLookPathPerOS(t *testing.T) {
 		goos, list, ext, name string
 		want                  []string
 	}{
-		{OSWindows, a + ";" + b, "", "codex", []string{filepath.Join(a, "codex.cmd")}},
-		{OSWindows, a + ";" + b, ".EXE;.CMD", "claude", []string{filepath.Join(b, "claude.exe")}},
-		{OSLinux, a + ":" + b, "", "codex", []string{filepath.Join(b, "codex")}},
-		{OSLinux, a + ":" + b, "", "claude", nil},
-		{OSDarwin, a + ":" + b, "", "codex", []string{filepath.Join(b, "codex")}},
+		{OSWindows, `\pa;\pb`, "", "codex", []string{`\pa\codex.cmd`}},
+		{OSWindows, `\pa;\pb`, ".EXE;.CMD", "claude", []string{`\pb\claude.exe`}},
+		{OSWindows, `relative;C:\pc\`, "", "gemini", []string{`C:\pc\gemini.cmd`}},
+		{OSLinux, "/pa:/pb", "", "codex", []string{"/pb/codex"}},
+		{OSLinux, "/pa:/pb", "", "claude", nil},
+		{OSLinux, "relative:/pb", "", "codex", []string{"/pb/codex"}},
+		{OSDarwin, "/pa:/pb", "", "codex", []string{"/pb/codex"}},
 	} {
 		if got := lookPathAll(tc.goos, tc.list, tc.ext, tc.name, stat); !slices.Equal(got, tc.want) {
 			t.Errorf("%s %s = %v, want %v", tc.goos, tc.name, got, tc.want)
@@ -276,7 +279,11 @@ func TestResolveHomeDirPerOS(t *testing.T) {
 		{OSWindows, `C:\Users\u`, `\work\h`, `C:\work\h`},
 		{OSWindows, `\\srv\share\u`, `\work\h`, `\\srv\share\work\h`},
 		{OSWindows, `C:\Users\u`, `D:\h`, `D:\h`},
+		{OSWindows, `C:\Users\u`, `.claude-w`, `C:\Users\u\.claude-w`},
+		{OSWindows, `C:\Users\u`, `/work/h`, `C:\work\h`},
 		{OSLinux, "/home/u", "/work/h", "/work/h"},
+		{OSLinux, "/home/u", ".claude-w", "/home/u/.claude-w"},
+		{OSDarwin, "/Users/u", "/work/h", "/work/h"},
 	} {
 		if got := resolveHomeDir(tc.goos, tc.home, tc.dir); got != tc.want {
 			t.Errorf("%s %q in %q = %q, want %q", tc.goos, tc.dir, tc.home, got, tc.want)

@@ -89,7 +89,7 @@ The three interfaces are small enough to implement yourself (for example over a 
 
 ## Step 3 — Find a binary on PATH
 
-agentio finds a binary by walking the `PATH` value itself. It never asks a shell, because a shell may answer with an alias or a function wrapper instead of a file. [`LookPath`](ds:block?id=lookpath-f56nfyzk) returns the first regular executable file, [`LookPathAll`](ds:block?id=lookpathall-u48etgc3) every hit in order (the first is what runs, the rest are shadowed copies):
+agentio finds a binary by walking the `PATH` value itself. It never asks a shell, because a shell may answer with an alias or a function wrapper instead of a file. [`LookPath`](ds:block?id=lookpath-f56nfyzk) returns the first runnable file under the running OS's rules (a regular file with an exec bit; on Windows any regular file, with the `PATHEXT` extensions tried for a bare name), [`LookPathAll`](ds:block?id=lookpathall-u48etgc3) every hit in order (the first is what runs, the rest are shadowed copies):
 
 <!-- snippet: examples/quickstart/main.go#find-binary -->
 ```go
@@ -153,7 +153,8 @@ empty PATH: agentio: binary not found on PATH: claude
 - **Only [`HostFromOS`](ds:block?id=hostfromos-yvmqkxwe) reads the real machine.** If a test sees your real homes, something called it; build the Host by hand or with `agenttest.NewHost`.
 - **PATH lookups [skip empty and relative entries](ds:block?id=lookpathall-u48etgc3).** An empty `PATH` element means "current dir" to a shell; agentio never runs a binary from the current dir, so `PATH=:/usr/bin` only searches `/usr/bin`.
 - **[An absolute name is checked as is.](ds:block?id=lookpathall-u48etgc3)** `LookPath(path, "/opt/claude/bin/claude")` ignores `PATH` and only checks that file.
-- **[A file must be executable to count.](ds:block?id=isexecutable-395kvm4u)** A non-executable `claude` file earlier on PATH is skipped, the same as the shell does.
+- **[A file must be runnable to count.](ds:block?id=isexecutable-395kvm4u)** A non-executable `claude` file earlier on PATH is skipped, the same as the shell does. Windows has no exec bit, so there any regular file counts, and `codex` finds `codex.cmd` (npm) or `claude.exe` (native installer) through `PATHEXT`.
+- **Windows PATH entries may be rooted or quoted.** An entry without a drive (`\tools`) is on the current drive, never relative to the current dir, so it is searched; quotes around an entry (`"C:\Program Files\nodejs"`) are removed first.
 - **Env names follow `Host.GOOS`.** On Windows `Host.Getenv("PATH")` also finds `Path=...`, and a Command built for a windows Host removes every spelling of a name it changes (`EnvLookupFor`, `ApplyEnvFor`); elsewhere names are case-sensitive.
 - **Duplicate env entries: the last wins.** [`EnvLookup`](ds:block?id=envlookup-ef3y8bwk) and `Getenv` return the last `K=` entry; [`ApplyEnv`](ds:block?id=applyenv-9fc572ee) removes every duplicate when it changes a name ([Targets and commands](launch.md#step-4--change-the-child-environment)).
 - **System locations need `GOOS` and `SystemRoot`.** [Only `HostFromOS` fills them](ds:block?id=hostfromos-yvmqkxwe), so a Host you build yourself never reads `/etc/claude-code` or `/etc/codex` and fixture output cannot change with the machine. To test managed files, put them under a temp dir and pass [`agenttest.WithSystem("linux", dir)`](ds:block?id=agenttest-withsystem-dpvygedy).

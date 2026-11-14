@@ -364,7 +364,7 @@ func TestLookPath(t *testing.T) {
 	list := strings.Join([]string{"", "relative", dir1, dir2}, string(os.PathListSeparator))
 	all := agentio.LookPathAll(list, "toy")
 	if len(all) != 2 || all[0] != filepath.Join(dir1, toy) {
-		t.Errorf("LookPathAll = %v", all)
+		t.Fatalf("LookPathAll = %v, want [%s %s]", all, filepath.Join(dir1, toy), filepath.Join(dir2, toy))
 	}
 	if _, err := agentio.LookPath(list, "noexec"); !errors.Is(err, agentio.ErrNotInstalled) {
 		t.Errorf("non-executable: %v", err)

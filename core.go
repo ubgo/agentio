@@ -7,7 +7,9 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 )
@@ -50,10 +52,12 @@ func (c *Core) LookPath() (string, error) { return c.host.LookPath(c.spec.Binary
 const envPath = "PATH"
 
 // LookPath finds name in the PATH value pathList (os.PathListSeparator
-// separated), returning the first regular executable file. Empty entries
-// ("." by shell convention) are skipped: running a binary from the
-// current dir is never intended here. An absolute name is checked as is.
-// Disk · Read.
+// separated), returning the first runnable file under the running OS's
+// rules (LookPathAllFor with runtime.GOOS): on Windows PATHEXT's default
+// extensions are tried and no exec bit is needed; elsewhere a regular
+// file with an exec bit. Empty and relative entries ("." by shell
+// convention) are skipped: running a binary from the current dir is never
+// intended here. An absolute name is checked as is. Disk · Read.
 func LookPath(pathList, name string) (string, error) {
 	if all := LookPathAll(pathList, name); len(all) > 0 {
 		return all[0], nil
@@ -62,38 +66,15 @@ func LookPath(pathList, name string) (string, error) {
 }
 
 // LookPathAll returns every PATH hit for name in order (the first is what
-// runs; the rest are shadowed copies). Disk · Read.
+// runs; the rest are shadowed copies), under the running OS's rules. It
+// reads no environment: on Windows the default PATHEXT is used (use
+// Host.LookPathAll for the Host's PATHEXT). Disk · Read.
 func LookPathAll(pathList, name string) []string {
-	if name == "" {
-		return nil
-	}
-	if filepath.IsAbs(name) {
-		if isExecutable(name) {
-			return []string{name}
-		}
-		return nil
-	}
-	var out []string
-	for _, dir := range filepath.SplitList(pathList) {
-		if dir == "" || !filepath.IsAbs(dir) {
-			continue
-		}
-		p := filepath.Join(dir, name)
-		if isExecutable(p) && !slices.Contains(out, p) {
-			out = append(out, p)
-		}
-	}
-	return out
+	return LookPathAllFor(runtime.GOOS, pathList, "", name)
 }
 
 // execBits are the permission bits that make a file runnable by someone.
 const execBits = 0o111
-
-// isExecutable reports a regular file (after symlinks) with an exec bit.
-func isExecutable(p string) bool {
-	fi, err := os.Stat(p)
-	return err == nil && fi.Mode().IsRegular() && fi.Mode().Perm()&execBits != 0
-}
 
 // DefaultHomeName is the Name of every default home.
 const DefaultHomeName = "personal"
@@ -123,19 +104,29 @@ func (c *Core) HomeAt(dir string) Home {
 	return NewHome(c.spec.ID, dir, false, c.homeName(dir))
 }
 
-// resolveHomeDir makes a home variable's value absolute the way the OS
+// resolveHomeDir makes a home variable's value absolute the way goos
 // would: a relative dir is under userHome; on Windows a rooted dir without
 // a drive (\work\h, /work/h) is on the drive of userHome (Windows resolves
 // it against the current drive, which for a user's tools is that one), not
-// under userHome. Pure.
+// under userHome. Each OS rule uses that OS's path syntax (package path
+// for POSIX, backslash rules for Windows), never the runner's filepath, so
+// the rules give the same answer on every host. HomeAt then cleans the
+// result with filepath for the host it runs on. Pure.
 func resolveHomeDir(goos, userHome, dir string) string {
-	if filepath.IsAbs(dir) || (goos == OSWindows && windowsAbs(dir)) {
+	if goos != OSWindows {
+		if path.IsAbs(dir) {
+			return dir
+		}
+		return path.Join(userHome, dir)
+	}
+	if windowsAbs(dir) {
 		return dir
 	}
-	if goos == OSWindows && (strings.HasPrefix(dir, `\`) || strings.HasPrefix(dir, "/")) {
-		return windowsVolume(userHome) + filepath.FromSlash(dir)
+	win := strings.ReplaceAll(dir, "/", `\`)
+	if strings.HasPrefix(win, `\`) {
+		return windowsVolume(userHome) + win
 	}
-	return filepath.Join(userHome, dir)
+	return strings.TrimRight(userHome, `\/`) + `\` + win
 }
 
 // homeName derives "work" from ~/.claude-work, else the base without a dot.

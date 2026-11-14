@@ -1,0 +1,7 @@
+func runnableOn(goos, p string, stat statFunc) bool {
+	fi, err := stat(p)
+	if err != nil || !fi.Mode().IsRegular() {
+		return false
+	}
+	return goos == OSWindows || fi.Mode().Perm()&execBits != 0
+}
