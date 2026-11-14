@@ -308,7 +308,7 @@ Areas follow the library's layers: L1 is the neutral core every agent shares, L2
 
 | Feature | Package | Guide | Example |
 |---|---|---|---|
-| `state.Open`, `DB`, `DB.Path`, `DB.Close`, `DB.SchemaVersion`, `File`, `ErrSchemaTooNew`, `SchemaTooNewError` | `codex/state` | [Codex SQLite state (codex/state)](../codex/state.md#step-1--open-the-state-database) | [codexstate](../../examples/codexstate/) |
+| `state.Open`, `DB`, `DB.Path`, `DB.Close`, `DB.SchemaVersion`, `File`, `ErrSchemaTooNew`, `SchemaTooNewError`, `ErrNoPath`, `NoPathError` | `codex/state` | [Codex SQLite state (codex/state)](../codex/state.md#step-1--open-the-state-database) | [codexstate](../../examples/codexstate/) |
 | `DB.Threads`, `DB.Thread`, `Thread`, `ThreadStatusFilter`, `Thread.Conversation`, `DB.SubAgents`, `SpawnEdge`, `DB.Projects` | `codex/state` | [Codex SQLite state (codex/state)](../codex/state.md#step-2--list-threads) | [codexstate](../../examples/codexstate/) |
 | `DB.Turns`, `Turn`, `DB.Items`, `Item`, `ItemType` | `codex/state` | [Codex SQLite state (codex/state)](../codex/state.md#step-3--read-turns-and-items) | [codexstate](../../examples/codexstate/) |
 | `DB.Goal`, `DB.Queue`, `DB.Memories`, `DB.MemoryJobs`, `DB.Logs`, `LogQuery`, `LogLine` | `codex/state` | [Codex SQLite state (codex/state)](../codex/state.md#step-4--read-goals-queue-memories-and-logs) | [codexstate](../../examples/codexstate/) |

@@ -138,8 +138,10 @@ type DB struct {
 
 // Open prepares a DB over the SQLite files named in p (Paths or PathsWith,
 // so CODEX_SQLITE_HOME / sqlite_home are honoured). Nothing is read until a
-// query runs. Pure (Disk · Read on first query).
-func Open(p codex.Paths) (*DB, error) {
+// query runs, and only the stores a caller queries need a path: a store
+// whose path is "" fails with *NoPathError (ErrNoPath) when it is used,
+// never at Open. Pure (Disk · Read on first query).
+func Open(p codex.Paths) *DB {
 	d := &DB{cols: map[string]map[string]bool{}}
 	d.paths[FileState] = p.StateDB
 	d.paths[FileThreadHistory] = p.ThreadHistoryDB
@@ -147,13 +149,23 @@ func Open(p codex.Paths) (*DB, error) {
 	d.paths[FileQueue] = p.QueueDB
 	d.paths[FileMemories] = p.MemoriesDB
 	d.paths[FileLogs] = p.LogsDB
-	for f, path := range d.paths {
-		if path == "" {
-			return nil, fmt.Errorf("codex/state: no path for %s", File(f))
-		}
-	}
-	return d, nil
+	return d
 }
+
+// ErrNoPath matches every *NoPathError.
+var ErrNoPath = errors.New("codex/state: no path for store")
+
+// NoPathError is a query on a store Open was given no path for. It
+// matches errors.Is(err, ErrNoPath).
+type NoPathError struct {
+	File File
+}
+
+// Error names the store. Pure.
+func (e *NoPathError) Error() string { return fmt.Sprintf("codex/state: no path for %s", e.File) }
+
+// Is matches ErrNoPath. Pure.
+func (e *NoPathError) Is(target error) bool { return target == ErrNoPath }
 
 // Path returns the file path behind f. Pure.
 func (d *DB) Path(f File) string {
@@ -188,8 +200,9 @@ func dsn(path string) string {
 	return u.String()
 }
 
-// conn opens f once. A missing file is reported as os.ErrNotExist rather
-// than letting SQLite fail with a generic "unable to open".
+// conn opens f once. A store without a path is *NoPathError; a missing
+// file is reported as os.ErrNotExist rather than letting SQLite fail with a
+// generic "unable to open".
 func (d *DB) conn(f File) (*sql.DB, error) {
 	if f >= fileCount {
 		return nil, fmt.Errorf("codex/state: unknown file %d", uint8(f))
@@ -198,6 +211,9 @@ func (d *DB) conn(f File) (*sql.DB, error) {
 	defer d.mu.Unlock()
 	if c := d.conns[f]; c != nil {
 		return c, nil
+	}
+	if d.paths[f] == "" {
+		return nil, &NoPathError{File: f}
 	}
 	if _, err := os.Stat(d.paths[f]); err != nil {
 		return nil, fmt.Errorf("codex/state: %s: %w", f, err)

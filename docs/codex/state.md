@@ -12,7 +12,7 @@ The snippets come from [`examples/codexstate`](../../examples/codexstate/). No d
 
 ## Step 1 — Open the state database
 
-`state.Open(paths)` prepares a `*state.DB` and reads nothing: each file is opened read-only on its first query, so listing threads never touches the logs store (tens of MB on a real machine). `DB.Path(f)` is the file behind a `state.File` (`FileState`, `FileThreadHistory`, `FileGoals`, `FileQueue`, `FileMemories`, `FileLogs`), `DB.SchemaVersion(ctx, f)` the newest applied migration, `f.MaxKnownMigration()` the newest one this library was written against, and `DB.Close` releases every connection. A store whose schema is newer fails with a `*state.SchemaTooNewError` (matching `state.ErrSchemaTooNew`) instead of guessing at renamed columns.
+`state.Open(paths)` prepares a `*state.DB` and reads nothing: each file is opened read-only on its first query, so listing threads never touches the logs store (tens of MB on a real machine). Only the stores you query need a path: a store whose path is empty fails with a `*state.NoPathError` (matching `state.ErrNoPath`) when you use it, never at `Open`, so `state.Open(codex.Paths{StateDB: p})` is enough to list threads. `DB.Path(f)` is the file behind a `state.File` (`FileState`, `FileThreadHistory`, `FileGoals`, `FileQueue`, `FileMemories`, `FileLogs`), `DB.SchemaVersion(ctx, f)` the newest applied migration, `f.MaxKnownMigration()` the newest one this library was written against, and `DB.Close` releases every connection. A store whose schema is newer fails with a `*state.SchemaTooNewError` (matching `state.ErrSchemaTooNew`) instead of guessing at renamed columns.
 
 <!-- snippet: examples/codexstate/main.go#open -->
 ```go
@@ -25,10 +25,7 @@ func openState(w io.Writer, a *codex.Agent) (*state.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db, err := state.Open(a.PathsWith(h, cfg))
-	if err != nil {
-		return nil, err
-	}
+	db := state.Open(a.PathsWith(h, cfg))
 	ctx := context.Background()
 	for _, f := range []state.File{state.FileState, state.FileThreadHistory, state.FileLogs} {
 		v, err := db.SchemaVersion(ctx, f)
@@ -237,6 +234,7 @@ log 2026-10-26T07:33:30Z WARN codex_core "slow tool call"
 
 - **Read-only, always.** Every connection is opened read-only with `query_only`; nothing here writes. Archive, delete and queue changes go through Codex's own commands ([launch](launch.md#step-3--build-archive-delete-and-queue-commands)), because Codex keeps rollouts, threads and thread history consistent itself.
 - **WAL is honoured, `immutable` is never used.** Codex writes these files live in WAL mode; an immutable open would skip the WAL and miss the newest rows. Expect to see rows Codex wrote a moment ago.
+- **`Open` cannot fail; a missing path fails on use.** `Open` returns only a `*DB`. A store you gave no path for is `*state.NoPathError` (`errors.Is(err, state.ErrNoPath)`) on its first query; a path to a file that does not exist wraps `fs.ErrNotExist`.
 - **A newer Codex can stop the reader.** When Codex upgrades a store past `MaxKnownMigration` (0059 for state, 0008 for thread history, 0002 for the others at Codex 0.162.1), queries on that store return `*SchemaTooNewError` until this library is updated. Other stores keep working.
 - **Older schemas still read.** Columns added by later migrations come back as zero, nil or their default (for example `HistoryMode` legacy, `Model` nil); `Projects` and `SubAgents` return nil on a schema that has no such table.
 - **Legacy threads have no turns here.** Only threads with `HistoryMode` paginated have rows in `thread_history_1.sqlite`; for legacy threads read the rollout ([turns](conversations.md#step-2--read-turns)). `Turn.Error` is nil when the turn has no error; check `len(t.Error) > 0`, because printing a nil `agentio.Raw` shows `null`.

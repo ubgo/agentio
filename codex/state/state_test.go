@@ -147,14 +147,11 @@ func openDir(t *testing.T, dir string) *DB {
 	// Paths built directly: Open needs only the six DB paths, and this keeps
 	// the test independent of home discovery in package codex.
 	j := func(f File) string { return filepath.Join(dir, f.String()) }
-	db, err := Open(codex.Paths{
+	db := Open(codex.Paths{
 		Home: dir, SQLiteHome: dir,
 		StateDB: j(FileState), ThreadHistoryDB: j(FileThreadHistory), GoalsDB: j(FileGoals),
 		QueueDB: j(FileQueue), MemoriesDB: j(FileMemories), LogsDB: j(FileLogs),
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 	t.Cleanup(func() { _ = db.Close() })
 	return db
 }
@@ -388,5 +385,24 @@ func TestThreadConversation(t *testing.T) {
 	c := th.Conversation(codex.Home{})
 	if c.ID != threadB || c.Title != "renamed" || !c.Archived || c.Originator != "codex-tui" || c.Dir != "/work/app" {
 		t.Fatalf("conversation: %+v", c)
+	}
+}
+
+// TestOpenWithSomePaths: Open needs only the paths of the stores a caller
+// uses. A store with no path fails with *NoPathError (matching ErrNoPath)
+// only when it is queried; the others work.
+func TestOpenWithSomePaths(t *testing.T) {
+	dir := t.TempDir()
+	buildDB(t, dir, FileState, maxMigrationState, seedState)
+	db := Open(codex.Paths{StateDB: filepath.Join(dir, FileState.String())})
+	t.Cleanup(func() { _ = db.Close() })
+	ctx := context.Background()
+	if _, err := db.SchemaVersion(ctx, FileState); err != nil {
+		t.Fatalf("state store with its path: %v", err)
+	}
+	_, _, err := db.Goal(ctx, "t1")
+	var np *NoPathError
+	if !errors.As(err, &np) || !errors.Is(err, ErrNoPath) || np.File != FileGoals {
+		t.Fatalf("goals without a path: %v, want *NoPathError for %s", err, FileGoals)
 	}
 }

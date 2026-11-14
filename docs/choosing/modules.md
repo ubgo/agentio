@@ -24,7 +24,7 @@ agentio is five Go modules so that a program downloads and compiles only what it
 ## Pitfalls
 
 - **`builtin` costs Codex's dependency.** A Claude-only tool that imports `builtin` for convenience downloads go-toml; call `claude.New(h)` instead and use `c.Neutral()` where you need the neutral view.
-- **`codex/state` is not in `builtin`.** `builtin.New` gives you the `*codex.Agent`; open the SQLite stores yourself with `state.Open(codexAgent.Paths(home))`.
+- **`codex/state` is not in `builtin`.** `builtin.New` gives you the `*codex.Agent`; open the SQLite stores yourself with `state.Open(codexAgent.Paths(home))` (it returns a `*state.DB` and never fails; a store without a path fails when queried).
 - **Pass `state.Open` the full `codex.Paths`.** It expects every store path that `a.Paths(h)` (or `PathsWith`) computes; a hand-built `Paths` with only the threads file set is refused, even though files open lazily.
 - **SQLite is pure Go, but large.** `modernc.org/sqlite` needs no CGO and cross-compiles, yet it adds noticeable build time and binary size; that is the reason it is its own module.
 - **Keep module versions together.** The vendor modules require the root module at a matching version; upgrade them together so a vendor module never sees a root API it predates.

@@ -192,10 +192,7 @@ func openState(w io.Writer, a *codex.Agent) (*state.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db, err := state.Open(a.PathsWith(h, cfg))
-	if err != nil {
-		return nil, err
-	}
+	db := state.Open(a.PathsWith(h, cfg))
 	ctx := context.Background()
 	for _, f := range []state.File{state.FileState, state.FileThreadHistory, state.FileLogs} {
 		v, err := db.SchemaVersion(ctx, f)
