@@ -38,7 +38,7 @@ func parseEnums(p printer) error {
 
 	// Open sets: a value a newer vendor version adds still decodes; IsKnown
 	// says whether the library has a name for it.
-	for _, m := range []agentio.InstallMethod{agentio.InstallNPM, "volta"} {
+	for _, m := range []agentio.InstallMethod{agentio.InstallNPM, "mise"} {
 		p.line(fmt.Sprintf("install method %s: known=%t", m, m.IsKnown()))
 	}
 	return nil

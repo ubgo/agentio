@@ -65,7 +65,12 @@ func (c Command) Redacted() Command {
 }
 
 // String renders the argv as a shell-quoted line (path and args only; env
-// is never included, so no secret can leak through it). Pure.
+// is never included, so no secret can leak through it). The quoting is
+// POSIX sh only, for display and logs: it is not valid PowerShell or
+// cmd.exe quoting, so never paste it into a Windows shell or pass it to
+// one. To run a Command on any OS, use Path, Args, Env and Dir directly
+// (exec.Cmd, syscall.Exec): no shell is involved and no quoting is needed.
+// Pure.
 func (c Command) String() string {
 	parts := make([]string, 0, len(c.Args)+1)
 	parts = append(parts, shellQuote(c.Path))
@@ -201,27 +206,27 @@ func (e EnvChange) MarshalJSON() ([]byte, error) {
 // existing entry of a changed name is removed (also duplicates), then a set
 // appends one entry. The input is never modified, so a base env can be
 // reused across launches. Pure.
+// Names compare case-sensitively (the unix rule); ApplyEnvFor applies a
+// Host's OS rule.
 func ApplyEnv(base []string, changes ...EnvChange) []string {
+	return ApplyEnvFor(OSLinux, base, changes...)
+}
+
+// ApplyEnvFor is ApplyEnv under goos's naming rule: on Windows a change to
+// PATH also removes an inherited "Path=" entry, so the child never sees two
+// spellings of one variable. Pure.
+func ApplyEnvFor(goos string, base []string, changes ...EnvChange) []string {
 	out := slices.Clone(base)
 	for _, c := range changes {
-		out = removeEnv(out, c.name)
+		out = slices.DeleteFunc(out, func(kv string) bool {
+			name, _, ok := strings.Cut(kv, envSep)
+			return ok && envNameEqual(goos, name, c.name)
+		})
 		switch c.op {
 		case EnvSetOp:
 			out = append(out, c.name+envSep+c.value)
 		case EnvSetSecretOp:
 			out = append(out, c.name+envSep+c.secret.Reveal())
-		}
-	}
-	return out
-}
-
-// removeEnv drops every entry for name.
-func removeEnv(env []string, name string) []string {
-	prefix := name + envSep
-	out := env[:0:0]
-	for _, kv := range env {
-		if !strings.HasPrefix(kv, prefix) {
-			out = append(out, kv)
 		}
 	}
 	return out

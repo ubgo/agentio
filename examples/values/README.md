@@ -59,7 +59,7 @@ json autonomy yolo: agentio: unknown autonomy "yolo"
 json out: {"autonomy":"full"}
 out of range: autonomy(42)
 install method npm: known=true
-install method volta: known=false
+install method mise: known=false
 autonomy values: [default read-only ask accept-edits full]
 cost classes: [pure disk process network quota]
 process kinds: [cli exec app-server mcp-server desktop bridge launcher]

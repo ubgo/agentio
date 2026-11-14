@@ -43,10 +43,8 @@ func (c *Core) Spec() Spec { return c.spec }
 func (c *Core) Host() Host { return c.host }
 
 // LookPath walks PATH from Host.Env (invariant 12). Disk · Read.
-func (c *Core) LookPath() (string, error) {
-	path, _ := c.host.Getenv(envPath)
-	return LookPath(path, c.spec.Binary)
-}
+// Host.GOOS picks the rules: ';' separators and PATHEXT on Windows.
+func (c *Core) LookPath() (string, error) { return c.host.LookPath(c.spec.Binary) }
 
 // envPath is the PATH variable name.
 const envPath = "PATH"
@@ -255,7 +253,7 @@ func (c *Core) Command(t Target, dir string, argv []string, tokenEnv []EnvChange
 	if err := c.Owns(t.Home); err != nil {
 		return Command{}, err
 	}
-	return NewCommand(c.spec.Binary, argv, c.host.Env, dir, c.EnvChanges(t, tokenEnv)...), nil
+	return c.host.NewCommand(c.spec.Binary, argv, dir, c.EnvChanges(t, tokenEnv)...), nil
 }
 
 // CheckAutonomy applies the rule every builder shares: AutonomyFull needs

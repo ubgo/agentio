@@ -23,12 +23,15 @@ const (
 	InstallBrew       InstallMethod = "brew"
 	InstallNative     InstallMethod = "native"
 	InstallStandalone InstallMethod = "standalone"
-	InstallUnknown    InstallMethod = "unknown"
+	// InstallVolta is a global install through Volta (a ~/.volta/bin or
+	// %LOCALAPPDATA%\Volta\bin shim; the package lives in Volta's image dir).
+	InstallVolta   InstallMethod = "volta"
+	InstallUnknown InstallMethod = "unknown"
 )
 
 // InstallMethodValues is the canonical list of known methods. Pure.
 func InstallMethodValues() []InstallMethod {
-	return []InstallMethod{InstallNPM, InstallBun, InstallPNPM, InstallBrew, InstallNative, InstallStandalone, InstallUnknown}
+	return []InstallMethod{InstallNPM, InstallBun, InstallPNPM, InstallBrew, InstallNative, InstallStandalone, InstallVolta, InstallUnknown}
 }
 
 // IsKnown reports a named method. Pure.

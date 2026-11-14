@@ -6,7 +6,6 @@ package agentio
 // machine through the Host this file builds.
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -18,7 +17,6 @@ import (
 	"os/user"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -83,16 +81,25 @@ const osHTTPTimeout = 30 * time.Second
 // osRunner runs commands with os/exec.
 type osRunner struct{}
 
-// Run runs c with its own Env and Dir (never the parent's). Process · Read.
+// Run runs c with its own Env and Dir (never the parent's). A bare
+// Command.Path ("codex", as every builder emits) is resolved on the PATH of
+// c.Env under this OS's rules (PATHEXT on Windows), never the parent
+// process's PATH: exec.Command would search os.Getenv("PATH"), so a Host
+// whose Env names another PATH (a temp npm prefix, a profile) would run a
+// different binary or none. Not found is ErrNotInstalled. Process · Read.
 func (osRunner) Run(ctx context.Context, c Command, stdin io.Reader) (ProcessResult, error) {
-	cmd := exec.CommandContext(ctx, c.Path, c.Args...)
+	path, err := resolveCommandPath(c)
+	if err != nil {
+		return ProcessResult{}, err
+	}
+	cmd := exec.CommandContext(ctx, path, c.Args...)
 	cmd.Env = c.Env
 	cmd.Dir = c.Dir
 	cmd.Stdin = stdin
 	cmd.WaitDelay = osWaitDelay
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
-	err := cmd.Run()
+	err = cmd.Run()
 	res := ProcessResult{Stdout: stdout.Bytes(), Stderr: stderr.Bytes()}
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) && ctx.Err() == nil {
@@ -123,16 +130,30 @@ const (
 	keychainTimeout = 10 * time.Second
 )
 
-// Get runs `security find-generic-password -s <service> [-a <account>] -w`
-// on darwin. Elsewhere it returns ErrUnsupported naming the OS: there is no
-// Secret Service (linux) or Credential Manager (windows) reader yet, and a
-// caller must be able to tell "no entry" from "cannot look" (a Codex
-// keyring login on linux is not a logout). Callers that only use the
-// keychain as a second store (Claude) treat ErrUnsupported as no entry.
-// Process · Read.
+// Get reads one secret from the OS store. Process · Read:
+//   - darwin: `security find-generic-password -s <service> [-a <account>] -w`;
+//   - linux: `secret-tool lookup service <service> [username <account>]`,
+//     the Secret Service attributes the Rust keyring crate (Codex's store)
+//     writes; ErrUnsupported when secret-tool (libsecret-tools) is not
+//     installed or no Secret Service answers (headless, no D-Bus session);
+//   - windows and others: ErrUnsupported with the reason (reading a Windows
+//     Credential Manager secret needs CredReadW, which the stdlib does not
+//     wrap).
+//
+// A caller must be able to tell "no entry" (found false, nil error) from
+// "cannot look" (ErrUnsupported): a Codex keyring login on such a host is
+// not a logout. Callers that only use the store as a second source
+// (Claude) treat ErrUnsupported as no entry. The secret never appears in
+// an error.
 func (osSecrets) Get(ctx context.Context, service, account string) (Token, bool, error) {
-	if runtime.GOOS != goosDarwin {
-		return Token{}, false, UnsupportedError("", "keychain", "no keychain reader for "+runtime.GOOS)
+	switch runtime.GOOS {
+	case goosDarwin:
+	case goosLinux:
+		return secretToolGet(ctx, service, account)
+	case goosWindows:
+		return Token{}, false, UnsupportedError("", "keyring", reasonWindowsKeyring)
+	default:
+		return Token{}, false, UnsupportedError("", "keyring", "no keyring reader for "+runtime.GOOS)
 	}
 	ctx, cancel := context.WithTimeout(ctx, keychainTimeout)
 	defer cancel()
@@ -161,175 +182,89 @@ func (osSecrets) Get(ctx context.Context, service, account string) (Token, bool,
 }
 
 // osAccount returns the OS user name (Claude Code's keychain account):
-// os/user first, then $USER.
+// os/user first, then $USER (unix) or %USERNAME% (windows).
 func osAccount() string {
 	if u, err := user.Current(); err == nil && u.Username != "" {
 		return u.Username
 	}
-	return os.Getenv(envUser)
-}
-
-// envUser is the fallback source of the user name.
-const envUser = "USER"
-
-// osProcesses reads the process table.
-type osProcesses struct{}
-
-// Processes is Process · Read: /proc on linux, one `ps` run on darwin.
-func (osProcesses) Processes(ctx context.Context) ([]Process, error) {
-	switch runtime.GOOS {
-	case goosLinux:
-		return linuxProcesses()
-	case goosDarwin:
-		return darwinProcesses(ctx)
+	if v := os.Getenv(envUser); v != "" {
+		return v
 	}
-	return nil, UnsupportedError("", "process table", "no reader for "+runtime.GOOS)
+	return os.Getenv(envUserWindows)
 }
 
-// Cwd is Process · Read: /proc/{pid}/cwd on linux, `lsof` on darwin.
-func (osProcesses) Cwd(ctx context.Context, pid int) (string, error) {
-	switch runtime.GOOS {
-	case goosLinux:
-		return os.Readlink(filepath.Join(procRoot, strconv.Itoa(pid), "cwd"))
-	case goosDarwin:
-		return darwinCwd(ctx, pid)
-	}
-	return "", UnsupportedError("", "process cwd", "no reader for "+runtime.GOOS)
-}
-
-// Linux /proc layout.
+// envUser and envUserWindows are the fallback sources of the user name.
 const (
-	procRoot = "/proc"
-	// procStatPPIDField and procStatStartField are 0-based indexes into
-	// the fields after the ")" that ends comm in /proc/{pid}/stat
-	// (proc(5): field 4 ppid, field 22 starttime).
-	procStatPPIDField  = 1
-	procStatStartField = 19
-	// clockTicks is USER_HZ, 100 on every linux ABI Go supports.
-	clockTicks = 100
-	procBtime  = "btime "
+	envUser        = "USER"
+	envUserWindows = "USERNAME"
 )
 
-// linuxProcesses reads every /proc/{pid}. Rows that vanish mid-read or
-// are unreadable are skipped: the table changes while it is read.
-func linuxProcesses() ([]Process, error) {
-	boot, err := linuxBootTime()
-	if err != nil {
-		return nil, err
-	}
-	entries, err := os.ReadDir(procRoot)
-	if err != nil {
-		return nil, fmt.Errorf("agentio: read %s: %w", procRoot, err)
-	}
-	var out []Process
-	for _, e := range entries {
-		pid, err := strconv.Atoi(e.Name())
-		if err != nil {
-			continue
-		}
-		dir := filepath.Join(procRoot, e.Name())
-		stat, err := os.ReadFile(filepath.Join(dir, "stat"))
-		if err != nil {
-			continue
-		}
-		p := Process{PID: pid}
-		if i := bytes.LastIndexByte(stat, ')'); i >= 0 {
-			f := strings.Fields(string(stat[i+1:]))
-			if len(f) > procStatStartField {
-				p.PPID, _ = strconv.Atoi(f[procStatPPIDField])
-				if ticks, err := strconv.ParseInt(f[procStatStartField], 10, 64); err == nil {
-					p.Start = boot.Add(time.Duration(ticks) * time.Second / clockTicks)
-				}
-			}
-		}
-		if cmdline, err := os.ReadFile(filepath.Join(dir, "cmdline")); err == nil {
-			for _, a := range bytes.Split(bytes.TrimRight(cmdline, "\x00"), []byte{0}) {
-				if len(a) > 0 {
-					p.Argv = append(p.Argv, string(a))
-				}
-			}
-		}
-		if exe, err := os.Readlink(filepath.Join(dir, "exe")); err == nil {
-			p.Exe = exe
-		} else if len(p.Argv) > 0 {
-			p.Exe = p.Argv[0]
-		}
-		out = append(out, p)
-	}
-	return out, nil
-}
-
-// linuxBootTime reads btime from /proc/stat.
-func linuxBootTime() (time.Time, error) {
-	f, err := os.Open(filepath.Join(procRoot, "stat"))
-	if err != nil {
-		return time.Time{}, fmt.Errorf("agentio: boot time: %w", err)
-	}
-	defer func() { _ = f.Close() }()
-	sc := bufio.NewScanner(f)
-	for sc.Scan() {
-		if v, ok := strings.CutPrefix(sc.Text(), procBtime); ok {
-			secs, err := strconv.ParseInt(strings.TrimSpace(v), 10, 64)
-			if err != nil {
-				return time.Time{}, fmt.Errorf("agentio: boot time: %w", err)
-			}
-			return time.Unix(secs, 0), nil
-		}
-	}
-	return time.Time{}, fmt.Errorf("agentio: boot time: no btime in %s/stat", procRoot)
-}
-
-// darwin `ps` constants. lstart is printed as five fields in the C locale
-// ("Fri Nov 13 19:38:43 2026"), so the environment pins LC_ALL=C.
+// Linux Secret Service through secret-tool.
 const (
-	psBin          = "/bin/ps"
-	psLstartLayout = "Mon Jan _2 15:04:05 2006"
-	psLstartFields = 5
-	lsofBin        = "/usr/sbin/lsof"
-	lsofNamePrefix = "n"
-	envLocaleC     = "LC_ALL=C"
+	secretToolBin = "secret-tool"
+	// secretToolNotFoundExit is secret-tool's exit when lookup finds no
+	// item (it prints nothing); a D-Bus failure exits the same but writes
+	// the reason to stderr.
+	secretToolNotFoundExit = 1
+	// reasonWindowsKeyring is why the windows keyring is unsupported.
+	reasonWindowsKeyring = "reading a Windows Credential Manager secret needs CredReadW, which the Go standard library does not wrap"
 )
 
-// darwinProcesses runs one `ps -axww -o pid=,ppid=,lstart=,command=`.
-func darwinProcesses(ctx context.Context) ([]Process, error) {
-	cmd := exec.CommandContext(ctx, psBin, "-axww", "-o", "pid=,ppid=,lstart=,command=")
-	cmd.Env = []string{envLocaleC}
-	out, err := cmd.Output()
-	if err != nil {
-		return nil, fmt.Errorf("agentio: ps: %w", err)
+// secretToolGet runs one secret-tool lookup.
+func secretToolGet(ctx context.Context, service, account string) (Token, bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, keychainTimeout)
+	defer cancel()
+	args := []string{"lookup", "service", service}
+	if account != "" {
+		args = append(args, "username", account)
 	}
-	var procs []Process
-	for _, line := range strings.Split(string(out), "\n") {
-		f := strings.Fields(line)
-		if len(f) < 2+psLstartFields+1 {
-			continue
-		}
-		pid, err1 := strconv.Atoi(f[0])
-		ppid, err2 := strconv.Atoi(f[1])
-		if err1 != nil || err2 != nil {
-			continue
-		}
-		p := Process{PID: pid, PPID: ppid, Argv: f[2+psLstartFields:]}
-		if t, err := time.ParseInLocation(psLstartLayout, strings.Join(f[2:2+psLstartFields], " "), time.Local); err == nil {
-			p.Start = t
-		}
-		p.Exe = p.Argv[0]
-		procs = append(procs, p)
+	cmd := exec.CommandContext(ctx, secretToolBin, args...)
+	cmd.WaitDelay = osWaitDelay
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	err := cmd.Run()
+	code := 0
+	var exitErr *exec.ExitError
+	switch {
+	case errors.Is(err, exec.ErrNotFound):
+		return Token{}, false, UnsupportedError("", "keyring", "secret-tool (libsecret-tools) is not on PATH")
+	case errors.As(err, &exitErr):
+		code = exitErr.ExitCode()
+	case ctx.Err() != nil:
+		return Token{}, false, fmt.Errorf("agentio: secret service lookup timed out after %s: %w", keychainTimeout, ctx.Err())
+	case err != nil:
+		return Token{}, false, fmt.Errorf("agentio: secret-tool: %w", err)
 	}
-	return procs, nil
+	return secretToolResult(stdout.Bytes(), stderr.Bytes(), code)
 }
 
-// darwinCwd asks lsof for the cwd of pid (`-Fn` prints "n<path>").
-func darwinCwd(ctx context.Context, pid int) (string, error) {
-	cmd := exec.CommandContext(ctx, lsofBin, "-a", "-d", "cwd", "-p", strconv.Itoa(pid), "-Fn")
-	out, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("agentio: lsof cwd %d: %w", pid, err)
+// secretToolResult maps one secret-tool run: exit 0 is the secret (stdout,
+// trailing newline trimmed); exit 1 with an empty stderr is "no entry";
+// any other failure is ErrUnsupported carrying the first stderr line (the
+// Secret Service is unreachable, for example no D-Bus session). Pure.
+func secretToolResult(stdout, stderr []byte, code int) (Token, bool, error) {
+	if code == 0 {
+		return NewToken(strings.TrimRight(string(stdout), "\r\n")), true, nil
 	}
-	for _, line := range strings.Split(string(out), "\n") {
-		if p, ok := strings.CutPrefix(line, lsofNamePrefix); ok && p != "" {
-			return p, nil
-		}
+	msg, _, _ := strings.Cut(strings.TrimSpace(string(stderr)), "\n")
+	if code == secretToolNotFoundExit && msg == "" {
+		return Token{}, false, nil
 	}
-	return "", fmt.Errorf("%w: cwd of %d", ErrNotFound, pid)
+	return Token{}, false, UnsupportedError("", "keyring", "secret service unavailable: "+msg)
+}
+
+// resolveCommandPath returns c.Path when it names a file (absolute, or with
+// a directory part), else the first hit for it on c.Env's PATH under this
+// OS's rules.
+func resolveCommandPath(c Command) (string, error) {
+	if filepath.IsAbs(c.Path) || strings.ContainsAny(c.Path, `/\`) {
+		return c.Path, nil
+	}
+	pathList, _ := EnvLookupFor(runtime.GOOS, c.Env, envPath)
+	pathExt, _ := EnvLookupFor(runtime.GOOS, c.Env, envPathExt)
+	hits := LookPathAllFor(runtime.GOOS, pathList, pathExt, c.Path)
+	if len(hits) == 0 {
+		return "", fmt.Errorf("agentio: run %s: %w", c.Path, ErrNotInstalled)
+	}
+	return hits[0], nil
 }

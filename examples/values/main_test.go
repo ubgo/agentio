@@ -30,7 +30,7 @@ func TestRun(t *testing.T) {
 		"sorted: [0.162.1 1.0.0-alpha 1.0.0-beta.2 1.0.0-beta.11 1.0.0]\n",
 		`json autonomy yolo: agentio: unknown autonomy "yolo"` + "\n",
 		"out of range: autonomy(42)\n",
-		"install method volta: known=false\n",
+		"install method mise: known=false\n",
 		"autonomy values: [default read-only ask accept-edits full]\n",
 	} {
 		if !strings.Contains(got, want) {

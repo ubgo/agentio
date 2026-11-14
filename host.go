@@ -58,7 +58,8 @@ func (h Host) SystemPath(rel string) (string, bool) {
 
 // Getenv returns the value of key in Host.Env and whether it is present.
 // An entry "K=" is present with value "". Pure.
-func (h Host) Getenv(key string) (string, bool) { return EnvLookup(h.Env, key) }
+// Names compare case-insensitively when Host.GOOS is windows (EnvLookupFor).
+func (h Host) Getenv(key string) (string, bool) { return EnvLookupFor(h.hostOS(), h.Env, key) }
 
 // Process is one row of the process table. Start guards against pid reuse:
 // a pid with another start time is another process.
