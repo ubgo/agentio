@@ -1,0 +1,34 @@
+func (h Host) ProcessAlive(ctx context.Context, pid int, startedAt time.Time, envKey, envValue string) (Liveness, error) {
+	if h.Processes == nil {
+		return LivenessUnknown, errors.New("agentio: no process lister in host")
+	}
+	procs, err := h.Processes.Processes(ctx)
+	if err != nil {
+		return LivenessUnknown, fmt.Errorf("agentio: process table: %w", err)
+	}
+	i := slices.IndexFunc(procs, func(p Process) bool { return p.PID == pid })
+	if i < 0 {
+		return LivenessEnded, nil
+	}
+	p := procs[i]
+	startKnown := !startedAt.IsZero() && !p.Start.IsZero()
+	if startKnown && p.Start.Sub(startedAt).Abs() > startTolerance {
+		return LivenessEnded, nil
+	}
+	if envKey == "" {
+		if startKnown {
+			return LivenessAlive, nil
+		}
+		return LivenessUnknown, errors.New("agentio: pid runs but neither a start time nor an env key can confirm it")
+	}
+	env, envErr := h.processEnv(ctx, pid)
+	switch {
+	case envErr == nil && slices.Contains(env, envKey+"="+envValue):
+		return LivenessAlive, nil
+	case envErr == nil:
+		return LivenessEnded, nil
+	case startKnown:
+		return LivenessAlive, nil
+	}
+	return LivenessUnknown, fmt.Errorf("agentio: pid %d runs, start time unknown, env unreadable: %w", pid, envErr)
+}

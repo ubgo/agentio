@@ -1,0 +1,29 @@
+func (a *Agent) EffectiveSettings(h Home, dir string) (Effective, error) {
+	layers, err := a.Settings(h, dir)
+	if err != nil {
+		return Effective{}, err
+	}
+	e := Effective{MCPServers: map[string]MCPServerConfig{}, MCPScopes: map[string]agentio.ConfigScope{}, MCPSources: map[string]string{}}
+	for _, l := range slices.Backward(layers) { // lowest first, higher layers overwrite
+		s := l.Settings
+		if s.Model != nil && s.Model.Name != "" {
+			e.Model = s.Model.Name
+		}
+		if s.General != nil && s.General.DefaultApprovalMode != "" {
+			e.ApprovalMode = s.General.DefaultApprovalMode
+		}
+		if s.Security != nil && s.Security.Auth != nil && s.Security.Auth.SelectedType != "" {
+			e.AuthType = s.Security.Auth.SelectedType
+		}
+		if s.Context != nil && len(s.Context.FileName) > 0 {
+			e.ContextFileNames = slices.Clone(s.Context.FileName)
+		}
+		for name, srv := range s.MCPServers {
+			e.MCPServers[name], e.MCPScopes[name], e.MCPSources[name] = srv, l.Scope, l.Path
+		}
+	}
+	if len(e.ContextFileNames) == 0 {
+		e.ContextFileNames = []string{defaultContextFile}
+	}
+	return e, nil
+}

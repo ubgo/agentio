@@ -176,6 +176,30 @@ func extras(ctx context.Context, w io.Writer, h agentio.Host, a agentio.Agent) e
 }
 ```
 
+## Step 4 — Describe autonomy, headless output and token logins
+
+A Spec can also carry the templates a launcher needs for agents such as Gemini CLI or pi, and every field has a snake_case JSON tag, so a program decodes a Spec from its own config with `encoding/json` and checks it with `Validate`:
+
+```json
+{
+  "id": "gem", "name": "Gemini CLI", "binary": "gemini",
+  "default_home": ".gemini", "home_env": "GEMINI_CLI_HOME", "home_env_names_parent": true,
+  "new_args": ["{args}"], "resume_args": ["--resume", "{id}", "{args}"],
+  "autonomy_args": {"read-only": ["--approval-mode", "plan"], "full": ["--approval-mode", "yolo"]},
+  "headless_args": ["--output-format", "stream-json"],
+  "token_env": [{"kind": "api-key", "env": "GEMINI_API_KEY"}],
+  "credential_env": ["GOOGLE_CLOUD_ACCESS_TOKEN"],
+  "packages": ["@google/gemini-cli"]
+}
+```
+
+- **`autonomy_args`:** the args per level. [A level without an entry is refused](ds:block?id=core-launch-v8h5ys7c); an entry with no args is allowed and adds nothing (pi never asks before acting, so its only honest level is `"full": []`).
+- **`headless_args`:** what makes a launch non-interactive with machine-readable output.
+- **`token_env`:** [one entry per (kind, provider)](ds:block?id=spec-tokenenv-r6v7b2nm). pi's variable depends on the model provider (`anthropic` gives `ANTHROPIC_API_KEY`), so a `TokenCredential` carries a `Provider`; a credential without one matches only when a single entry has its kind. `scrub` lists the variables that would override that token; omitted, it is `credential_env` minus the token's own variable.
+- **`credential_env`:** only the variables that would override the home's stored login. [A launch on the home's login scrubs them; a token login scrubs only what outranks the token](ds:block?id=core-envchanges-f8hrn3we). A variable that is itself the login (a Gemini user's `GEMINI_API_KEY`, pi's provider keys) does not belong here, or it is removed from the user who set it.
+- **`home_env_names_parent`:** the home variable names the dir that contains the home: `GEMINI_CLI_HOME=/x` means the home `/x/.gemini`. The variable is then set to the parent, and a home not named `default_home` inside its parent cannot be launched.
+- **`packages`:** the npm packages the binary ships as. [The install version is read from their package.json](ds:block?id=installfrompath-r6l5z3xc) next to the resolved binary (or a Homebrew Cellar or native `versions/<v>` dir), never by running it, so a config agent has an `Installer` too.
+
 ## Try it
 
 ```sh
@@ -213,7 +237,7 @@ check api-billing-env warn ACME_API_KEY set: launches bill per token
 ## Pitfalls
 
 - **A Spec describes the core only.** Usage, identity, conversations, turns, prompt history, live sessions, config, MCP, skills and run events need code; a config-defined agent never has them.
-- **Autonomy, headless and token logins are refused.** Any non-default `Autonomy`, `Headless: true` and a `Credential` return `ErrUnsupported` (and `AutonomyFull` without `Target.AllowDangerous` returns `ErrDangerousNotAllowed` first). A Spec cannot describe a permission flag or an event format.
+- **Autonomy, headless and token logins need their templates.** Without an `autonomy_args` entry for the level, `headless_args`, or a `token_env` entry for the credential's (kind, provider), the request is `ErrUnsupported` (and `AutonomyFull` without `Target.AllowDangerous` returns `ErrDangerousNotAllowed` first). A Spec still cannot describe an event format: headless output is the agent's own.
 - **Only the browser login flow.** `LoginArgs` is the browser flow; every other `LoginFlow` is `ErrUnsupported`. Without `LogoutArgs`, `LogoutCommand` returns a zero `Command`.
 - **Do not type-assert capabilities.** The agent's Go type implements every data-driven interface; only the accessors and `Supported` check the Spec data (`CapabilityGate`).
 - **Empty `HomeMarkers` means any folder is a home.** With an `ExtraHomes` glob, that can list unrelated folders; give at least one marker file.

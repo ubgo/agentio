@@ -1,0 +1,24 @@
+func CheckOverride(o Override) (OverrideCheck, error) {
+	src := o.Path + " = " + string(o.Value)
+	c, warns, err := ParseConfig([]byte(src), "override")
+	if err != nil {
+		return OverrideCheck{}, fmt.Errorf("codex: override %s: %w", o.Path, err)
+	}
+	key, listed := LookupConfigKey(o.Path)
+	counts := c.KeyCount()
+	switch {
+	case len(warns) > 0:
+		return OverrideCheck{Status: OverrideTypeError, Key: key, Detail: warns[0].Detail}, nil
+	case counts.Raw > 0:
+		return OverrideCheck{Status: OverrideRaw}, nil
+	case counts.Unknown > 0 || !listed:
+		return OverrideCheck{Status: OverrideUnknown}, nil
+	}
+	if key.Kind == kEnum {
+		var v string
+		if _, err := fmt.Sscanf(string(o.Value), "%q", &v); err == nil && !slices.Contains(key.Values, v) {
+			return OverrideCheck{Status: OverrideUnlistedValue, Key: key, Detail: "one of " + strings.Join(key.Values, ", ")}, nil
+		}
+	}
+	return OverrideCheck{Status: OverrideTyped, Key: key}, nil
+}

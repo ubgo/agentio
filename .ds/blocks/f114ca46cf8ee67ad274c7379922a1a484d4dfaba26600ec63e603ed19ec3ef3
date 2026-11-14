@@ -1,0 +1,28 @@
+func (a *Agent) Logins(h Home) ([]Login, error) {
+	p := a.Paths(h).Auth
+	data, found, err := readFileBounded(p, maxJSONFileBytes)
+	if err != nil {
+		return nil, fmt.Errorf("pi: read %s: %w", p, err)
+	}
+	if !found {
+		return nil, nil
+	}
+	var raw map[string]loginWire
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return nil, fmt.Errorf("pi: decode %s: %w", p, err)
+	}
+	out := make([]Login, 0, len(raw))
+	for provider, w := range raw {
+		l := Login{Provider: provider, Type: w.Type, FromCommand: bytes.HasPrefix(bytes.TrimSpace(w.Key), []byte(commandKeyPrefix))}
+		for n := range w.Env {
+			l.EnvNames = append(l.EnvNames, n)
+		}
+		slices.Sort(l.EnvNames)
+		if t := w.Expires.Time(); w.Type == LoginOAuth && !t.IsZero() {
+			l.ExpiresAt = &t
+		}
+		out = append(out, l)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Provider < out[j].Provider })
+	return out, nil
+}

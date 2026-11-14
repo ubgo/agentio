@@ -1,0 +1,16 @@
+type LiveCredentialPlan struct {
+	// Settings is a JSON object to merge into the launch's settings
+	// (Claude: {"apiKeyHelper": "<command>"}); empty when the agent takes
+	// the command elsewhere.
+	Settings Raw
+	// Env are process env changes the plan needs (Claude: the helper's
+	// refresh interval, CLAUDE_CODE_API_KEY_HELPER_TTL_MS).
+	Env []EnvChange
+	// Scrub are the variables that would outrank the command; the launch
+	// must remove them, or the command is never asked (Claude:
+	// ANTHROPIC_AUTH_TOKEN and ANTHROPIC_API_KEY, plus
+	// CLAUDE_CODE_OAUTH_TOKEN so only one login is in play).
+	Scrub []string
+	// Refresh is the interval the agent re-runs the command at.
+	Refresh time.Duration
+}

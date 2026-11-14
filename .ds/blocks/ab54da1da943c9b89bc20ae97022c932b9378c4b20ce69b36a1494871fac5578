@@ -1,0 +1,18 @@
+func (a *Agent) Extensions(h Home, dir string) ([]Extension, error) {
+	enable, err := readEnablement(h.Path(extensionsDir, extensionEnablement))
+	if err != nil {
+		return nil, err
+	}
+	where := dir
+	if where == "" {
+		where = a.host.UserHome
+	}
+	out := extensionsIn(h.Path(extensionsDir), agentio.ConfigUser, enable, where)
+	if dir != "" {
+		ws := filepath.Join(dir, defaultDirName, extensionsDir)
+		if !samePath(ws, h.Path(extensionsDir)) {
+			out = append(out, extensionsIn(ws, agentio.ConfigProject, enable, where)...)
+		}
+	}
+	return out, nil
+}

@@ -1,0 +1,6 @@
+func HelperSettings(c agentio.TokenCredential) (agentio.Raw, error) {
+	if c.Kind != agentio.TokenAPIKeyHelper {
+		return nil, fmt.Errorf("claude: %s is not an api-key-helper login", c.Kind)
+	}
+	return helperSettingsJSON(c.Token.Reveal())
+}

@@ -113,9 +113,13 @@ The install, binary version and identity sections of the output:
 == install ==
 claude: /opt/fake/bin/claude -> /opt/fake/.local/share/claude/versions/2.1.325 method=native version=2.1.325
 codex: /opt/fake/bin/codex -> /opt/fake/lib/node_modules/@openai/codex/bin/codex.js method=npm version=0.162.1
+gemini: agentio: binary not found on PATH: gemini
+pi: agentio: binary not found on PATH: pi
 == binary version ==
 claude: 2.1.325
 codex: 0.162.1
+gemini: agentio: gemini version: example: this host runs no programs except the canned --version answers
+pi: agentio: pi version: example: this host runs no programs except the canned --version answers
 == identity ==
 claude personal: logged-in=true email=[redacted] plan="Max (20x)" billing=subscription credential=file expired=false
 claude work: logged-in=false email= plan="" billing=unknown credential=none expired=false

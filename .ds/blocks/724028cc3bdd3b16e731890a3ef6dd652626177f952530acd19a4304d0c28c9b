@@ -1,0 +1,57 @@
+func (a *Agent) Sessions(ctx context.Context, h Home, dir string) ([]Session, error) {
+	roots, err := a.projectRoots(h)
+	if err != nil {
+		return nil, err
+	}
+	slugs := make([]string, 0, len(roots))
+	if dir != "" {
+		slug, ok, err := a.ProjectSlug(h, dir)
+		if err != nil || !ok {
+			return nil, err
+		}
+		slugs = append(slugs, slug)
+	} else {
+		for slug := range roots {
+			slugs = append(slugs, slug)
+		}
+		sort.Strings(slugs)
+	}
+	byID := map[string]Session{}
+	for _, slug := range slugs {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		chats := filepath.Join(h.ProjectTmpDir(slug), chatsDir)
+		entries, err := os.ReadDir(chats)
+		if errors.Is(err, fs.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return nil, fmt.Errorf("gemini: read %s: %w", chats, err)
+		}
+		for _, e := range entries {
+			if e.IsDir() || !isSessionFile(e.Name()) {
+				continue
+			}
+			s, err := ReadSession(filepath.Join(chats, e.Name()))
+			if err != nil || s.ID == "" || !s.hasUserOrGemini || s.Kind == SessionSubagent {
+				continue // unreadable or not resumable: the CLI skips it too
+			}
+			s.Slug, s.Dir = slug, roots[slug]
+			if old, ok := byID[s.ID]; !ok || s.Updated.After(old.Updated) {
+				byID[s.ID] = s
+			}
+		}
+	}
+	out := make([]Session, 0, len(byID))
+	for _, s := range byID {
+		out = append(out, s)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if !out[i].Updated.Equal(out[j].Updated) {
+			return out[i].Updated.After(out[j].Updated)
+		}
+		return out[i].ID < out[j].ID
+	})
+	return out, nil
+}

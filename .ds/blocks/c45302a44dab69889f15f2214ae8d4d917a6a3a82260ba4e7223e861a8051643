@@ -1,0 +1,9 @@
+func DecodeLaunchOptions(data []byte) (LaunchOptions, error) {
+	keys, err := LaunchOptionKeys()
+	if err != nil {
+		return LaunchOptions{}, err
+	}
+	var o LaunchOptions
+	err = agentio.DecodeOptions(data, keys, reflect.ValueOf(&o))
+	return o, err
+}

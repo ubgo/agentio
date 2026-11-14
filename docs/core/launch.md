@@ -165,7 +165,7 @@ func childEnv(p printer, a *claude.Agent) error {
 }
 ```
 
-[Launch builders apply changes in a fixed order](ds:block?id=core-envchanges-f8hrn3we): a scrub of the vendor's credential variables (`Spec.CredentialEnv`) first, for every login, so an inherited key never overrides the home's stored login; then `Target.ExtraEnv`, so a credential you set on purpose is kept for a home login; then (token login only) the scrub again followed by the token itself; then the home rule last. So a profile can never override the home variable, and a token login always wins over a profile credential.
+[Launch builders apply changes in a fixed order](ds:block?id=core-envchanges-f8hrn3we): a scrub of the vendor's credential variables first, so an inherited key never overrides the chosen login (for the home's own login every `Spec.CredentialEnv` variable; for a token login only the ones that outrank that token, so a variable that is itself an agent's login mechanism survives); then `Target.ExtraEnv`, so a credential you set on purpose is kept for a home login; then (token login only) the scrub again followed by the token itself; then the home rule last. So a profile can never override the home variable, and a token login always wins over a profile credential.
 
 ## Try it
 

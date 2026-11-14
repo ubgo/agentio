@@ -1,0 +1,13 @@
+func (n neutral) UnsupportedReason(c agentio.Capability) (string, bool) {
+	switch c {
+	case agentio.CapHistoryMover, agentio.CapConversationMover:
+		return n.a.MoveUnsupportedReason(), true
+	case agentio.CapTokenLogin:
+		return reasonNoTokenLogin, true
+	case agentio.CapTokenProber:
+		return reasonNoProbe, true
+	case agentio.CapLiveCredential:
+		return reasonNoLiveCredential, true
+	}
+	return "", false
+}

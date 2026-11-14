@@ -25,7 +25,7 @@ Read these in order. Each step names what you learn, the guide that teaches it, 
 | 9 | Plan usage for every account: cached from disk in loops, live from the vendor on demand; then pick the account with the most headroom | [Usage and subscription](capabilities/usage.md), [Live or cached usage](choosing/live-or-cached-usage.md), [Pick the home with the most headroom](capabilities/pick.md) | [usage](../examples/usage/), [pick](../examples/pick/) |
 | 10 | Conversations, turns, prompt history, and which sessions are running right now | [Conversations](capabilities/conversations.md), [Live sessions](capabilities/live-sessions.md) | [conversations](../examples/conversations/), [livesessions](../examples/livesessions/) |
 | 11 | The doors: running the binary, spending quota, writing settings with a backup, linking a new home | [Doors](capabilities/doors.md), [Which door](choosing/doors.md), [Writes: file or vendor command](choosing/writes.md) | [doors](../examples/doors/), [claudehooks](../examples/claudehooks/) |
-| 12 | Adding another CLI agent as data with an `agentio.Spec` | [Config-defined agents](capabilities/fromspec.md), [Built-in or config-defined](choosing/builtin-or-config-agent.md) | [fromspec](../examples/fromspec/) |
+| 12 | Adding another CLI agent as data with an `agentio.Spec`; the other built-in agents (Gemini CLI, pi) and what each supports | [Config-defined agents](capabilities/fromspec.md), [Built-in or config-defined](choosing/builtin-or-config-agent.md), [Gemini CLI](gemini/README.md), [pi](pi/README.md), [Capability matrix](reference/capability-matrix.md) | [fromspec](../examples/fromspec/), [gemini](../examples/gemini/), [pi](../examples/pi/), [capmatrix](../examples/capmatrix/) |
 | 13 | Version safety: tested ranges, per-feature version checks, and the drift report for new vendor releases | [Tested vendor versions](compat/compat.md), [Per-feature version table](compat/features.md), [Drift check](compat/drift.md) | [compat](../examples/compat/), [drift](../examples/drift/) |
 | 14 | What differs on macOS, Linux and Windows, and how each is tested | [Platforms](platforms.md) | [agentinfo](../examples/agentinfo/) (`-fixtures`) |
 | 15 | The production setup under test: inject the `Host`, use fixture homes, fakes and an `httptest` server, run the conformance suite | [Testing your own code](testing/your-code.md), [Fakes and fixture hosts](testing/agenttest.md), [Fixture homes](testing/fixtures.md), [Conformance](testing/conformance.md) | [testing](../examples/testing/) |
@@ -60,6 +60,8 @@ After step 14 you have the shape of a production tool: one `HostFromOS()` in `ma
 | Refuse a flag the installed version does not have | [Handle FeatureUnavailableError](compat/features.md#step-3--handle-featureunavailableerror) | [compat](../examples/compat/) |
 | Find what the library does not know yet about a new vendor release | [Drift check](compat/drift.md) | [drift](../examples/drift/) |
 | Support a new agent from config | [Config-defined agents](capabilities/fromspec.md), [Built-in or config-defined](choosing/builtin-or-config-agent.md) | [fromspec](../examples/fromspec/) |
+| Validate a launcher's `--option`, settings and `-c` keys, and plan a switchable login | [Typed launch configuration](capabilities/launch-config.md) | [launchconfig](../examples/launchconfig/) |
+| Read Gemini CLI or pi homes, settings and conversations | [Gemini CLI](gemini/README.md), [pi](pi/README.md) | [gemini](../examples/gemini/), [pi](../examples/pi/) |
 | Test my code without real homes | [Testing your own code](testing/your-code.md), [Fixture homes](testing/fixtures.md) | [testing](../examples/testing/) |
 | Check my own `agentio.Agent` against the library's rules | [The conformance suite](testing/conformance.md) | [testing](../examples/testing/) |
 
@@ -109,6 +111,7 @@ Concepts both vendors share, each a small interface reached through a typed acce
 | [Config, MCP, instructions, skills, plugins and models](capabilities/config.md) | Read config layers; list MCP servers; list instruction files; list skills and plugins; list models | [accessors](../examples/accessors/) |
 | [Run events](capabilities/run-events.md) | Decode a headless run | [runevents](../examples/runevents/) |
 | [Doctor checks](capabilities/doctor.md) | Run the checks for a home; check the installed version | [accessors](../examples/accessors/) |
+| [Typed launch configuration](capabilities/launch-config.md) | Validate typed options with the registry; type-check settings and hand them to Claude; plan a switchable login; check Codex overrides; clean up run files | [launchconfig](../examples/launchconfig/) |
 | [Doors: Runner, Prober and Writer](capabilities/doors.md) | Run the vendor binary through a Runner; spend quota through a Prober; write through a Writer; link shared home files | [doors](../examples/doors/) |
 | [Config-defined agents](capabilities/fromspec.md) | Describe the agent as a Spec; build it with FromSpec; launch it | [fromspec](../examples/fromspec/) |
 
@@ -170,6 +173,13 @@ The full typed API of a Codex install and home, and the read-only SQLite stores.
 | [Codex doctor](codex/doctor.md) | Run the checks | [codexconfig](../examples/codexconfig/) |
 | [Codex SQLite state (codex/state)](codex/state.md) | Open the state database; list threads; read turns and items; read goals, queue, memories and logs | [codexstate](../examples/codexstate/) |
 
+### Gemini CLI and pi (L3, `gemini` and `pi` modules)
+
+| Page | Contents | Example |
+|---|---|---|
+| [Gemini CLI](gemini/README.md) | Homes and `GEMINI_CLI_HOME`, install, settings, conversations and resume, instructions, MCP, skills and extensions, login, launch | [gemini](../examples/gemini/) |
+| [The pi agent](pi/README.md) | Install, agent dir, sessions, settings and trust, launch and resume, logins, doctor | [pi](../examples/pi/) |
+
 ### Testing
 
 Test code that uses agentio without a real account, binary or network.
@@ -210,6 +220,7 @@ Decision guides for the choices agentio leaves to you, each with a decision tabl
 | Page | Contents |
 |---|---|
 | [Feature index](reference/features.md) | every feature, its package, the guide step that teaches it and an example that calls it |
+| [Capability matrix](reference/capability-matrix.md) | which shared capability each built-in agent has, and each agent's reason for the ones it lacks |
 
 ## All examples
 
@@ -223,6 +234,10 @@ Every example lives in its own folder under [`examples/`](../examples/) with a R
 | [values](../examples/values/) | error sentinels and rate limits, `Opt[T]`, `Unknown` keys, warnings, versions, enums | [Errors](core/errors.md), [Values](core/values.md) |
 | [backupmove](../examples/backupmove/) | backups, a conversation move plan between two homes, home links | [Backups, moves and home links](core/backup-move-link.md) |
 | [accessors](../examples/accessors/) | every shared capability through typed accessors, `Supported`, `Unsupported`, costs | [Shared capabilities and accessors](capabilities/accessors.md) |
+| [capmatrix](../examples/capmatrix/) | which shared capability each built-in agent has, and each agent's reason for the rest | [Capability matrix](reference/capability-matrix.md) |
+| [launchconfig](../examples/launchconfig/) | the launch option registry, settings validation and per-launch files, a live credential plan, Codex overrides, `ProcessAlive` | [Typed launch configuration](capabilities/launch-config.md) |
+| [gemini](../examples/gemini/) | Gemini CLI on a fixture home: homes, install, settings, conversations, MCP, launch | [Gemini CLI](gemini/README.md) |
+| [pi](../examples/pi/) | pi on a fixture agent dir: install, sessions, settings, launch and resume | [The pi agent](pi/README.md) |
 | [usage](../examples/usage/) | cached and live usage, the subscription, login commands, a token launch, against a local test server | [Usage and subscription](capabilities/usage.md) |
 | [conversations](../examples/conversations/) | conversations, turns from an offset, prompt history, history checks and moves | [Conversations](capabilities/conversations.md) |
 | [livesessions](../examples/livesessions/) | live sessions with the PID-reuse guard, process classification, PID to session | [Live sessions](capabilities/live-sessions.md) |

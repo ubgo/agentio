@@ -1,0 +1,3 @@
+func SettingsSchema() agentio.SchemaNode {
+	return agentio.JSONSchemaFor(reflect.TypeFor[Settings](), schemaEnums, false)
+}

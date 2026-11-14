@@ -18,7 +18,9 @@ Pick the modules from this table. Each row lists what it adds on top of the stan
 | `github.com/ubgo/agentio/claude` | everything about Claude Code: install, homes, settings, hooks, MCP, account, usage, conversations, sessions, launch | root |
 | `github.com/ubgo/agentio/codex` | everything about OpenAI Codex: install, `config.toml`, auth, usage, conversations, sessions, launch | root, `github.com/pelletier/go-toml/v2` |
 | `github.com/ubgo/agentio/codex/state` | Codex's SQLite state index (`state_5.sqlite`) | root, `codex`, `modernc.org/sqlite` |
-| `github.com/ubgo/agentio/builtin` | every built-in agent in one call (`builtin.New`), plus agents described by config | root, `claude`, `codex` |
+| `github.com/ubgo/agentio/gemini` | everything about Gemini CLI: homes, install, settings, conversations, MCP, extensions, launch | root |
+| `github.com/ubgo/agentio/pi` | everything about pi: agent dir, install, sessions, settings, trust, MCP, skills, launch | root |
+| `github.com/ubgo/agentio/builtin` | every built-in agent in one call (`builtin.New`), plus agents described by config | root, `claude`, `codex`, `gemini`, `pi` |
 
 Claude Code only:
 

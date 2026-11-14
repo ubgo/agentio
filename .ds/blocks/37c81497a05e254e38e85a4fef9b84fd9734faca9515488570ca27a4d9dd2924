@@ -1,0 +1,5 @@
+func (s Settings) MarshalJSON() ([]byte, error) {
+	type plain Settings
+	b, err := json.Marshal(plain(s))
+	return mergeUnknown(b, err, s.Unknown)
+}

@@ -1,0 +1,33 @@
+type LaunchOptions struct {
+	Prompt             string         `json:"prompt,omitempty"`            // positional; "" = interactive
+	PromptFromStdin    bool           `json:"prompt_from_stdin,omitempty"` // exec only: "-"
+	Model              string         `json:"model,omitempty"`
+	Profile            string         `json:"codex_profile,omitempty"` // v2 profile name (-p)
+	Sandbox            SandboxMode    `json:"sandbox,omitempty"`
+	Approval           ApprovalPolicy `json:"approval,omitempty"` // TUI only; exec renders -c approval_policy
+	ApproveForMe       bool           `json:"approve_for_me,omitempty"`
+	BypassAll          bool           `json:"bypass_all,omitempty"` // requires Target.AllowDangerous
+	Dir                string         `json:"cd,omitempty"`
+	AddDirs            []string       `json:"add_dirs,omitempty"`
+	Images             []string       `json:"images,omitempty"`
+	Search             bool           `json:"search,omitempty"`
+	OSS                bool           `json:"oss,omitempty"`
+	LocalProvider      string         `json:"local_provider,omitempty"`
+	Overrides          []Override     `json:"-"`
+	Enable             []string       `json:"enable,omitempty"`
+	Disable            []string       `json:"disable,omitempty"`
+	StrictConfig       bool           `json:"strict_config,omitempty"`
+	Worktree           bool           `json:"worktree,omitempty"`
+	NoAltScreen        bool           `json:"no_alt_screen,omitempty"`
+	NoDaemon           bool           `json:"no_daemon,omitempty"`
+	Remote             string         `json:"remote,omitempty"`
+	RemoteAuthTokenEnv string         `json:"remote_auth_token_env,omitempty"` // a variable NAME, never a token
+	// ProfileCheck is the home's config.toml (ConfigFile) used to refuse a
+	// --profile that collides with a legacy profile before Codex does
+	// (Codex 0.162.1 refuses -p NAME while a legacy [profiles.NAME] exists).
+	// nil skips the check and adds a warning: building stays Pure.
+	ProfileCheck *Config `json:"-"`
+	// trailing are LaunchRequest.Args from the neutral launch: appended
+	// last, verbatim (SPEC §5.4).
+	trailing []string
+}

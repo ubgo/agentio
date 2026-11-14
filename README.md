@@ -7,7 +7,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
 </p>
 
-agentio is an open-source Go library that tells a program everything it can know about the coding-agent CLIs on a machine: whether **Claude Code** and **OpenAI Codex** are installed and at which version, where their homes (config directories) are, what is in their settings, `CLAUDE.md` / `AGENTS.md` instruction files, MCP servers, skills and plugins, which account is logged in, how much of the plan's usage is left, which conversations exist and which sessions are running right now. It also builds the exact `Command` that launches, resumes or runs an agent headless, with the right environment for each home. It reads local files through typed structs modelled on real vendor files, never runs a vendor binary or touches the network unless you ask, and never refreshes or prints a login token.
+agentio is an open-source Go library that tells a program everything it can know about the coding-agent CLIs on a machine: whether **Claude Code**, **OpenAI Codex**, **Gemini CLI** and **pi** are installed and at which version, where their homes (config directories) are, what is in their settings, `CLAUDE.md` / `AGENTS.md` instruction files, MCP servers, skills and plugins, which account is logged in, how much of the plan's usage is left, which conversations exist and which sessions are running right now. It also builds the exact `Command` that launches, resumes or runs an agent headless, with the right environment for each home. It reads local files through typed structs modelled on real vendor files, never runs a vendor binary or touches the network unless you ask, and never refreshes or prints a login token.
 
 ## Contents
 
@@ -73,7 +73,9 @@ agentio is a set of Go modules. Import only the ones you need:
 | `github.com/ubgo/agentio/claude` | Claude Code | none |
 | `github.com/ubgo/agentio/codex` | Codex: config, rollouts, usage, sessions, launch | `github.com/pelletier/go-toml/v2` |
 | `github.com/ubgo/agentio/codex/state` | Codex's SQLite stores (threads, turns, goals, memories, logs), read-only | `modernc.org/sqlite` (pure Go, no CGO) |
-| `github.com/ubgo/agentio/builtin` | every built-in agent at once, plus config-defined agents | whatever `claude` and `codex` pull |
+| `github.com/ubgo/agentio/gemini` | Gemini CLI: homes, install, settings, conversations, MCP, extensions, launch | none |
+| `github.com/ubgo/agentio/pi` | pi: agent dir, install, sessions, settings, trust, MCP, skills, launch | none |
+| `github.com/ubgo/agentio/builtin` | every built-in agent at once, plus config-defined agents | whatever `claude`, `codex`, `gemini` and `pi` pull |
 
 ```sh
 # Claude Code only
@@ -181,20 +183,23 @@ A Claude-only program skips `builtin` and uses `claude.New(host)` directly; [`c.
 
 ## What you can read and build
 
-| Area | Claude Code | Codex |
-|---|---|---|
-| Install, version, tested range, binary lookup | ✅ | ✅ |
-| Homes: default, env-selected, extra dirs | ✅ | ✅ |
-| Settings and config layers | ✅ `settings.json` scopes, hooks, env, policy limits | ✅ `config.toml`, profiles |
-| Instruction files | ✅ `CLAUDE.md`, imports, auto memory | ✅ `AGENTS.md` |
-| MCP servers, skills, plugins | ✅ | ✅ |
-| Account identity and subscription | ✅ (personal values redacted) | ✅ (personal values redacted) |
-| Plan usage: cached on disk or live from the vendor | ✅ | ✅ |
-| Pick the home with the most headroom (`agentio/pick`, across both vendors) | ✅ | ✅ |
-| Conversations, prompt history, turns | ✅ transcripts, read with bounded head and tail | ✅ rollouts, SQLite threads via `codex/state` |
-| Live sessions and process classification | ✅ | ✅ |
-| Launch, resume, headless commands | ✅ typed `LaunchOptions`, stream-json decoder | ✅ typed options, exec event decoder |
-| Explicit writes with backup | ✅ settings, hooks, move history and conversations, link homes | ❌ by design: Codex keeps its own stores consistent, so changes go through Codex's own commands |
+| Area | Claude Code | Codex | Gemini CLI | pi |
+|---|---|---|---|---|
+| Install, version, tested range, binary lookup | ✅ | ✅ | ✅ | ✅ |
+| Homes: default, env-selected, extra dirs | ✅ | ✅ | ✅ `GEMINI_CLI_HOME` names the parent | ✅ `PI_CODING_AGENT_DIR` |
+| Settings and config layers | ✅ `settings.json` scopes, hooks, env, policy limits | ✅ `config.toml`, profiles | ✅ `settings.json` layers, every key kept | ✅ `settings.json`, trust |
+| Instruction files | ✅ `CLAUDE.md`, imports, auto memory | ✅ `AGENTS.md` | ✅ `GEMINI.md` | ✅ `AGENTS.md`, `CLAUDE.md`, `SYSTEM.md` |
+| MCP servers, skills, plugins | ✅ | ✅ | ✅ (extensions) | ✅ MCP and skills |
+| Account identity and subscription | ✅ (personal values redacted) | ✅ (personal values redacted) | identity only | stored logins, never values |
+| Plan usage: cached on disk or live from the vendor | ✅ | ✅ | ❌ not recorded yet | ❌ no plan; per-session cost |
+| Pick the home with the most headroom (`agentio/pick`, across vendors with usage) | ✅ | ✅ | ❌ | ❌ |
+| Conversations, prompt history, turns | ✅ transcripts, read with bounded head and tail | ✅ rollouts, SQLite threads via `codex/state` | ✅ chats per project | ✅ sessions and turns |
+| Live sessions and process classification | ✅ | ✅ | processes only | processes only |
+| Launch, resume, headless commands | ✅ typed `LaunchOptions`, stream-json decoder | ✅ typed options, exec event decoder | ✅ approval modes, stream-json | ✅ typed options, JSON mode |
+| Typed launch config: option registry, settings check, live login | ✅ all three | ✅ option registry, `-c` key table | ❌ | ❌ |
+| Explicit writes with backup | ✅ settings, hooks, move history and conversations, link homes | ❌ by design: Codex keeps its own stores consistent, so changes go through Codex's own commands | ❌ read-only | ❌ read-only |
+
+Each agent's reason for a capability it lacks is in the [capability matrix](docs/reference/capability-matrix.md).
 
 The full list, with the cost of every call, is in the [feature index](docs/reference/features.md).
 
@@ -264,7 +269,7 @@ Each vendor module declares the range it was tested against ([`claude.TestedMin`
 
 ### Can I add an agent other than Claude Code and Codex?
 
-A simple CLI agent can be described as data with an `agentio.Spec` and passed to [`builtin.New(host, spec)`](ds:block?id=builtin-new-55hg377w); it gets homes, binary lookup, launch and doctor checks. Full vendor support (usage, conversations) needs a vendor module, modelled on a real install.
+A simple CLI agent can be described as data with an `agentio.Spec` and passed to [`builtin.New(host, spec)`](ds:block?id=builtin-new-55hg377w); it gets homes, binary lookup, the install version from package metadata, launch (with autonomy, headless and token templates when the Spec describes them) and doctor checks. Full vendor support (usage, conversations) needs a vendor module modelled on a real install, as Gemini CLI and pi now have.
 
 ### How do I test code that uses agentio without a real account?
 
@@ -777,6 +782,44 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), whi
 <!-- ds:def id=pick-withnow-n9dnp45x file=pick/pick.go pick=symbol:WithNow owner=@khanakia -->
 <!-- ds:def id=pick-policy-g29b2nb5 file=pick/pick.go pick=symbol:Policy owner=@khanakia -->
 <!-- ds:def id=pick-withpolicy-vgrumqb5 file=pick/pick.go pick=symbol:WithPolicy owner=@khanakia -->
+<!-- ds:def id=launch-optionkey-r6k4m2qa file=options.go pick=symbol:OptionKey owner=@khanakia -->
+<!-- ds:def id=launch-deriveoptionkeys-r6t7v3wd file=options.go pick=symbol:DeriveOptionKeys owner=@khanakia -->
+<!-- ds:def id=launch-optionsschema-r6p8c5ke file=options.go pick=symbol:OptionsSchema owner=@khanakia -->
+<!-- ds:def id=claude-launchoptionkeys-r6h2j9xa file=claude/options.go pick=symbol:LaunchOptionKeys owner=@khanakia -->
+<!-- ds:def id=claude-decodelaunchoptions-r6m4n8qe file=claude/options.go pick=symbol:DecodeLaunchOptions owner=@khanakia -->
+<!-- ds:def id=claude-parselaunchoption-r6w3z7tb file=claude/options.go pick=symbol:ParseLaunchOption owner=@khanakia -->
+<!-- ds:def id=claude-launchoptionsschema-r6c9f2ud file=claude/options.go pick=symbol:LaunchOptionsSchema owner=@khanakia -->
+<!-- ds:def id=codex-launchoptionkeys-r6x5k3pa file=codex/options.go pick=symbol:LaunchOptionKeys owner=@khanakia -->
+<!-- ds:def id=claude-settings-marshaljson-r6q2w8ne file=claude/settingsio.go pick=symbol:Settings.MarshalJSON owner=@khanakia -->
+<!-- ds:def id=claude-validatesettings-r6e7r4ty file=claude/settingsio.go pick=symbol:ValidateSettings owner=@khanakia -->
+<!-- ds:def id=claude-settingsschema-r6u3i9oz file=claude/settingsio.go pick=symbol:SettingsSchema owner=@khanakia -->
+<!-- ds:def id=claude-launchsettings-r6a5s2dg file=claude/settingsio.go pick=symbol:LaunchSettings owner=@khanakia -->
+<!-- ds:def id=livecredentialplan-r6f8g3hj file=capability.go pick=symbol:LiveCredentialPlan owner=@khanakia -->
+<!-- ds:def id=livecredentialof-r6k2l7mz file=accessor.go pick=symbol:LiveCredentialOf owner=@khanakia -->
+<!-- ds:def id=claude-livecredential-r6x9c4vb file=claude/livecredential.go pick=symbol:Agent.LiveCredential owner=@khanakia -->
+<!-- ds:def id=claude-helpersettings-r6n3m8qw file=claude/credential.go pick=symbol:HelperSettings owner=@khanakia -->
+<!-- ds:def id=codex-configkeys-r6e2r7ty file=codex/configkeys.go pick=symbol:ConfigKeys owner=@khanakia -->
+<!-- ds:def id=codex-checkoverride-r6u5i3op file=codex/configkeys.go pick=symbol:CheckOverride owner=@khanakia -->
+<!-- ds:def id=host-processalive-r6a8s4df file=alive.go pick=symbol:Host.ProcessAlive owner=@khanakia -->
+<!-- ds:def id=processenvreader-r6g2h9jk file=host.go pick=symbol:ProcessEnvReader owner=@khanakia -->
+<!-- ds:def id=installfrompath-r6l5z3xc file=install.go pick=symbol:InstallFromPath owner=@khanakia -->
+<!-- ds:def id=gemini-new-r6g1n2b3 file=gemini/agent.go pick=symbol:New owner=@khanakia -->
+<!-- ds:def id=gemini-agent-homefromenv-r6g2h4k5 file=gemini/agent.go pick=symbol:Agent.HomeFromEnv owner=@khanakia -->
+<!-- ds:def id=gemini-agent-install-r6g3i6m7 file=gemini/agent.go pick=symbol:Agent.Install owner=@khanakia -->
+<!-- ds:def id=gemini-agent-settings-r6g4s8p9 file=gemini/settings.go pick=symbol:Agent.Settings owner=@khanakia -->
+<!-- ds:def id=gemini-agent-effectivesettings-r6g5e2q3 file=gemini/config.go pick=symbol:Agent.EffectiveSettings owner=@khanakia -->
+<!-- ds:def id=gemini-agent-sessions-r6g6c4r5 file=gemini/conversations.go pick=symbol:Agent.Sessions owner=@khanakia -->
+<!-- ds:def id=gemini-agent-mcpservers-r6g7m6t7 file=gemini/mcp.go pick=symbol:Agent.MCPServers owner=@khanakia -->
+<!-- ds:def id=gemini-agent-extensions-r6g8x8v9 file=gemini/extensions.go pick=symbol:Agent.Extensions owner=@khanakia -->
+<!-- ds:def id=gemini-agent-identity-r6g9d2w3 file=gemini/auth.go pick=symbol:Agent.Identity owner=@khanakia -->
+<!-- ds:def id=gemini-agent-launch-r6ga4y5z file=gemini/launch.go pick=symbol:Agent.Launch owner=@khanakia -->
+<!-- ds:def id=gemini-spec-r6gb6a7c file=gemini/agent.go pick=symbol:Spec owner=@khanakia -->
+<!-- ds:def id=pi-spec-r6p1s2d3 file=pi/agent.go pick=symbol:Spec owner=@khanakia -->
+<!-- ds:def id=pi-agent-install-r6p2i4f5 file=pi/agent.go pick=symbol:Agent.Install owner=@khanakia -->
+<!-- ds:def id=pi-agent-sessionusage-r6p3u6g7 file=pi/sessions.go pick=symbol:Agent.SessionUsage owner=@khanakia -->
+<!-- ds:def id=pi-agent-sessions-r6p4c8h9 file=pi/sessions.go pick=symbol:Agent.Sessions owner=@khanakia -->
+<!-- ds:def id=pi-agent-logins-r6p6o4k5 file=pi/auth.go pick=symbol:Agent.Logins owner=@khanakia -->
+<!-- ds:def id=spec-tokenenv-r6v7b2nm file=spec.go pick=symbol:TokenEnv owner=@khanakia -->
 
 ## License
 

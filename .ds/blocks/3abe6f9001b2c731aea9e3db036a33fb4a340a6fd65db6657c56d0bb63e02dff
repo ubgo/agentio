@@ -1,0 +1,3 @@
+func (c *Core) EnvChanges(t Target, tokenEnv []EnvChange) []EnvChange {
+	return c.envChanges(t, tokenEnv, c.tokenScrub(tokenEnv))
+}

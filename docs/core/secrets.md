@@ -144,7 +144,7 @@ The example's test also checks that neither the token nor the shell's API key ap
 - **A token never travels on argv.** Builders put it in `Command.Env` only; if you need to pass one to a child process, use [`EnvSetSecret`](ds:block?id=envsetsecret-tf8w23qe).
 - **Never refresh an OAuth token yourself.** The library never does: refreshing rotates the refresh token and logs the vendor CLI out. An expired login is reported as [`ErrExpired`](ds:block?id=claude-agent-usablecredential-e8k4sjep); one interactive run of the vendor CLI refreshes it ([Errors](errors.md)).
 - **[`Command.Env` is the one place with the real value.](ds:block?id=command-c4wdgewr)** Print commands with `Redacted()`, `String()` or JSON.
-- **[A token kind the agent does not take is refused.](ds:block?id=claude-agent-tokenenv-tatsnfw8)** Claude accepts `oauth-token` and `api-key`; any other `TokenKind` returns `ErrUnsupported` from `Launch`.
+- **[A token kind the agent does not take is refused.](ds:block?id=claude-agent-tokenenv-tatsnfw8)** Claude accepts `oauth-token`, `api-key` and `api-key-helper`; any other `TokenKind` returns `ErrUnsupported` from `Launch`.
 
 ## Related
 

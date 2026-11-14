@@ -1,0 +1,16 @@
+func (a *Agent) SessionUsage(h Home, id string) (SessionUsage, error) {
+	var u SessionUsage
+	_, err := a.Turns(h, id, 0, func(t agentio.Turn) error {
+		if t.Role != agentio.RoleAssistant || t.Tokens == nil {
+			return nil
+		}
+		u.Messages++
+		u.Tokens = u.Tokens.Add(*t.Tokens)
+		var e entryWire
+		if json.Unmarshal(t.Raw, &e) == nil && e.Message != nil && e.Message.Usage != nil {
+			u.CostUSD += e.Message.Usage.Cost.Total
+		}
+		return nil
+	})
+	return u, err
+}

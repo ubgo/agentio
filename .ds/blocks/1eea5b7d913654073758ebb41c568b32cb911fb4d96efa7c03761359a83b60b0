@@ -1,0 +1,33 @@
+func ValidateSettings(data []byte) (SettingsCheck, error) {
+	s, err := ParseSettings("settings", data)
+	if err != nil {
+		return SettingsCheck{}, err
+	}
+	c := SettingsCheck{Settings: s, TypeErrors: s.Warnings}
+	add := func(prefix string, u agentio.Unknown) {
+		for _, k := range u.Keys() {
+			c.UnknownKeys = append(c.UnknownKeys, prefix+k)
+		}
+	}
+	for _, w := range s.Warnings {
+		delete(s.Unknown, w.Key) // a type error is reported once, not also as unknown
+	}
+	add("", s.Unknown)
+	if s.Permissions != nil {
+		add(keyPermissions+".", s.Permissions.Unknown)
+	}
+	if s.StatusLine != nil {
+		add("statusLine.", s.StatusLine.Unknown)
+	}
+	if s.Sandbox != nil {
+		add("sandbox.", s.Sandbox.Unknown)
+	}
+	if s.Attribution != nil {
+		add("attribution.", s.Attribution.Unknown)
+	}
+	if s.Worktree != nil {
+		add("worktree.", s.Worktree.Unknown)
+	}
+	sort.Strings(c.UnknownKeys)
+	return c, nil
+}

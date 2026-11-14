@@ -1,0 +1,7 @@
+func ParseLaunchOption(o *LaunchOptions, key, value string) error {
+	keys, err := LaunchOptionKeys()
+	if err != nil {
+		return err
+	}
+	return agentio.SetOption(keys, reflect.ValueOf(o), key, value)
+}

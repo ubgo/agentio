@@ -176,7 +176,7 @@ check owner: own home err=<nil>
 - **A missing folder is not an error.** `IsHome` returns [`(false, nil)`](ds:block?id=core-ishome-nxgj8ve9) for a folder that does not exist or is a file; only a real stat failure (permissions) is an error.
 - **[The default home is launched with the variable ABSENT.](ds:block?id=homeenvchange-59nx5j7k)** `IsDefault()` homes get `CLAUDE_CONFIG_DIR` removed from the child env, never set to `~/.claude`: Claude Code would switch keychain entries and look logged out ([Targets and commands](launch.md#step-4--change-the-child-environment)).
 - **[An empty home variable counts as absent.](ds:block?id=core-homefromenv-jk7mncfj)** `CLAUDE_CONFIG_DIR=` makes `HomeFromEnv` return false, as the vendor CLI falls back to the default home.
-- **[`HomeAt` names the home from its folder.](ds:block?id=core-homename-ep9s5ega)** `.claude-ci` becomes `ci` because it starts with the default folder name plus `-`; any other folder takes its base name without the leading dot.
+- **[`HomeAt` names the home from its folder.](ds:block?id=core-homename-ep9s5ega)** `.claude-ci` becomes `ci` because it starts with the default folder name plus `-`; any other folder takes its base name without the leading dot. For an agent whose home variable names the parent (`HomeEnvNamesParent`), `~/gemini-work/.gemini` takes the parent's name, `gemini-work`.
 - **Never build a Home of one agent and pass it to another.** You get [`ErrForeignHome`](ds:block?id=checkowner-2237brr8), not a silent read of the wrong files. Get homes from the agent that will use them.
 
 ## Related

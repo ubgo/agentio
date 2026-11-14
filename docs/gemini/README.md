@@ -8,13 +8,13 @@ Every shape is recorded from Gemini CLI 0.68.0. Files the CLI writes without a l
 
 - Add the module: `go get github.com/ubgo/agentio/gemini`. It is stdlib only, like the root module.
 - A Host. `agentio.HostFromOS()` reads the real machine; the example builds one on a temp copy of the fixture home.
-- Know the home rule: `GEMINI_CLI_HOME` names the dir that **contains** `.gemini`, not `.gemini` itself. `~/gemini-work/.gemini` is selected with `GEMINI_CLI_HOME=~/gemini-work`, and every non-default home must be a `.gemini` dir inside its parent.
+- Know the home rule: [`GEMINI_CLI_HOME`](ds:block?id=gemini-spec-r6gb6a7c) names the dir that **contains** `.gemini`, not `.gemini` itself. `~/gemini-work/.gemini` is selected with `GEMINI_CLI_HOME=~/gemini-work`, and every non-default home must be a `.gemini` dir inside its parent.
 
 The snippets come from [`examples/gemini`](../../examples/gemini/), which runs on the checked-in fixture home `gemini/testdata/homes/0.68.0`.
 
 ## Step 1 — Homes
 
-`gemini.New(host)` returns the agent. `DefaultHome()` is `~/.gemini` (named `personal`); `HomeAt(dir)` takes the `.gemini` dir itself, and its name comes from the parent dir (`gemini-work`). `HomeFromEnv()` reads `GEMINI_CLI_HOME` and appends `.gemini`; `Homes()` lists the default home and that one, each only when it holds a marker (`settings.json`, `projects.json`, `oauth_creds.json`, `google_accounts.json` or `tmp/`). A launch on the default home removes `GEMINI_CLI_HOME`; a launch on another home sets it to the home's parent.
+[`gemini.New(host)`](ds:block?id=gemini-new-r6g1n2b3) returns the agent. `DefaultHome()` is `~/.gemini` (named `personal`); `HomeAt(dir)` takes the `.gemini` dir itself, and its name comes from the parent dir (`gemini-work`). [`HomeFromEnv()`](ds:block?id=gemini-agent-homefromenv-r6g2h4k5) reads `GEMINI_CLI_HOME` and appends `.gemini`; `Homes()` lists the default home and that one, each only when it holds a marker (`settings.json`, `projects.json`, `oauth_creds.json`, `google_accounts.json` or `tmp/`). A launch on the default home removes `GEMINI_CLI_HOME`; a launch on another home sets it to the home's parent.
 
 <!-- snippet: examples/gemini/main.go#homes -->
 ```go
@@ -36,7 +36,7 @@ func homes(p printer, a *gemini.Agent, m machine) error {
 
 ## Step 2 — Install and version
 
-`Install()` finds `gemini` on the Host's `PATH` (never a shell) and reads the version from the `package.json` of `@google/gemini-cli` above the resolved binary: npm, pnpm, Bun, Volta and the Homebrew formula (which installs through npm) all work, and no process runs. `Runner().BinaryVersion(ctx)` runs `gemini --version` when you need the binary's own answer; holding the Runner is the opt-in to running it. `TestedMin` and `TestedMax` are the versions the fixtures cover, and the doctor warns outside them.
+[`Install()`](ds:block?id=gemini-agent-install-r6g3i6m7) finds `gemini` on the Host's `PATH` (never a shell) and reads the version from the `package.json` of `@google/gemini-cli` above the resolved binary: npm, pnpm, Bun, Volta and the Homebrew formula (which installs through npm) all work, and no process runs. `Runner().BinaryVersion(ctx)` runs `gemini --version` when you need the binary's own answer; holding the Runner is the opt-in to running it. `TestedMin` and `TestedMax` are the versions the fixtures cover, and the doctor warns outside them.
 
 Gemini CLI updates itself by default (`general.enableAutoUpdate`) on npm-family installs, so the installed version can change between two reads; the doctor reports it as an info check.
 
@@ -57,14 +57,14 @@ func install(p printer, a *gemini.Agent) error {
 
 ## Step 3 — Settings
 
-`Settings(h, dir)` reads the layers highest precedence first: system (`/etc/gemini-cli/settings.json`, `/Library/Application Support/GeminiCli/settings.json` or `C:\ProgramData\gemini-cli\settings.json`, or `GEMINI_CLI_SYSTEM_SETTINGS_PATH`), the workspace (`<dir>/.gemini/settings.json`), the user (`<home>/settings.json`) and the system defaults. Each `SettingsFile` carries a `gemini.Settings`:
+[`Settings(h, dir)`](ds:block?id=gemini-agent-settings-r6g4s8p9) reads the layers highest precedence first: system (`/etc/gemini-cli/settings.json`, `/Library/Application Support/GeminiCli/settings.json` or `C:\ProgramData\gemini-cli\settings.json`, or `GEMINI_CLI_SYSTEM_SETTINGS_PATH`), the workspace (`<dir>/.gemini/settings.json`), the user (`<home>/settings.json`) and the system defaults. Each `SettingsFile` carries a `gemini.Settings`:
 
 - the sections agentio uses are typed: `general`, `model`, `context`, `security` (with `auth.selectedType`), `privacy`, `tools`, `mcp` and `mcpServers`;
 - every other key, top level or inside a typed section, is kept raw in `Unknown`, and `MarshalJSON` writes it back, so nothing is lost on a round trip;
 - a typed section with an unexpected type is kept raw too, with a warning, the way Gemini CLI itself keeps such keys;
 - comments are allowed, as in Gemini CLI (`StripJSONComments`).
 
-`EffectiveSettings(h, dir)` merges the model, approval mode, auth type, context file names and MCP servers; `Defaults(h, dir)` maps them onto `agentio.Defaults`. The workspace layer is merged even for an untrusted folder, where the CLI would skip it; check `ProjectTrust` when that matters.
+[`EffectiveSettings(h, dir)`](ds:block?id=gemini-agent-effectivesettings-r6g5e2q3) merges the model, approval mode, auth type, context file names and MCP servers; `Defaults(h, dir)` maps them onto `agentio.Defaults`. The workspace layer is merged even for an untrusted folder, where the CLI would skip it; check `ProjectTrust` when that matters.
 
 <!-- snippet: examples/gemini/main.go#settings -->
 ```go
@@ -98,7 +98,7 @@ func settings(p printer, a *gemini.Agent, m machine) error {
 
 Gemini keys chats by project. `projects.json` maps each absolute project dir to a slug (`Slugify` of the dir's base name, with `-1`, `-2` on a clash), and chats live in `<home>/tmp/<slug>/chats/session-<time>-<id8>.jsonl`. `ProjectSlug(h, dir)` looks a project up the way the CLI does: the registry first, then each `tmp/<slug>/.project_root` marker.
 
-`Sessions(ctx, h, dir)` lists resumable chats newest first. It reads only the head of each file (the metadata line and the first user message) and its last 256 KiB (the newest `$set` summary and update time); legacy single-object `.json` chats are streamed. As in `gemini --list-sessions`, a chat with no user or model message and a subagent chat are skipped, and the title is the summary or else the first prompt that is not a `/command`. `Session.ID` is the full id that `gemini --resume <id>` takes. Resume is per project, so launch it with `Dir` set to the session's project dir.
+[`Sessions(ctx, h, dir)`](ds:block?id=gemini-agent-sessions-r6g6c4r5) lists resumable chats newest first. It reads only the head of each file (the metadata line and the first user message) and its last 256 KiB (the newest `$set` summary and update time); legacy single-object `.json` chats are streamed. As in `gemini --list-sessions`, a chat with no user or model message and a subagent chat are skipped, and the title is the summary or else the first prompt that is not a `/command`. `Session.ID` is the full id that `gemini --resume <id>` takes. Resume is per project, so launch it with `Dir` set to the session's project dir.
 
 <!-- snippet: examples/gemini/main.go#conversations -->
 ```go
@@ -131,7 +131,7 @@ func conversations(ctx context.Context, p printer, a *gemini.Agent, m machine) e
 
 `InstructionFiles(h, dir)` lists the files the CLI loads, in order: `<home>/GEMINI.md` (or the `context.fileName` names), the project memory `tmp/<slug>/memory/MEMORY.md`, then every context file from the git root down to `dir`. A folder `trustedFolders.json` marks `DO_NOT_TRUST` loads no project file. Files in subdirectories the CLI loads only when a tool touches them are not listed.
 
-`MCPServers(h, dir)` merges `mcpServers` from the settings layers by name, adds the servers of enabled extensions, and applies `mcp-server-enablement.json` and `mcp.excluded`. Env and header values stay in `agentio.EnvValue` (redacted); the neutral view carries env names only. `Skills(h, dir)` reads `<home>/skills`, the home parent's `.agents/skills`, the project's `.gemini/skills` and `.agents/skills`, and each enabled extension's `skills/`; `skills.disabled` marks a skill disabled. `Extensions(h, dir)` reads `extensions/<name>/gemini-extension.json` and applies `extension-enablement.json` to `dir`, the way the CLI does: a plain rule enables, a `!` rule disables, the last match wins.
+[`MCPServers(h, dir)`](ds:block?id=gemini-agent-mcpservers-r6g7m6t7) merges `mcpServers` from the settings layers by name, adds the servers of enabled extensions, and applies `mcp-server-enablement.json` and `mcp.excluded`. Env and header values stay in `agentio.EnvValue` (redacted); the neutral view carries env names only. `Skills(h, dir)` reads `<home>/skills`, the home parent's `.agents/skills`, the project's `.gemini/skills` and `.agents/skills`, and each enabled extension's `skills/`; `skills.disabled` marks a skill disabled. [`Extensions(h, dir)`](ds:block?id=gemini-agent-extensions-r6g8x8v9) reads `extensions/<name>/gemini-extension.json` and applies `extension-enablement.json` to `dir`, the way the CLI does: a plain rule enables, a `!` rule disables, the last match wins.
 
 <!-- snippet: examples/gemini/main.go#instructions -->
 ```go
@@ -175,7 +175,7 @@ func instructionsAndMCP(p printer, a *gemini.Agent, m machine) error {
 
 ## Step 6 — Login
 
-`Identity(h)` reads the login without the network. For `oauth-personal` (the Google login) it is logged in when `oauth_creds.json` holds a token, with the email from `google_accounts.json` (an `agentio.Personal`, redacted when printed) and the expiry from `expiry_date`. For `gemini-api-key` and `vertex-ai` it checks the variable names in the Host env and reports per-token billing. The CLI refreshes its own tokens; agentio only reads.
+[`Identity(h)`](ds:block?id=gemini-agent-identity-r6g9d2w3) reads the login without the network. For `oauth-personal` (the Google login) it is logged in when `oauth_creds.json` holds a token, with the email from `google_accounts.json` (an `agentio.Personal`, redacted when printed) and the expiry from `expiry_date`. For `gemini-api-key` and `vertex-ai` it checks the variable names in the Host env and reports per-token billing. The CLI refreshes its own tokens; agentio only reads.
 
 <!-- snippet: examples/gemini/main.go#login -->
 ```go
@@ -193,7 +193,7 @@ func login(p printer, a *gemini.Agent) error {
 
 ## Step 7 — Launch
 
-`Launch(t, r)` builds the command; nothing runs.
+[`Launch(t, r)`](ds:block?id=gemini-agent-launch-r6ga4y5z) builds the command; nothing runs.
 
 | Request | Gemini flags or env |
 |---|---|

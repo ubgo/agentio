@@ -1,0 +1,21 @@
+func (a *Agent) LiveCredential(command string, refresh time.Duration) (agentio.LiveCredentialPlan, error) {
+	if command == "" {
+		return agentio.LiveCredentialPlan{}, fmt.Errorf("claude: live credential needs a helper command")
+	}
+	if refresh == 0 {
+		refresh = DefaultHelperRefresh
+	}
+	if refresh < minHelperRefresh {
+		return agentio.LiveCredentialPlan{}, fmt.Errorf("claude: helper refresh %s is below %s", refresh, minHelperRefresh)
+	}
+	settings, err := helperSettingsJSON(command)
+	if err != nil {
+		return agentio.LiveCredentialPlan{}, err
+	}
+	return agentio.LiveCredentialPlan{
+		Settings: settings,
+		Env:      []agentio.EnvChange{agentio.EnvSet(APIKeyHelperTTLEnv, fmt.Sprint(refresh.Milliseconds()))},
+		Scrub:    credentialEnv(),
+		Refresh:  refresh,
+	}, nil
+}

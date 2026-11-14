@@ -1,0 +1,11 @@
+func (b *builder) flag(f Feature, args ...string) {
+	if b.err != nil {
+		return
+	}
+	if err := checkFeature(b.t, f); err != nil {
+		b.err = err
+		return
+	}
+	b.args = append(b.args, args...)
+	b.feats = append(b.feats, f)
+}

@@ -1,0 +1,33 @@
+func (a *Agent) Sessions(h Home, q agentio.ConversationQuery) ([]Session, error) {
+	store, err := a.SessionStore(h)
+	if err != nil {
+		return nil, err
+	}
+	dir, err := absDir(q.Dir)
+	if err != nil {
+		return nil, err
+	}
+	files, err := sessionFiles(store, dir)
+	if err != nil {
+		return nil, err
+	}
+	var out []Session
+	for _, f := range files {
+		s, err := a.ReadSession(h, f)
+		if err != nil {
+			continue
+		}
+		if store.Flat && dir != "" && filepath.Clean(s.Cwd) != dir {
+			continue
+		}
+		if !q.Since.IsZero() && s.Updated.Before(q.Since) {
+			continue
+		}
+		out = append(out, s)
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Updated.After(out[j].Updated) })
+	if q.Limit > 0 && len(out) > q.Limit {
+		out = out[:q.Limit]
+	}
+	return out, nil
+}

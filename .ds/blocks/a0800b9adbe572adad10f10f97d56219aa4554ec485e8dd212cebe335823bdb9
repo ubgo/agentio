@@ -1,0 +1,10 @@
+func (a *Agent) Launch(t agentio.Target, r agentio.LaunchRequest) (agentio.Command, error) {
+	if err := a.checkLaunchFeatures(t.Version, r); err != nil {
+		return agentio.Command{}, err
+	}
+	if r.Headless && r.Prompt != "" {
+		r.Args = append(slices.Clone(r.Args), flagPrompt, r.Prompt)
+		r.Prompt = ""
+	}
+	return a.core.Launch(t, r)
+}

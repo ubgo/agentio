@@ -23,7 +23,7 @@ work: login in keychain (Claude Code-credentials-<hash>)
   expires 2026-11-13T18:00:00Z, expired now: false
   plan pro / default_claude_pro, 2 scopes, token [redacted]
   keychain names tried: 1
-token logins: [oauth-token api-key]
+token logins: [oauth-token api-key api-key-helper]
   sk-ant-oat01-E oauth-token, valid for 8760h0m0s
   sk-ant-api03-E api-key, valid for until revoked
   sk-ant-ort01-E refused: claude: this token cannot run Claude: it is an OAuth refresh token; use the token `claude setup-token` prints

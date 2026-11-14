@@ -1,0 +1,4 @@
+func LaunchOptionsSchema() (agentio.SchemaNode, error) {
+	keys, err := LaunchOptionKeys()
+	return agentio.OptionsSchema(keys), err
+}

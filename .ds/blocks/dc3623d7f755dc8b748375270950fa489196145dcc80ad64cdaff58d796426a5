@@ -1,0 +1,3 @@
+func LaunchOptionKeys() ([]agentio.OptionKey, error) {
+	return agentio.DeriveOptionKeys(optionDerivation())
+}

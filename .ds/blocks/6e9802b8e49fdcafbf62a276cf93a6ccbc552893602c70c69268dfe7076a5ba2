@@ -1,0 +1,1 @@
+func (a *Agent) Install() (agentio.Install, error) { return a.core.Install() }

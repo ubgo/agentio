@@ -1,0 +1,3 @@
+func (a *Agent) TokenKinds() []agentio.TokenKind {
+	return []agentio.TokenKind{agentio.TokenOAuthToken, agentio.TokenAPIKey, agentio.TokenAPIKeyHelper}
+}

@@ -1,0 +1,3 @@
+func (c *Core) Command(t Target, dir string, argv []string, tokenEnv []EnvChange) (Command, error) {
+	return c.command(t, dir, argv, tokenEnv, c.tokenScrub(tokenEnv))
+}

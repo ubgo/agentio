@@ -1,0 +1,44 @@
+func (s Spec) Validate() error {
+	if _, err := ParseID(string(s.ID)); err != nil {
+		return fmt.Errorf("%w: %w", ErrInvalidSpec, err)
+	}
+	if s.Binary == "" {
+		return fmt.Errorf("%w: %s: binary is empty", ErrInvalidSpec, s.ID)
+	}
+	if s.HomeEnv != "" && s.DefaultHome == "" {
+		return fmt.Errorf("%w: %s: home env %s needs a default home", ErrInvalidSpec, s.ID, s.HomeEnv)
+	}
+	if s.DefaultHome != "" && (filepath.IsAbs(s.DefaultHome) || !filepath.IsLocal(s.DefaultHome)) {
+		return fmt.Errorf("%w: %s: default home %q must be relative to the user home", ErrInvalidSpec, s.ID, s.DefaultHome)
+	}
+	if s.ExtraHomes != "" {
+		if _, err := filepath.Match(s.ExtraHomes, ""); err != nil || !filepath.IsLocal(s.ExtraHomes) {
+			return fmt.Errorf("%w: %s: extra homes glob %q is invalid", ErrInvalidSpec, s.ID, s.ExtraHomes)
+		}
+	}
+	if s.HomeEnvNamesParent && (s.HomeEnv == "" || strings.ContainsAny(s.DefaultHome, `/\`)) {
+		return fmt.Errorf("%w: %s: home_env_names_parent needs home_env and a one-element default home, not %q", ErrInvalidSpec, s.ID, s.DefaultHome)
+	}
+	if err := s.validateTokenEnv(); err != nil {
+		return err
+	}
+	for a := range s.AutonomyArgs {
+		if _, ok := ParseAutonomy(a.String()); !ok {
+			return fmt.Errorf("%w: %s: autonomy_args has an unknown level %d", ErrInvalidSpec, s.ID, a)
+		}
+	}
+	for _, t := range []struct {
+		name, placeholder string
+		tpl               []string
+	}{
+		{"resume args", placeholderID, s.ResumeArgs},
+		{"model args", placeholderModel, s.ModelArgs},
+		{"add-dir args", placeholderDir, s.AddDirArgs},
+		{"prompt args", placeholderPrompt, s.PromptArgs},
+	} {
+		if len(t.tpl) > 0 && !templateHas(t.tpl, t.placeholder) {
+			return fmt.Errorf("%w: %s: %s %v lack %s", ErrInvalidSpec, s.ID, t.name, t.tpl, t.placeholder)
+		}
+	}
+	return nil
+}

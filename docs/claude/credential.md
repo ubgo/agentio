@@ -51,7 +51,7 @@ func location(a *claude.Agent, c claude.Credential) string {
 
 ## Step 2 — Detect a token's kind
 
-[`a.TokenKinds()`](ds:block?id=claude-agent-tokenkinds-rgwudtpt) lists the token logins Claude supports, OAuth token first (so a plain login spends plan quota rather than an API key): `agentio.TokenOAuthToken` (what `claude setup-token` prints) and `agentio.TokenAPIKey`. [`a.DetectTokenKind(t)`](ds:block?id=claude-agent-detecttokenkind-8826wbv6) classifies a token by its prefix and returns `(kind, known, err)`: `known` is false for an unrecognised prefix, and an OAuth refresh token or an Admin API key is refused with an error wrapping `claude.ErrUnusableToken` (no login can run Claude with them). [`a.TokenLifetime(kind)`](ds:block?id=claude-agent-tokenlifetime-x3rp4mqq) is [`claude.SetupTokenLifetime`](ds:block?id=claude-setuptokenlifetime-rwu3ayz3) (one year, the believed validity of a setup-token) for an OAuth token and 0 ("until revoked") for an API key.
+[`a.TokenKinds()`](ds:block?id=claude-agent-tokenkinds-rgwudtpt) lists the token logins Claude supports, OAuth token first (so a plain login spends plan quota rather than an API key): `agentio.TokenOAuthToken` (what `claude setup-token` prints), `agentio.TokenAPIKey`, and `agentio.TokenAPIKeyHelper` (a command Claude runs itself, passed as settings `apiKeyHelper`). [`a.DetectTokenKind(t)`](ds:block?id=claude-agent-detecttokenkind-8826wbv6) classifies a token by its prefix and returns `(kind, known, err)`: `known` is false for an unrecognised prefix, and an OAuth refresh token or an Admin API key is refused with an error wrapping `claude.ErrUnusableToken` (no login can run Claude with them). [`a.TokenLifetime(kind)`](ds:block?id=claude-agent-tokenlifetime-x3rp4mqq) is [`claude.SetupTokenLifetime`](ds:block?id=claude-setuptokenlifetime-rwu3ayz3) (one year, the believed validity of a setup-token) for an OAuth token and 0 ("until revoked") for an API key.
 
 <!-- snippet: examples/claudeaccount/main.go#kinds -->
 ```go
@@ -86,7 +86,7 @@ func lifetime(d time.Duration) string {
 
 ## Step 3 — Build a token environment
 
-[`a.TokenEnv(cred)`](ds:block?id=claude-agent-tokenenv-tatsnfw8) maps a `agentio.TokenCredential` onto Claude's variables: an OAuth token goes to `CLAUDE_CODE_OAUTH_TOKEN` (`claude.OAuthTokenEnv`), an API key to `ANTHROPIC_API_KEY` (`claude.APIKeyEnv`). Each change is a secret `agentio.EnvChange`: its `String()` and JSON show `[redacted]`, and [its `Value()` is empty](ds:block?id=envchange-value-43pazd3a). You rarely call it yourself: a neutral launch with `LaunchRequest.Credential` set calls it and [scrubs the other credential variables](ds:block?id=core-envchanges-f8hrn3we) so the token is the login used (see [Logins and tokens](../capabilities/logins.md#step-2--launch-with-a-token)). Another kind returns an `agentio.ErrUnsupported` error.
+[`a.TokenEnv(cred)`](ds:block?id=claude-agent-tokenenv-tatsnfw8) maps a `agentio.TokenCredential` onto Claude's variables: an OAuth token goes to `CLAUDE_CODE_OAUTH_TOKEN` (`claude.OAuthTokenEnv`), an API key to `ANTHROPIC_API_KEY` (`claude.APIKeyEnv`), and an api-key-helper login sets no variable (its command goes into settings through `claude.HelperSettings`) but still scrubs every variable that outranks it. Each change is a secret `agentio.EnvChange`: its `String()` and JSON show `[redacted]`, and [its `Value()` is empty](ds:block?id=envchange-value-43pazd3a). You rarely call it yourself: a neutral launch with `LaunchRequest.Credential` set calls it and [scrubs the other credential variables](ds:block?id=core-envchanges-f8hrn3we) so the token is the login used (see [Logins and tokens](../capabilities/logins.md#step-2--launch-with-a-token)). Another kind returns an `agentio.ErrUnsupported` error.
 
 <!-- snippet: examples/claudeaccount/main.go#tokenenv -->
 ```go
@@ -144,7 +144,7 @@ work: login in keychain (Claude Code-credentials-<hash>)
   expires 2026-11-13T18:00:00Z, expired now: false
   plan pro / default_claude_pro, 2 scopes, token [redacted]
   keychain names tried: 1
-token logins: [oauth-token api-key]
+token logins: [oauth-token api-key api-key-helper]
   sk-ant-oat01-E oauth-token, valid for 8760h0m0s
   sk-ant-api03-E api-key, valid for until revoked
   sk-ant-ort01-E refused: claude: this token cannot run Claude: it is an OAuth refresh token; use the token `claude setup-token` prints

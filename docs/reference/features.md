@@ -99,6 +99,11 @@ Areas follow the library's layers: L1 is the neutral core every agent shares, L2
 | Describe a plain agent as a `Spec` (binary, home env, resume args, process match) | `agentio` | [Config-defined agents](../capabilities/fromspec.md#step-1--describe-the-agent-as-a-spec) | [fromspec](../../examples/fromspec/) |
 | `FromSpec` | `agentio` | [Config-defined agents](../capabilities/fromspec.md#step-2--build-it-with-fromspec) | [fromspec](../../examples/fromspec/) |
 | Launch a config-defined agent (`Launch`, `LoginCommand`, `Checks` from the Spec) | `agentio` | [Config-defined agents](../capabilities/fromspec.md#step-3--launch-it) | [fromspec](../../examples/fromspec/) |
+| Autonomy, headless and token templates in a Spec (`AutonomyArgs`, `HeadlessArgs`, `TokenEnv` per kind and provider, `HomeEnvNamesParent`, `Packages`, JSON tags) | `agentio` | [Config-defined agents](../capabilities/fromspec.md#step-4--describe-autonomy-headless-output-and-token-logins) | [fromspec](../../examples/fromspec/) |
+| `InstallFromPath` (install version from package metadata, never running the binary) | `agentio` | [Config-defined agents](../capabilities/fromspec.md#step-4--describe-autonomy-headless-output-and-token-logins) | [gemini](../../examples/gemini/), [pi](../../examples/pi/) |
+| Gemini CLI as a built-in agent (`gemini.New`, homes with `GEMINI_CLI_HOME` naming the parent, install, settings with every key kept, conversations per project, instructions, MCP, skills, extensions, identity, launch with approval modes) | `gemini` | [Gemini CLI](../gemini/README.md) | [gemini](../../examples/gemini/) |
+| pi as a built-in agent (`pi.New`, agent dir, install, sessions and turns, per-session cost, settings, trust, logins without values, instructions, MCP, skills, prompt templates, typed launch options) | `pi` | [The pi agent](../pi/README.md) | [pi](../../examples/pi/) |
+| Which capability each built-in agent has, and why not | `agentio` | [Capability matrix](capability-matrix.md) | [capmatrix](../../examples/capmatrix/) |
 
 ## Compat and drift
 
@@ -314,3 +319,13 @@ Areas follow the library's layers: L1 is the neutral core every agent shares, L2
 | `DB.Threads`, `DB.Thread`, `Thread`, `ThreadStatusFilter`, `Thread.Conversation`, `DB.SubAgents`, `SpawnEdge`, `DB.Projects` | `codex/state` | [Codex SQLite state (codex/state)](../codex/state.md#step-2--list-threads) | [codexstate](../../examples/codexstate/) |
 | `DB.Turns`, `Turn`, `DB.Items`, `Item`, `ItemType` | `codex/state` | [Codex SQLite state (codex/state)](../codex/state.md#step-3--read-turns-and-items) | [codexstate](../../examples/codexstate/) |
 | `DB.Goal`, `DB.Queue`, `DB.Memories`, `DB.MemoryJobs`, `DB.Logs`, `LogQuery`, `LogLine` | `codex/state` | [Codex SQLite state (codex/state)](../codex/state.md#step-4--read-goals-queue-memories-and-logs) | [codexstate](../../examples/codexstate/) |
+
+## Typed launch configuration
+
+| Feature | Package | Guide | Example |
+|---|---|---|---|
+| Launch option registry (`LaunchOptionKeys`, `ParseLaunchOption`, `DecodeLaunchOptions`, `LaunchOptionsSchema`; root `OptionKey`, `DeriveOptionKeys`, `OptionsSchema`) | `claude`, `codex`, `agentio` | [Typed launch configuration](../capabilities/launch-config.md#step-1--validate-typed-options-with-the-registry) | [launchconfig](../../examples/launchconfig/) |
+| Settings round trip and validation (`Settings` keeps unknown keys, `ValidateSettings`, `SettingsKeys`, `SettingsSchema`) and per-launch settings (`LaunchSettings`) | `claude` | [Typed launch configuration](../capabilities/launch-config.md#step-2--type-check-settings-and-hand-them-to-claude) | [launchconfig](../../examples/launchconfig/) |
+| Live credential (`LiveCredentialOf`, `LiveCredentialPlan`, `claude.Agent.LiveCredential`) and the `api-key-helper` login (`claude.HelperSettings`) | `agentio`, `claude` | [Typed launch configuration](../capabilities/launch-config.md#step-3--plan-a-switchable-login) | [launchconfig](../../examples/launchconfig/) |
+| Codex config key table and override check (`ConfigKeys`, `LookupConfigKey`, `CheckOverride`) | `codex` | [Typed launch configuration](../capabilities/launch-config.md#step-4--check-codex-overrides) | [launchconfig](../../examples/launchconfig/) |
+| Run-file cleanup (`Host.ProcessAlive`, `Liveness`, `ProcessEnvReader`) | `agentio` | [Typed launch configuration](../capabilities/launch-config.md#step-5--clean-up-run-files-only-after-the-agent-ended) | [launchconfig](../../examples/launchconfig/) |

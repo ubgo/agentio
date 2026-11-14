@@ -126,7 +126,7 @@ The Codex sample holds a non-JSON line (`warning: not json`) and an event type t
 - **Unknown events are not errors.** A new vendor event type arrives as `RunEventOther` with `Raw` set. Never treat `other` as a failure, and never drop `Raw` if you log runs.
 - **Empty message events are normal.** Claude's stream-json with partial messages emits message events for deltas and blocks without text; count them, print only non-empty `Text`.
 - **`Tokens` can be nil.** Check before dereferencing; only some events carry a tally.
-- **Headless needs the vendor's support.** A config-defined agent's `Launch` returns `ErrUnsupported` for `Headless: true`, and it has no `RunEvents` capability: a Spec cannot describe an event format.
+- **Headless needs the vendor's support.** A config-defined agent's `Launch` returns `ErrUnsupported` for `Headless: true` unless its Spec has `HeadlessArgs`, and it never has a `RunEvents` capability: a Spec cannot describe an event format.
 - **The decoder does not run anything.** Starting the process, its context and its exit code are yours; a `done` event means the vendor reported the end, not that the process exited zero.
 
 ## Related

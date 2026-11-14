@@ -1,0 +1,14 @@
+func (c *Core) homeName(dir string) string {
+	base := filepath.Base(dir)
+	if c.spec.HomeEnvNamesParent && base == c.spec.DefaultHome {
+		// <parent>/.gemini: the parent names the home (~/gemini-work/.gemini
+		// is "gemini-work").
+		base = filepath.Base(filepath.Dir(dir))
+		return strings.TrimPrefix(base, ".")
+	}
+	defBase := filepath.Base(c.spec.DefaultHome)
+	if rest, ok := strings.CutPrefix(base, defBase+homeNameSep); ok && rest != "" {
+		return rest
+	}
+	return strings.TrimPrefix(base, ".")
+}

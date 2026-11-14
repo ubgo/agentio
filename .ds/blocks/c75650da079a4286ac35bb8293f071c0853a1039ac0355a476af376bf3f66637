@@ -1,0 +1,7 @@
+type ProcessEnvReader interface {
+	// Env is Process · Read: pid's start environment as NAME=value
+	// entries. On darwin the entries are split on spaces from `ps -E`
+	// output, mixed with the command line, so match a whole NAME=value
+	// entry, never parse values with spaces.
+	Env(ctx context.Context, pid int) ([]string, error)
+}

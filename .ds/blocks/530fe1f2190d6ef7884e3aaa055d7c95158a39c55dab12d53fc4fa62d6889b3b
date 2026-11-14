@@ -1,0 +1,17 @@
+type TokenEnv struct {
+	// Kind is the login kind: oauth-token, api-key or api-key-helper.
+	Kind TokenKind `json:"kind"`
+	// Provider narrows the entry for agents whose variable depends on the
+	// model provider (pi: anthropic -> ANTHROPIC_API_KEY, openai ->
+	// OPENAI_API_KEY). "" = any provider; a request without a provider
+	// matches only when exactly one entry has its kind.
+	Provider string `json:"provider,omitempty"`
+	// Env is the variable that receives the token.
+	Env string `json:"env"`
+	// Scrub are the inherited variables that would override this token and
+	// are removed for this login only. nil = Spec.CredentialEnv minus Env
+	// (Claude: an OAuth-token login removes ANTHROPIC_API_KEY and
+	// ANTHROPIC_AUTH_TOKEN, which outrank it); an empty, non-nil list
+	// removes nothing.
+	Scrub []string `json:"scrub,omitempty"`
+}

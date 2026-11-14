@@ -88,6 +88,8 @@ aider: no such agent
 == custom ==
 claude (Claude Code)
 codex (Codex)
+gemini (Gemini CLI)
+pi (pi)
 aider (Aider)
 refused: builtin: agent id "codex" is already defined: agentio: invalid spec
 ```

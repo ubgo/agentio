@@ -1,0 +1,26 @@
+func OptionsSchema(keys []OptionKey) SchemaNode {
+	f := false
+	n := SchemaNode{Type: schemaObject, Properties: map[string]SchemaNode{}, AdditionalProperties: &f}
+	for _, k := range keys {
+		var p SchemaNode
+		switch k.Kind {
+		case OptionString:
+			p = SchemaNode{Type: schemaString}
+		case OptionEnum:
+			p = SchemaNode{Type: schemaString, Enum: k.Values}
+		case OptionBool:
+			p = SchemaNode{Type: schemaBoolean}
+		case OptionNumber:
+			p = SchemaNode{Type: schemaNumber}
+		case OptionList:
+			p = SchemaNode{Type: schemaArray, Items: &SchemaNode{Type: schemaString}}
+		case OptionEnumList:
+			p = SchemaNode{Type: schemaArray, Items: &SchemaNode{Type: schemaString, Enum: k.Values}}
+		case OptionObject:
+			p = SchemaNode{Type: schemaObject}
+		}
+		p.Description = k.Flag
+		n.Properties[k.Key] = p
+	}
+	return n
+}

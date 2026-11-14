@@ -1,0 +1,74 @@
+type Spec struct {
+	ID ID `json:"id"`
+	// Name is the display name.
+	Name string `json:"name"`
+	// Binary is the executable name looked up on PATH.
+	Binary string `json:"binary"`
+	// HomeEnv selects a non-default home; "" = one home only. By default its
+	// value is the home dir itself (CLAUDE_CONFIG_DIR, CODEX_HOME).
+	HomeEnv string `json:"home_env,omitempty"`
+	// HomeEnvNamesParent says HomeEnv names the dir that CONTAINS the home,
+	// not the home: Gemini CLI reads GEMINI_CLI_HOME and uses
+	// $GEMINI_CLI_HOME/.gemini. Every home is then <parent>/<DefaultHome>
+	// (DefaultHome must be one path element), the variable is set to the
+	// parent, and a home whose base is not DefaultHome cannot be selected.
+	HomeEnvNamesParent bool `json:"home_env_names_parent,omitempty"`
+	// DefaultHome is relative to Host.UserHome, e.g. ".codex".
+	DefaultHome string `json:"default_home,omitempty"`
+	// ExtraHomes is a glob relative to Host.UserHome, e.g. ".claude-*"; "" = none.
+	ExtraHomes string `json:"extra_homes,omitempty"`
+	// HomeMarkers are entries that make a dir a real home; empty = any dir.
+	HomeMarkers []string `json:"home_markers,omitempty"`
+	// NewArgs and ResumeArgs are argv templates with {args} (where the
+	// computed args go; appended when absent) and {id} (resume id).
+	NewArgs    []string `json:"new_args,omitempty"`
+	ResumeArgs []string `json:"resume_args,omitempty"`
+	// ModelArgs ({model}) and AddDirArgs ({dir}, repeated per dir) are
+	// optional templates; absent = ErrUnsupported for that request field.
+	ModelArgs  []string `json:"model_args,omitempty"`
+	AddDirArgs []string `json:"add_dir_args,omitempty"`
+	// PromptArgs ({prompt}) passes an initial prompt; absent = Prompt is
+	// ErrUnsupported. Added beyond SPEC §5.6 so a config agent can take one.
+	PromptArgs []string `json:"prompt_args,omitempty"`
+	// AutonomyArgs are the args for each autonomy level. A level without an
+	// entry is refused (ErrUnsupported), never mapped to a guess; an entry
+	// with no args is allowed and adds nothing (pi never asks, so its only
+	// honest level is "full": {"full": []}). AutonomyDefault needs no entry
+	// (no args); AutonomyFull still needs Target.AllowDangerous.
+	AutonomyArgs map[Autonomy][]string `json:"autonomy_args,omitempty"`
+	// HeadlessArgs make a launch non-interactive with machine-readable
+	// output (Gemini: ["--output-format", "stream-json"]); absent = Headless
+	// is ErrUnsupported.
+	HeadlessArgs []string `json:"headless_args,omitempty"`
+	// TokenEnv says which variable carries a token login, per token kind and
+	// provider; no entry for the requested (kind, provider) = the token login
+	// is ErrUnsupported. See TokenEnv for the scrub rule.
+	TokenEnv []TokenEnv `json:"token_env,omitempty"`
+	// VersionArgs enables BinaryVersion through a Runner (e.g. ["--version"]).
+	VersionArgs []string `json:"version_args,omitempty"`
+	// Packages are the npm package names the binary may come from
+	// ("@google/gemini-cli"). With one set, Install reads the version from
+	// that package's package.json next to the resolved binary, without
+	// running it (InstallFromPath also knows Homebrew Cellar and native
+	// version dirs).
+	Packages []string `json:"packages,omitempty"`
+	// LoginArgs enables LoginCommander (browser flow only for config agents).
+	LoginArgs []string `json:"login_args,omitempty"`
+	// LogoutArgs is the logout argv; empty = LogoutCommand returns a zero Command.
+	// Added beyond SPEC §5.6 because LoginCommander needs a logout command.
+	LogoutArgs []string `json:"logout_args,omitempty"`
+	// SharedHomeFiles enables HomeLinker: entries of the default home a new
+	// home reaches through a symlink.
+	SharedHomeFiles []string `json:"shared_home_files,omitempty"`
+	// CredentialEnv are the inherited variables that would override a
+	// home's STORED login. A launch on the home's own login scrubs them; a
+	// token login scrubs only the ones that would override that token (see
+	// TokenEnv.Scrub). A variable that IS an agent's login mechanism (pi's
+	// provider keys, a Gemini API-key home's GEMINI_API_KEY) does not belong
+	// here: it would be removed from the user who set it on purpose.
+	CredentialEnv []string `json:"credential_env,omitempty"`
+	// APIBillingEnv are variables that switch the agent to per-token billing.
+	APIBillingEnv []string `json:"api_billing_env,omitempty"`
+	// Process recognises a process row as this agent.
+	Process ProcessMatch `json:"process,omitzero"`
+}

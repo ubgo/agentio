@@ -1,0 +1,58 @@
+func (c *Core) Launch(t Target, r LaunchRequest) (Command, error) {
+	if err := CheckAutonomy(t, r.Autonomy); err != nil {
+		return Command{}, err
+	}
+	s := c.spec
+	unsupported := func(what string) (Command, error) {
+		return Command{}, UnsupportedError(s.ID, what, "not described by the agent spec")
+	}
+	autonomy, autonomyOK := s.AutonomyArgs[r.Autonomy]
+	switch {
+	case r.Autonomy != AutonomyDefault && !autonomyOK:
+		return unsupported("autonomy " + r.Autonomy.String())
+	case r.Headless && len(s.HeadlessArgs) == 0:
+		return unsupported("headless")
+	case r.Model != "" && len(s.ModelArgs) == 0:
+		return unsupported("model")
+	case len(r.AddDirs) > 0 && len(s.AddDirArgs) == 0:
+		return unsupported("add-dir")
+	case r.Prompt != "" && len(s.PromptArgs) == 0:
+		return unsupported("prompt")
+	case r.ResumeID != "" && len(s.ResumeArgs) == 0:
+		return unsupported("resume")
+	}
+	var tokenEnv []EnvChange
+	var scrub []string
+	if r.Credential != nil {
+		e, ok := s.tokenEnvFor(*r.Credential)
+		if !ok {
+			what := "token login " + r.Credential.Kind.String()
+			if r.Credential.Provider != "" {
+				what += " for provider " + r.Credential.Provider
+			}
+			return unsupported(what)
+		}
+		tokenEnv = []EnvChange{EnvSetSecret(e.Env, r.Credential.Token)}
+		scrub = s.scrubFor(e)
+	}
+	args := slices.Clone(t.ExtraArgs)
+	args = append(args, autonomy...)
+	if r.Headless {
+		args = append(args, s.HeadlessArgs...)
+	}
+	if r.Model != "" {
+		args = append(args, expandTemplate(s.ModelArgs, placeholderModel, r.Model)...)
+	}
+	for _, d := range r.AddDirs {
+		args = append(args, expandTemplate(s.AddDirArgs, placeholderDir, d)...)
+	}
+	args = append(args, r.Args...)
+	if r.Prompt != "" {
+		args = append(args, expandTemplate(s.PromptArgs, placeholderPrompt, r.Prompt)...)
+	}
+	tpl := s.NewArgs
+	if r.ResumeID != "" {
+		tpl = expandTemplate(s.ResumeArgs, placeholderID, r.ResumeID)
+	}
+	return c.command(t, r.Dir, spliceArgs(tpl, args), tokenEnv, scrub)
+}

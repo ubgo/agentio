@@ -9,13 +9,14 @@ agentio knows two kinds of agent. A **built-in** agent (Claude Code, Codex) is a
 | Homes: default, home variable, extra-home glob, markers | ✅ | ✅ from `DefaultHome`, `HomeEnv`, `ExtraHomes`, [`HomeMarkers`](ds:block?id=core-homes-43a2yjev) |
 | Find the binary on `PATH` | ✅ | ✅ from [`Binary`](ds:block?id=core-lookpath-ke3ntet7) |
 | Launch and resume commands | ✅ typed vendor options plus neutral `LaunchRequest` | ✅ neutral `LaunchRequest` from `NewArgs`, `ResumeArgs`, `ModelArgs`, `AddDirArgs`, [`PromptArgs`](ds:block?id=core-launch-v8h5ys7c) |
-| Autonomy levels, headless runs, token logins | ✅ | ❌ [`ErrUnsupported`](ds:block?id=core-launch-v8h5ys7c) |
+| Autonomy levels, headless runs, token logins | ✅ | ✅ when [`AutonomyArgs`, `HeadlessArgs` and `TokenEnv`](ds:block?id=core-launch-v8h5ys7c) describe them; otherwise `ErrUnsupported` |
 | Login command | ✅ every vendor flow | ✅ browser flow only, when [`LoginArgs`](ds:block?id=core-logincommand-3b2a9mth) is set |
 | `--version` through a Runner | ✅ | ✅ when [`VersionArgs`](ds:block?id=runner-version-87cgudkv) is set |
 | Recognise its processes | ✅ | ✅ when [`Process`](ds:block?id=specagent-hascapability-tzc86rcg) is set |
 | Link shared files into a new home | ✅ Claude | ✅ when [`SharedHomeFiles`](ds:block?id=specagent-hascapability-tzc86rcg) is set |
 | Doctor checks | ✅ vendor checks | ✅ [the core checks (binary, home)](ds:block?id=core-checks-8dj5h3dt) |
-| Install method, identity, usage, conversations, prompt history, live sessions, config, MCP, skills, plugins, run events | ✅ | ❌ ["config-only agent: a spec describes L1 only; this needs code"](ds:block?id=configonlyreason-gbavx5nz) |
+| Install path, method and version from package metadata | ✅ | ✅ when [`Packages`](ds:block?id=installfrompath-r6l5z3xc) names the npm package |
+| Identity, usage, conversations, prompt history, live sessions, config, MCP, skills, plugins, run events | ✅ | ❌ ["config-only agent: a spec describes L1 only; this needs code"](ds:block?id=configonlyreason-gbavx5nz) |
 | Guide | [Built-in agents](../capabilities/builtin.md#step-1--build-every-agent) | [Config-defined agents](../capabilities/fromspec.md#step-1--describe-the-agent-as-a-spec) |
 | Example | [accessors](../../examples/accessors/), [quickstart](../../examples/quickstart/) | [fromspec](../../examples/fromspec/) |
 
@@ -30,7 +31,7 @@ agentio knows two kinds of agent. A **built-in** agent (Claude Code, Codex) is a
 
 ## Pitfalls
 
-- **IDs must be unique.** `builtin.New` refuses a Spec with the ID `claude` or `codex`, or a repeated custom ID, with [`ErrInvalidSpec`](ds:block?id=builtin-new-55hg377w); a Spec never overrides a built-in. [`FromSpec` alone does not check against built-ins](ds:block?id=fromspec-4tcd24bd).
+- **IDs must be unique.** `builtin.New` refuses a Spec with a built-in ID (`claude`, `codex`, `gemini`, `pi`), or a repeated custom ID, with [`ErrInvalidSpec`](ds:block?id=builtin-new-55hg377w); a Spec never overrides a built-in. [`FromSpec` alone does not check against built-ins](ds:block?id=fromspec-4tcd24bd).
 - **Empty `HomeMarkers` means [any folder is a home](ds:block?id=core-ishome-nxgj8ve9).** With an `ExtraHomes` glob that can list unrelated folders; name at least one file only a real home has.
 - **Use the accessors, never type assertions.** The config-defined agent's Go type implements every data-driven interface; [only the accessors check whether the Spec data turns the capability on](ds:block?id=capabilityof-t96bhbpq).
 - **Process matching order.** [`agentio.ClassifyProcess`](ds:block?id=classifyprocess-cddjj5sy) returns the first agent that claims a process and built-ins come first, so a broad custom match cannot take Claude Code or Codex processes, but two broad custom matches shadow each other in config order.

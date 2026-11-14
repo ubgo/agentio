@@ -1,0 +1,20 @@
+func (a *Agent) Settings(h Home, dir string) ([]SettingsFile, error) {
+	type layer struct {
+		scope agentio.ConfigScope
+		path  string
+	}
+	layers := []layer{{agentio.ConfigManaged, a.SystemSettingsPath()}}
+	if ws, ok := workspaceSettings(h, dir); ok {
+		layers = append(layers, layer{agentio.ConfigProject, ws})
+	}
+	layers = append(layers, layer{agentio.ConfigUser, h.UserSettingsPath()}, layer{agentio.ConfigManaged, a.SystemDefaultsPath()})
+	out := make([]SettingsFile, 0, len(layers))
+	for _, l := range layers {
+		f, err := ReadSettingsFile(l.scope, l.path)
+		if err != nil {
+			return out, err
+		}
+		out = append(out, f)
+	}
+	return out, nil
+}

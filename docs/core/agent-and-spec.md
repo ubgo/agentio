@@ -83,13 +83,13 @@ func readSpec(p printer, a agentio.Agent) error {
 The fields, grouped:
 
 - **Identity:** `ID`, `Name`, `Binary` (the executable looked up on PATH).
-- **Homes:** `HomeEnv` (the variable that selects a non-default home, `""` = one home only), `DefaultHome` (relative to `Host.UserHome`), `ExtraHomes` (a glob such as `.claude-*`), [`HomeMarkers`](ds:block?id=spec-9rwc3qhn) (entries that make a folder a real home).
+- **Homes:** `HomeEnv` (the variable that selects a non-default home, `""` = one home only), `DefaultHome` (relative to `Host.UserHome`), `ExtraHomes` (a glob such as `.claude-*`), [`HomeMarkers`](ds:block?id=spec-9rwc3qhn) (entries that make a folder a real home), and `HomeEnvNamesParent` when the variable names the folder that contains the home (Gemini CLI's `GEMINI_CLI_HOME`).
 - **Launch templates:** `NewArgs`, `ResumeArgs`, `ModelArgs`, `AddDirArgs`, `PromptArgs`, with placeholders `{args}`, `{id}`, `{model}`, `{dir}`, `{prompt}`.
 - **Data-driven capabilities:** `VersionArgs` (binary version through a Runner), `LoginArgs` / `LogoutArgs` (login commands), `SharedHomeFiles` (home links).
-- **Credentials:** `CredentialEnv` ([inherited copies are scrubbed from every launch](ds:block?id=core-envchanges-f8hrn3we)), `APIBillingEnv` (variables that switch to per-token billing).
+- **Credentials:** `CredentialEnv` (variables that would override the home's stored login: [scrubbed from a launch on the home's login, and from a token login when they outrank the token](ds:block?id=core-envchanges-f8hrn3we)), `APIBillingEnv` (variables that switch to per-token billing).
 - **Process:** `ProcessMatch` with `Basenames`, `ArgvContains` and `Exclude` ([an exclude substring vetoes a match](ds:block?id=processmatch-match-6phmdfg3), which is how the Claude desktop app is told apart from the CLI).
 
-[`Spec.Validate`](ds:block?id=spec-validate-chxkxnh2) checks the ID, that `Binary` is set, that `DefaultHome` is relative and set whenever `HomeEnv` is, that `ExtraHomes` is a valid local glob, and that every non-empty template holds its placeholder. A failure matches `ErrInvalidSpec`.
+[`Spec.Validate`](ds:block?id=spec-validate-chxkxnh2) checks the ID, that `Binary` is set, that `DefaultHome` is relative and set whenever `HomeEnv` is, that `ExtraHomes` is a valid local glob, that `HomeEnvNamesParent` has a home variable and a one-element `DefaultHome`, that every `TokenEnv` entry has a kind and a variable and no (kind, provider) repeats, and that every non-empty template holds its placeholder. A failure matches `ErrInvalidSpec`.
 
 ## Step 3 — Build a Core from a Spec
 
@@ -143,7 +143,7 @@ func buildCore(p printer, h agentio.Host) error {
 }
 ```
 
-[`Core.Launch` expands the templates in a fixed order](ds:block?id=core-launch-v8h5ys7c): `Target.ExtraArgs`, then the model and add-dir templates, then the request's own `Args`, then the prompt; the result is spliced where `{args}` stands in `NewArgs` (or `ResumeArgs` with `{id}` filled). [`Core.Checks`](ds:block?id=core-checks-8dj5h3dt) reports `binary-found`, `home`, `home-env` (the home variable is set in the base env) and `api-billing-env`; `api-billing-env` names the variables only, never their values, while `home-env` also names the folder the variable selects.
+[`Core.Launch` expands the templates in a fixed order](ds:block?id=core-launch-v8h5ys7c): `Target.ExtraArgs`, then the autonomy and headless args, then the model and add-dir templates, then the request's own `Args`, then the prompt; the result is spliced where `{args}` stands in `NewArgs` (or `ResumeArgs` with `{id}` filled). [`Core.Checks`](ds:block?id=core-checks-8dj5h3dt) reports `binary-found`, `home`, `home-env` (the home variable is set in the base env) and `api-billing-env`; `api-billing-env` names the variables only, never their values, while `home-env` also names the folder the variable selects.
 
 To turn a Spec into a full `agentio.Agent` (with process classification, login commands and doctor wired as capabilities), use [`agentio.FromSpec`](ds:block?id=fromspec-4tcd24bd): see [Config-defined agents](../capabilities/fromspec.md).
 
@@ -179,7 +179,7 @@ core: check home warn: ~/.toy-work is not a home (missing or no marker)
 
 - **A vendor agent is not an `agentio.Agent`.** Pass `claude.New(h).Neutral()`, not `claude.New(h)`, to code that takes the interface.
 - **A Spec describes L1 only.** Usage, identity and conversations need code; a config-only agent never has them, and [the accessors report them as unsupported](ds:block?id=specagent-unsupportedreason-jp9ga9ft).
-- **[A field without a template is refused, not dropped.](ds:block?id=core-launch-v8h5ys7c)** `Core.Launch` returns `ErrUnsupported` for a model, add-dir, prompt or resume when the Spec has no template for it, and always for `Headless`, a token `Credential` or any non-default `Autonomy` (a Spec cannot describe them).
+- **[A field without a template is refused, not dropped.](ds:block?id=core-launch-v8h5ys7c)** `Core.Launch` returns `ErrUnsupported` for a model, add-dir, prompt or resume when the Spec has no template for it, for a non-default `Autonomy` without an `AutonomyArgs` entry, for `Headless` without `HeadlessArgs`, and for a token `Credential` without a matching `TokenEnv` entry.
 - **[`HomeMarkers` empty means any folder is a home.](ds:block?id=core-ishome-nxgj8ve9)** A config agent without markers counts every folder its `ExtraHomes` glob matches.
 - **[`HomeEnv` set but empty counts as absent.](ds:block?id=core-homefromenv-jk7mncfj)** `HomeFromEnv` returns false for `CLAUDE_CONFIG_DIR=`, as the vendor CLIs fall back to the default home.
 - **[`Command.Path` is the binary name, not a path.](ds:block?id=core-command-m93k4eug)** Building is Pure, so it never walks PATH; resolve it with `LookPath` before you exec.

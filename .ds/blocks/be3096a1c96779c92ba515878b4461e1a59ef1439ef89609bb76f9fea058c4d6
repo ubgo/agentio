@@ -1,0 +1,13 @@
+func LaunchSettings(data []byte, via SettingsVia, dir, runID string) (string, error) {
+	var obj map[string]json.RawMessage
+	if err := json.Unmarshal(data, &obj); err != nil || obj == nil {
+		return "", fmt.Errorf("claude: launch settings must be a JSON object: %w", err)
+	}
+	if via == SettingsViaInline {
+		return string(data), nil
+	}
+	if !regexp.MustCompile(runIDPattern).MatchString(runID) {
+		return "", ErrBadRunID
+	}
+	return writeLaunchSettingsFile(dir, runID, data)
+}

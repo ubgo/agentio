@@ -1,0 +1,48 @@
+func (a *Agent) MCPServers(h Home, dir string) ([]MCPServer, error) {
+	e, err := a.EffectiveSettings(h, dir)
+	if err != nil {
+		return nil, err
+	}
+	enable, err := readMCPEnablement(h.Path(mcpEnablementFile))
+	if err != nil {
+		return nil, err
+	}
+	var out []MCPServer
+	for name, cfg := range e.MCPServers {
+		out = append(out, MCPServer{Name: name, Config: cfg, Scope: e.MCPScopes[name], Source: e.MCPSources[name]})
+	}
+	exts, err := a.Extensions(h, dir)
+	if err != nil {
+		return nil, err
+	}
+	for _, x := range exts {
+		if !x.Enabled {
+			continue
+		}
+		for name, cfg := range x.Manifest.MCPServers {
+			if _, ok := e.MCPServers[name]; ok {
+				continue // settings win over an extension's server of that name
+			}
+			out = append(out, MCPServer{Name: name, Config: cfg, Scope: agentio.ConfigPlugin, Source: joinPath(x.Dir, extensionManifest), Extension: x.Manifest.Name})
+		}
+	}
+	excluded := map[string]bool{}
+	if mcp := a.mcpFilters(h, dir); mcp != nil {
+		for _, n := range mcp.Excluded {
+			excluded[normalizeServerID(n)] = true
+		}
+	}
+	off := false
+	for i := range out {
+		id := normalizeServerID(out[i].Name)
+		if v, ok := enable[id]; ok && v.Enabled != nil {
+			en := *v.Enabled
+			out[i].Enabled = &en
+		}
+		if excluded[id] {
+			out[i].Enabled = &off
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out, nil
+}

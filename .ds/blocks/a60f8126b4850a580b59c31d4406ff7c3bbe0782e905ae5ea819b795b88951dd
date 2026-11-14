@@ -1,0 +1,27 @@
+func (a *Agent) Identity(h Home) (Identity, error) {
+	user, err := ReadSettingsFile(agentio.ConfigUser, h.UserSettingsPath())
+	if err != nil {
+		return Identity{}, err
+	}
+	var id Identity
+	if sec := user.Settings.Security; sec != nil && sec.Auth != nil {
+		id.AuthType = sec.Auth.SelectedType
+	}
+	switch id.AuthType {
+	case AuthGeminiKey:
+		id.Billing = agentio.BillingPerToken
+		if a.hasEnv(APIKeyEnv) {
+			id.LoggedIn, id.Credential = true, agentio.CredentialEnv
+		}
+		return id, nil
+	case AuthVertex:
+		id.Billing = agentio.BillingPerToken
+		if a.hasEnv(GoogleAPIKeyEnv) || (a.hasEnv(cloudProjectEnv) && a.hasEnv(cloudLocationEnv)) {
+			id.LoggedIn, id.Credential = true, agentio.CredentialEnv
+		}
+		return id, nil
+	case AuthGoogleLogin, "":
+		return a.googleLogin(h, id)
+	}
+	return id, nil
+}

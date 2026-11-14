@@ -1,0 +1,3 @@
+func LiveCredentialOf(a Agent) (LiveCredentialer, bool) {
+	return capabilityOf[LiveCredentialer](a, CapLiveCredential)
+}

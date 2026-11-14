@@ -224,6 +224,8 @@ codex plugin github@openai-curated version=26.928.31416 enabled=true
 claude: no model catalog (Claude Code keeps no model catalog on disk that has a recorded shape; a static list would rot)
 codex model gpt-6-luna       visible=true  context=272000
 codex model gpt-reserve      visible=false context=128000
+gemini: no model catalog (Gemini CLI keeps its model catalog in its own defaults, not in a file on disk)
+pi: no model catalog (pi's model catalog (models-store.json) has no recorded shape yet)
 ```
 
 ## Pitfalls

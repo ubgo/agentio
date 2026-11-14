@@ -4,20 +4,20 @@
 
 pi differs from the other built-ins in three ways that shape this API:
 - **No permission prompts.** pi "does not ask for approval before every tool call", so its only honest autonomy levels are `full` (no flag) and `read-only` (the tool allowlist pi documents as read-only). `ask` and `accept-edits` are refused with "pi has no permission modes; it always runs without prompts".
-- **No plan or quota.** Usage windows are unsupported with that reason; pi records each message's tokens and cost in the session file, which `SessionUsage` sums.
+- **No plan or quota.** Usage windows are unsupported with that reason; pi records each message's tokens and cost in the session file, which [`SessionUsage`](ds:block?id=pi-agent-sessionusage-r6p3u6g7) sums.
 - **It authenticates by provider variables.** `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY` and the rest are pi's login mechanism, and a stored `auth.json` credential already wins over them, so a launch never scrubs any of them.
 
 ## Before you start
 
 - Add the module: `go get github.com/ubgo/agentio/pi` (stdlib only, plus the root module).
 - Build a `Host` (`agentio.HostFromOS()` in real programs; see [Host](../core/host.md)).
-- An agent dir (a home) is `~/.pi/agent` by default. `PI_CODING_AGENT_DIR` names another agent dir **itself** (pi adds no `agent` suffix and creates no `~/.pi`). A dir counts as a home when it holds `auth.json`, `models-store.json`, `settings.json` or `sessions/`; pi writes the first two on every start, even for `--help`.
+- An agent dir (a home) is `~/.pi/agent` by default. [`PI_CODING_AGENT_DIR`](ds:block?id=pi-spec-r6p1s2d3) names another agent dir **itself** (pi adds no `agent` suffix and creates no `~/.pi`). A dir counts as a home when it holds `auth.json`, `models-store.json`, `settings.json` or `sessions/`; pi writes the first two on every start, even for `--help`.
 
 The snippets come from [`examples/pi`](../../examples/pi/), which runs on a temp copy of the 1.5.2 fixture agent dir.
 
 ## Step 1 — Install and version
 
-`Install` finds `pi` on `PATH` and reads the version from the `package.json` of either npm package above the resolved binary. It never runs pi; `Runner().BinaryVersion` runs `pi --version` when you need the binary's own answer. The tested range is `pi.TestedMin`..`pi.TestedMax` (1.5.2), and `features.tsv` records when each flag appeared (from pi's CHANGELOG), so `LaunchOptions.Args` refuses a flag the installed version provably lacks.
+[`Install`](ds:block?id=pi-agent-install-r6p2i4f5) finds `pi` on `PATH` and reads the version from the `package.json` of either npm package above the resolved binary. It never runs pi; `Runner().BinaryVersion` runs `pi --version` when you need the binary's own answer. The tested range is `pi.TestedMin`..`pi.TestedMax` (1.5.2), and `features.tsv` records when each flag appeared (from pi's CHANGELOG), so `LaunchOptions.Args` refuses a flag the installed version provably lacks.
 
 <!-- snippet: examples/pi/main.go#install -->
 ```go
@@ -67,7 +67,7 @@ func homes(p printer, a *pi.Agent) error {
 
 pi keeps one JSONL file per session at `<agent dir>/sessions/--<cwd>--/<timestamp>_<id>.jsonl`. The folder name is the cwd without its leading slash, with every `/`, `\` and `:` turned into `-` (`EncodeSessionDir`: `/work/proj` is `--work-proj--`, `C:\work\x` is `--C--work-x--`). `PI_CODING_AGENT_SESSION_DIR` or the `sessionDir` setting moves sessions to one flat folder, filtered by the header's cwd (`SessionStore`).
 
-`Sessions` reads only the header line, a head window for the first prompt and a tail window for the name, last prompt and model, newest first by modification time (the order pi's `--continue` uses). `Turns` reads messages incrementally from an offset; `SessionUsage` sums every assistant message's tokens and cost, reading the whole file once.
+[`Sessions`](ds:block?id=pi-agent-sessions-r6p4c8h9) reads only the header line, a head window for the first prompt and a tail window for the name, last prompt and model, newest first by modification time (the order pi's `--continue` uses). `Turns` reads messages incrementally from an offset; `SessionUsage` sums every assistant message's tokens and cost, reading the whole file once.
 
 <!-- snippet: examples/pi/main.go#sessions -->
 ```go
@@ -205,7 +205,7 @@ func launch(p printer, a *pi.Agent) error {
 
 ## Step 6 — Logins, doctor and capabilities
 
-`Logins` describes `auth.json` by provider and type (`api_key` or `oauth`), whether a key is a `!command`, and the OAuth expiry; it never returns a key, access or refresh value. The OAuth field names come from pi's source (no logged-in recording yet). `Identity` reports a login when `auth.json` has an entry or a provider key variable is set. The doctor checks the binary, home, tested version, `settings.json`, logins, and notes that `cacheWarming: idle` (pi's default) spends tokens between runs.
+[`Logins`](ds:block?id=pi-agent-logins-r6p6o4k5) describes `auth.json` by provider and type (`api_key` or `oauth`), whether a key is a `!command`, and the OAuth expiry; it never returns a key, access or refresh value. The OAuth field names come from pi's source (no logged-in recording yet). `Identity` reports a login when `auth.json` has an entry or a provider key variable is set. The doctor checks the binary, home, tested version, `settings.json`, logins, and notes that `cacheWarming: idle` (pi's default) spends tokens between runs.
 
 <!-- snippet: examples/pi/main.go#capabilities -->
 ```go

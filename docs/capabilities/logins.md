@@ -139,7 +139,7 @@ codex api-key-stdin       codex login --with-api-key
 codex access-token-stdin  codex login --with-access-token
 codex logout              codex logout
 == token login ==
-claude kinds: [oauth-token api-key]
+claude kinds: [oauth-token api-key api-key-helper]
   sk-ant-oat01-... kind=oauth-token usable=true
   sk-ant-api03-... kind=api-key usable=true
   sk-ant-ort01-... kind=unknown usable=false
