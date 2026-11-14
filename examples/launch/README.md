@@ -15,16 +15,16 @@ cd examples && go run ./launch
 ```text
 new: claude --verbose --model sonnet --add-dir /work/shared-lib -- "fix the failing tests"
 new: dir=/work/project
-new: env ANTHROPIC_API_KEY=[redacted]
 new: env TEAM=platform
 new: env CLAUDE_CONFIG_DIR=~/.claude-work
 new: env -CLAUDE_CODE_OAUTH_TOKEN
+new: env -ANTHROPIC_API_KEY
 new: warnings=0
 resume: claude --verbose --resume f85efbdb-fc2f-1e8e-7748-9f915edc8e2d
 default: claude
-default: env ANTHROPIC_API_KEY=[redacted]
 default: env -CLAUDE_CONFIG_DIR
 default: env -CLAUDE_CODE_OAUTH_TOKEN
+default: env -ANTHROPIC_API_KEY
 default: env -TEAM
 default: warning version-unknown: installed Claude Code version unknown; flags not checked
 autonomy full: refused=true

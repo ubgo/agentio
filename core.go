@@ -224,12 +224,20 @@ func (c *Core) IsHome(dir string) (bool, error) {
 // Owns returns ErrForeignHome when h is not this agent's home. Pure.
 func (c *Core) Owns(h Home) error { return CheckOwner(c.spec.ID, h) }
 
-// EnvChanges is the ordered env edit list for a launch: Target.ExtraEnv,
-// then (token login only) a scrub of Spec.CredentialEnv followed by the
-// token's own changes (invariant 9), then the home rule last so nothing
-// can override it (invariant 2). Pure.
+// EnvChanges is the ordered env edit list for a launch (invariant 9):
+//  1. a scrub of Spec.CredentialEnv, for every login: an inherited
+//     credential variable overrides the home's stored login without a
+//     word, so the child never inherits one;
+//  2. Target.ExtraEnv, so a credential the caller sets on purpose is kept
+//     for a home login;
+//  3. token login only: the scrub again (an ExtraEnv credential must not
+//     beat the token) followed by the token's own changes;
+//  4. the home rule last so nothing can override it (invariant 2).
+//
+// Pure.
 func (c *Core) EnvChanges(t Target, tokenEnv []EnvChange) []EnvChange {
-	out := slices.Clone(t.ExtraEnv)
+	out := ScrubEnv(c.spec.CredentialEnv)
+	out = append(out, t.ExtraEnv...)
 	if tokenEnv != nil {
 		out = append(out, ScrubEnv(c.spec.CredentialEnv)...)
 		out = append(out, tokenEnv...)

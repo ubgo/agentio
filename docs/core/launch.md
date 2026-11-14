@@ -165,7 +165,7 @@ func childEnv(p printer, a *claude.Agent) error {
 }
 ```
 
-Launch builders apply changes in a fixed order: `Target.ExtraEnv` first, then (token login only) a scrub of the vendor's credential variables followed by the token itself, then the home rule last. So a profile can never override the home variable or bring back a scrubbed credential.
+Launch builders apply changes in a fixed order: a scrub of the vendor's credential variables (`Spec.CredentialEnv`) first, for every login, so an inherited key never overrides the home's stored login; then `Target.ExtraEnv`, so a credential you set on purpose is kept for a home login; then (token login only) the scrub again followed by the token itself; then the home rule last. So a profile can never override the home variable, and a token login always wins over a profile credential.
 
 ## Try it
 
@@ -178,16 +178,16 @@ The lines for this page (the rest belong to [Tokens and redacted values](secrets
 ```text
 new: claude --verbose --model sonnet --add-dir /work/shared-lib -- "fix the failing tests"
 new: dir=/work/project
-new: env ANTHROPIC_API_KEY=[redacted]
 new: env TEAM=platform
 new: env CLAUDE_CONFIG_DIR=~/.claude-work
 new: env -CLAUDE_CODE_OAUTH_TOKEN
+new: env -ANTHROPIC_API_KEY
 new: warnings=0
 resume: claude --verbose --resume f85efbdb-fc2f-1e8e-7748-9f915edc8e2d
 default: claude
-default: env ANTHROPIC_API_KEY=[redacted]
 default: env -CLAUDE_CONFIG_DIR
 default: env -CLAUDE_CODE_OAUTH_TOKEN
+default: env -ANTHROPIC_API_KEY
 default: env -TEAM
 default: warning version-unknown: installed Claude Code version unknown; flags not checked
 autonomy full: refused=true
@@ -211,7 +211,7 @@ raw env holds the token: true
 
 ## Pitfalls
 
-- **A home-login launch keeps the caller's API-key variables.** Only a token login scrubs `ANTHROPIC_API_KEY` and friends. If the base env carries one (as above), Claude Code bills per token instead of using the home's subscription. Remove it with `agentio.EnvUnset` in `Target.ExtraEnv`, and watch for the `api-billing-env` doctor check ([Doctor](../capabilities/doctor.md)).
+- **Every launch removes inherited credential variables.** A base env carrying `ANTHROPIC_API_KEY` (as above) would make Claude Code bill per token instead of using the home's login, so `Launch` unsets `Spec.CredentialEnv` (Claude: `CLAUDE_CODE_OAUTH_TOKEN`, `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`; Codex: `CODEX_API_KEY`) for a home login too. To launch with a key on purpose, pass it as a token login (`LaunchRequest.Credential`) or set it in `Target.ExtraEnv`. Codex keeps `OPENAI_API_KEY`: Codex auth never reads it, and a model provider may name it as its key.
 - **`ExtraEnv` cannot set the home variable.** The home rule is applied last; to launch another home, use that home's Target.
 - **A prompt goes after `--`.** Claude's builder separates the prompt from flags, so a prompt that starts with `-` is never read as a flag.
 - **`Command.Env` holds real secrets.** Print `Redacted()`, `String()` or the JSON form; never `fmt.Println(cmd.Env)`.

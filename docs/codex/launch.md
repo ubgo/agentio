@@ -208,6 +208,7 @@ span known=true since=0.156.0
 - **Unknown version means no gate.** `h.Target()` and a `TargetFor` without an npm-family install leave `Version` zero: flags are emitted and the command carries a `version-unknown` warning. Pin the version to get the gate.
 - **`ProfileCheck` nil skips the conflict check** and adds a `version-unknown` warning when a `Profile` is set. Pass the home's `ConfigFile` result to refuse a v2 profile name that Codex 0.162.1 would refuse. Below Codex 0.131.0, `-p` selects a legacy profile, so no conflict check applies.
 - **The default home removes `CODEX_HOME`**, a non-default home sets it; `Target.ExtraEnv` cannot override that. Secrets never go on argv: `RemoteAuthTokenEnv` and `BearerTokenEnvVar` take variable names.
+- **An inherited `CODEX_API_KEY` is removed.** In `codex exec` it beats the home's stored login, so every command unsets it (set it in `Target.ExtraEnv` to use a key on purpose). `OPENAI_API_KEY` is kept: Codex auth does not read it, and a model provider may name it as its key.
 - **Building is free, running is not.** `Exec`, `ExecResume` and `Review` spend quota when run; `DoctorCommand` and `PluginListCommand` may touch the network and auth.
 
 ## Related

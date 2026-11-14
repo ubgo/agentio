@@ -541,8 +541,8 @@ const (
 )
 
 // LoginCommand is `claude auth login --claudeai|--console|--sso [--email e]`
-// for h, with the other credential variables scrubbed so the new login is
-// the one used. cost: Pure.
+// for h, with inherited credential variables scrubbed (as for every launch)
+// so the new login is the one used. cost: Pure.
 func (a *Agent) LoginCommand(h Home, mode LoginMode, email string) agentio.Command {
 	args := []string{subAuth, subLogin}
 	switch mode {
@@ -556,7 +556,7 @@ func (a *Agent) LoginCommand(h Home, mode LoginMode, email string) agentio.Comma
 	if email != "" {
 		args = append(args, flagEmail, email)
 	}
-	cmd, err := a.core.Command(h.Target(), "", args, agentio.ScrubEnv(credentialEnv()))
+	cmd, err := a.core.Command(h.Target(), "", args, nil)
 	if err != nil {
 		return a.command(h, args...)
 	}

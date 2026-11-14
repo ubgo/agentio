@@ -241,8 +241,8 @@ func HomeEnvChange(homeEnv string, h Home) (EnvChange, bool) {
 	return EnvSet(homeEnv, h.Dir()), true
 }
 
-// ScrubEnv returns unset changes for names (a token login removes the
-// vendor's other credential variables first, invariant 9). Pure.
+// ScrubEnv returns unset changes for names (every launch removes the
+// vendor's inherited credential variables, invariant 9). Pure.
 func ScrubEnv(names []string) []EnvChange {
 	out := make([]EnvChange, 0, len(names))
 	for _, n := range names {

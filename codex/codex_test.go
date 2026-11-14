@@ -1095,3 +1095,29 @@ func TestProfilesAndConflictCheck(t *testing.T) {
 		t.Fatal("profile-conflict warn check missing")
 	}
 }
+
+// TestHomeLoginScrubsCodexAPIKey guards invariant 9 for Codex: an inherited
+// CODEX_API_KEY beats the home's stored login in `codex exec`, so every
+// launch removes it. OPENAI_API_KEY is kept: Codex auth never reads it and
+// a model provider may name it as its key.
+func TestHomeLoginScrubsCodexAPIKey(t *testing.T) {
+	a, h := setup(t, agenttest.WithEnv("PATH=/usr/bin", EnvCodexAPIKey+"=inherited", EnvAPIKey+"=provider-key"))
+	cur := h.Target()
+	cur.Version = agentio.MustVersion(fixtureVersion)
+	execCmd, err := a.Exec(cur, ExecOptions{LaunchOptions: LaunchOptions{PromptFromStdin: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tui, err := a.New(cur, LaunchOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for label, c := range map[string]agentio.Command{"exec": execCmd, "tui": tui} {
+		if v, ok := agentio.EnvLookup(c.Env, EnvCodexAPIKey); ok {
+			t.Errorf("%s kept inherited %s=%q", label, EnvCodexAPIKey, v)
+		}
+		if v, _ := agentio.EnvLookup(c.Env, EnvAPIKey); v != "provider-key" {
+			t.Errorf("%s dropped %s", label, EnvAPIKey)
+		}
+	}
+}

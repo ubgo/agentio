@@ -163,7 +163,7 @@ claude api key: billed per token, not probed
 - **Codex has neither `TokenLogin` nor `TokenProber`.** Its token logins are `codex login --with-api-key` / `--with-access-token`, which read the secret from stdin and store it in the home. `agentio.Unsupported` says so.
 - **Claude's login flows other than `browser` are `ErrUnsupported`.** Claude Code logs in through the browser; tokens go through `TokenEnv` instead.
 - **A refresh token is not usable.** `DetectTokenKind` reports false for it; the vendor-level `claude.Agent.DetectTokenKind` returns `ErrUnusableToken` with the reason.
-- **The home rule always wins.** `Launch` applies `Target.ExtraEnv` first, then the credential scrub and the token, then the home variable last, so neither a profile nor a token can redirect a launch to another home.
+- **The home rule always wins.** `Launch` scrubs inherited credential variables first, then applies `Target.ExtraEnv`, then (token login) the scrub again and the token, then the home variable last, so neither a profile nor a token can redirect a launch to another home.
 
 ## Related
 

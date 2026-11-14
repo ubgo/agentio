@@ -44,7 +44,9 @@ type Spec struct {
 	// SharedHomeFiles enables HomeLinker: entries of the default home a new
 	// home reaches through a symlink.
 	SharedHomeFiles []string
-	// CredentialEnv is scrubbed before a token login runs (invariant 9).
+	// CredentialEnv are the inherited variables that would override a
+	// home's stored login; every launch scrubs them from the base env, and a
+	// token login scrubs them again after Target.ExtraEnv (invariant 9).
 	CredentialEnv []string
 	// APIBillingEnv are variables that switch the agent to per-token billing.
 	APIBillingEnv []string

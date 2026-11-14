@@ -33,9 +33,14 @@ const (
 	EnvHome = "CODEX_HOME"
 	// EnvSQLiteHome moves the SQLite files out of the home (state/src/lib.rs:133).
 	EnvSQLiteHome = "CODEX_SQLITE_HOME"
-	// EnvAPIKey is read by Codex for API-key logins.
+	// EnvAPIKey is the OpenAI key variable. Codex auth does not read it
+	// (rust-v0.162.1 login/src/auth/manager.rs load_auth reads only
+	// CODEX_API_KEY), but a model provider or MCP server may name it as its
+	// key, so a launch keeps it; it still marks per-token billing.
 	EnvAPIKey = "OPENAI_API_KEY"
-	// EnvCodexAPIKey is accepted by `codex exec` as an API key.
+	// EnvCodexAPIKey takes precedence over the home's stored login in
+	// `codex exec` (load_auth with enable_codex_api_key_env, exec/src/lib.rs),
+	// so every launch scrubs an inherited one (invariant 9).
 	EnvCodexAPIKey = "CODEX_API_KEY"
 	// defaultHomeDir is relative to Host.UserHome.
 	defaultHomeDir = ".codex"
@@ -66,8 +71,9 @@ func Spec() agentio.Spec {
 		LogoutArgs:  []string{subLogout},
 		// Codex has no shared-file convention between homes; nothing to link.
 		SharedHomeFiles: nil,
-		CredentialEnv:   []string{EnvAPIKey, EnvCodexAPIKey},
-		APIBillingEnv:   []string{EnvAPIKey, EnvCodexAPIKey},
+		// Only the variable that overrides a home login; see EnvAPIKey.
+		CredentialEnv: []string{EnvCodexAPIKey},
+		APIBillingEnv: []string{EnvAPIKey, EnvCodexAPIKey},
 		Process: agentio.ProcessMatch{
 			Basenames:    []string{Binary},
 			ArgvContains: []string{npmPackage},

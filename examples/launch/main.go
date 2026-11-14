@@ -61,7 +61,9 @@ func run(w io.Writer, userHome string) error {
 	}
 	p := printer{w: w, repl: strings.NewReplacer(abs, "~")}
 	// The base env already selects a home and carries an API key: the
-	// launch rules below decide what the child really sees.
+	// launch rules below decide what the child really sees (the home rule
+	// replaces the home variable, and every launch unsets the inherited key
+	// so it cannot override the home's login).
 	h := agentio.Host{UserHome: abs, User: "user", Env: []string{
 		"PATH=/usr/bin",
 		claude.ConfigDirEnv + "=" + filepath.Join(abs, ".claude-other"),

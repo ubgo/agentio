@@ -178,6 +178,7 @@ untested version: claude --worktree
 - **`Command.Path` is the bare name `claude`.** Building is Pure and never walks `PATH`; resolve it with `a.LookPath()` before `exec`. Never resolve it through a shell: `claude` is often also a shell function or alias.
 - **Print `Command.Env` only through `Redacted()`.** The env is the full child environment and is where a token login lives; `String()` and JSON never include it.
 - **Default home means the variable is absent.** Setting `CLAUDE_CONFIG_DIR=~/.claude` is not the same: Claude Code then uses a hashed keychain name and looks logged out. `Launch` handles this; hand-built commands must too.
+- **Inherited credential variables are removed.** `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` and `CLAUDE_CODE_OAUTH_TOKEN` in the base env would silently override the home's login, so every launch (and `LoginCommand`) unsets them. Use a token login or `Target.ExtraEnv` to launch with a key on purpose.
 - **A zero version skips checks, it does not fail.** If you never call `TargetFor`, every launch builds with a `version-unknown` warning and no flag is checked.
 - **Since dates come only from explicit changelog lines.** Many flags have no known `since`; they are treated as always available, so an old Claude Code may still reject a flag the library allowed.
 - **`ExtraArgs` are not checked.** They go in verbatim after the modelled flags and before the prompt; validation and version checks do not see them.

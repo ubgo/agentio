@@ -68,7 +68,8 @@ func HomeMarkers() []string { return homeMarkers() }
 func sharedHomeFiles() []string { return []string{memoryFileName, skillsDir, settingsFile} }
 
 // credentialEnv are the variables that take precedence over a home's stored
-// login; a home login or token login scrubs them (invariant 9).
+// login; every launch (home login or token login) scrubs inherited ones
+// (invariant 9, agentio.Core.EnvChanges).
 func credentialEnv() []string { return []string{OAuthTokenEnv, APIKeyEnv, AuthTokenEnv} }
 
 // apiBillingEnv are the variables that switch Claude Code to per-token billing.

@@ -86,7 +86,7 @@ The fields, grouped:
 - **Homes:** `HomeEnv` (the variable that selects a non-default home, `""` = one home only), `DefaultHome` (relative to `Host.UserHome`), `ExtraHomes` (a glob such as `.claude-*`), `HomeMarkers` (entries that make a folder a real home).
 - **Launch templates:** `NewArgs`, `ResumeArgs`, `ModelArgs`, `AddDirArgs`, `PromptArgs`, with placeholders `{args}`, `{id}`, `{model}`, `{dir}`, `{prompt}`.
 - **Data-driven capabilities:** `VersionArgs` (binary version through a Runner), `LoginArgs` / `LogoutArgs` (login commands), `SharedHomeFiles` (home links).
-- **Credentials:** `CredentialEnv` (scrubbed before a token login), `APIBillingEnv` (variables that switch to per-token billing).
+- **Credentials:** `CredentialEnv` (inherited copies are scrubbed from every launch), `APIBillingEnv` (variables that switch to per-token billing).
 - **Process:** `ProcessMatch` with `Basenames`, `ArgvContains` and `Exclude` (an exclude substring vetoes a match, which is how the Claude desktop app is told apart from the CLI).
 
 `Spec.Validate` checks the ID, that `Binary` is set, that `DefaultHome` is relative and set whenever `HomeEnv` is, that `ExtraHomes` is a valid local glob, and that every non-empty template holds its placeholder. A failure matches `ErrInvalidSpec`.

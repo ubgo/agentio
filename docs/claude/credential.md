@@ -108,7 +108,7 @@ func tokenEnv(w io.Writer, a *claude.Agent) error {
 
 ## Step 4 — Build login commands
 
-`a.LoginCommand(h, mode, email)` builds `claude auth login` with `--claudeai` (`claude.LoginClaudeAI`, the default), `--console` (`claude.LoginConsole`) or `--sso` (`claude.LoginSSO`), plus `--email` when given. It scrubs `CLAUDE_CODE_OAUTH_TOKEN`, `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` from the child env, so the new login is the one Claude uses afterwards. `a.LogoutCommand(h)` and `a.SetupTokenCommand(h)` build `claude auth logout` and `claude setup-token`. All three are Pure: they return an `agentio.Command` you run yourself (they open a browser or ask for input). For the default home `CLAUDE_CONFIG_DIR` is removed from the env; for any other home it is set to the home dir.
+`a.LoginCommand(h, mode, email)` builds `claude auth login` with `--claudeai` (`claude.LoginClaudeAI`, the default), `--console` (`claude.LoginConsole`) or `--sso` (`claude.LoginSSO`), plus `--email` when given. Like every launch, it scrubs `CLAUDE_CODE_OAUTH_TOKEN`, `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` from the child env, so the new login is the one Claude uses afterwards. `a.LogoutCommand(h)` and `a.SetupTokenCommand(h)` build `claude auth logout` and `claude setup-token`. All three are Pure: they return an `agentio.Command` you run yourself (they open a browser or ask for input). For the default home `CLAUDE_CONFIG_DIR` is removed from the env; for any other home it is set to the home dir.
 
 <!-- snippet: examples/claudeaccount/main.go#login -->
 ```go

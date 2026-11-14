@@ -141,10 +141,37 @@ func TestCoreEnvChanges_TokenScrubAndHomeRuleWin(t *testing.T) {
 	if !slices.Contains(cmd.SecretEnvNames(), "TOY_TOKEN") || slices.Contains(cmd.Redacted().Env, "TOY_TOKEN=tok-1") {
 		t.Error("token env must be marked secret and redacted")
 	}
-	// Without a token login, inherited credentials stay (the home login may rely on them).
-	cmd, _ = core.Command(core.DefaultHome().Target(), "", nil, nil)
-	if !slices.Equal(envValsExt(cmd.Env, "TOY_TOKEN"), []string{"inherited"}) {
-		t.Error("no token login: credential env untouched")
+}
+
+// TestCoreEnvChanges_HomeLoginScrubsInherited: a home login removes
+// inherited credential variables, which would otherwise silently override
+// the home's stored login (invariant 9); a credential the caller sets on
+// purpose in Target.ExtraEnv is kept.
+func TestCoreEnvChanges_HomeLoginScrubsInherited(t *testing.T) {
+	t.Parallel()
+	host := agenttest.NewHost(t, agenttest.WithEnv("PATH=/bin", "TOY_TOKEN=inherited", "TOY_API_KEY=inherited"))
+	core, err := agentio.NewCore(sampleSpec(), host)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd, err := core.Command(core.DefaultHome().Target(), "", nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v := envValsExt(cmd.Env, "TOY_TOKEN"); len(v) != 0 {
+		t.Errorf("home login kept inherited TOY_TOKEN %v", v)
+	}
+	if v := envValsExt(cmd.Env, "TOY_API_KEY"); len(v) != 0 {
+		t.Errorf("home login kept inherited TOY_API_KEY %v", v)
+	}
+	tgt := core.DefaultHome().Target()
+	tgt.ExtraEnv = []agentio.EnvChange{agentio.EnvSet("TOY_API_KEY", "chosen")}
+	cmd, err = core.Command(tgt, "", nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v := envValsExt(cmd.Env, "TOY_API_KEY"); !slices.Equal(v, []string{"chosen"}) {
+		t.Errorf("explicit ExtraEnv credential = %v, want [chosen]", v)
 	}
 }
 

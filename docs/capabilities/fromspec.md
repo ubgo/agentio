@@ -18,7 +18,7 @@ A Spec is plain data. The fields that matter most:
 - `DefaultHome` (relative to the user home), `ExtraHomes` (a glob such as `.acme-*`), `HomeMarkers` (entries that make a folder a real home) and `HomeEnv` (the variable that selects a non-default home).
 - Argv templates: `NewArgs` and `ResumeArgs` with `{args}` (where the computed args go; appended when absent) and `{id}`; optional `ModelArgs` (`{model}`), `AddDirArgs` (`{dir}`), `PromptArgs` (`{prompt}`).
 - `VersionArgs`, `LoginArgs`, `LogoutArgs`, `SharedHomeFiles`: each enables one data-driven capability.
-- `CredentialEnv` (scrubbed before a token login), `APIBillingEnv` (variables that switch to per-token billing) and `Process` (a `ProcessMatch` of `Basenames`, `ArgvContains` and `Exclude`).
+- `CredentialEnv` (inherited copies are scrubbed from every launch), `APIBillingEnv` (variables that switch to per-token billing) and `Process` (a `ProcessMatch` of `Basenames`, `ArgvContains` and `Exclude`).
 
 <!-- snippet: examples/fromspec/main.go#spec -->
 ```go
