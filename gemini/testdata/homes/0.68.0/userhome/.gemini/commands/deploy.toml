@@ -1,0 +1,2 @@
+description = "Deploy the app"
+prompt = "Deploy {{args}}"

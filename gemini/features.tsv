@@ -1,0 +1,13 @@
+# name	spelling	since	until	source
+# Gemini CLI feature table. since/until are vendor versions; empty = unknown, never guessed. The npm package ships no CHANGELOG, so every bound is unknown until a release note names it; a non-empty bound must name its source. Spellings recorded from 0.68.0 --help and the bundled source (GEMINI_API.md).
+FlagApprovalMode	--approval-mode
+FlagPromptInteractive	--prompt-interactive
+FlagIncludeDirectories	--include-directories
+FlagOutputFormatStreamJSON	--output-format stream-json
+FlagResume	--resume
+FlagResumeUUID	--resume <uuid>
+FlagListSessions	--list-sessions
+FlagSessionID	--session-id
+HomeEnvParent	GEMINI_CLI_HOME (parent of .gemini)
+SessionsJSONL	tmp/<slug>/chats/session-*.jsonl
+ProjectRegistry	projects.json slug registry

@@ -1,0 +1,5 @@
+{"sessionId":"22222222-2222-4222-8222-222222222222","projectHash":"@PROJECT_HASH@","startTime":"2026-11-02T09:30:00.000Z","lastUpdated":"2026-11-02T09:30:00.000Z","kind":"main"}
+{"id":"m1","timestamp":"2026-11-02T09:30:01.000Z","type":"user","content":"add a changelog entry"}
+{"id":"m2","timestamp":"2026-11-02T09:30:04.000Z","type":"gemini","content":"Done.","tokens":{"input":900,"output":20,"cached":300,"thoughts":0,"tool":0,"total":920},"model":"gemini-2.5-flash"}
+{"$set":{"summary":"Changelog entry for the parser fix","lastUpdated":"2026-11-02T09:31:00.000Z"}}
+{"$rewindTo":"m2"}

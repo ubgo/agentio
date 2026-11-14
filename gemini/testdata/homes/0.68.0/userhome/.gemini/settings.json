@@ -1,0 +1,27 @@
+// User settings for the fixture home. Keys follow the 0.68.0 settings
+// schema; the values are invented. Gemini CLI strips comments.
+{
+  "security": {
+    "auth": { "selectedType": "oauth-personal" },
+    "folderTrust": { "enabled": true }
+  },
+  "general": {
+    "defaultApprovalMode": "auto_edit",
+    "enableAutoUpdate": false,
+    "sessionRetention": { "enabled": true, "maxAge": "30d" }
+  },
+  "model": { "name": "gemini-2.5-pro", "maxSessionTurns": -1 },
+  "privacy": { "usageStatisticsEnabled": false },
+  "ui": { "theme": "GitHub", "hideBanner": true },
+  "skills": { "disabled": ["old-skill"] },
+  "mcpServers": {
+    "fixture-stdio": {
+      "command": "fixture-mcp",
+      "args": ["--stdio"],
+      "env": { "FIXTURE_TOKEN": "fixture-secret-value" },
+      "trust": false
+    },
+    "fixture-http": { "httpUrl": "https://mcp.example.com/mcp", "timeout": 30000 },
+    "disabled-one": { "command": "never-runs" }
+  }
+}
