@@ -218,13 +218,12 @@ func (n neutral) HasHistory(h agentio.Home, dir string) (bool, error) {
 }
 
 // MoveHistory is Disk · Write (the HistoryMoverOf door).
-func (n neutral) MoveHistory(h agentio.Home, from, to string) (agentio.Backup, error) {
+func (n neutral) MoveHistory(h agentio.Home, from, to string) (agentio.HistoryMove, error) {
 	ch, err := n.home(h)
 	if err != nil {
-		return agentio.Backup{}, err
+		return agentio.HistoryMove{}, err
 	}
-	_, b, err := n.a.Writer().MoveHistory(ch, from, to)
-	return b, err
+	return n.a.Writer().MoveHistory(ch, from, to)
 }
 
 // PlanMove is Disk · Read.

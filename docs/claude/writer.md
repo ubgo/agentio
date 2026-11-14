@@ -107,7 +107,7 @@ func removeHooks(p printer, a *claude.Agent) error {
 
 ## Step 4 — Move history
 
-`MoveHistory(h, from, to)` re-keys a folder's history after the folder moved on disk, by renaming `<home>/projects/<EncodePath(from)>`. Claude Code finds conversations by the encoded folder, never by the cwd inside old lines, so the rename is enough for `claude --resume` to find them from the new path. It returns `moved` false with a nil error when `from` has no history, and `claude.ErrHistoryExists` when the destination already has some.
+`MoveHistory(h, from, to)` re-keys a folder's history after the folder moved on disk, by renaming `<home>/projects/<EncodePath(from)>`. Claude Code finds conversations by the encoded folder, never by the cwd inside old lines, so the rename is enough for `claude --resume` to find them from the new path. It returns an `agentio.HistoryMove`: `Moved` false with a nil error when `from` has no history, otherwise `Moved` true and the `Backup`. An existing destination is `claude.ErrHistoryExists`, and a Claude session running in `from` (or one of its conversations being live) is a `*claude.LiveSessionError` matching `agentio.ErrMoveBlocked`, with the same `Blockers()` text `PlanMove` lists.
 
 <!-- snippet: examples/claudehooks/main.go#movehistory -->
 ```go
@@ -116,18 +116,18 @@ func removeHooks(p printer, a *claude.Agent) error {
 func moveHistory(p printer, a *claude.Agent) error {
 	p.section("move history")
 	h := a.DefaultHome()
-	moved, b, err := a.Writer().MoveHistory(h, movedFrom, movedTo)
+	res, err := a.Writer().MoveHistory(h, movedFrom, movedTo)
 	if err != nil {
 		return err
 	}
-	p.line(fmt.Sprintf("moved=%t now at %s", moved, a.HistoryDir(h, movedTo)))
-	printBackup(p, b)
-	moved, _, err = a.Writer().MoveHistory(h, "/work/no-history", movedTo)
-	p.line(fmt.Sprintf("folder without history: moved=%t err=%v", moved, err))
+	p.line(fmt.Sprintf("moved=%t now at %s", res.Moved, a.HistoryDir(h, movedTo)))
+	printBackup(p, res.Backup)
+	res, err = a.Writer().MoveHistory(h, "/work/no-history", movedTo)
+	p.line(fmt.Sprintf("folder without history: moved=%t err=%v", res.Moved, err))
 	if err := os.MkdirAll(a.HistoryDir(h, movedFrom), 0o700); err != nil {
 		return err
 	}
-	_, _, err = a.Writer().MoveHistory(h, movedFrom, movedTo)
+	_, err = a.Writer().MoveHistory(h, movedFrom, movedTo)
 	p.line(fmt.Sprintf("destination exists: ErrHistoryExists=%t", errors.Is(err, claude.ErrHistoryExists)))
 	return nil
 }
@@ -240,7 +240,8 @@ The first `settings.json` backup (stamp without a suffix) was taken earlier in t
 - `AddHook` appends a new group every call; calling it twice installs the hook twice. Check `a.Hooks` first if your installer may run again.
 - `MoveHistory` moves only the history folder for that path in that home; the folder's state entry in `.claude.json` (trust, last session) stays under the old path.
 - `ApplyMove` refuses a plan made for another agent with `agentio.ErrForeignHome`. `ApplyHomeLinks` does no such check: `HomeLink` carries no agent id, so it applies any plan you give it. It returns no `Backup` because it never overwrites.
-- Run moves only while no Claude Code session is using the folder; `PlanMove` lists a live session as a blocker, `MoveHistory` does not check.
+- `MoveHistory` and `PlanMove` both refuse while a Claude Code session uses the folder: `MoveHistory` returns `*claude.LiveSessionError` (`errors.Is(err, agentio.ErrMoveBlocked)`), `PlanMove` lists the same text in `Blockers`. The check reads `Host.Processes`; a Host without a process lister sees no live session.
+- `ApplyHomeLinks` checks ownership like `ApplyMove`: a link planned for another agent's homes (`HomeLink.Agent`) is `agentio.ErrForeignHome` and nothing is linked.
 
 ## Related
 

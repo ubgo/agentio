@@ -87,7 +87,7 @@ The command it runs is `codex features enable web_search`; on a machine without 
 - **The Writer rewrites the file's layout.** Keys it does not touch keep their values byte for byte, but the file is written back indented with its keys sorted. Do not rely on hand formatting surviving a write.
 - **Backups pile up.** Each Writer call leaves `<file>.agentio-bak-<UTC stamp>` (a `-N` suffix if that name is taken); nothing deletes them.
 - **`SettingsPatch.Set` takes raw JSON.** Marshal Go values with `encoding/json`; the string `opus` must be `"opus"` in the patch.
-- **`MoveHistory` does not look for live sessions.** `PlanMove` reports a running session as a blocker; check `LiveSessionsOf` before `MoveHistory`, and move only while the folder is idle.
+- **`MoveHistory` refuses while the agent runs in the folder.** A live session in `from` (or of one of its conversations) is `*claude.LiveSessionError`, matching `agentio.ErrMoveBlocked`, with the blocker text `PlanMove` uses.
 - **`MoveHistory` moves only the history folder.** The folder's state entry in `.claude.json` (trust, last session) stays under the old path.
 - **`codex.Agent.Writer()` has no methods.** It exists so the door is in place; every Codex change is a vendor command.
 - **Running a vendor command is a Process cost and may touch the login**, like any Runner call. Run it on a user action, never in a loop.

@@ -206,11 +206,12 @@ func checkAndMove(w io.Writer, h agentio.Host, agents []agentio.Agent) error {
 			fmt.Fprintf(w, "%s cannot move history: %.60s...\n", a.ID(), reason)
 			continue
 		}
-		b, err := hm.MoveHistory(a.DefaultHome(), recordedDir, renamedDir)
+		res, err := hm.MoveHistory(a.DefaultHome(), recordedDir, renamedDir)
 		if err != nil {
 			return err
 		}
-		for _, e := range b.Entries {
+		fmt.Fprintf(w, "%s history moved=%t\n", a.ID(), res.Moved)
+		for _, e := range res.Backup.Entries {
 			fmt.Fprintf(w, "%s moved %s -> %s, backup %s\n", a.ID(), recordedDir, renamedDir, tidy(h, e.Copy))
 		}
 		if err := planMove(w, h, a); err != nil {

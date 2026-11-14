@@ -19,7 +19,7 @@ func PlanHomeLinks(def, h Home, names []string) ([]HomeLink, error) {
 	}
 	out := make([]HomeLink, 0, len(names))
 	for _, n := range names {
-		l := HomeLink{Name: n, From: def.Path(n), To: h.Path(n)}
+		l := HomeLink{Agent: h.Agent(), Name: n, From: def.Path(n), To: h.Path(n)}
 		if _, err := os.Stat(l.From); err != nil {
 			continue
 		}
@@ -29,6 +29,18 @@ func PlanHomeLinks(def, h Home, names []string) ([]HomeLink, error) {
 		out = append(out, l)
 	}
 	return out, nil
+}
+
+// CheckLinksOwner returns ErrForeignHome when any link was planned for
+// another agent's homes; every agent's ApplyHomeLinks calls it first, as
+// ApplyMove checks MovePlan.Agent. Pure.
+func CheckLinksOwner(agent ID, links []HomeLink) error {
+	for _, l := range links {
+		if l.Agent != agent {
+			return fmt.Errorf("%w: %s link %s", ErrForeignHome, l.Agent, l.Name)
+		}
+	}
+	return nil
 }
 
 // ApplyHomeLinks makes every link that does not exist yet. os.Symlink

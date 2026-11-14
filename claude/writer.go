@@ -34,25 +34,34 @@ func (a *Agent) Writer() *Writer { return &Writer{a: a} }
 // MoveHistory re-keys the history Claude Code recorded for from so it is
 // found from to, by renaming <home>/projects/<encode(from)>. Claude looks
 // conversations up by the encoded folder, never by the cwd inside old
-// lines, so a rename is enough. moved is false (nil error) when from has no
-// history; an existing destination is ErrHistoryExists. cost: Disk · Write.
-func (w *Writer) MoveHistory(h Home, from, to string) (moved bool, b agentio.Backup, err error) {
+// lines, so a rename is enough. A folder without history is
+// HistoryMove{Moved: false} with a nil error; an existing destination is
+// ErrHistoryExists; a live Claude session in from (or of one of its
+// conversations) is *LiveSessionError, the blocker PlanMove reports.
+// cost: Disk · Write (plus Process · Read through Host.Processes for the
+// live check).
+func (w *Writer) MoveHistory(h Home, from, to string) (agentio.HistoryMove, error) {
 	src, dst := w.a.HistoryDir(h, from), w.a.HistoryDir(h, to)
-	if _, err := os.Stat(src); isNotExist(err) {
-		return false, b, nil
+	entries, err := os.ReadDir(src)
+	if isNotExist(err) {
+		return agentio.HistoryMove{}, nil
 	} else if err != nil {
-		return false, b, fmt.Errorf("claude: stat history: %w", err)
+		return agentio.HistoryMove{}, fmt.Errorf("claude: read history: %w", err)
+	}
+	if pids := w.a.livePIDs(filepath.Clean(from), transcriptIDs(entries), h); len(pids) > 0 {
+		return agentio.HistoryMove{}, &LiveSessionError{Dir: filepath.Clean(from), PIDs: pids}
 	}
 	if fileExists(dst) {
-		return false, b, fmt.Errorf("%w: %s", ErrHistoryExists, dst)
+		return agentio.HistoryMove{}, fmt.Errorf("%w: %s", ErrHistoryExists, dst)
 	}
-	if b, err = agentio.BackupFile(src, w.a.now()); err != nil {
-		return false, b, err
+	b, err := agentio.BackupFile(src, w.a.now())
+	if err != nil {
+		return agentio.HistoryMove{Backup: b}, err
 	}
 	if err := os.Rename(src, dst); err != nil {
-		return false, b, fmt.Errorf("claude: move history: %w", err)
+		return agentio.HistoryMove{Backup: b}, fmt.Errorf("claude: move history: %w", err)
 	}
-	return true, b, nil
+	return agentio.HistoryMove{Moved: true, Backup: b}, nil
 }
 
 // ApplyMove executes a plan from PlanMove: backs every item up, renames
@@ -66,8 +75,13 @@ func (w *Writer) ApplyMove(p agentio.MovePlan) (agentio.Backup, error) {
 }
 
 // ApplyHomeLinks makes the planned symlinks of shared home files (never
-// overwrites; nothing to back up). cost: Disk · Write.
+// overwrites; nothing to back up). A link planned for another agent is
+// agentio.ErrForeignHome and nothing is linked, as in ApplyMove.
+// cost: Disk · Write.
 func (w *Writer) ApplyHomeLinks(links []agentio.HomeLink) error {
+	if err := agentio.CheckLinksOwner(ID, links); err != nil {
+		return err
+	}
 	return agentio.ApplyHomeLinks(links)
 }
 

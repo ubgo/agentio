@@ -242,8 +242,18 @@ type HistoryChecker interface {
 
 // HistoryMover re-keys a folder's history after the folder moved.
 type HistoryMover interface {
-	// MoveHistory is Disk · Write; backs up first and returns the backup.
-	MoveHistory(h Home, from, to string) (Backup, error)
+	// MoveHistory is Disk · Write; backs up first. A folder with no history
+	// is HistoryMove{Moved: false} with a nil error, never an empty Backup
+	// that looks like a move.
+	MoveHistory(h Home, from, to string) (HistoryMove, error)
+}
+
+// HistoryMove is the result of HistoryMover.MoveHistory.
+type HistoryMove struct {
+	// Moved is false when the folder had no history (nothing to re-key).
+	Moved bool
+	// Backup is the copy taken before the move; empty when Moved is false.
+	Backup Backup
 }
 
 // ConversationMover moves conversations between homes of one agent.
@@ -256,7 +266,10 @@ type ConversationMover interface {
 
 // HomeLink is one planned symlink To -> From.
 type HomeLink struct {
-	Name string
+	// Agent owns both homes; ApplyHomeLinks refuses a plan of another
+	// agent with ErrForeignHome, as ApplyMove does for a MovePlan.
+	Agent ID
+	Name  string
 	// From is the entry in the default home; To is the path in the new home.
 	From, To string
 	// Exists means To is already present; it is never overwritten.

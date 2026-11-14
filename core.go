@@ -334,8 +334,15 @@ func (c *Core) PlanHomeLinks(def, h Home) ([]HomeLink, error) {
 	return PlanHomeLinks(def, h, c.spec.SharedHomeFiles)
 }
 
-// ApplyHomeLinks makes the planned symlinks. Disk · Write.
-func (c *Core) ApplyHomeLinks(links []HomeLink) error { return ApplyHomeLinks(links) }
+// ApplyHomeLinks makes the planned symlinks after checking every link
+// belongs to this agent (ErrForeignHome otherwise, nothing linked).
+// Disk · Write.
+func (c *Core) ApplyHomeLinks(links []HomeLink) error {
+	if err := CheckLinksOwner(c.spec.ID, links); err != nil {
+		return err
+	}
+	return ApplyHomeLinks(links)
+}
 
 // LoginCommand builds Spec.LoginArgs on h; only LoginBrowser is
 // describable by a spec. Pure.

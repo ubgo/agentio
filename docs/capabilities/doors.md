@@ -192,7 +192,7 @@ Only the four Runner calls reached `Host.Exec`; the probe, the write and the lin
 - **The Writer never edits `~/.claude.json` or a project `.mcp.json`.** Those are changed through vendor commands built as data (for example `claude mcp add`); run them yourself.
 - **Keep the `Backup`.** It is the only record of where the original went; show it to the user or store it. Backups are never cleaned up by the library.
 - **`ApplyHomeLinks` returns no `Backup`.** It only creates symlinks, skips entries that already exist (`Exists` true) and never replaces a file, so there is nothing to back up. Re-planning after applying shows every link as existing.
-- **`claude.Writer.ApplyHomeLinks` does not check ownership.** `HomeLink` carries no agent ID, so the Claude writer accepts any plan. Plan through the same agent's `HomeLinker` you apply with.
+- **`ApplyHomeLinks` checks ownership.** Each `HomeLink` carries the `Agent` that planned it; the neutral `HomeLinker` and `claude.Writer.ApplyHomeLinks` refuse a link of another agent with `agentio.ErrForeignHome` before linking anything, as `ApplyMove` does.
 - **Codex has no write methods.** `codex.Agent.Writer()` is an empty door today; do not expect a Codex settings writer.
 
 ## Related

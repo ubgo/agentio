@@ -214,7 +214,7 @@ link plan again: CLAUDE.md exists=true
 - **A failed rollback is reported, not hidden.** If renaming back also fails, the error says so and points you at the backup folder.
 - **Cleanup only removes empty folders.** A source folder with entries listed in `Left` stays.
 - **Codex conversations cannot move between homes.** Codex indexes them in SQLite with absolute paths, so the Codex agent does not implement the move capabilities; `agentio.Unsupported` tells you why.
-- **`ApplyHomeLinks` never overwrites.** A file that appeared after planning makes `os.Symlink` fail rather than being replaced. `claude.Writer.ApplyHomeLinks` does not check that the links belong to Claude, unlike `ApplyMove`; pass it only links planned for Claude homes.
+- **`ApplyHomeLinks` never overwrites.** A file that appeared after planning makes `os.Symlink` fail rather than being replaced. Each planned `HomeLink` carries its `Agent`; `Core.ApplyHomeLinks` and `claude.Writer.ApplyHomeLinks` refuse a link of another agent with `ErrForeignHome` (checked with `CheckLinksOwner`), as `ApplyMove` does. The free function `ApplyHomeLinks` has no agent to check against.
 - **Call these from a Writer door in application code.** The package functions are the shared implementation; the vendor Writer adds the owner check and the Host clock.
 
 ## Related

@@ -41,7 +41,7 @@ Areas follow the library's layers: L1 is the neutral core every agent shares, L2
 | `Backup`, `BackupEntry`, `BackupPath`, `BackupFile`, `Backup.Merge`, `Backup.IsEmpty`, `CopyTree` | `agentio` | [Backups, moves and home links](../core/backup-move-link.md#step-1--back-up-a-file) | [backupmove](../../examples/backupmove/) |
 | `MoveRequest`, `MovePlan`, `MoveItem` (planning a history move) | `agentio` | [Backups, moves and home links](../core/backup-move-link.md#step-2--plan-a-move) | [backupmove](../../examples/backupmove/) |
 | `ApplyMovePlan` | `agentio` | [Backups, moves and home links](../core/backup-move-link.md#step-3--apply-a-move-plan) | [backupmove](../../examples/backupmove/) |
-| `HomeLink`, `PlanHomeLinks`, `ApplyHomeLinks`, `Core.PlanHomeLinks` | `agentio` | [Backups, moves and home links](../core/backup-move-link.md#step-4--plan-and-apply-home-links) | [backupmove](../../examples/backupmove/) |
+| `HomeLink` (with `Agent`), `PlanHomeLinks`, `ApplyHomeLinks`, `CheckLinksOwner`, `Core.PlanHomeLinks`, `Core.ApplyHomeLinks` | `agentio` | [Backups, moves and home links](../core/backup-move-link.md#step-4--plan-and-apply-home-links) | [backupmove](../../examples/backupmove/) |
 | Closed-set enums with `XValues()` / `ParseX()` / `String()` (`Access`, `Autonomy`, `Billing`, `Capability`, `CheckStatus`, `CompatStatus`, `ConfigScope`, `CostClass`, `CredentialSource`, `InstructionScope`, `LoginFlow`, `Role`, `RunEventType`, `SessionStatus`, `TokenKind`, `Trust`, `UsageSource`, `WarningKind`, `WindowClass`) and open string enums (`InstallMethod`, `MCPTransport`, `ProcessKind`, `SessionKind`, `SkillScope`, `CheckID`) with `IsKnown` | `agentio` | [Enums](../core/enums.md#step-1--parse-an-enum-from-text) | [values](../../examples/values/) |
 
 ## L2 capabilities and accessors
@@ -65,7 +65,7 @@ Areas follow the library's layers: L1 is the neutral core every agent shares, L2
 | `TurnReader` · `TurnsOf` (`Turn`, `Offset`, `Role`, `TokenCounts`) | `agentio` | [Conversations, turns and prompt history](../capabilities/conversations.md#step-2--read-turns-from-an-offset) | [conversations](../../examples/conversations/) |
 | `PromptHistoryReader` · `PromptHistoryOf` (`PromptEntry`, `PromptQuery`) | `agentio` | [Conversations, turns and prompt history](../capabilities/conversations.md#step-3--read-prompt-history) | [conversations](../../examples/conversations/) |
 | `HistoryChecker` · `HistoryCheckerOf` | `agentio` | [Conversations, turns and prompt history](../capabilities/conversations.md#step-4--check-and-move-history) | [conversations](../../examples/conversations/) |
-| `HistoryMover` · `HistoryMoverOf` and `ConversationMover` · `ConversationMoverOf` (Write doors) | `agentio` | [Conversations, turns and prompt history](../capabilities/conversations.md#step-4--check-and-move-history) | [conversations](../../examples/conversations/) |
+| `HistoryMover` · `HistoryMoverOf` (returns `HistoryMove`) and `ConversationMover` · `ConversationMoverOf` (Write doors) | `agentio` | [Conversations, turns and prompt history](../capabilities/conversations.md#step-4--check-and-move-history) | [conversations](../../examples/conversations/) |
 | `LiveSessionLister` · `LiveSessionsOf` (`LiveSession`, `SessionStatus`, `SessionKind`) | `agentio` | [Live sessions and processes](../capabilities/live-sessions.md#step-1--list-live-sessions) | [livesessions](../../examples/livesessions/), [agentinfo](../../examples/agentinfo/) |
 | `ProcessClassifier` · `ProcessClassifierOf`, `ClassifyProcess` (`Process`, `ProcessInfo`, `ProcessKind`) | `agentio` | [Live sessions and processes](../capabilities/live-sessions.md#step-2--classify-a-process) | [livesessions](../../examples/livesessions/), [agentinfo](../../examples/agentinfo/) |
 | `FindLiveSession` | `agentio` | [Live sessions and processes](../capabilities/live-sessions.md#step-3--find-the-session-of-a-pid) | [livesessions](../../examples/livesessions/) |
@@ -198,7 +198,7 @@ Areas follow the library's layers: L1 is the neutral core every agent shares, L2
 | `Writer.SetUserSetting`, `Writer.SetProjectSetting`, `SettingsPatch` | `claude` | [Claude writer: settings and hooks](../claude/writer.md#step-1--patch-a-settings-file) | [claudehooks](../../examples/claudehooks/) |
 | `Writer.AddHook` | `claude` | [Claude writer: settings and hooks](../claude/writer.md#step-2--add-a-hook) | [claudehooks](../../examples/claudehooks/) |
 | `Writer.RemoveHooks` | `claude` | [Claude writer: settings and hooks](../claude/writer.md#step-3--remove-hooks) | [claudehooks](../../examples/claudehooks/) |
-| `Writer.MoveHistory`, `Writer.ApplyMove`, `Writer.ApplyHomeLinks`, `ErrHistoryExists` | `claude` | [Claude writer: settings and hooks](../claude/writer.md#step-4--move-history) | [claudehooks](../../examples/claudehooks/) |
+| `Writer.MoveHistory`, `Writer.ApplyMove`, `Writer.ApplyHomeLinks`, `ErrHistoryExists`, `LiveSessionError` | `claude` | [Claude writer: settings and hooks](../claude/writer.md#step-4--move-history) | [claudehooks](../../examples/claudehooks/) |
 
 ## L3 claude: credentials, account, usage, stats
 

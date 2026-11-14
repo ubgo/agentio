@@ -389,13 +389,7 @@ func (a *Agent) PlanMove(r agentio.MoveRequest) (agentio.MovePlan, error) {
 	if err != nil {
 		return plan, fmt.Errorf("claude: read %s: %w", src, err)
 	}
-	var ids []string
-	for _, e := range entries {
-		if !e.IsDir() && strings.HasSuffix(e.Name(), transcriptExt) {
-			ids = append(ids, strings.TrimSuffix(e.Name(), transcriptExt))
-		}
-	}
-	slices.Sort(ids)
+	ids := transcriptIDs(entries)
 	if len(r.OnlyIDs) > 0 {
 		var picked []string
 		for _, want := range r.OnlyIDs {
@@ -447,9 +441,17 @@ func (a *Agent) PlanMove(r agentio.MoveRequest) (agentio.MovePlan, error) {
 	return plan, nil
 }
 
-// liveBlockers names live sessions in dir or of ids in any of the homes.
+// liveBlockers names live sessions in dir or of ids in any of the homes,
+// in the text LiveSessionError.Blockers uses.
 func (a *Agent) liveBlockers(dir string, ids []string, homes ...Home) []string {
-	var out []string
+	return (&LiveSessionError{Dir: dir, PIDs: a.livePIDs(dir, ids, homes...)}).Blockers()
+}
+
+// livePIDs lists the pids of alive sessions whose cwd is dir or whose
+// conversation is one of ids, in any of the homes. A home whose sessions
+// cannot be read adds none.
+func (a *Agent) livePIDs(dir string, ids []string, homes ...Home) []int {
+	var out []int
 	for _, hm := range homes {
 		live, err := a.LiveSessions(hm)
 		if err != nil {
@@ -457,9 +459,50 @@ func (a *Agent) liveBlockers(dir string, ids []string, homes ...Home) []string {
 		}
 		for _, s := range live {
 			if s.Alive && (filepath.Clean(s.Cwd) == dir || slices.Contains(ids, s.SessionID)) {
-				out = append(out, fmt.Sprintf("Claude is running in this folder (pid %d); exit it first", s.PID))
+				out = append(out, s.PID)
 			}
 		}
 	}
 	return out
 }
+
+// transcriptIDs are the conversation ids of the transcripts among entries
+// of a history folder, sorted.
+func transcriptIDs(entries []os.DirEntry) []string {
+	var ids []string
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), transcriptExt) {
+			ids = append(ids, strings.TrimSuffix(e.Name(), transcriptExt))
+		}
+	}
+	slices.Sort(ids)
+	return ids
+}
+
+// LiveSessionError is a move refused because Claude is running in the
+// folder (or one of its conversations is live): Writer.MoveHistory returns
+// it, and PlanMove lists the same Blockers text. It matches
+// agentio.ErrMoveBlocked through errors.Is.
+type LiveSessionError struct {
+	// Dir is the folder whose history would move.
+	Dir string
+	// PIDs are the live Claude processes, in session order.
+	PIDs []int
+}
+
+// Blockers is one line per live process, as in MovePlan.Blockers. Pure.
+func (e *LiveSessionError) Blockers() []string {
+	out := make([]string, 0, len(e.PIDs))
+	for _, pid := range e.PIDs {
+		out = append(out, fmt.Sprintf("Claude is running in this folder (pid %d); exit it first", pid))
+	}
+	return out
+}
+
+// Error names the folder and every blocker. Pure.
+func (e *LiveSessionError) Error() string {
+	return fmt.Sprintf("claude: move %s blocked: %s", e.Dir, strings.Join(e.Blockers(), "; "))
+}
+
+// Unwrap is agentio.ErrMoveBlocked. Pure.
+func (e *LiveSessionError) Unwrap() error { return agentio.ErrMoveBlocked }

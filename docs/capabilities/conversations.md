@@ -133,7 +133,7 @@ Each `PromptEntry` has `Time`, `Text`, `Dir` and `ConversationID`. Not every ven
 
 `HasHistory(home, dir)` is the cheap question "any conversation started in this folder?"; it never reads a transcript. The two movers are write doors with cost `disk write`:
 
-- `HistoryMover.MoveHistory(home, from, to)` re-keys a folder's history after the folder itself was renamed on disk, so the agent finds the old conversations from the new path.
+- `HistoryMover.MoveHistory(home, from, to)` re-keys a folder's history after the folder itself was renamed on disk, so the agent finds the old conversations from the new path. It returns an `agentio.HistoryMove`: `Moved` (false when the folder had no history) and the `Backup`.
 - `ConversationMover.PlanMove(req)` plans moving one folder's conversations from one home to another home of the same agent (a pure inspection that returns a `MovePlan` with `Conversations`, `Items`, `Blockers`, `Left` and `Cleanup`); `ApplyMove(plan)` executes it, backing every item up first and rolling back if a rename fails.
 
 <!-- snippet: examples/conversations/main.go#move -->
@@ -159,11 +159,12 @@ func checkAndMove(w io.Writer, h agentio.Host, agents []agentio.Agent) error {
 			fmt.Fprintf(w, "%s cannot move history: %.60s...\n", a.ID(), reason)
 			continue
 		}
-		b, err := hm.MoveHistory(a.DefaultHome(), recordedDir, renamedDir)
+		res, err := hm.MoveHistory(a.DefaultHome(), recordedDir, renamedDir)
 		if err != nil {
 			return err
 		}
-		for _, e := range b.Entries {
+		fmt.Fprintf(w, "%s history moved=%t\n", a.ID(), res.Moved)
+		for _, e := range res.Backup.Entries {
 			fmt.Fprintf(w, "%s moved %s -> %s, backup %s\n", a.ID(), recordedDir, renamedDir, tidy(h, e.Copy))
 		}
 		if err := planMove(w, h, a); err != nil {
@@ -241,6 +242,7 @@ codex 2026-03-01 08:00 dir="" "hello"
 claude has history in /work/proj13: true
 claude has history in /work/proj: false
 claude has history in /work/never-used: false
+claude history moved=true
 claude moved /work/proj13 -> /work/proj13-renamed, backup ~/.claude/projects/-work-proj13.agentio-bak-20261113T120000Z
 claude plan personal -> work: 1 conversations, 1 items, blockers []
 claude applied, backup ~/.claude.agentio-bak-20261113T120000Z/projects/-work-proj13-renamed/3f474440-903e-5410-8bfb-d537b89f9547.jsonl
@@ -255,7 +257,7 @@ codex cannot move history: Codex indexes conversations in its own SQLite databas
 - **`Updated` is the transcript file's modification time.** Ordering (newest first) and `ConversationQuery.Since` use it too, so copying a home (backup restore, `cp -r`) resets every conversation's `Updated`. `Created` comes from the transcript itself.
 - **Transcripts are never read whole.** Listing reads the head of each file (for the folder) and the last 256 KiB (for the title). A title written earlier than that window is not seen; read turns when you need the content.
 - **A `Dir` query is an exact folder.** Claude looks the folder up by its encoded name (every byte that is not a letter or digit becomes `-`), the way Claude Code does, and reports `Dir` as the folder you asked for, because the cwd inside old transcripts is stale after a history move.
-- **`MoveHistory` with no history is a silent no-op.** The neutral method returns an empty `Backup` and a nil error when `from` has no history; check `Backup.IsEmpty()`. An existing destination is an error (Claude: `claude.ErrHistoryExists`); two histories are never merged.
+- **`MoveHistory` with no history moves nothing.** The neutral method returns an `agentio.HistoryMove` with `Moved` false (and an empty `Backup`) and a nil error when `from` has no history; check `Moved`. A live session in `from` is refused with an error matching `agentio.ErrMoveBlocked`. An existing destination is an error (Claude: `claude.ErrHistoryExists`); two histories are never merged.
 - **Codex history cannot move.** Codex indexes conversations in its SQLite database with absolute paths, so it has neither `HistoryMover` nor `ConversationMover`; `agentio.Unsupported` gives the reason. Continue Codex work in the original home.
 - **`PlanMove` blockers stop `ApplyMove`.** A running session in the folder (in either home) or a conversation already present in the target makes `ApplyMove` return `ErrMoveBlocked` before touching a file. Moves rename, so both homes must be on one filesystem; a cross-device move fails and rolls back.
 - **Offsets are bytes into one transcript.** Do not reuse an offset across conversations or after the vendor rewrote the file.

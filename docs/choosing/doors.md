@@ -31,7 +31,7 @@ Plain reads (files on disk, the process table) need nothing special. Three kinds
 - **The cost of a neutral capability is its worst case.** `CapIdentity` reports Process cost because Claude may read the macOS keychain; Codex reads a file. Check `Capability.Cost()` once, not per call.
 - **A Runner call fails without `Host.Exec`.** Vendor Runner methods return an `ErrUnsupported` error; that is the safe default for tests and read-only tools.
 - **The Prober spends quota every call.** One minimal request per token, on demand; never in a loop or on a timer. An API key is never probed (`ErrBilledPerToken`).
-- **`MoveHistory` does not look for live sessions.** `PlanMove` lists a running session as a blocker; check `LiveSessionsOf` yourself before `MoveHistory`.
+- **`MoveHistory` refuses while the agent runs in the folder.** Like `PlanMove`, it checks live sessions and returns a `*claude.LiveSessionError` (matching `agentio.ErrMoveBlocked`) with the same blocker text; exit the session and retry.
 - **Codex conversations cannot move between homes.** Codex indexes rollouts by absolute path in its own SQLite database, so `HistoryMoverOf` and `ConversationMoverOf` are false for Codex and `agentio.Unsupported` says why.
 - **Backups are never deleted.** Every Writer call leaves `<file>.agentio-bak-<UTC stamp>` beside the file and returns it in the `agentio.Backup`; keep or show that value.
 

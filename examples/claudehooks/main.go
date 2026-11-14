@@ -422,18 +422,18 @@ func removeHooks(p printer, a *claude.Agent) error {
 func moveHistory(p printer, a *claude.Agent) error {
 	p.section("move history")
 	h := a.DefaultHome()
-	moved, b, err := a.Writer().MoveHistory(h, movedFrom, movedTo)
+	res, err := a.Writer().MoveHistory(h, movedFrom, movedTo)
 	if err != nil {
 		return err
 	}
-	p.line(fmt.Sprintf("moved=%t now at %s", moved, a.HistoryDir(h, movedTo)))
-	printBackup(p, b)
-	moved, _, err = a.Writer().MoveHistory(h, "/work/no-history", movedTo)
-	p.line(fmt.Sprintf("folder without history: moved=%t err=%v", moved, err))
+	p.line(fmt.Sprintf("moved=%t now at %s", res.Moved, a.HistoryDir(h, movedTo)))
+	printBackup(p, res.Backup)
+	res, err = a.Writer().MoveHistory(h, "/work/no-history", movedTo)
+	p.line(fmt.Sprintf("folder without history: moved=%t err=%v", res.Moved, err))
 	if err := os.MkdirAll(a.HistoryDir(h, movedFrom), 0o700); err != nil {
 		return err
 	}
-	_, _, err = a.Writer().MoveHistory(h, movedFrom, movedTo)
+	_, err = a.Writer().MoveHistory(h, movedFrom, movedTo)
 	p.line(fmt.Sprintf("destination exists: ErrHistoryExists=%t", errors.Is(err, claude.ErrHistoryExists)))
 	return nil
 }

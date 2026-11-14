@@ -13,11 +13,15 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 - Every launch scrubs the vendor's inherited credential variables (`Spec.CredentialEnv`), for a home login too, before `Target.ExtraEnv` is applied: an inherited `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` or `CLAUDE_CODE_OAUTH_TOKEN` no longer overrides a Claude home's login. Codex's `CredentialEnv` is now only `CODEX_API_KEY` (it beats the home login in `codex exec`); `OPENAI_API_KEY` is kept because Codex auth does not read it and a model provider may name it as its key.
 
 - `Host` has `GOOS` and `SystemRoot`, filled only by `HostFromOS` (`Host.SystemPath` joins a system path under the root; `agenttest.WithSystem` sets both). Claude `SystemPaths`, `ManagedSettings`, the managed `CLAUDE.md` in `MemoryFiles`, managed MCP servers, `Runner.ManagedPlist` and Codex's `/etc/codex` layers resolve through them instead of `runtime.GOOS` and absolute paths; a fixture or hand-built Host has no system locations, so the machine's `/etc` never changes its output.
+- `HistoryMover.MoveHistory` returns `agentio.HistoryMove{Moved, Backup}` instead of a bare `Backup`, so a folder without history (`Moved` false) is no longer indistinguishable from a move; `claude.Writer.MoveHistory` returns the same type instead of `(moved, backup, err)`.
+- `HomeLink` carries the `Agent` that planned it (`agentio.CheckLinksOwner` checks a plan).
 
 ### Fixed
 
 - `ParseVersion` only starts a version at a word boundary: `x86_64 build 7` parses as `7.0.0`, no longer `64.0.0`.
 - Claude usage, profile and token-probe calls return `ErrUnsupported` when `Host.HTTP` is nil instead of building a default client that reached the real network (module `claude`).
+- `claude.Writer.MoveHistory` refuses while a Claude session runs in the source folder (or one of its conversations is live), with a typed `*claude.LiveSessionError` matching `agentio.ErrMoveBlocked` and the blocker text `PlanMove` lists.
+- `claude.Writer.ApplyHomeLinks` and `Core.ApplyHomeLinks` refuse links planned for another agent's homes with `ErrForeignHome`, as `ApplyMove` does.
 
 ### Documentation
 

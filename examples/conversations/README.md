@@ -50,6 +50,7 @@ codex 2026-03-01 08:00 dir="" "hello"
 claude has history in /work/proj13: true
 claude has history in /work/proj: false
 claude has history in /work/never-used: false
+claude history moved=true
 claude moved /work/proj13 -> /work/proj13-renamed, backup ~/.claude/projects/-work-proj13.agentio-bak-20261113T120000Z
 claude plan personal -> work: 1 conversations, 1 items, blockers []
 claude applied, backup ~/.claude.agentio-bak-20261113T120000Z/projects/-work-proj13-renamed/3f474440-903e-5410-8bfb-d537b89f9547.jsonl
