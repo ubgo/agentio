@@ -82,6 +82,9 @@ func setup(tmp string) (agentio.Host, error) {
 	if err := copyTree(filepath.Join(root, codexFixture), filepath.Join(tmp, codexHomeDir)); err != nil {
 		return agentio.Host{}, err
 	}
+	if err := pinTranscriptTimes(tmp); err != nil {
+		return agentio.Host{}, err
+	}
 	return agentio.Host{
 		UserHome:  tmp,
 		User:      fixtureUser,
@@ -89,6 +92,32 @@ func setup(tmp string) (agentio.Host, error) {
 		Now:       fixtureNow,
 		Processes: noProcesses{},
 	}, nil
+}
+
+// transcriptTimes pins each copied transcript's mtime (paths relative to
+// the temp user home). Conversations are listed newest first by mtime, and
+// a copy's mtime is the copy time: two files copied within one coarse
+// kernel clock tick (a few ms, easily hit under -race) got the same mtime,
+// the newest-first order became a tie, and readTurns sometimes read
+// /work/proj12 instead of /work/proj13.
+func transcriptTimes() map[string]time.Time {
+	at := fixtureNow()
+	return map[string]time.Time{
+		".claude/projects/-work-proj13/3f474440-903e-5410-8bfb-d537b89f9547.jsonl":                                   at,
+		".claude/projects/-work-proj12/f85efbdb-fc2f-1e8e-7748-9f915edc8e2d.jsonl":                                   at.Add(-time.Hour),
+		codexHomeDir + "/sessions/2026/10/14/rollout-2026-10-14T10-00-00-0199e1a0-0000-7000-8000-000000000001.jsonl": at,
+		codexHomeDir + "/sessions/2026/03/01/rollout-2026-03-01T08-00-00-0199e1a0-0000-7000-8000-000000000002.jsonl": at.Add(-time.Hour),
+	}
+}
+
+// pinTranscriptTimes applies transcriptTimes under userHome. Disk · Write.
+func pinTranscriptTimes(userHome string) error {
+	for rel, at := range transcriptTimes() {
+		if err := os.Chtimes(filepath.Join(userHome, filepath.FromSlash(rel)), at, at); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // tidy replaces the temporary user home with ~ in printed paths. Pure.
