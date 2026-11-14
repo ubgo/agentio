@@ -505,7 +505,9 @@ func (t *TranscriptReader) readLine() ([]byte, error) {
 		switch {
 		case err == nil:
 			t.offset += agentio.Offset(len(buf))
-			return buf, nil
+			// The offset counts the raw bytes; a BOM at the start of the
+			// file is dropped from the line itself.
+			return agentio.StripBOM(buf), nil
 		case errors.Is(err, bufio.ErrBufferFull):
 			continue
 		case errors.Is(err, io.EOF):

@@ -1,0 +1,2 @@
+﻿{"type": "user", "cwd": "C:\\Users\\user\\proj", "sessionId": "7c0e2b1a-0000-4000-8000-000000000001", "timestamp": "2026-11-13T10:00:00.000Z", "message": {"role": "user", "content": "windows fixture prompt"}, "uuid": "u1"}
+{"type": "ai-title", "sessionId": "7c0e2b1a-0000-4000-8000-000000000001", "aiTitle": "Windows fixture"}

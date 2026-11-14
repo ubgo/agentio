@@ -226,10 +226,15 @@ func (a *Agent) Project(dir string) (Project, error) {
 	return p, nil
 }
 
-// localRoot is where .claude/settings.local.json lives: the repo root, else Dir.
-func (p Project) localRoot() string {
-	if p.RepoRoot != "" {
-		return p.RepoRoot
+// localRoot is where .claude/settings.local.json lives (settings docs,
+// "Where Claude Code keeps the local file in a git repository"): the repo
+// root, except that it stays with .claude/settings.json in Dir outside a
+// repository, on Windows, and when the repo root is the user's home dir.
+// The docs' third exception (a root or .git/.claude entry not owned by the
+// user) is not checked: Host has no file-owner reader.
+func (a *Agent) localRoot(p Project) string {
+	if p.RepoRoot == "" || a.host.GOOS == agentio.OSWindows || filepath.Clean(p.RepoRoot) == filepath.Clean(a.host.UserHome) {
+		return p.Dir
 	}
-	return p.Dir
+	return p.RepoRoot
 }

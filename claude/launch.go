@@ -517,7 +517,7 @@ func EncodeAgentsFlag(defs map[string]SubagentDef) (string, error) {
 func (a *Agent) command(h Home, args ...string) agentio.Command {
 	cmd, err := a.core.Command(h.Target(), "", args, nil)
 	if err != nil {
-		return agentio.NewCommand(Binary, args, a.host.Env, "")
+		return a.host.NewCommand(Binary, args, "")
 	}
 	return cmd
 }

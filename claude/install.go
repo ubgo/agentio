@@ -22,10 +22,18 @@ const (
 
 // Real-path shapes that tell the install method.
 const (
-	nativeVersionsDir = "/.local/share/claude/versions/"
-	npmPackageDir     = "node_modules/@anthropic-ai/claude-code"
-	caskroomDir       = "/Caskroom/"
-	packageJSONFile   = "package.json"
+	nativeVersionsDir   = "/.local/share/claude/versions/"
+	npmPackageDir       = "node_modules/@anthropic-ai/claude-code"
+	caskroomDir         = "/Caskroom/"
+	packageJSONFile     = "package.json"
+	nativeBinDir        = "/.local/bin/"
+	windowsExeExt       = ".exe"
+	bunDirMarker        = "/.bun/"
+	pnpmDirMarker       = "/pnpm/"
+	binDirName          = "bin"
+	bunHomeDir          = ".bun"
+	voltaHomeDir        = ".volta"
+	voltaHomeDirWindows = "volta"
 )
 
 // Install is how Claude Code is installed. Version comes from disk (the
@@ -87,8 +95,83 @@ func (a *Agent) LastUpdate(h Home) (*UpdateResult, error) {
 // cost: Pure.
 func ParseVersion(s string) (agentio.Version, bool) { return agentio.ParseVersion(s) }
 
-// methodAndVersion derives the install method and on-disk version from the
-// resolved binary path.
+// detectInstall derives the install method and on-disk version from the
+// PATH hit and its resolved path, on every OS:
+//   - a path inside the native versions dir (the ~/.local/bin/claude
+//     symlink on Linux and macOS);
+//   - a path inside node_modules/@anthropic-ai/claude-code (npm, nvm; bun
+//     and pnpm by their dirs), directly or through a cmd-shim script (npm
+//     on Windows: %APPDATA%\npm\claude.cmd; pnpm everywhere);
+//   - a bun or Volta bin dir;
+//   - a copied (not symlinked) native binary in ~/.local/bin (the native
+//     installer's Windows layout, %USERPROFILE%\.local\bin\claude.exe):
+//     native, with the newest version in ~/.local/share/claude/versions.
+//     That layout is inferred from the Linux/macOS one, not observed on
+//     Windows (docs/platforms.md says so);
+//   - a Homebrew cask.
+//
+// Disk · Read (shim, versions dir and package.json reads).
+func detectInstall(hit, real string) (agentio.InstallMethod, agentio.Version) {
+	if m, v := methodAndVersion(real); m != agentio.InstallUnknown {
+		return m, v
+	}
+	if target, ok := agentio.ShimTarget(hit); ok {
+		if m, v := methodAndVersion(target); m != agentio.InstallUnknown {
+			if m == InstallNPMGlobal && strings.Contains(strings.ToLower(filepath.ToSlash(hit)), pnpmDirMarker) {
+				m = agentio.InstallPNPM
+			}
+			return m, v
+		}
+	}
+	binDir := filepath.Dir(hit)
+	home := filepath.Dir(binDir)
+	if strings.EqualFold(filepath.Base(binDir), binDirName) {
+		switch strings.ToLower(filepath.Base(home)) {
+		case bunHomeDir:
+			return agentio.InstallBun, packageVersion(filepath.Join(home, "install", "global", "node_modules", "@anthropic-ai", "claude-code", packageJSONFile))
+		case voltaHomeDir, voltaHomeDirWindows:
+			return agentio.InstallVolta, voltaVersion(home)
+		}
+	}
+	if hit == real && strings.Contains(filepath.ToSlash(hit), nativeBinDir) {
+		return agentio.InstallNative, newestNativeVersion(filepath.Join(home, "share", "claude", "versions"))
+	}
+	return agentio.InstallUnknown, agentio.Version{}
+}
+
+// newestNativeVersion is the highest version named by an entry of the
+// native versions dir (~/.local/share/claude/versions; "2.1.325" or
+// "2.1.325.exe"); zero when none parses. Disk · Read.
+func newestNativeVersion(dir string) agentio.Version {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return agentio.Version{}
+	}
+	var best agentio.Version
+	for _, e := range entries {
+		name := strings.TrimSuffix(e.Name(), windowsExeExt)
+		if v, ok := agentio.ParseVersion(name); ok && v.Compare(best) > 0 {
+			best = v
+		}
+	}
+	return best
+}
+
+// voltaVersion reads the claude-code package.json from Volta's image dir
+// (lib/node_modules on unix, node_modules on Windows). Disk · Read.
+func voltaVersion(voltaHome string) agentio.Version {
+	base := filepath.Join(voltaHome, "tools", "image", "packages", "@anthropic-ai", "claude-code")
+	for _, sub := range []string{filepath.Join("lib", "node_modules"), "node_modules"} {
+		if v := packageVersion(filepath.Join(base, sub, "@anthropic-ai", "claude-code", packageJSONFile)); !v.IsZero() {
+			return v
+		}
+	}
+	return agentio.Version{}
+}
+
+// methodAndVersion derives the install method and on-disk version from a
+// resolved binary or script path alone. Pure apart from the package.json
+// read.
 func methodAndVersion(real string) (agentio.InstallMethod, agentio.Version) {
 	slash := filepath.ToSlash(real)
 	switch {
@@ -98,7 +181,14 @@ func methodAndVersion(real string) (agentio.InstallMethod, agentio.Version) {
 	case strings.Contains(slash, npmPackageDir):
 		i := strings.Index(slash, npmPackageDir)
 		pkg := filepath.FromSlash(slash[:i+len(npmPackageDir)])
-		return InstallNPMGlobal, packageVersion(filepath.Join(pkg, packageJSONFile))
+		m := InstallNPMGlobal
+		switch {
+		case strings.Contains(slash, bunDirMarker):
+			m = agentio.InstallBun
+		case strings.Contains(strings.ToLower(slash), pnpmDirMarker):
+			m = agentio.InstallPNPM
+		}
+		return m, packageVersion(filepath.Join(pkg, packageJSONFile))
 	case strings.Contains(slash, caskroomDir):
 		return InstallHomebrewCask, agentio.Version{}
 	}
@@ -133,9 +223,8 @@ func (a *Agent) Install() (Install, error) {
 	if real, err := filepath.EvalSymlinks(path); err == nil {
 		inst.RealPath = real
 	}
-	inst.Method, inst.Version = methodAndVersion(inst.RealPath)
-	pathList, _ := a.host.Getenv(pathEnv)
-	for _, p := range agentio.LookPathAll(pathList, Binary) {
+	inst.Method, inst.Version = detectInstall(path, inst.RealPath)
+	for _, p := range a.host.LookPathAll(Binary) {
 		if p != path {
 			inst.Shadowed = append(inst.Shadowed, p)
 		}

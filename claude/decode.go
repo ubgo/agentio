@@ -152,7 +152,7 @@ func readFileBounded(path string, limit int64) (data []byte, found bool, err err
 	if int64(len(data)) > limit {
 		return nil, true, fmt.Errorf("claude: %s is larger than %d bytes", path, limit)
 	}
-	return data, true, nil
+	return agentio.StripBOM(data), true, nil
 }
 
 // readTail returns the last n bytes of path, dropping a first partial line
@@ -192,8 +192,12 @@ func headLines(path string, limit int, fn func([]byte) bool) error {
 	defer func() { _ = f.Close() }()
 	sc := bufio.NewScanner(io.LimitReader(f, int64(limit)))
 	sc.Buffer(make([]byte, 0, scanStartBytes), limit)
-	for sc.Scan() {
-		if !fn(sc.Bytes()) {
+	for first := true; sc.Scan(); first = false {
+		b := sc.Bytes()
+		if first {
+			b = agentio.StripBOM(b)
+		}
+		if !fn(b) {
 			return nil
 		}
 	}
@@ -207,7 +211,7 @@ func headLines(path string, limit int, fn func([]byte) bool) error {
 // splitLines splits a buffer into non-empty lines.
 func splitLines(b []byte) [][]byte {
 	var out [][]byte
-	for line := range bytes.SplitSeq(b, []byte{'\n'}) {
+	for line := range bytes.SplitSeq(agentio.StripBOM(b), []byte{'\n'}) {
 		if len(bytes.TrimSpace(line)) > 0 {
 			out = append(out, line)
 		}

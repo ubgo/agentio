@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/ubgo/agentio"
@@ -248,7 +249,7 @@ func (r *Runner) ManagedPlist(ctx context.Context) (*SettingsLayer, error) {
 	if r.a.host.Exec == nil {
 		return nil, agentio.UnsupportedError(ID, "managed plist", "the host has no process runner")
 	}
-	cmd := agentio.NewCommand(plutilBin, []string{plutilConvert, plutilJSONFormat, plutilOutput, plutilStdout, managedPlistPath}, r.a.host.Env, "")
+	cmd := r.a.host.NewCommand(plutilBin, []string{plutilConvert, plutilJSONFormat, plutilOutput, plutilStdout, managedPlistPath}, "")
 	res, err := r.a.host.Exec.Run(ctx, cmd, nil)
 	if err != nil {
 		return nil, fmt.Errorf("claude: plutil: %w", err)
@@ -259,4 +260,82 @@ func (r *Runner) ManagedPlist(ctx context.Context) (*SettingsLayer, error) {
 	s, err := ParseSettings(managedPlistPath, res.Stdout)
 	l := &SettingsLayer{Scope: ScopeManaged, Source: Source{Kind: SourceMDMPlist, Path: managedPlistPath}, Present: true, Settings: s, Err: err}
 	return l, err
+}
+
+// Windows managed-settings registry (managed settings docs, "Where each
+// mechanism stores the policy"), read with reg.exe from System32.
+const (
+	regExeRel       = "Windows/System32/reg.exe"
+	regQuery        = "query"
+	regValueFlag    = "/v"
+	regValueName    = "Settings"
+	regKeyHKLM      = `HKLM\SOFTWARE\Policies\ClaudeCode`
+	regKeyHKCU      = `HKCU\SOFTWARE\Policies\ClaudeCode`
+	regTypePrefix   = "REG_"
+	regTypeSZ       = "REG_SZ"
+	regTypeExpandSZ = "REG_EXPAND_SZ"
+)
+
+// ManagedRegistry reads the Windows policy registry values that carry
+// managed settings JSON, HKLM first, then HKCU, and returns each present
+// one as a managed layer (Source.Kind SourceRegistryHKLM or
+// SourceRegistryHKCU, Source.Path the key). Claude Code applies HKCU only
+// when no admin document (remote settings, MDM or HKLM, managed files) is
+// present; the caller decides with the layers in hand. nil on a Host that
+// is not windows with a SystemRoot (reg.exe lives in System32 under it).
+// Runs reg.exe, never claude, so no login risk. cost: Process · Read.
+func (r *Runner) ManagedRegistry(ctx context.Context) ([]SettingsLayer, error) {
+	if r.a.host.GOOS != agentio.OSWindows {
+		return nil, nil
+	}
+	regExe, ok := r.a.host.SystemPath(regExeRel)
+	if !ok {
+		return nil, nil
+	}
+	if r.a.host.Exec == nil {
+		return nil, agentio.UnsupportedError(ID, "managed registry", "the host has no process runner")
+	}
+	var out []SettingsLayer
+	for _, k := range []struct {
+		key  string
+		kind SourceKind
+	}{{regKeyHKLM, SourceRegistryHKLM}, {regKeyHKCU, SourceRegistryHKCU}} {
+		cmd := r.a.host.NewCommand(regExe, []string{regQuery, k.key, regValueFlag, regValueName}, "")
+		res, err := r.a.host.Exec.Run(ctx, cmd, nil)
+		if err != nil {
+			return out, fmt.Errorf("claude: reg query %s: %w", k.key, err)
+		}
+		if res.ExitCode != 0 {
+			continue // no such key or value: that source is absent
+		}
+		val, ok := parseRegValue(res.Stdout, regValueName)
+		if !ok {
+			continue
+		}
+		s, perr := ParseSettings(k.key, []byte(val))
+		out = append(out, SettingsLayer{Scope: ScopeManaged, Source: Source{Kind: k.kind, Path: k.key}, Present: true, Settings: s, Err: perr})
+	}
+	return out, nil
+}
+
+// parseRegValue finds `<name>    REG_SZ    <data>` (or REG_EXPAND_SZ) in
+// `reg query` output and returns the data with its inner spaces kept. Pure.
+func parseRegValue(out []byte, name string) (string, bool) {
+	for _, line := range strings.Split(string(agentio.StripBOM(out)), "\n") {
+		line = strings.TrimSpace(strings.TrimRight(line, "\r"))
+		rest, ok := strings.CutPrefix(line, name)
+		if !ok || len(rest) == 0 || (rest[0] != ' ' && rest[0] != '\t') {
+			continue
+		}
+		rest = strings.TrimSpace(rest)
+		typ, data, _ := strings.Cut(rest, "    ")
+		if typ != regTypeSZ && typ != regTypeExpandSZ {
+			if strings.HasPrefix(typ, regTypePrefix) {
+				return "", false
+			}
+			continue
+		}
+		return strings.TrimSpace(data), true
+	}
+	return "", false
 }

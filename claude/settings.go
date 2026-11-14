@@ -44,20 +44,27 @@ const (
 	SourceManagedFile   SourceKind = "managed-file"
 	SourceManagedDropIn SourceKind = "managed-dropin"
 	SourceMDMPlist      SourceKind = "mdm-plist"
-	SourceRemote        SourceKind = "remote"
-	SourceUser          SourceKind = "user"
-	SourceProject       SourceKind = "project"
-	SourceLocal         SourceKind = "local"
-	SourceCLI           SourceKind = "cli"
-	SourceGlobalConfig  SourceKind = "global-config"
-	SourcePlugin        SourceKind = "plugin"
-	SourceBuiltin       SourceKind = "builtin"
+	// SourceRegistryHKLM and SourceRegistryHKCU are the Windows policy
+	// registry values (managed settings docs): the JSON in a REG_SZ or
+	// REG_EXPAND_SZ value named Settings under
+	// HKLM\SOFTWARE\Policies\ClaudeCode (admin) or the same path under
+	// HKCU (user-writable, used only when no admin document is present).
+	SourceRegistryHKLM SourceKind = "registry-hklm"
+	SourceRegistryHKCU SourceKind = "registry-hkcu"
+	SourceRemote       SourceKind = "remote"
+	SourceUser         SourceKind = "user"
+	SourceProject      SourceKind = "project"
+	SourceLocal        SourceKind = "local"
+	SourceCLI          SourceKind = "cli"
+	SourceGlobalConfig SourceKind = "global-config"
+	SourcePlugin       SourceKind = "plugin"
+	SourceBuiltin      SourceKind = "builtin"
 )
 
 // IsKnown reports a documented source kind. cost: Pure.
 func (k SourceKind) IsKnown() bool {
 	switch k {
-	case SourceManagedFile, SourceManagedDropIn, SourceMDMPlist, SourceRemote, SourceUser, SourceProject, SourceLocal,
+	case SourceManagedFile, SourceManagedDropIn, SourceMDMPlist, SourceRegistryHKLM, SourceRegistryHKCU, SourceRemote, SourceUser, SourceProject, SourceLocal,
 		SourceCLI, SourceGlobalConfig, SourcePlugin, SourceBuiltin:
 		return true
 	}
@@ -263,10 +270,11 @@ func (a *Agent) ProjectSettings(p Project) (SettingsLayer, error) {
 	return l, l.Err
 }
 
-// LocalSettings reads .claude/settings.local.json at the repo root (start
-// dir outside git). cost: Disk · Read.
+// LocalSettings reads .claude/settings.local.json at the repo root, or in
+// the start dir outside git, on Windows and when the repo root is the home
+// dir (localRoot). cost: Disk · Read.
 func (a *Agent) LocalSettings(p Project) (SettingsLayer, error) {
-	l := readLayer(ScopeLocal, SourceLocal, filepath.Join(p.localRoot(), dotClaudeDir, localSettingsFile))
+	l := readLayer(ScopeLocal, SourceLocal, filepath.Join(a.localRoot(p), dotClaudeDir, localSettingsFile))
 	if !l.Present && p.RepoRoot != "" && p.RepoRoot != p.Dir {
 		// Versions before 2.1.211 kept the file in the start dir; still read.
 		old := readLayer(ScopeLocal, SourceLocal, filepath.Join(p.Dir, dotClaudeDir, localSettingsFile))
@@ -575,7 +583,7 @@ func (a *Agent) settingsPath(h Home, p *Project, s SettingsScope) (string, error
 		if s == ScopeProject {
 			return filepath.Join(p.Dir, dotClaudeDir, settingsFile), nil
 		}
-		return filepath.Join(p.localRoot(), dotClaudeDir, localSettingsFile), nil
+		return filepath.Join(a.localRoot(*p), dotClaudeDir, localSettingsFile), nil
 	}
 	return "", agentio.UnsupportedError(ID, "write "+string(s)+" settings", "only user, project and local settings files are writable")
 }

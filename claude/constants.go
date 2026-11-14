@@ -156,7 +156,6 @@ const (
 	UseVertexEnv  = "CLAUDE_CODE_USE_VERTEX"
 	UseFoundryEnv = "CLAUDE_CODE_USE_FOUNDRY"
 	BaseURLEnv    = "ANTHROPIC_BASE_URL"
-	pathEnv       = "PATH"
 	userEnv       = "USER"
 )
 

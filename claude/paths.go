@@ -2,6 +2,9 @@ package claude
 
 import (
 	"path/filepath"
+	"strconv"
+	"unicode/utf16"
+	"unicode/utf8"
 )
 
 // Paths are the files and dirs of one home, computed purely from the home
@@ -38,7 +41,7 @@ type PluginPaths struct {
 type ProjectPaths struct {
 	Memory                                                                []string // ./CLAUDE.md, ./.claude/CLAUDE.md, ./CLAUDE.local.md, ./AGENTS.md
 	Settings                                                              string
-	LocalSettings                                                         string // <RepoRoot>/.claude/settings.local.json (Dir when no repo)
+	LocalSettings                                                         string // <RepoRoot>/.claude/settings.local.json (Dir outside a repo, on Windows, or when RepoRoot is the home dir)
 	MCP                                                                   string
 	WorktreeInclude                                                       string
 	Rules, Skills, Commands, Agents, OutputStyles, Workflows, AgentMemory string
@@ -97,7 +100,7 @@ func (a *Agent) ProjectPaths(h Home, p Project) ProjectPaths {
 			filepath.Join(p.Dir, localMemoryFile), filepath.Join(p.Dir, agentsMDFile),
 		},
 		Settings:      j(settingsFile),
-		LocalSettings: filepath.Join(p.localRoot(), dotClaudeDir, localSettingsFile),
+		LocalSettings: filepath.Join(a.localRoot(p), dotClaudeDir, localSettingsFile),
 		MCP:           filepath.Join(p.Dir, projectMCPFile), WorktreeInclude: filepath.Join(p.Dir, worktreeInclude),
 		Rules: j(rulesDir), Skills: j(skillsDir), Commands: j(commandsDir), Agents: j(agentsDir),
 		OutputStyles: j(outputStylesDir), Workflows: j(workflowsDir), AgentMemory: j(agentMemoryDir),
@@ -129,16 +132,51 @@ func (a *Agent) SystemPaths() SystemPaths {
 }
 
 // EncodePath maps a working directory to its history folder name under
-// <home>/projects: every byte that is not an ASCII letter or digit becomes
-// '-' (invariant 4; agx verified 158/158 real folders). cost: Pure.
+// <home>/projects, exactly as Claude Code does on every OS (the shipped
+// 2.1.325 bundle: replace(/[^a-zA-Z0-9]/g, "-"), cut at 200, hash suffix):
+//   - every UTF-16 code unit that is not an ASCII letter or digit becomes
+//     '-', so "é" is one '-' and an emoji two (JavaScript strings are
+//     UTF-16), and a Windows path keeps its drive letter
+//     (C:\Users\x\proj → C--Users-x-proj);
+//   - a key longer than maxKeyLen units is cut to maxKeyLen and gets "-" plus
+//     base 36 of the absolute Java-style string hash of the original path.
+//
+// Invariant 4; agx verified 158/158 short real folders. cost: Pure.
 func EncodePath(dir string) string {
-	b := []byte(dir)
-	for i, c := range b {
-		if !isASCIIAlnum(c) {
+	units := utf16.Encode([]rune(dir))
+	b := make([]byte, len(units))
+	for i, u := range units {
+		if u < utf8.RuneSelf && isASCIIAlnum(byte(u)) {
+			b[i] = byte(u)
+		} else {
 			b[i] = '-'
 		}
 	}
-	return string(b)
+	if len(b) <= maxKeyLen {
+		return string(b)
+	}
+	h := int64(stringHash(units))
+	if h < 0 {
+		h = -h
+	}
+	return string(b[:maxKeyLen]) + keyHashSep + strconv.FormatInt(h, keyHashBase)
+}
+
+// History key limits (Claude Code's $H: SDe = 200, base 36 suffix).
+const (
+	maxKeyLen   = 200
+	keyHashSep  = "-"
+	keyHashBase = 36
+)
+
+// stringHash is JavaScript's `e = (e << 5) - e + charCodeAt(n) | 0` over
+// the UTF-16 units: Java's String.hashCode, wrapping in int32.
+func stringHash(units []uint16) int32 {
+	var h int32
+	for _, u := range units {
+		h = (h << 5) - h + int32(u)
+	}
+	return h
 }
 
 func isASCIIAlnum(c byte) bool {

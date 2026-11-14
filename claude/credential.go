@@ -89,10 +89,14 @@ func (a *Agent) keychainAccount() string { return a.host.User }
 // keychainGet looks one service up naming the account first and only then
 // any entry with the service: stale same-service entries with another
 // account ("unknown", empty token) exist (invariant 3). A store that cannot
-// look on this OS (ErrUnsupported, e.g. HostFromOS on linux) reads as no
-// entry: Claude's file store is the primary there.
+// look on this OS (ErrUnsupported) reads as no entry. On a Host whose GOOS
+// is linux or windows the keychain is not consulted at all: Claude Code
+// stores the login only in <home>/.credentials.json there (authentication
+// docs, "Credential management"), and asking the Secret Service would
+// spawn secret-tool for nothing. A Host without GOOS (fixtures) consults
+// Host.Secrets as before.
 func (a *Agent) keychainGet(ctx context.Context, service string) (agentio.Token, bool, error) {
-	if a.host.Secrets == nil {
+	if a.host.Secrets == nil || (a.host.GOOS != "" && a.host.GOOS != agentio.OSDarwin) {
 		return agentio.Token{}, false, nil
 	}
 	if acct := a.keychainAccount(); acct != "" {
