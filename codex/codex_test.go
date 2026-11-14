@@ -1187,3 +1187,49 @@ func TestConfigLayersHighestFirst(t *testing.T) {
 		t.Fatalf("neutral order %+v, want the system file last", n)
 	}
 }
+
+// TestUpdateCommand: UpdateCommand is a method, derives the install method
+// from disk and resolves the package manager on Host PATH, never a bare
+// "npm": an npm install gets <PATH>/npm, a missing npm is ErrNotInstalled,
+// a standalone install is ErrUnsupported.
+func TestUpdateCommand(t *testing.T) {
+	user := t.TempDir()
+	bin := filepath.Join(user, "bin")
+	pkg := filepath.Join(user, "lib", "node_modules", "@openai", "codex")
+	agenttest.WriteFile(t, pkg, "package.json", `{"version":"0.162.1"}`)
+	agenttest.WriteFile(t, pkg, "bin/codex.js", "#!/bin/sh\n")
+	if err := os.Chmod(filepath.Join(pkg, "bin", "codex.js"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(bin, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(pkg, "bin", "codex.js"), filepath.Join(bin, Binary)); err != nil {
+		t.Fatal(err)
+	}
+	a := New(agenttest.NewHost(t, agenttest.WithUserHome(user), agenttest.WithEnv("PATH="+bin)))
+	if _, err := a.UpdateCommand(); !errors.Is(err, agentio.ErrNotInstalled) {
+		t.Fatalf("npm missing from PATH: %v, want ErrNotInstalled", err)
+	}
+	agenttest.WriteFile(t, bin, "npm", "#!/bin/sh\n")
+	if err := os.Chmod(filepath.Join(bin, "npm"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	cmd, err := a.UpdateCommand()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cmd.Path != filepath.Join(bin, "npm") || !slices.Equal(cmd.Args, []string{"install", "-g", npmPkg}) {
+		t.Fatalf("update %s %v", cmd.Path, cmd.Args)
+	}
+	stand := t.TempDir()
+	sbin := filepath.Join(stand, ".codex", dirStandalone, "bin")
+	agenttest.WriteFile(t, sbin, Binary, "#!/bin/sh\n")
+	if err := os.Chmod(filepath.Join(sbin, Binary), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	s := New(agenttest.NewHost(t, agenttest.WithUserHome(stand), agenttest.WithEnv("PATH="+sbin)))
+	if _, err := s.UpdateCommand(); !errors.Is(err, agentio.ErrUnsupported) {
+		t.Fatalf("standalone: %v, want ErrUnsupported", err)
+	}
+}

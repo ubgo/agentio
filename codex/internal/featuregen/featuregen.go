@@ -73,7 +73,7 @@ func Generate(tsv []byte) ([]byte, error) {
 		fmt.Fprintf(&b, "\tcase Feature%s:\n\t\treturn %q\n", r.Name, r.Spelling)
 	}
 	b.WriteString("\t}\n\treturn \"unknown\"\n}\n\n")
-	b.WriteString("// FeatureValues lists every Feature in table order. Pure.\nfunc FeatureValues() []Feature {\n\treturn []Feature{\n")
+	b.WriteString("// Features lists every Feature in table order (the same name as\n// claude.Features). Pure.\nfunc Features() []Feature {\n\treturn []Feature{\n")
 	for _, r := range rows {
 		fmt.Fprintf(&b, "\t\tFeature%s,\n", r.Name)
 	}

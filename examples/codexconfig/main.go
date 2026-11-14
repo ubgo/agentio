@@ -146,6 +146,10 @@ func buildMachine(userHome, fixture string) (machine, error) {
 	if err := os.Symlink(script, filepath.Join(bin, "codex")); err != nil {
 		return machine{}, err
 	}
+	// npm itself sits in the same prefix bin, where UpdateCommand finds it.
+	if err := os.WriteFile(filepath.Join(bin, "npm"), []byte("#!/bin/sh\n"), execPerm); err != nil {
+		return machine{}, err
+	}
 	host := agentio.Host{
 		UserHome:  userHome,
 		User:      fixtureUser,

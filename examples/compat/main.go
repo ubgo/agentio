@@ -2,7 +2,7 @@
 // range each module was tested against (Compat, TestedMin, TestedMax),
 // where an installed version falls in it (Compat.Check, Compat.Warning),
 // the per-feature version table generated from features.tsv (Features,
-// FeatureValues, FeatureInfo, FeatureSpan, FeatureSource), and the typed
+// FeatureInfo, FeatureSpan, FeatureSource), and the typed
 // FeatureUnavailableError a launch builder returns when the installed
 // version provably lacks a flag.
 //
@@ -105,7 +105,7 @@ func printFeatures(w io.Writer) {
 	}
 	fmt.Fprintf(w, "claude features: %d rows, %d with a known version\n", total, gated)
 	gated, total = 0, 0
-	for _, f := range codex.FeatureValues() {
+	for _, f := range codex.Features() {
 		total++
 		if codex.FeatureInfo(f).Known() {
 			gated++

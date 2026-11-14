@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -33,15 +34,22 @@ func readInstall(w io.Writer, m machine) error {
 	fmt.Fprintf(w, "path=%s method=%s version=%s\n", m.rel(in.Path), in.Method, in.Version)
 	fmt.Fprintf(w, "package root=%s\n", m.rel(in.PackageRoot))
 
-	v, err := codex.ParseVersion("codex-cli 0.158.0-alpha.2.1")
-	if err != nil {
-		return err
-	}
-	fmt.Fprintf(w, "parsed %s pre=%q\n", v, v.Pre)
+	v, ok := codex.ParseVersion("codex-cli 0.158.0-alpha.2.1")
+	fmt.Fprintf(w, "parsed %s pre=%q ok=%t\n", v, v.Pre, ok)
 
-	if up, ok := codex.UpdateCommand(in.Method); ok {
-		// A Command to show or hand to a terminal; the library never runs it.
-		fmt.Fprintf(w, "update: %s\n", up)
+	// UpdateCommand resolves npm (bun, pnpm, brew) on Host PATH for the
+	// install method above. A Command to show or hand to a terminal; the
+	// library never runs it.
+	up, err := a.UpdateCommand()
+	switch {
+	case errors.Is(err, agentio.ErrNotInstalled):
+		fmt.Fprintf(w, "update: package manager not on PATH\n")
+	case errors.Is(err, agentio.ErrUnsupported):
+		fmt.Fprintf(w, "update: none for this install method\n")
+	case err != nil:
+		return err
+	default:
+		fmt.Fprintf(w, "update: %s %s\n", m.rel(up.Path), strings.Join(up.Args, " "))
 	}
 	return nil
 }

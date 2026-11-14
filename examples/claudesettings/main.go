@@ -260,12 +260,15 @@ func showInstall(p printer, host agentio.Host) error {
 	}
 	p.line(fmt.Sprintf("cached changelog: %d bytes", len(changelog)))
 
-	v, err := claude.ParseVersion("2.1.325 (Claude Code)")
+	v, ok := claude.ParseVersion("2.1.325 (Claude Code)")
+	p.line(fmt.Sprintf("ParseVersion -> %s ok=%t", v, ok))
+	// UpdateCommand resolves claude on Host PATH (here the fake native
+	// install), never the bare name.
+	up, err := a.UpdateCommand()
 	if err != nil {
 		return err
 	}
-	p.line(fmt.Sprintf("ParseVersion -> %s", v))
-	p.line(fmt.Sprintf("update command: %s", a.UpdateCommand()))
+	p.line(fmt.Sprintf("update command: %s", up))
 	p.line(fmt.Sprintf("install command: %s", a.InstallCommand("stable")))
 	return nil
 }

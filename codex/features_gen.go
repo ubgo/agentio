@@ -173,8 +173,9 @@ func (f Feature) String() string {
 	return "unknown"
 }
 
-// FeatureValues lists every Feature in table order. Pure.
-func FeatureValues() []Feature {
+// Features lists every Feature in table order (the same name as
+// claude.Features). Pure.
+func Features() []Feature {
 	return []Feature{
 		FeatureFlagIgnoreUserConfig,
 		FeatureFlagIgnoreRules,

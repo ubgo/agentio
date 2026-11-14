@@ -10,7 +10,7 @@ Vendor CLIs add flags and files over time, so a launch that is valid on today's 
 
 ## Step 1 — List features
 
-`claude.Feature` and `codex.Feature` are small integer enums; `String()` returns the vendor spelling (`--worktree`, `CLAUDE_CONFIG_DIR`, `<name>.config.toml`). List them with `claude.Features()` and `codex.FeatureValues()` (the two vendors use different names for the same thing). `FeatureInfo(f)` returns the `agentio.FeatureSpan` and `FeatureSource(f)` names the vendor changelog or release note line behind the bounds.
+`claude.Feature` and `codex.Feature` are small integer enums; `String()` returns the vendor spelling (`--worktree`, `CLAUDE_CONFIG_DIR`, `<name>.config.toml`). List them with `claude.Features()` and `codex.Features()` (one name for both vendors). `FeatureInfo(f)` returns the `agentio.FeatureSpan` and `FeatureSource(f)` names the vendor changelog or release note line behind the bounds.
 
 The table source is `claude/features.tsv` and `codex/features.tsv`, one row per feature with the columns `name`, `spelling`, `since`, `until`, `source`; `go generate` turns it into `features_gen.go`. A bound is filled only when an explicit vendor changelog or release-note line was found, and the row then names it in `source`; otherwise the bound stays empty. Many rows have no bounds at all: they are flags the builders emit, listed so every emitted flag has a row, but they cannot be gated.
 
@@ -34,7 +34,7 @@ func printFeatures(w io.Writer) {
 	}
 	fmt.Fprintf(w, "claude features: %d rows, %d with a known version\n", total, gated)
 	gated, total = 0, 0
-	for _, f := range codex.FeatureValues() {
+	for _, f := range codex.Features() {
 		total++
 		if codex.FeatureInfo(f).Known() {
 			gated++
@@ -131,7 +131,7 @@ codex launch: codex 0.150.0: --no-daemon needs codex >= 0.156.0
 
 ## Pitfalls
 
-- The listing functions have different names: `claude.Features()` and `codex.FeatureValues()`. Neither package has the other's name.
+- `codex.Features()` (the version-gated launch features) is not `codex.Runner.Features` (the `codex features list` runtime switches); the package function lists this table, the Runner method runs the binary.
 - A feature with no known bound is never gated: `In` is true for every version. Absence of an error does not prove the installed CLI has the flag, only that the library cannot prove it lacks it.
 - `Target.Version` defaults to zero (unknown), and an unknown version passes every check (with a `version-unknown` warning on the command). Set `Target.Version` from the install if you want the gate to work.
 - The error texts differ by vendor (`claude: --worktree needs Claude Code >= 2.1.49 (installed 2.1.40)` vs `codex 0.150.0: --no-daemon needs codex >= 0.156.0`). Branch on `errors.Is(err, agentio.ErrFeatureUnavailable)` or `errors.As`, never on the message.

@@ -522,8 +522,19 @@ func (a *Agent) command(h Home, args ...string) agentio.Command {
 	return cmd
 }
 
-// UpdateCommand is `claude update` (data). cost: Pure.
-func (a *Agent) UpdateCommand() agentio.Command { return a.command(a.DefaultHome(), subUpdate) }
+// UpdateCommand is `claude update` for the default home with the claude
+// binary resolved on Host PATH (a walk, never a shell; the same shape as
+// codex.Agent.UpdateCommand). ErrNotInstalled when PATH has no claude.
+// Never run by the library. cost: Disk · Read (PATH walk).
+func (a *Agent) UpdateCommand() (agentio.Command, error) {
+	path, err := a.LookPath()
+	if err != nil {
+		return agentio.Command{}, err
+	}
+	cmd := a.command(a.DefaultHome(), subUpdate)
+	cmd.Path = path
+	return cmd, nil
+}
 
 // InstallCommand is `claude install <target>` (stable, latest or a version). cost: Pure.
 func (a *Agent) InstallCommand(target string) agentio.Command {

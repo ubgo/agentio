@@ -104,7 +104,7 @@ Areas follow the library's layers: L1 is the neutral core every agent shares, L2
 |---|---|---|---|
 | `TestedMin` / `TestedMax`, `claude.Compat`, `codex.Compat`, `Compat` | `claude`, `codex`, `agentio` | [Tested vendor versions](../compat/compat.md#step-1--read-the-tested-range) | [compat](../../examples/compat/), [agentinfo](../../examples/agentinfo/) |
 | `Compat.Check`, `Compat.Warning`, `CompatStatus` | `agentio` | [Tested vendor versions](../compat/compat.md#step-2--check-the-installed-version) | [compat](../../examples/compat/), [agentinfo](../../examples/agentinfo/) |
-| `claude.Feature` / `codex.Feature`, `claude.Features`, `codex.FeatureValues`, `FeatureSource`, `features.tsv` | `claude`, `codex` | [Per-feature version table](../compat/features.md#step-1--list-features) | [compat](../../examples/compat/), [drift](../../examples/drift/) |
+| `claude.Feature` / `codex.Feature`, `claude.Features`, `codex.Features`, `FeatureSource`, `features.tsv` | `claude`, `codex` | [Per-feature version table](../compat/features.md#step-1--list-features) | [compat](../../examples/compat/), [drift](../../examples/drift/) |
 | `FeatureInfo`, `FeatureSpan` (`In`, `Known`) | `claude`, `codex`, `agentio` | [Per-feature version table](../compat/features.md#step-2--check-a-feature-against-a-version) | [compat](../../examples/compat/) |
 | `claude.FeatureUnavailableError`, `codex.FeatureUnavailableError`, `ErrFeatureUnavailable` | `claude`, `codex` | [Per-feature version table](../compat/features.md#step-3--handle-featureunavailableerror) | [compat](../../examples/compat/) |
 | Drift check (`task drift`, `examples/drift`): unknown keys, unknown enum values, unknown records, missing flags | `examples` | [Drift check](../compat/drift.md#step-1--run-the-drift-check) | [drift](../../examples/drift/) |
@@ -134,7 +134,7 @@ Areas follow the library's layers: L1 is the neutral core every agent shares, L2
 | `Agent.Neutral` (and `Neutral()` on rich types) | `claude` | [The Claude agent](../claude/agent.md#step-4--get-the-neutral-view) | [claudesettings](../../examples/claudesettings/) |
 | `Agent.Install`, `Install`, install method constants, `ParseVersion` | `claude` | [Claude install and updates](../claude/install.md#step-1--read-the-install) | [claudesettings](../../examples/claudesettings/), [drift](../../examples/drift/) |
 | `Agent.LastUpdate`, `UpdateResult`, `Agent.Changelog` | `claude` | [Claude install and updates](../claude/install.md#step-2--read-the-last-update) | [claudesettings](../../examples/claudesettings/), [drift](../../examples/drift/) |
-| `UpdateCommand`, `InstallCommand` | `claude` | [Claude install and updates](../claude/install.md#step-3--build-install-and-update-commands) | [claudesettings](../../examples/claudesettings/) |
+| `Agent.UpdateCommand`, `InstallCommand` | `claude` | [Claude install and updates](../claude/install.md#step-3--build-install-and-update-commands) | [claudesettings](../../examples/claudesettings/) |
 | `Agent.Paths`, `Paths`, `PluginPaths` | `claude` | [Claude paths](../claude/paths.md#step-1--get-home-paths) | [claudesettings](../../examples/claudesettings/), [agentinfo](../../examples/agentinfo/) |
 | `Agent.ProjectPaths`, `ProjectPaths`, `Agent.SystemPaths`, `SystemPaths` | `claude` | [Claude paths](../claude/paths.md#step-2--get-project-paths) | [claudesettings](../../examples/claudesettings/) |
 | `EncodePath`, `Agent.HistoryDir` | `claude` | [Claude paths](../claude/paths.md#step-3--encode-a-history-folder) | [claudesettings](../../examples/claudesettings/) |
@@ -259,7 +259,7 @@ Areas follow the library's layers: L1 is the neutral core every agent shares, L2
 | `codex.New`, `ID`, `Spec`, `HomeEnv`, `InstallationID` | `codex` | [The Codex agent](../codex/agent.md#step-1--create-the-agent) | [codexconfig](../../examples/codexconfig/) |
 | `codex.Home`, `HomeAt`, `HomeOf`, `DefaultHome`, `HomeFromEnv`, `Homes`, `IsHome` | `codex` | [The Codex agent](../codex/agent.md#step-2--pick-a-home) | [codexconfig](../../examples/codexconfig/), [agentinfo](../../examples/agentinfo/) |
 | `Agent.Neutral` | `codex` | [The Codex agent](../codex/agent.md#step-3--get-the-neutral-view) | [codexconfig](../../examples/codexconfig/) |
-| `Agent.Install`, `Install`, `ParseVersion`, `UpdateCommand` | `codex` | [Codex install and updates](../codex/install.md#step-1--read-the-install) | [codexconfig](../../examples/codexconfig/), [drift](../../examples/drift/) |
+| `Agent.Install`, `Install`, `ParseVersion`, `Agent.UpdateCommand` | `codex` | [Codex install and updates](../codex/install.md#step-1--read-the-install) | [codexconfig](../../examples/codexconfig/), [drift](../../examples/drift/) |
 | `UpdateCache` | `codex` | [Codex install and updates](../codex/install.md#step-2--read-the-update-cache) | [codexconfig](../../examples/codexconfig/) |
 | `Runner.BinaryVersion`, `Runner.LoginStatus`, `Runner.Features`, `ParseFeatureList`, `Runner.BundledModels` | `codex` | [Codex install and updates](../codex/install.md#step-3--run-the-binary-through-the-runner) | [codexconfig](../../examples/codexconfig/) |
 | `Agent.Paths`, `PathsWith`, `Paths`, `Paths.ProfileConfig` | `codex` | [Codex paths and inventory](../codex/paths.md#step-1--get-home-paths) | [codexconfig](../../examples/codexconfig/), [agentinfo](../../examples/agentinfo/) |

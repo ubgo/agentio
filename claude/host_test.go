@@ -3,6 +3,7 @@ package claude
 import (
 	"context"
 	"errors"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -187,5 +188,24 @@ func TestConfigLayersHighestFirst(t *testing.T) {
 	want := []agentio.ConfigScope{agentio.ConfigLocal, agentio.ConfigProject, agentio.ConfigUser}
 	if len(scopes) < len(want) || !slices.Equal(scopes[len(scopes)-len(want):], want) {
 		t.Fatalf("scopes %v, want ... %v", scopes, want)
+	}
+}
+
+// TestUpdateCommandResolvesBinary: UpdateCommand resolves claude on Host
+// PATH (a walk, never a shell, never the bare name) and is
+// agentio.ErrNotInstalled when PATH has none.
+func TestUpdateCommandResolvesBinary(t *testing.T) {
+	t.Parallel()
+	a, dir := fixtureAgent(t, fixtureVersions(t)[0])
+	if _, err := a.UpdateCommand(); !errors.Is(err, agentio.ErrNotInstalled) {
+		t.Fatalf("no claude on PATH: %v", err)
+	}
+	agenttest.WriteFile(t, filepath.Join(dir, "bin"), Binary, "#!/bin/sh\n")
+	if err := os.Chmod(filepath.Join(dir, "bin", Binary), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	cmd, err := a.UpdateCommand()
+	if err != nil || cmd.Path != filepath.Join(dir, "bin", Binary) || !slices.Equal(cmd.Args, []string{subUpdate}) {
+		t.Fatalf("update %s %v %v", cmd.Path, cmd.Args, err)
 	}
 }

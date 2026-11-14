@@ -12,7 +12,7 @@ The snippets come from [`examples/codexconfig`](../../examples/codexconfig/), wh
 
 ## Step 1 — Read the install
 
-`Install` returns the first `codex` on `PATH`, any shadowed ones, the resolved real path, the install method and the version. `codex.ParseVersion` accepts `codex-cli 0.162.1` or a bare version and keeps pre-release text. `codex.UpdateCommand(method)` is the vendor's own update argv for that method; the library never runs it.
+`Install` returns the first `codex` on `PATH`, any shadowed ones, the resolved real path, the install method and the version. `codex.ParseVersion` accepts `codex-cli 0.162.1` or a bare version and keeps pre-release text; it returns `(agentio.Version, bool)` like `agentio.ParseVersion`. `a.UpdateCommand()` is the vendor's own update command for the installed codex: it reads the install method with `Install` and resolves the package manager (`npm`, `bun`, `pnpm`, `brew`) on `Host.Env` `PATH`; the library never runs it.
 
 <!-- snippet: examples/codexconfig/install.go#read-install -->
 ```go
@@ -27,15 +27,22 @@ func readInstall(w io.Writer, m machine) error {
 	fmt.Fprintf(w, "path=%s method=%s version=%s\n", m.rel(in.Path), in.Method, in.Version)
 	fmt.Fprintf(w, "package root=%s\n", m.rel(in.PackageRoot))
 
-	v, err := codex.ParseVersion("codex-cli 0.158.0-alpha.2.1")
-	if err != nil {
-		return err
-	}
-	fmt.Fprintf(w, "parsed %s pre=%q\n", v, v.Pre)
+	v, ok := codex.ParseVersion("codex-cli 0.158.0-alpha.2.1")
+	fmt.Fprintf(w, "parsed %s pre=%q ok=%t\n", v, v.Pre, ok)
 
-	if up, ok := codex.UpdateCommand(in.Method); ok {
-		// A Command to show or hand to a terminal; the library never runs it.
-		fmt.Fprintf(w, "update: %s\n", up)
+	// UpdateCommand resolves npm (bun, pnpm, brew) on Host PATH for the
+	// install method above. A Command to show or hand to a terminal; the
+	// library never runs it.
+	up, err := a.UpdateCommand()
+	switch {
+	case errors.Is(err, agentio.ErrNotInstalled):
+		fmt.Fprintf(w, "update: package manager not on PATH\n")
+	case errors.Is(err, agentio.ErrUnsupported):
+		fmt.Fprintf(w, "update: none for this install method\n")
+	case err != nil:
+		return err
+	default:
+		fmt.Fprintf(w, "update: %s %s\n", m.rel(up.Path), strings.Join(up.Args, " "))
 	}
 	return nil
 }
@@ -123,8 +130,8 @@ The `== install` section:
 == install
 path=~/npm/bin/codex method=npm version=0.162.1
 package root=~/npm/lib/node_modules/@openai/codex
-parsed 0.158.0-alpha.2.1 pre="alpha.2.1"
-update: npm install -g @openai/codex
+parsed 0.158.0-alpha.2.1 pre="alpha.2.1" ok=true
+update: ~/npm/bin/npm install -g @openai/codex
 latest seen=0.156.1 checked=2026-09-24 dismissed=false
 binary version: 0.162.1
 login status: logged-in=true method=apikey
@@ -139,8 +146,7 @@ bundled models: gpt-6-luna
 - **Every Runner method may rewrite `auth.json`.** Any Codex subcommand can refresh the login and rewrite the file, so all Runner methods are labelled MayTouchLogin and nothing on a read path calls them. Prefer `Install` (disk) over `BinaryVersion` (process) for the version.
 - **No version without `package.json`.** For Homebrew, standalone or an unknown layout, `Install.Version` is zero. Launch builders then warn `version-unknown` instead of gating flags (see [Codex launch](launch.md#step-4--handle-unavailable-features)).
 - **`ErrNotInstalled` when no `PATH` entry has `codex`.** It is an error from `Install`; `TargetFor` treats it as "version unknown" instead.
-- **`UpdateCommand` is a package function returning a bare `npm`/`bun`/`pnpm`/`brew` path**, not resolved through `Host.Env` `PATH`, and `false` for standalone installs (the installer script is not modelled). Claude's equivalent is a method on the agent.
-- **`codex.ParseVersion` returns an error; `agentio.ParseVersion` returns a bool.** Same name, different result shape.
+- **`UpdateCommand` needs the package manager on `PATH`.** It is a method with the same shape as Claude's (`(agentio.Command, error)`, Disk · Read): `agentio.ErrNotInstalled` when codex or the package manager is not on `Host.Env` `PATH`, `agentio.ErrUnsupported` for a standalone or unknown install (the installer script is not modelled). `Command.Path` is the resolved absolute path, never a bare `npm`.
 - **A stale update cache is normal.** `LatestVersion` can be older than the installed version (the cache is only refreshed by the TUI); the doctor reports this as info, not as "update available".
 - **`Features` and `FeatureFlag` are the vendor's runtime feature switches** (`[features]` in `config.toml`). The version-gated launch flags are the separate `codex.Feature` enum ([Compat features](../compat/features.md)).
 

@@ -31,8 +31,8 @@ path=~/.local/bin/claude real=~/.local/share/claude/versions/2.1.325 method=nati
 raw method="native" auto updates=false protected for native=true
 last update 2026-11-12T22:39:35Z: 2.1.323 -> 2.1.325 outcome=success
 cached changelog: 0 bytes
-ParseVersion -> 2.1.325
-update command: claude update
+ParseVersion -> 2.1.325 ok=true
+update command: ~/.local/bin/claude update
 install command: claude install stable
 
 == paths

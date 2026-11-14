@@ -21,7 +21,7 @@ func TestRun(t *testing.T) {
 		"default home keeps CODEX_HOME in the child env: false",
 		"installation id: [redacted]",
 		"path=~/npm/bin/codex method=npm version=0.162.1",
-		"update: npm install -g @openai/codex",
+		"update: ~/npm/bin/npm install -g @openai/codex",
 		"latest seen=0.156.1 checked=2026-09-24 dismissed=false",
 		"login status: logged-in=true method=apikey",
 		`feature unified_exec stage="under development" enabled=false`,

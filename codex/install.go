@@ -39,14 +39,9 @@ type Install struct {
 }
 
 // ParseVersion accepts "codex-cli 0.162.1" and bare "0.162.1";
-// "0.158.0-alpha.2.1" → Pre "alpha.2.1". Pure.
-func ParseVersion(s string) (agentio.Version, error) {
-	v, ok := agentio.ParseVersion(s)
-	if !ok {
-		return agentio.Version{}, fmt.Errorf("codex: no version in %q", s)
-	}
-	return v, nil
-}
+// "0.158.0-alpha.2.1" → Pre "alpha.2.1". It has the root
+// agentio.ParseVersion shape: ok is false when s holds no version. Pure.
+func ParseVersion(s string) (agentio.Version, bool) { return agentio.ParseVersion(s) }
 
 // Install finds codex on Host.Env PATH (a walk, never a shell), resolves
 // symlinks, infers the method from the real path, and reads the npm
@@ -102,24 +97,53 @@ func packageVersion(path string) agentio.Version {
 
 // Update commands per method (tui/src/update_action.rs).
 const (
-	npmPkg = "@openai/codex"
+	npmPkg      = "@openai/codex"
+	toolNPM     = "npm"
+	toolBun     = "bun"
+	toolPNPM    = "pnpm"
+	toolBrew    = "brew"
+	argInstall  = "install"
+	argAdd      = "add"
+	argGlobal   = "-g"
+	argUpgrade  = "upgrade"
+	argCask     = "--cask"
+	whatUpdate  = "update"
+	reasonNoCmd = "no update command for install method "
 )
 
-// UpdateCommand is the vendor's own update argv for method m; false for
-// unknown methods (standalone re-runs the installer script, not modelled).
-// Never run by the library. Pure.
-func UpdateCommand(m agentio.InstallMethod) (agentio.Command, bool) {
-	switch m {
-	case agentio.InstallNPM:
-		return agentio.Command{Path: "npm", Args: []string{"install", "-g", npmPkg}}, true
-	case agentio.InstallBun:
-		return agentio.Command{Path: "bun", Args: []string{"install", "-g", npmPkg}}, true
-	case agentio.InstallPNPM:
-		return agentio.Command{Path: "pnpm", Args: []string{"add", "-g", npmPkg}}, true
-	case agentio.InstallBrew:
-		return agentio.Command{Path: "brew", Args: []string{"upgrade", "--cask", Binary}}, true
+// UpdateCommand is the vendor's own update command for the codex on Host
+// PATH: the install method comes from Install, and the package manager
+// (npm, bun, pnpm, brew) is resolved on Host PATH like every binary the
+// library names, never left as a bare name. ErrNotInstalled when codex or
+// the package manager is not on PATH; ErrUnsupported for a standalone or
+// unknown install (standalone re-runs the installer script, not modelled).
+// Never run by the library. cost: Disk · Read (PATH walk, symlink and
+// package.json read).
+func (a *Agent) UpdateCommand() (agentio.Command, error) {
+	in, err := a.Install()
+	if err != nil {
+		return agentio.Command{}, err
 	}
-	return agentio.Command{}, false
+	var tool string
+	var args []string
+	switch in.Method {
+	case agentio.InstallNPM:
+		tool, args = toolNPM, []string{argInstall, argGlobal, npmPkg}
+	case agentio.InstallBun:
+		tool, args = toolBun, []string{argInstall, argGlobal, npmPkg}
+	case agentio.InstallPNPM:
+		tool, args = toolPNPM, []string{argAdd, argGlobal, npmPkg}
+	case agentio.InstallBrew:
+		tool, args = toolBrew, []string{argUpgrade, argCask, Binary}
+	default:
+		return agentio.Command{}, agentio.UnsupportedError(ID, whatUpdate, reasonNoCmd+string(in.Method))
+	}
+	pathList, _ := lookupEnv(a.host.Env, envPath)
+	path, err := agentio.LookPath(pathList, tool)
+	if err != nil {
+		return agentio.Command{}, fmt.Errorf("codex: update with %s: %w", tool, err)
+	}
+	return agentio.NewCommand(path, args, a.host.Env, ""), nil
 }
 
 // UpdateCache is <home>/version.json, written only by the TUI's startup

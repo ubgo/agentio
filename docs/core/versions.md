@@ -93,7 +93,7 @@ unknown: IsZero=true String=""
 - **`ParseVersion` takes the first number that starts a word.** A number inside a word is skipped: the `86` and `64` in `x86_64`, the `1` in `dev1.2`, the `18` in `node-18` (a digit after a letter, digit, `_`, `.`, `-` or `+` is inside the word; a leading `v` is allowed). So `x86_64 build 7` parses as `7.0.0`. Pass it the version text itself, not a whole line of unrelated output.
 - **Missing parts are zero.** `v1.2` is `1.2.0`; the `v` prefix is accepted.
 - **The zero Version is "unknown", not `0.0.0`.** `IsZero()` is true and `String()` is `""`. A real `0.0.0` cannot be told apart, which no vendor ships.
-- **Vendor `ParseVersion` has a different signature.** `claude.ParseVersion` and `codex.ParseVersion` return `(agentio.Version, error)`, the root function returns `(Version, bool)`.
+- **Vendor `ParseVersion` has the same shape.** `claude.ParseVersion` and `codex.ParseVersion` return `(agentio.Version, bool)` like the root function; parsing text with no version is not an error.
 - **Unknown never refuses.** `Compat.Check` gives `CompatUnknown`, `FeatureSpan.In` gives true, and launch builders add a `version-unknown` warning and build anyway.
 - **`UnmarshalText` never fails.** Text without a version decodes to the zero Version, so a bad value in a config file silently becomes "unknown"; check `IsZero()` when the version is required.
 

@@ -277,8 +277,8 @@ func scanThread(rows *sql.Rows) (Thread, error) {
 		}
 	}
 	if cliVersion.String != "" {
-		v, err := codex.ParseVersion(cliVersion.String)
-		if err == nil {
+		v, ok := codex.ParseVersion(cliVersion.String)
+		if ok {
 			t.CLIVersion = v
 		} else {
 			t.Warnings = append(t.Warnings, agentio.Warning{Kind: agentio.WarnTypeChanged, File: FileState.String(), Key: "threads.cli_version", Detail: "unparseable version"})

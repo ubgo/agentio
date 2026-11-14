@@ -17,6 +17,7 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 - `HomeLink` carries the `Agent` that planned it (`agentio.CheckLinksOwner` checks a plan).
 - Config layers are listed highest precedence first for every vendor and the neutral `ConfigReader.ConfigLayers` (documented on the interface): Codex `ConfigLayers` and `EffectiveConfig.Layers` now match Claude, which already listed the winning layer first (module `codex`).
 - `state.Open` returns only a `*state.DB`: it needs just the paths of the stores you query, and a store without a path fails with `*state.NoPathError` (`state.ErrNoPath`) when used instead of `Open` failing "no path for goals_1.sqlite" (module `codex/state`).
+- One API shape for both vendors: `codex.FeatureValues` is renamed `codex.Features` (as `claude.Features`); `UpdateCommand` is a method `UpdateCommand() (agentio.Command, error)` on both agents that resolves the binary or package manager on `Host.Env` `PATH` (codex reads the install method from disk; the old `codex.UpdateCommand(method)` returned a bare `npm`/`bun` name); `claude.ParseVersion` and `codex.ParseVersion` return `(agentio.Version, bool)` like `agentio.ParseVersion`.
 
 ### Fixed
 

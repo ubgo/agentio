@@ -31,8 +31,8 @@ doctor checks via the neutral view: 7
 == install
 path=~/npm/bin/codex method=npm version=0.162.1
 package root=~/npm/lib/node_modules/@openai/codex
-parsed 0.158.0-alpha.2.1 pre="alpha.2.1"
-update: npm install -g @openai/codex
+parsed 0.158.0-alpha.2.1 pre="alpha.2.1" ok=true
+update: ~/npm/bin/npm install -g @openai/codex
 latest seen=0.156.1 checked=2026-09-24 dismissed=false
 binary version: 0.162.1
 login status: logged-in=true method=apikey

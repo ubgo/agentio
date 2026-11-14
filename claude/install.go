@@ -2,7 +2,6 @@ package claude
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -83,14 +82,10 @@ func (a *Agent) LastUpdate(h Home) (*UpdateResult, error) {
 		From: agentio.MustVersion(w.VersionFrom), To: agentio.MustVersion(w.VersionTo), ErrorCode: w.ErrorCode, Unknown: unknown}, nil
 }
 
-// ParseVersion parses "2.1.323 (Claude Code)". cost: Pure.
-func ParseVersion(s string) (agentio.Version, error) {
-	v, ok := agentio.ParseVersion(s)
-	if !ok {
-		return agentio.Version{}, fmt.Errorf("claude: no version in %q", s)
-	}
-	return v, nil
-}
+// ParseVersion parses "2.1.323 (Claude Code)". It has the root
+// agentio.ParseVersion shape: ok is false when s holds no version.
+// cost: Pure.
+func ParseVersion(s string) (agentio.Version, bool) { return agentio.ParseVersion(s) }
 
 // methodAndVersion derives the install method and on-disk version from the
 // resolved binary path.

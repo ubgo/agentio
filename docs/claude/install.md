@@ -40,12 +40,15 @@ func showInstall(p printer, host agentio.Host) error {
 	}
 	p.line(fmt.Sprintf("cached changelog: %d bytes", len(changelog)))
 
-	v, err := claude.ParseVersion("2.1.325 (Claude Code)")
+	v, ok := claude.ParseVersion("2.1.325 (Claude Code)")
+	p.line(fmt.Sprintf("ParseVersion -> %s ok=%t", v, ok))
+	// UpdateCommand resolves claude on Host PATH (here the fake native
+	// install), never the bare name.
+	up, err := a.UpdateCommand()
 	if err != nil {
 		return err
 	}
-	p.line(fmt.Sprintf("ParseVersion -> %s", v))
-	p.line(fmt.Sprintf("update command: %s", a.UpdateCommand()))
+	p.line(fmt.Sprintf("update command: %s", up))
 	p.line(fmt.Sprintf("install command: %s", a.InstallCommand("stable")))
 	return nil
 }
@@ -86,17 +89,22 @@ On the fixture home this prints `2026-11-12T22:39:35Z: 2.1.323 -> 2.1.325 outcom
 
 ## Step 3 — Build install and update commands
 
-`a.UpdateCommand()` is `claude update`; `a.InstallCommand(target)` is `claude install <target>` where target is `stable`, `latest` or a version. Both are Pure: they return an `agentio.Command` (path, args, env) that you print or run yourself. Nothing in the library runs them.
+`a.UpdateCommand()` is `claude update` with `claude` resolved on `Host.Env` `PATH` (a Disk read; `agentio.ErrNotInstalled` when PATH has none), the same `(agentio.Command, error)` method shape as `codex.Agent.UpdateCommand`. `a.InstallCommand(target)` is `claude install <target>` where target is `stable`, `latest` or a version; it is Pure. Both return an `agentio.Command` (path, args, env) that you print or run yourself. Nothing in the library runs them.
 
 ```go
-// installCommands prints the update and install commands. Both are Pure:
-// they build an agentio.Command and run nothing; your program decides
-// whether and when to run them.
-func installCommands(w io.Writer, a *claude.Agent) {
-	fmt.Fprintln(w, a.UpdateCommand().Redacted())
+// installCommands prints the update and install commands. They build an
+// agentio.Command and run nothing (UpdateCommand walks PATH to resolve
+// claude); your program decides whether and when to run them.
+func installCommands(w io.Writer, a *claude.Agent) error {
+	up, err := a.UpdateCommand() // resolves claude on Host PATH
+	if err != nil {
+		return err
+	}
+	fmt.Fprintln(w, up.Redacted())
 	for _, target := range []string{"stable", "latest", "2.1.325"} {
 		fmt.Fprintln(w, a.InstallCommand(target).Redacted())
 	}
+	return nil
 }
 ```
 
@@ -116,8 +124,8 @@ path=~/.local/bin/claude real=~/.local/share/claude/versions/2.1.325 method=nati
 raw method="native" auto updates=false protected for native=true
 last update 2026-11-12T22:39:35Z: 2.1.323 -> 2.1.325 outcome=success
 cached changelog: 0 bytes
-ParseVersion -> 2.1.325
-update command: claude update
+ParseVersion -> 2.1.325 ok=true
+update command: ~/.local/bin/claude update
 install command: claude install stable
 ```
 
@@ -126,8 +134,8 @@ install command: claude install stable
 - `Install` returns `agentio.ErrNotInstalled` when `claude` is not on the Host's `PATH`. With `agentio.HostFromOS()` that is the process `PATH`, which under a launchd job, cron or an IDE is often shorter than your shell's.
 - The version is what is on disk, not what is running. A session started before an auto-update keeps running the old binary; live sessions report their own version.
 - A Homebrew cask install has no version on disk, so `Version` is the zero value. Use `Runner().BinaryVersion` (runs `claude --version`, a Process cost) if you need it; see [Claude runner](runner.md).
-- `claude.ParseVersion` returns `(agentio.Version, error)`, while the root `agentio.ParseVersion` returns `(Version, bool)`. Same name, different result shape.
-- `UpdateCommand` is a method on `*claude.Agent`; the Codex module has a package function `codex.UpdateCommand(method)` with a different signature. Do not expect one shape across vendors.
+- `claude.ParseVersion` returns `(agentio.Version, bool)`, the same shape as `agentio.ParseVersion` and `codex.ParseVersion`.
+- `UpdateCommand` reads disk: it walks `Host.Env` `PATH` for `claude` and returns `agentio.ErrNotInstalled` when there is none. `codex.Agent.UpdateCommand` has the same shape.
 - The update facts (`RawMethod`, `AutoUpdates`, `Channel`, `LastUpdate`) always come from the default home, whichever home you work with.
 
 ## Related

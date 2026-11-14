@@ -55,7 +55,11 @@ func (r *Runner) BinaryVersion(ctx context.Context) (agentio.Version, error) {
 	if err != nil {
 		return agentio.Version{}, err
 	}
-	return ParseVersion(string(out))
+	v, ok := ParseVersion(string(out))
+	if !ok {
+		return agentio.Version{}, fmt.Errorf("claude: no version in %s output %q", flagVersion, snippet(bytes.TrimSpace(out)))
+	}
+	return v, nil
 }
 
 // AuthMethod is auth status authMethod ("claude.ai" seen).

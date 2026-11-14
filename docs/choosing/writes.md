@@ -16,7 +16,7 @@ agentio is read-only by default. When your program has to change something a ven
 | Turn a feature flag on or off | vendor command: `FeatureCommand` | ❌ | ✅ `codex features enable` | [Codex launch](../codex/launch.md#step-3--build-archive-delete-and-queue-commands) | [codexlaunch](../../examples/codexlaunch/) |
 | Archive, unarchive or delete a conversation | vendor command: `Archive`, `Unarchive`, `Delete` | ❌ | ✅ | [Codex launch](../codex/launch.md#step-3--build-archive-delete-and-queue-commands) | [codexlaunch](../../examples/codexlaunch/) |
 | Log in or out, create a setup-token | vendor command: `LoginCommand`, `LogoutCommand`, `SetupTokenCommand` | ✅ | ✅ login and logout | [Logins and tokens](../capabilities/logins.md#step-1--build-a-login-command) | [usage](../../examples/usage/), [claudeaccount](../../examples/claudeaccount/) |
-| Update or reinstall the CLI | vendor command: `UpdateCommand`, `InstallCommand` | ✅ | ✅ `codex.UpdateCommand(method)` | [Claude install](../claude/install.md#step-3--build-install-and-update-commands) | [claudesettings](../../examples/claudesettings/) |
+| Update or reinstall the CLI | vendor command: `UpdateCommand`, `InstallCommand` | ✅ | ✅ `UpdateCommand()` (same method shape) | [Claude install](../claude/install.md#step-3--build-install-and-update-commands) | [claudesettings](../../examples/claudesettings/) |
 
 ## If this, then that
 

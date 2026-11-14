@@ -21,7 +21,7 @@ func TestRun(t *testing.T) {
 		"HomeFromEnv: CLAUDE_CONFIG_DIR is absent, so the default home is in use",
 		"path=~/.local/bin/claude real=~/.local/share/claude/versions/2.1.325 method=native version=2.1.325",
 		"last update 2026-11-12T22:39:35Z: 2.1.323 -> 2.1.325 outcome=success",
-		"update command: claude update",
+		"update command: ~/.local/bin/claude update",
 		"EncodePath(\"/work/proj12\") = -work-proj12",
 		"project present=true file=~/project/.claude/settings.json model=\"\" unknown keys=[futureKey]",
 		"model=\"sonnet\" from local",
