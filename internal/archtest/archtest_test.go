@@ -549,3 +549,22 @@ func TestNoPrivateIDsInStrings(t *testing.T) {
 		})
 	}
 }
+
+// pickImport is the policy package; the core stays "facts, not policy".
+const pickImport = modulePrefix + "/pick"
+
+// TestCoreNeverImportsPick: no library package imports agentio/pick (the
+// core, the vendor modules and builtin report facts; choosing a home is a
+// caller's policy). Only pick itself, tests and the examples may use it.
+func TestCoreNeverImportsPick(t *testing.T) {
+	for _, f := range loadFiles(t) {
+		if f.test || f.module == modExample || strings.HasPrefix(f.rel, "pick/") {
+			continue
+		}
+		for _, im := range imports(f) {
+			if im == pickImport {
+				t.Errorf("%s imports %s", f.rel, pickImport)
+			}
+		}
+	}
+}
