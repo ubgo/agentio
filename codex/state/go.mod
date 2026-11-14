@@ -3,8 +3,8 @@ module github.com/ubgo/agentio/codex/state
 go 1.26.4
 
 require (
-	github.com/ubgo/agentio v0.0.0-20261114102048-9d74cce8c4ee
-	github.com/ubgo/agentio/codex v0.0.0-20261114102048-9d74cce8c4ee
+	github.com/ubgo/agentio v0.0.0-20261114114939-618d91e48cfd
+	github.com/ubgo/agentio/codex v0.0.0-20261114114939-618d91e48cfd
 	modernc.org/sqlite v1.60.1
 )
 
