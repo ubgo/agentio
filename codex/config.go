@@ -321,9 +321,10 @@ type GoalsConfig struct {
 }
 
 // LegacyProfile is one legacy [profiles.<name>] table (profile_toml.rs).
-// The keys a launch depends on are typed; the rest stay in Unknown. Keys
-// that upstream only allows at the root (seen on a real Mac:
-// openai_base_url, forced_login_method) are kept in Unknown, never an error.
+// The keys a launch depends on are typed; the rest stay in Unknown. Two keys
+// upstream only allows at the root were seen inside a profile on a real Mac
+// (openai_base_url, forced_login_method); they are typed here too
+// (OpenAIBaseURL, ForcedLoginMethod) and never an error.
 type LegacyProfile struct {
 	Model                   Opt[string]
 	ServiceTier             Opt[string]
