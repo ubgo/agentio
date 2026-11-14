@@ -200,12 +200,13 @@ func TestUpdateCommandResolvesBinary(t *testing.T) {
 	if _, err := a.UpdateCommand(); !errors.Is(err, agentio.ErrNotInstalled) {
 		t.Fatalf("no claude on PATH: %v", err)
 	}
-	agenttest.WriteFile(t, filepath.Join(dir, "bin"), Binary, "#!/bin/sh\n")
-	if err := os.Chmod(filepath.Join(dir, "bin", Binary), 0o700); err != nil {
+	exe := agenttest.ExeName(Binary)
+	agenttest.WriteFile(t, filepath.Join(dir, "bin"), exe, "#!/bin/sh\n")
+	if err := os.Chmod(filepath.Join(dir, "bin", exe), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	cmd, err := a.UpdateCommand()
-	if err != nil || cmd.Path != filepath.Join(dir, "bin", Binary) || !slices.Equal(cmd.Args, []string{subUpdate}) {
+	if err != nil || cmd.Path != filepath.Join(dir, "bin", exe) || !slices.Equal(cmd.Args, []string{subUpdate}) {
 		t.Fatalf("update %s %v %v", cmd.Path, cmd.Args, err)
 	}
 }

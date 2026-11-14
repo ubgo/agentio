@@ -4,17 +4,20 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // testUserHome is the fixture user home relative to this package dir.
 const testUserHome = "../../claude/testdata/homes/2.1.325/userhome"
 
 func TestRun(t *testing.T) {
+	exampletest.RequirePOSIXLayout(t)
 	var out bytes.Buffer
 	if err := run(&out, testUserHome); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		"host: user=user PATH set=true\n",
 		`host: MODE=b EMPTY="" set=true MISSING set=false` + "\n",

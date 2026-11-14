@@ -7,11 +7,14 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // TestRun runs every door on a temp copy and checks the output, the backup
 // file on disk and that only Runner calls reached Host.Exec.
 func TestRun(t *testing.T) {
+	exampletest.RequireSymlinks(t)
 	srv := fakeProbeAPI()
 	defer srv.Close()
 	tmp := t.TempDir()
@@ -24,7 +27,7 @@ func TestRun(t *testing.T) {
 	if err := run(context.Background(), &out, h, exec, srv.URL); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		"claude 2.1.325, codex 0.162.1",
 		"aider 0.86.1; `aider --help` exited 1",

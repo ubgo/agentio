@@ -1,0 +1,8 @@
+func (c *Core) HomeAt(dir string) Home {
+	dir = resolveHomeDir(c.host.hostOS(), c.host.UserHome, dir)
+	dir = filepath.Clean(dir)
+	if dir == filepath.Clean(c.defaultHomeDir()) {
+		return c.DefaultHome()
+	}
+	return NewHome(c.spec.ID, dir, false, c.homeName(dir))
+}

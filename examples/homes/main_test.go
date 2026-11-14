@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // testUserHome is the fixture user home relative to this package dir.
@@ -14,7 +16,7 @@ func TestRun(t *testing.T) {
 	if err := run(&out, testUserHome); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		"default: dir=~/.claude\n",
 		"default: path=~/.claude/settings.json\n",

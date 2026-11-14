@@ -109,6 +109,18 @@ func within(p, dir string) bool {
 	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }
 
+// withinResolved is within on the paths as given, or on both resolved
+// through symlinks: an import written through a linked dir and a root
+// given by its real path (or the reverse) still match. Disk · Read.
+func withinResolved(p, dir string) bool {
+	if within(p, dir) {
+		return true
+	}
+	rp, errP := filepath.EvalSymlinks(p)
+	rd, errD := filepath.EvalSymlinks(dir)
+	return errP == nil && errD == nil && within(rp, rd)
+}
+
 // memoryFile stats and parses one file; ok is false when it does not exist.
 func (a *Agent) memoryFile(kind MemoryKind, path string, roots []string) (MemoryFile, bool) {
 	fi, err := os.Stat(path)
@@ -134,7 +146,7 @@ func (a *Agent) memoryFile(kind MemoryKind, path string, roots []string) (Memory
 		imp.Exists = fileExists(imp.Resolved)
 		imp.External = true
 		for _, r := range roots {
-			if within(imp.Resolved, r) {
+			if withinResolved(imp.Resolved, r) {
 				imp.External = false
 			}
 		}

@@ -52,7 +52,7 @@ Managed settings follow the managed settings docs per OS. On Windows the policy 
 
 - **Any machine:** `task check` runs every module's tests, including the per-OS matrix tests (they set `Host.GOOS` and use the Windows fixture homes under `claude/testdata/windows/` and `codex/testdata/windows/`, with backslash paths, CRLF and BOM files and `.cmd` shims), and compiles every package and test binary for Windows (`task check:windows`).
 - **Linux distributions:** `task test:distros` runs the tests, `agentinfo -fixtures`, and `agentinfo` on an empty and a seeded home in Debian, Alpine (musl), Fedora and Arch containers. It needs Docker and network and is not part of `task check`.
-- **Windows and macOS for real:** `.github/workflows/platforms.yml` runs the tests and `agentinfo -fixtures` on GitHub's Windows, macOS and Linux runners. It is manual (`workflow_dispatch`) because Actions minutes are billed on this private repository.
+- **Windows and macOS for real:** `.github/workflows/platforms.yml` runs every module's tests (all modules, then fails with the list) and `agentinfo -fixtures` on GitHub's Windows, macOS and Linux runners; `scripts/workspace.sh` gives the runner a `go.work` that resolves the private sibling modules locally. It is manual (`workflow_dispatch`) because Actions minutes are billed on this private repository.
 - **By hand:** `cd examples && go run ./agentinfo -fixtures` prints the same report on every OS; `go run ./agentinfo` reads your machine.
 
 ## Pitfalls
@@ -63,6 +63,8 @@ Managed settings follow the managed settings docs per OS. On Windows the policy 
 - **Process working directories are unknown on Windows.** `Processes.Cwd` is `ErrUnsupported`; `codex.Agent.Processes` leaves `Cwd` empty and Claude live sessions use the cwd recorded in their session files.
 - **A Codex keyring login on Windows is `ErrUnsupported`, not "logged out".** Branch on `errors.Is(err, agentio.ErrUnsupported)` and show the reason.
 - **Claude's Windows native install layout is inferred.** A copied `%USERPROFILE%\.local\bin\claude.exe` is reported as native with the newest version under `~/.local/share/claude/versions`; that layout comes from the Linux and macOS installer and has not been observed on Windows.
+- **Symlinked parent dirs are followed on both sides.** A home or tool dir reached through a link (macOS `/var` is `/private/var`) gives the same install method and the same `settings.local.json` placement as the real path.
+- **Write your own tests for every OS.** Name a fixture binary with `agenttest.ExeName` (adds `.exe` on Windows), create links with `agenttest.SymlinkOrSkip`, and test the unix exec-bit rule with a fake stat rather than real files (a Windows filesystem stores no exec bits).
 - **Locked files on Windows.** A settings write is a temp file plus rename; if another program holds the file open without sharing, the rename fails and the error is returned (the backup was already made). Retry when the vendor CLI is idle.
 - **Symlinks on Windows need Developer Mode.** Without it `ApplyHomeLinks` returns a `*agentio.SymlinkPrivilegeError`; there is no copy fallback, because a copied `settings.json` would stop following the default home.
 - **The ownership exception of `settings.local.json` is not checked.** Claude Code also keeps the file in the start folder when the repo root is not owned by the user; the Host has no owner reader.

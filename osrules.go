@@ -93,6 +93,16 @@ func PathListSeparatorFor(goos string) string {
 //
 // An absolute name is checked as is. Disk · Read.
 func LookPathAllFor(goos, pathList, pathExt, name string) []string {
+	return lookPathAll(goos, pathList, pathExt, name, os.Stat)
+}
+
+// statFunc reads a file's metadata; os.Stat outside tests. A test passes a
+// fake so it can ask the unix exec-bit rule questions on a filesystem that
+// cannot store exec bits (Windows), without weakening the rule.
+type statFunc func(string) (os.FileInfo, error)
+
+// lookPathAll is LookPathAllFor with the stat seam.
+func lookPathAll(goos, pathList, pathExt, name string, stat statFunc) []string {
 	if name == "" {
 		return nil
 	}
@@ -100,7 +110,7 @@ func LookPathAllFor(goos, pathList, pathExt, name string) []string {
 	if filepath.IsAbs(name) {
 		var out []string
 		for _, c := range cands {
-			if runnableOn(goos, c) {
+			if runnableOn(goos, c, stat) {
 				out = append(out, c)
 			}
 		}
@@ -113,7 +123,7 @@ func LookPathAllFor(goos, pathList, pathExt, name string) []string {
 		}
 		for _, c := range cands {
 			p := filepath.Join(dir, c)
-			if runnableOn(goos, p) && !slices.Contains(out, p) {
+			if runnableOn(goos, p, stat) && !slices.Contains(out, p) {
 				out = append(out, p)
 			}
 		}
@@ -141,8 +151,8 @@ func lookCandidates(goos, pathExt, name string) []string {
 
 // runnableOn reports whether p can be started on goos: a regular file, with
 // an exec bit except on Windows.
-func runnableOn(goos, p string) bool {
-	fi, err := os.Stat(p)
+func runnableOn(goos, p string, stat statFunc) bool {
+	fi, err := stat(p)
 	if err != nil || !fi.Mode().IsRegular() {
 		return false
 	}
@@ -226,3 +236,19 @@ const utf8BOM = "\xEF\xBB\xBF"
 // whitespace, the TOML parser and the frontmatter parser accept CRLF.
 // Pure.
 func StripBOM(b []byte) []byte { return bytes.TrimPrefix(b, []byte(utf8BOM)) }
+
+// windowsVolume is the volume of a Windows path ("C:" of C:\Users\x, or
+// \\server\share of a UNC path), parsed by hand so the Windows rule is the
+// same on every build OS (filepath.VolumeName is "" off Windows). Pure.
+func windowsVolume(p string) string {
+	if len(p) >= 2 && isASCIILetter(p[0]) && p[1] == ':' {
+		return p[:2]
+	}
+	if rest, ok := strings.CutPrefix(p, `\\`); ok {
+		parts := strings.SplitN(rest, `\`, 3)
+		if len(parts) >= 2 {
+			return `\\` + parts[0] + `\` + parts[1]
+		}
+	}
+	return ""
+}

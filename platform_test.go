@@ -50,36 +50,49 @@ func TestEnvNamesFoldOnWindows(t *testing.T) {
 // TestLookPathPerOS: Windows splits PATH on ';', tries PATHEXT extensions
 // for a bare name (codex.cmd from npm, claude.exe from the native
 // installer) and needs no exec bit; unix needs the exec bit and splits on
-// ':'.
+// ':'. The rules run on a fake stat, so a case means the same on every OS
+// (a Windows filesystem cannot store exec bits); Host.LookPath then runs
+// the Windows rule on real files.
 func TestLookPathPerOS(t *testing.T) {
 	t.Parallel()
-	a, b := t.TempDir(), t.TempDir()
-	write := func(dir, name string, mode os.FileMode) string {
-		p := filepath.Join(dir, name)
-		if err := os.WriteFile(p, []byte("x"), mode); err != nil {
-			t.Fatal(err)
+	a, b := filepath.FromSlash("/pa"), filepath.FromSlash("/pb")
+	files := map[string]os.FileMode{
+		filepath.Join(a, "codex.cmd"):  0o644,
+		filepath.Join(b, "claude.exe"): 0o644,
+		filepath.Join(b, "codex"):      0o755,
+		filepath.Join(a, "claude"):     0o644, // no exec bit: never a unix hit
+	}
+	base, err := os.Stat(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	stat := func(p string) (os.FileInfo, error) {
+		if m, ok := files[p]; ok {
+			return fakeFileInfo{FileInfo: base, mode: m}, nil
 		}
-		return p
+		return nil, os.ErrNotExist
 	}
-	cmdShim := write(a, "codex.cmd", 0o600)
-	exe := write(b, "claude.exe", 0o600)
-	unixBin := write(b, "codex", 0o700)
-	write(a, "claude", 0o600) // no exec bit: never a unix hit
-
-	if got := LookPathAllFor(OSWindows, a+";"+b, "", "codex"); !slices.Equal(got, []string{cmdShim}) {
-		t.Errorf("windows codex = %v, want the .cmd shim only (PATHEXT has no empty extension)", got)
+	for _, tc := range []struct {
+		goos, list, ext, name string
+		want                  []string
+	}{
+		{OSWindows, a + ";" + b, "", "codex", []string{filepath.Join(a, "codex.cmd")}},
+		{OSWindows, a + ";" + b, ".EXE;.CMD", "claude", []string{filepath.Join(b, "claude.exe")}},
+		{OSLinux, a + ":" + b, "", "codex", []string{filepath.Join(b, "codex")}},
+		{OSLinux, a + ":" + b, "", "claude", nil},
+		{OSDarwin, a + ":" + b, "", "codex", []string{filepath.Join(b, "codex")}},
+	} {
+		if got := lookPathAll(tc.goos, tc.list, tc.ext, tc.name, stat); !slices.Equal(got, tc.want) {
+			t.Errorf("%s %s = %v, want %v", tc.goos, tc.name, got, tc.want)
+		}
 	}
-	if got := LookPathAllFor(OSWindows, a+";"+b, ".EXE;.CMD", "claude"); !slices.Equal(got, []string{exe}) {
-		t.Errorf("windows claude = %v", got)
+	real := t.TempDir()
+	shim := filepath.Join(real, "codex.cmd")
+	if err := os.WriteFile(shim, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
 	}
-	if got := LookPathAllFor(OSLinux, a+":"+b, "", "codex"); !slices.Equal(got, []string{unixBin}) {
-		t.Errorf("linux codex = %v", got)
-	}
-	if got := LookPathAllFor(OSLinux, a+":"+b, "", "claude"); len(got) != 0 {
-		t.Errorf("linux claude without exec bit = %v", got)
-	}
-	h := Host{GOOS: OSWindows, Env: []string{"Path=" + a + ";" + b, "PATHEXT=.CMD"}}
-	if p, err := h.LookPath("codex"); err != nil || p != cmdShim {
+	h := Host{GOOS: OSWindows, Env: []string{"Path=" + real, "PATHEXT=.CMD"}}
+	if p, err := h.LookPath("codex"); err != nil || p != shim {
 		t.Errorf("Host.LookPath windows = %q %v", p, err)
 	}
 	if _, err := h.LookPath("nothere"); !errors.Is(err, ErrNotInstalled) {
@@ -89,6 +102,16 @@ func TestLookPathPerOS(t *testing.T) {
 		t.Error("windowsAbs")
 	}
 }
+
+// fakeFileInfo is a real regular file's FileInfo with the mode replaced,
+// for the stat seam.
+type fakeFileInfo struct {
+	os.FileInfo
+	mode os.FileMode
+}
+
+// Mode is the faked mode. Pure.
+func (f fakeFileInfo) Mode() os.FileMode { return f.mode }
 
 // TestShimTarget reads the three cmd-shim shapes npm and pnpm write.
 func TestShimTarget(t *testing.T) {
@@ -241,5 +264,22 @@ func TestRunnerResolvesOnCommandEnv(t *testing.T) {
 	}
 	if _, err := (osRunner{}).Run(context.Background(), NewCommand("agentio-probe-bin", nil, []string{"PATH=/nonexistent"}, ""), nil); !errors.Is(err, ErrNotInstalled) {
 		t.Fatalf("not on the command PATH: %v", err)
+	}
+}
+
+// TestResolveHomeDirPerOS: a home variable's value is made absolute the way
+// the OS would: relative under the user home; on Windows a rooted path
+// without a drive lands on the user home's drive.
+func TestResolveHomeDirPerOS(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct{ goos, home, dir, want string }{
+		{OSWindows, `C:\Users\u`, `\work\h`, `C:\work\h`},
+		{OSWindows, `\\srv\share\u`, `\work\h`, `\\srv\share\work\h`},
+		{OSWindows, `C:\Users\u`, `D:\h`, `D:\h`},
+		{OSLinux, "/home/u", "/work/h", "/work/h"},
+	} {
+		if got := resolveHomeDir(tc.goos, tc.home, tc.dir); got != tc.want {
+			t.Errorf("%s %q in %q = %q, want %q", tc.goos, tc.dir, tc.home, got, tc.want)
+		}
 	}
 }

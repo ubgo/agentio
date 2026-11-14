@@ -95,7 +95,7 @@ func isHome(p printer, a agentio.Agent, userHome string) error {
 
 ## Step 3 — Open a home by folder
 
-When the user names a folder (a profile file, a `--home` flag, a `CLAUDE_CONFIG_DIR` value), build its Home with the vendor `HomeAt` or [`Core.HomeAt`](ds:block?id=core-homeat-c4u3jwew). It is Pure: a relative folder resolves against `Host.UserHome`, the default folder gives back the default home, and the folder does not have to exist yet (useful before creating a new home).
+When the user names a folder (a profile file, a `--home` flag, a `CLAUDE_CONFIG_DIR` value), build its Home with the vendor `HomeAt` or [`Core.HomeAt`](ds:block?id=core-homeat-c4u3jwew). It is Pure: a relative folder resolves against `Host.UserHome` (on a windows Host a rooted folder without a drive, `\work\h`, lands on the user home's drive, as Windows resolves it), the default folder gives back the default home, and the folder does not have to exist yet (useful before creating a new home).
 
 <!-- snippet: examples/homes/main.go#open-by-folder -->
 ```go

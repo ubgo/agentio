@@ -152,9 +152,7 @@ func TestInstallLayouts(t *testing.T) {
 			if err := os.MkdirAll(bin, 0o700); err != nil {
 				t.Fatal(err)
 			}
-			if err := os.Symlink(ver, filepath.Join(bin, Binary)); err != nil {
-				t.Fatal(err)
-			}
+			agenttest.SymlinkOrSkip(t, ver, filepath.Join(bin, Binary))
 			return bin
 		}, agentio.InstallNative, "2.1.325"},
 		{"native copied exe (windows)", agentio.OSWindows, func(t *testing.T, home string) string {
@@ -187,19 +185,24 @@ func TestInstallLayouts(t *testing.T) {
 			return bin
 		}, agentio.InstallVolta, "2.1.325"},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			home := t.TempDir()
-			bin := tc.build(t, home)
-			a := New(agenttest.NewHost(t, agenttest.WithUserHome(home), agenttest.WithSystem(tc.goos, ""), agenttest.WithEnv("PATH="+bin, "PATHEXT=.EXE;.CMD")))
-			in, err := a.Install()
-			if err != nil {
-				t.Fatal(err)
-			}
-			if in.Method != tc.method || in.Version.String() != tc.version {
-				t.Fatalf("install %s %s (%+v)", in.Method, in.Version, in.Install)
-			}
-		})
+		for _, viaLink := range []bool{false, true} {
+			t.Run(tc.name+linkSuffix(viaLink), func(t *testing.T) {
+				t.Parallel()
+				if tc.goos != agentio.OSWindows {
+					agenttest.SkipOnWindows(t, "unix exec-bit PATH rule on real files")
+				}
+				home := homeMaybeLinked(t, viaLink)
+				bin := tc.build(t, home)
+				a := New(agenttest.NewHost(t, agenttest.WithUserHome(home), agenttest.WithSystem(tc.goos, ""), agenttest.WithEnv("PATH="+bin, "PATHEXT=.EXE;.CMD")))
+				in, err := a.Install()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if in.Method != tc.method || in.Version.String() != tc.version {
+					t.Fatalf("install %s %s (%+v)", in.Method, in.Version, in.Install)
+				}
+			})
+		}
 	}
 }
 
@@ -228,5 +231,52 @@ func TestManagedRegistry(t *testing.T) {
 	lin, _ := fixtureAgent(t, fixtureVersions(t)[0], agenttest.WithExec(fx), agenttest.WithSystem(agentio.OSLinux, "/"))
 	if got, err := lin.Runner().ManagedRegistry(context.Background()); got != nil || err != nil {
 		t.Fatalf("linux host read the registry: %v %v", got, err)
+	}
+}
+
+// linkSuffix names the symlinked-home variant of a subtest.
+func linkSuffix(viaLink bool) string {
+	if viaLink {
+		return " behind a symlinked home"
+	}
+	return ""
+}
+
+// homeMaybeLinked returns a temp user home, or (viaLink) a symlink to one,
+// the way macOS reaches temp dirs (/var → /private/var) and some users
+// reach their home. Layout detection must give the same answer either way.
+// The variant is skipped where the OS refuses the symlink (Windows without
+// Developer Mode).
+func homeMaybeLinked(t *testing.T, viaLink bool) string {
+	t.Helper()
+	home := t.TempDir()
+	if !viaLink {
+		return home
+	}
+	link := filepath.Join(t.TempDir(), "home-link")
+	if err := os.Symlink(home, link); err != nil {
+		t.Skipf("symlinks not available here: %v", err)
+	}
+	return link
+}
+
+// TestLocalSettingsHomeBehindSymlink: a repo whose root is the user home
+// keeps settings.local.json in the start dir even when the home is given
+// through a symlink and the repo root by its real path.
+func TestLocalSettingsHomeBehindSymlink(t *testing.T) {
+	t.Parallel()
+	real := t.TempDir()
+	link := homeMaybeLinked(t, true)
+	if err := os.Remove(link); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(real, link); err != nil {
+		t.Skipf("symlinks not available here: %v", err)
+	}
+	a := New(agentio.Host{GOOS: agentio.OSLinux, UserHome: link})
+	p := Project{Dir: filepath.Join(real, "sub"), RepoRoot: real}
+	want := filepath.Join(p.Dir, dotClaudeDir, localSettingsFile)
+	if got := a.ProjectPaths(a.DefaultHome(), p).LocalSettings; got != want {
+		t.Fatalf("LocalSettings = %s, want %s (the repo root is the home)", got, want)
 	}
 }

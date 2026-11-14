@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 func TestRun(t *testing.T) {
@@ -11,7 +13,7 @@ func TestRun(t *testing.T) {
 	if err := run(&out); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		"error: agentio: binary not found on PATH: claude\n  -> install the CLI first\n",
 		"error: agentio: unsupported: toy: prompt: not described by the agent spec\n  -> not supported by this agent\n",

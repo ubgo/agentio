@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // testFixture is defaultFixture seen from the package directory, where
@@ -15,7 +17,7 @@ func TestRun(t *testing.T) {
 	if err := run(&out, testFixture); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		`0199e1a0-0000-7000-8000-000000000001 "List the files" dir=/work/proj source=cli cli=0.162.1 originator=codex-tui`,
 		"in /work/other: 1",

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // testFixture is defaultFixture seen from the package directory, where
@@ -15,7 +17,7 @@ func TestRun(t *testing.T) {
 	if err := run(&out, testFixture); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		`session 0199e1a0-0000-7000-8000-000000000001 alive=true pid=0 dir="/work/proj"`,
 		`session 01a1d83a-e1cb-70d1-bee7-7aebab05bc2b alive=false pid=0 dir=""`,

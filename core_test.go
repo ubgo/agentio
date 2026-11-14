@@ -187,7 +187,10 @@ func envValsExt(env []string, key string) []string {
 
 func TestHomesDiscovery(t *testing.T) {
 	t.Parallel()
-	a, host := newToy(t, agenttest.WithEnv("TOY_HOME=/nonexistent"))
+	// An absolute path on every OS ("/nonexistent" is drive-relative on
+	// Windows, so it would resolve onto the user home's drive).
+	missing := filepath.Join(t.TempDir(), "nonexistent")
+	a, host := newToy(t, agenttest.WithEnv("TOY_HOME="+missing))
 	homes, err := a.Homes()
 	if err != nil {
 		t.Fatal(err)
@@ -196,7 +199,7 @@ func TestHomesDiscovery(t *testing.T) {
 		t.Errorf("homes = %v", homes)
 	}
 	h, ok := a.HomeFromEnv()
-	if !ok || h.Dir() != "/nonexistent" || h.IsDefault() {
+	if !ok || h.Dir() != missing || h.IsDefault() {
 		t.Errorf("HomeFromEnv = %v,%v", h, ok)
 	}
 	b, _ := newToy(t, agenttest.WithEnv("TOY_HOME="))
@@ -343,8 +346,14 @@ func TestRunnerVersion(t *testing.T) {
 func TestLookPath(t *testing.T) {
 	t.Parallel()
 	dir1, dir2 := t.TempDir(), t.TempDir()
+	// A runnable file is named toy.exe on Windows (PATHEXT finds it; an
+	// extensionless file is not runnable there) and toy elsewhere.
+	toy := "toy"
+	if runtime.GOOS == agentio.OSWindows {
+		toy += ".exe"
+	}
 	for _, d := range []string{dir1, dir2} {
-		p := filepath.Join(d, "toy")
+		p := filepath.Join(d, toy)
 		if err := os.WriteFile(p, []byte("#!/bin/sh\n"), 0o700); err != nil {
 			t.Fatal(err)
 		}
@@ -354,7 +363,7 @@ func TestLookPath(t *testing.T) {
 	}
 	list := strings.Join([]string{"", "relative", dir1, dir2}, string(os.PathListSeparator))
 	all := agentio.LookPathAll(list, "toy")
-	if len(all) != 2 || all[0] != filepath.Join(dir1, "toy") {
+	if len(all) != 2 || all[0] != filepath.Join(dir1, toy) {
 		t.Errorf("LookPathAll = %v", all)
 	}
 	if _, err := agentio.LookPath(list, "noexec"); !errors.Is(err, agentio.ErrNotInstalled) {
@@ -408,8 +417,10 @@ func TestHostFromOS_ReadsProcessTable(t *testing.T) {
 	if got, err := h.Processes.Cwd(context.Background(), self); err != nil || got != cwd {
 		t.Errorf("Cwd = %s, %v", got, err)
 	}
-	// No keychain reader off darwin: "cannot look" must not read as "no entry".
-	if _, found, err := h.Secrets.Get(context.Background(), "agentio-test-none", ""); found || !errors.Is(err, agentio.ErrUnsupported) {
+	// Linux reads the Secret Service through secret-tool: a missing entry is
+	// found=false with a nil error; no secret-tool or no Secret Service (a
+	// headless runner) is ErrUnsupported, never a silent "no entry" error.
+	if _, found, err := h.Secrets.Get(context.Background(), "agentio-test-none", ""); found || (err != nil && !errors.Is(err, agentio.ErrUnsupported)) {
 		t.Errorf("linux secrets: %v %v", found, err)
 	}
 }

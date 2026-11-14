@@ -5,17 +5,20 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // testFixture is the fixture user home relative to this package dir.
 const testFixture = "../" + defaultFixture
 
 func TestRun(t *testing.T) {
+	exampletest.RequirePOSIXLayout(t)
 	var out bytes.Buffer
 	if err := run(context.Background(), &out, testFixture, t.TempDir()); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		"target: home personal, version 2.1.325",
 		`launch: claude --model opus --permission-mode plan --add-dir /work/shared -- "-explain the build"`,

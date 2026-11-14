@@ -537,9 +537,7 @@ func TestInstallNative(t *testing.T) {
 	if err := os.WriteFile(ver, []byte("#!/bin/sh\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(ver, filepath.Join(bin, Binary)); err != nil {
-		t.Fatal(err)
-	}
+	agenttest.SymlinkOrSkip(t, ver, filepath.Join(bin, agenttest.ExeName(Binary)))
 	inst, err := a.Install()
 	if err != nil {
 		t.Fatal(err)

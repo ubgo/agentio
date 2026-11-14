@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // testFixture is the fixture user home relative to this package dir.
@@ -17,7 +19,7 @@ func TestRun(t *testing.T) {
 	if err := run(context.Background(), &out, testFixture, t.TempDir()); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		"stats v5 computed 2026-10-26: 141 sessions, 93795 messages since 2026-10-11",
 		"  busiest hour: 17:00 (23 sessions started)",

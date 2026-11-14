@@ -321,9 +321,7 @@ func TestKeyringAccount(t *testing.T) {
 		t.Fatal("non-default home must have its own account")
 	}
 	link := filepath.Join(t.TempDir(), "link")
-	if err := os.Symlink(other, link); err != nil {
-		t.Fatal(err)
-	}
+	agenttest.SymlinkOrSkip(t, other, link)
 	if KeyringAccount(link) != KeyringAccount(other) {
 		t.Fatal("a symlinked home path must hash like its target (canonicalize)")
 	}
@@ -1193,6 +1191,7 @@ func TestConfigLayersHighestFirst(t *testing.T) {
 // "npm": an npm install gets <PATH>/npm, a missing npm is ErrNotInstalled,
 // a standalone install is ErrUnsupported.
 func TestUpdateCommand(t *testing.T) {
+	agenttest.SkipOnWindows(t, "builds a POSIX npm layout (extensionless codex symlink, exec bits); the Windows npm.cmd layout is TestWindowsFixtureHome")
 	user := t.TempDir()
 	bin := filepath.Join(user, "bin")
 	pkg := filepath.Join(user, "lib", "node_modules", "@openai", "codex")

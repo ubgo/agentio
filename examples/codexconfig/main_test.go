@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // testFixture is defaultFixture seen from the package directory, where
@@ -11,11 +13,12 @@ import (
 const testFixture = "../" + defaultFixture
 
 func TestRun(t *testing.T) {
+	exampletest.RequirePOSIXLayout(t)
 	var out bytes.Buffer
 	if err := run(&out, testFixture); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		"id=codex name=Codex binary=codex home-env=CODEX_HOME default-home=.codex",
 		"default home keeps CODEX_HOME in the child env: false",

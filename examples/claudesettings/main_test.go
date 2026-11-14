@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // testFixture is the fixture user home relative to this package dir.
@@ -11,6 +13,7 @@ const testFixture = "../../claude/testdata/homes/2.1.325/userhome"
 
 // TestRun runs the example on the fixture and checks one line per section.
 func TestRun(t *testing.T) {
+	exampletest.RequirePOSIXLayout(t)
 	var out bytes.Buffer
 	if err := run(&out, testFixture); err != nil {
 		t.Fatal(err)
@@ -34,7 +37,7 @@ func TestRun(t *testing.T) {
 		"restriction allow_remote_control allowed=false",
 		"stamp kind=org identity=[redacted] confirmed=2026-11-01T10:00:00Z",
 	} {
-		if !strings.Contains(out.String(), want) {
+		if !strings.Contains(exampletest.Output(out.String()), want) {
 			t.Errorf("output lacks %q", want)
 		}
 	}

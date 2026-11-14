@@ -12,6 +12,7 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 - `HostFromOS` on Windows: a process table from one PowerShell `Get-CimInstance Win32_Process` run (CommandLineToArgvW splitting); on Linux a keyring reader through `secret-tool` (Secret Service). Windows Credential Manager and process working directories return `ErrUnsupported` with the reason.
 - `claude.Runner.ManagedRegistry` reads the Windows managed-settings policy registry values (`HKLM`/`HKCU\SOFTWARE\Policies\ClaudeCode`) with `reg.exe`; `SourceRegistryHKLM` and `SourceRegistryHKCU` (module `claude`).
 - Install detection for npm `.cmd` shims, pnpm shims, nvm, bun (also `.exe` on Windows), Volta, Homebrew formulas (`Cellar`) and Claude's copied native `claude.exe`; Codex `UpdateCommand` handles Volta and Homebrew formulas (modules `claude`, `codex`).
+- `agenttest.ExeName`, `SymlinkOrSkip` and `SkipOnWindows` for tests that must mean the same on every OS; `scripts/workspace.sh` writes a `go.work` with version-specific replaces so CI runners resolve the private sibling modules locally.
 - `examples/agentinfo -fixtures`, `task check:windows` (Windows vet and test compile, part of `task check`), `task test:distros` (Debian, Alpine, Fedora and Arch containers; manual), and a manual-only `.github/workflows/platforms.yml` for Linux, macOS and Windows runners.
 - A platforms guide (`docs/platforms.md`) and a README support table.
 
@@ -27,6 +28,8 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 
 ### Fixed
 
+- Install detection, the `settings.local.json` repo-root-is-home check and the memory-import "external" check compare symlink-resolved paths on both sides: a copied native `claude.exe` behind a symlinked parent dir (macOS `/var` → `/private/var`, a home reached through a link) was reported as an unknown install (module `claude`).
+- A home variable holding a rooted path without a drive on Windows (`\work\h`) resolves onto the user home's drive, as Windows does, instead of under the user home.
 - `claude.EncodePath` now matches Claude Code exactly (2.1.325 bundle): one `-` per UTF-16 unit (it replaced each UTF-8 byte), and a key over 200 characters is cut and suffixed with a base-36 hash, so history of non-ASCII and long paths is found (module `claude`).
 - `settings.local.json` is read from the start folder on Windows and when the repo root is the user home, as Claude Code does (module `claude`).
 - On a linux or windows Host, Claude credentials come only from `.credentials.json`; the keychain is not consulted there (module `claude`).

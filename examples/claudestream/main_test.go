@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // testRecording is the recorded run relative to this package dir.
@@ -14,7 +16,7 @@ func TestRun(t *testing.T) {
 	if err := run(&out, testRecording); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		"init: Claude Code 2.1.325, model claude-haiku-5-5, mode bypassPermissions, 5 tools, 2 MCP servers, 3 slash commands",
 		"  AsResult on init: claude: wrong stream message type: system/init",

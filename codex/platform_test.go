@@ -110,23 +110,28 @@ func TestInstallLayouts(t *testing.T) {
 			return bin
 		}, agentio.InstallBrew, "0.162.1", []string{"upgrade", Binary}},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
-			home := t.TempDir()
-			bin := tc.build(t, home)
-			a := New(agenttest.NewHost(t, agenttest.WithUserHome(home), agenttest.WithSystem(tc.goos, ""),
-				agenttest.WithEnv("PATH="+bin, "PATHEXT=.EXE;.CMD")))
-			in, err := a.Install()
-			if err != nil {
-				t.Fatal(err)
-			}
-			if in.Method != tc.method || in.Version.String() != tc.version {
-				t.Fatalf("install %s %s (%+v)", in.Method, in.Version, in)
-			}
-			up, err := a.UpdateCommand()
-			if err != nil || !slices.Equal(up.Args, tc.update) || !filepath.IsAbs(up.Path) {
-				t.Fatalf("update %s %v %v", up.Path, up.Args, err)
-			}
-		})
+		for _, viaLink := range []bool{false, true} {
+			t.Run(tc.name+linkSuffix(viaLink), func(t *testing.T) {
+				if tc.goos != agentio.OSWindows {
+					agenttest.SkipOnWindows(t, "unix exec-bit PATH rule on real files")
+				}
+				home := homeMaybeLinked(t, viaLink)
+				bin := tc.build(t, home)
+				a := New(agenttest.NewHost(t, agenttest.WithUserHome(home), agenttest.WithSystem(tc.goos, ""),
+					agenttest.WithEnv("PATH="+bin, "PATHEXT=.EXE;.CMD")))
+				in, err := a.Install()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if in.Method != tc.method || in.Version.String() != tc.version {
+					t.Fatalf("install %s %s (%+v)", in.Method, in.Version, in)
+				}
+				up, err := a.UpdateCommand()
+				if err != nil || !slices.Equal(up.Args, tc.update) || !filepath.IsAbs(up.Path) {
+					t.Fatalf("update %s %v %v", up.Path, up.Args, err)
+				}
+			})
+		}
 	}
 }
 
@@ -155,7 +160,29 @@ func symlinkExec(t *testing.T, from, to string) {
 	if err := os.MkdirAll(filepath.Dir(to), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(from, to); err != nil {
-		t.Fatal(err)
+	agenttest.SymlinkOrSkip(t, from, to)
+}
+
+// linkSuffix names the symlinked-home variant of a subtest.
+func linkSuffix(viaLink bool) string {
+	if viaLink {
+		return " behind a symlinked home"
 	}
+	return ""
+}
+
+// homeMaybeLinked returns a temp user home, or (viaLink) a symlink to one
+// (macOS reaches temp dirs through /var → /private/var). Skipped where the
+// OS refuses the symlink.
+func homeMaybeLinked(t *testing.T, viaLink bool) string {
+	t.Helper()
+	home := t.TempDir()
+	if !viaLink {
+		return home
+	}
+	link := filepath.Join(t.TempDir(), "home-link")
+	if err := os.Symlink(home, link); err != nil {
+		t.Skipf("symlinks not available here: %v", err)
+	}
+	return link
 }

@@ -233,7 +233,7 @@ func (a *Agent) Project(dir string) (Project, error) {
 // The docs' third exception (a root or .git/.claude entry not owned by the
 // user) is not checked: Host has no file-owner reader.
 func (a *Agent) localRoot(p Project) string {
-	if p.RepoRoot == "" || a.host.GOOS == agentio.OSWindows || filepath.Clean(p.RepoRoot) == filepath.Clean(a.host.UserHome) {
+	if p.RepoRoot == "" || a.host.GOOS == agentio.OSWindows || samePath(p.RepoRoot, a.host.UserHome) {
 		return p.Dir
 	}
 	return p.RepoRoot

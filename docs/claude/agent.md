@@ -33,7 +33,7 @@ Every reader takes a `claude.Home`, never a bare path, so a Codex home cannot be
 | Call | Returns | Cost |
 |---|---|---|
 | [`a.DefaultHome()`](ds:block?id=claude-agent-defaulthome-amhusqtv) | `~/.claude` (used with `CLAUDE_CONFIG_DIR` absent) | Pure |
-| [`a.HomeAt(dir)`](ds:block?id=core-homeat-c4u3jwew) | the home at any dir; relative dirs resolve against the user home | Pure |
+| [`a.HomeAt(dir)`](ds:block?id=core-homeat-c4u3jwew) | the home at any dir; relative dirs resolve against the user home (on Windows a drive-less rooted dir lands on the home's drive) | Pure |
 | [`a.HomeFromEnv()`](ds:block?id=core-homefromenv-jk7mncfj) | the home `CLAUDE_CONFIG_DIR` in `Host.Env` selects; `false` when unset or empty | Pure |
 | [`a.Homes()`](ds:block?id=core-homes-43a2yjev) | `~/.claude` first, then every `~/.claude-<x>` holding a marker (sorted), then the env home if not listed | Disk read |
 | [`a.HomeOf(n)`](ds:block?id=claude-agent-homeof-qtt8m9qe) | converts a neutral `agentio.Home`; `ErrForeignHome` for another agent's | Pure |

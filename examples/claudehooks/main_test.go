@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // testFixture is the fixture user home relative to this package dir.
@@ -12,6 +14,7 @@ const testFixture = "../../claude/testdata/homes/2.1.325/userhome"
 
 // TestRun runs the demo on the fixture and checks one line per section.
 func TestRun(t *testing.T) {
+	exampletest.RequireSymlinks(t)
 	var out bytes.Buffer
 	if err := run(&out, testFixture); err != nil {
 		t.Fatal(err)
@@ -34,7 +37,7 @@ func TestRun(t *testing.T) {
 		"plan ~/.claude-work/settings.json -> ~/.claude/settings.json exists=true",
 		"work CLAUDE.md -> ~/.claude/CLAUDE.md",
 	} {
-		if !strings.Contains(out.String(), want) {
+		if !strings.Contains(exampletest.Output(out.String()), want) {
 			t.Errorf("output lacks %q", want)
 		}
 	}

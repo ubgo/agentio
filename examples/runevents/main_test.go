@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // TestRun decodes the recorded Claude stream and the Codex sample and
@@ -24,7 +26,7 @@ func TestRun(t *testing.T) {
 	if err := run(&out, f, strings.NewReader(codexStream)); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		`launch: claude -p --output-format stream-json --verbose -- "list the files"`,
 		"started conversation 00000000-0000-4000-8000-000000000001",

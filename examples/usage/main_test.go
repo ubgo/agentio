@@ -5,6 +5,8 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // TestRun runs every step against the fake API and fixture copies and
@@ -21,7 +23,7 @@ func TestRun(t *testing.T) {
 	if err := run(context.Background(), &out, h, srv.URL); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		"claude personal: max 6% source=cache age=387h21m0s",
 		"claude work: no cached usage",

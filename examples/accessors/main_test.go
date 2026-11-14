@@ -5,11 +5,14 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // TestRun runs the whole walk on the fixture machine and checks one line of
 // every guide step, so a library change that alters an answer fails here.
 func TestRun(t *testing.T) {
+	exampletest.RequirePOSIXLayout(t)
 	h, err := setup(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -18,7 +21,7 @@ func TestRun(t *testing.T) {
 	if err := run(context.Background(), &out, h); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		"claude personal ~/.claude (cached usage 6%)",
 		"codex personal ~/.codex (cached usage 12%)",

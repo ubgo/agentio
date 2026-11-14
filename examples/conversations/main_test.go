@@ -5,6 +5,8 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // TestRun runs every step on fixture copies and checks one line per guide
@@ -18,7 +20,7 @@ func TestRun(t *testing.T) {
 	if err := run(context.Background(), &out, h); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		`claude personal 3f474440-903e-5410-8bfb-d537b89f9547 /work/proj13 "Fixture title 166"`,
 		`codex personal 0199e1a0-0000-7000-8000-000000000001 /work/proj "List the files"`,

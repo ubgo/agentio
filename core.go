@@ -115,14 +115,27 @@ func (c *Core) DefaultHome() Home {
 // to the default dir, else a non-default home named from its base name.
 // Relative dirs resolve against Host.UserHome. Pure.
 func (c *Core) HomeAt(dir string) Home {
-	if !filepath.IsAbs(dir) {
-		dir = filepath.Join(c.host.UserHome, dir)
-	}
+	dir = resolveHomeDir(c.host.hostOS(), c.host.UserHome, dir)
 	dir = filepath.Clean(dir)
 	if dir == filepath.Clean(c.defaultHomeDir()) {
 		return c.DefaultHome()
 	}
 	return NewHome(c.spec.ID, dir, false, c.homeName(dir))
+}
+
+// resolveHomeDir makes a home variable's value absolute the way the OS
+// would: a relative dir is under userHome; on Windows a rooted dir without
+// a drive (\work\h, /work/h) is on the drive of userHome (Windows resolves
+// it against the current drive, which for a user's tools is that one), not
+// under userHome. Pure.
+func resolveHomeDir(goos, userHome, dir string) string {
+	if filepath.IsAbs(dir) || (goos == OSWindows && windowsAbs(dir)) {
+		return dir
+	}
+	if goos == OSWindows && (strings.HasPrefix(dir, `\`) || strings.HasPrefix(dir, "/")) {
+		return windowsVolume(userHome) + filepath.FromSlash(dir)
+	}
+	return filepath.Join(userHome, dir)
 }
 
 // homeName derives "work" from ~/.claude-work, else the base without a dot.

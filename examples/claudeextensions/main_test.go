@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // Fixture paths relative to this package dir.
@@ -14,6 +16,7 @@ const (
 
 // TestRun runs the example on the fixture and checks one line per section.
 func TestRun(t *testing.T) {
+	exampletest.RequireSymlinks(t)
 	var out bytes.Buffer
 	if err := run(&out, testFixture, testResult); err != nil {
 		t.Fatal(err)
@@ -47,7 +50,7 @@ func TestRun(t *testing.T) {
 		"foreign entry notes-by-another-tool.txt (21 bytes)",
 		"spawned=0 completed=0 failed=0 max depth=0",
 	} {
-		if !strings.Contains(out.String(), want) {
+		if !strings.Contains(exampletest.Output(out.String()), want) {
 			t.Errorf("output lacks %q", want)
 		}
 	}

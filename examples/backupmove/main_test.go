@@ -4,17 +4,20 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // testUserHome is the fixture user home relative to this package dir.
 const testUserHome = "../../claude/testdata/homes/2.1.325/userhome"
 
 func TestRun(t *testing.T) {
+	exampletest.RequireSymlinks(t)
 	var out bytes.Buffer
 	if err := run(&out, testUserHome); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		"backup: ~/.claude/settings.json -> ~/.claude/settings.json.agentio-bak-20261114T120000Z\n",
 		"backup: ~/.claude/settings.json -> ~/.claude/settings.json.agentio-bak-20261114T120000Z-2\n",

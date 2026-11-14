@@ -133,7 +133,7 @@ func detectInstall(hit, real string) (agentio.InstallMethod, agentio.Version) {
 			return agentio.InstallVolta, voltaVersion(home)
 		}
 	}
-	if hit == real && strings.Contains(filepath.ToSlash(hit), nativeBinDir) {
+	if !isSymlink(hit) && strings.Contains(filepath.ToSlash(hit), nativeBinDir) {
 		return agentio.InstallNative, newestNativeVersion(filepath.Join(home, "share", "claude", "versions"))
 	}
 	return agentio.InstallUnknown, agentio.Version{}
@@ -247,4 +247,25 @@ func (a *Agent) Install() (Install, error) {
 func fileExists(p string) bool {
 	_, err := os.Lstat(p)
 	return err == nil
+}
+
+// isSymlink reports whether p itself is a symbolic link (Lstat). Comparing
+// p with its EvalSymlinks result instead would also differ when only a
+// parent dir is a link (macOS /var → /private/var, a home behind a
+// symlink), which made a copied claude.exe look like a link. Disk · Read.
+func isSymlink(p string) bool {
+	fi, err := os.Lstat(p)
+	return err == nil && fi.Mode()&os.ModeSymlink != 0
+}
+
+// samePath reports whether a and b name the same location: equal after
+// Clean, or equal once both are resolved through symlinks (a home or repo
+// reached through a linked parent dir). Disk · Read.
+func samePath(a, b string) bool {
+	if filepath.Clean(a) == filepath.Clean(b) {
+		return true
+	}
+	ra, errA := filepath.EvalSymlinks(a)
+	rb, errB := filepath.EvalSymlinks(b)
+	return errA == nil && errB == nil && ra == rb
 }

@@ -116,7 +116,7 @@ Areas follow the library's layers: L1 is the neutral core every agent shares, L2
 
 | Feature | Package | Guide | Example |
 |---|---|---|---|
-| `agenttest.NewHost`, `HostOption` (`WithEnv`, `WithUserHome`, `WithNow`, `WithHTTP`, `WithSecrets`, `WithProcesses`, `WithExec`, `WithSystem`), `FixedNow` | `agenttest` | [Fakes and fixture hosts](../testing/agenttest.md#step-1--build-a-fixture-host) | [testing](../../examples/testing/) |
+| `agenttest.NewHost`, `HostOption` (`WithEnv`, `WithUserHome`, `WithNow`, `WithHTTP`, `WithSecrets`, `WithProcesses`, `WithExec`, `WithSystem`), `FixedNow`, and the cross-OS helpers `ExeName`, `SymlinkOrSkip`, `SkipOnWindows` | `agenttest` | [Fakes and fixture hosts](../testing/agenttest.md#step-1--build-a-fixture-host) | [testing](../../examples/testing/) |
 | `FakeSecrets`, `NewFakeSecrets`, `SecretKey`, `FakeProcesses` | `agenttest` | [Fakes and fixture hosts](../testing/agenttest.md#step-2--fake-secrets-and-processes) | [testing](../../examples/testing/) |
 | `FakeExec`, `FailExec`, `ErrForbidden`, `ErrFakeNotFound` | `agenttest` | [Fakes and fixture hosts](../testing/agenttest.md#step-3--fake-the-vendor-binary) | [testing](../../examples/testing/) |
 | `FailingHTTP`, `WithHTTP` + `httptest` | `agenttest` | [Fakes and fixture hosts](../testing/agenttest.md#step-4--point-http-at-a-test-server) | [testing](../../examples/testing/) |

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 func TestRun(t *testing.T) {
@@ -11,7 +13,7 @@ func TestRun(t *testing.T) {
 	if err := run(&out); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		`new          codex -c model_reasoning_effort="high" -m gpt-5.5 -s workspace-write -a on-request --add-dir /work/shared "fix the build"  [warning version-unknown]`,
 		"resume       codex resume 0199e1a0-0000-7000-8000-000000000001\n",

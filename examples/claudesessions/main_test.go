@@ -5,6 +5,8 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // testFixture is the fixture user home relative to this package dir.
@@ -15,7 +17,7 @@ func TestRun(t *testing.T) {
 	if err := run(context.Background(), &out, testFixture, t.TempDir()); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		"session pid 4242: fixture-session-0, status busy (neutral busy), alive true, cwd /work/proj4, v2.1.325",
 		"session pid 4243: fixture-session-1, status idle (neutral idle), alive false, cwd /work/proj6, v2.1.325",

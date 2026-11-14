@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -263,4 +264,39 @@ func WriteFile(t testing.TB, dir, rel, data string) string {
 		t.Fatal(err)
 	}
 	return p
+}
+
+// windowsExe is the executable suffix a Windows PATH lookup finds through
+// PATHEXT.
+const windowsExe = ".exe"
+
+// ExeName is name as an executable file is named on the OS the test runs
+// on: name+".exe" on Windows (an extensionless file is not runnable there,
+// so PATHEXT never finds it), name elsewhere. Use it for fixture binaries a
+// Host without GOOS must find. Pure.
+func ExeName(name string) string {
+	if runtime.GOOS == agentio.OSWindows {
+		return name + windowsExe
+	}
+	return name
+}
+
+// SymlinkOrSkip creates newname as a symlink to oldname, or skips the test
+// where the OS refuses symlinks (Windows without Developer Mode or
+// elevation). Disk · Write.
+func SymlinkOrSkip(t testing.TB, oldname, newname string) {
+	t.Helper()
+	if err := os.Symlink(oldname, newname); err != nil {
+		t.Skipf("symlinks are not available here: %v", err)
+	}
+}
+
+// SkipOnWindows skips a test that exercises the unix exec-bit PATH rule on
+// real files: a Windows filesystem cannot store exec bits. The rule itself
+// is proven on every OS with a fake stat (agentio TestLookPathPerOS).
+func SkipOnWindows(t testing.TB, why string) {
+	t.Helper()
+	if runtime.GOOS == agentio.OSWindows {
+		t.Skip(why)
+	}
 }

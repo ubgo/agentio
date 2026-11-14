@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // testMigrations is defaultMigrations seen from the package directory,
@@ -15,7 +17,7 @@ func TestRun(t *testing.T) {
 	if err := run(&out, testMigrations); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		"state_5.sqlite at state_5.sqlite schema=59 max-known=59",
 		`thread 019a0000-0000-7000-8000-00000000000a "Fix the build" source=vscode archived=false pinned=true tokens=1234 history=paginated sandbox=workspace-write`,

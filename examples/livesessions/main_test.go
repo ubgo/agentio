@@ -5,6 +5,8 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // TestRun checks the pid-reuse guard, the Codex lock answer, the process
@@ -18,7 +20,7 @@ func TestRun(t *testing.T) {
 	if err := run(context.Background(), &out, h); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		`claude personal pid=4242 conv=6d50c0ec dir=/work/proj4 kind="interactive" status=busy alive=true`,
 		`claude personal pid=4243 conv=3e03d92d dir=/work/proj6 kind="interactive" status=idle alive=false`,

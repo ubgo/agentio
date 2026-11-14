@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ubgo/agentio/examples/internal/exampletest"
+
 	"github.com/ubgo/agentio"
 	"github.com/ubgo/agentio/agenttest"
 )
@@ -47,7 +49,7 @@ func TestRunText(t *testing.T) {
 	if err := run(context.Background(), h, options{dir: filepath.Join(home, "project")}, &out); err != nil {
 		t.Fatal(err)
 	}
-	got := strings.ReplaceAll(out.String(), home, "~")
+	got := exampletest.Output(strings.ReplaceAll(out.String(), home, "~"))
 	for _, want := range []string{
 		"=== Claude Code (claude) ===",
 		"install:   not installed (agentio: binary not found on PATH: claude)",

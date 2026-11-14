@@ -5,11 +5,14 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // TestRun builds the config-only agent in a temp machine and checks every
 // step's answer.
 func TestRun(t *testing.T) {
+	exampletest.RequirePOSIXLayout(t)
 	h, err := setup(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -18,7 +21,7 @@ func TestRun(t *testing.T) {
 	if err := run(context.Background(), &out, h); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		"agentio: invalid spec: acme: resume args [--resume] lack {id}",
 		"home work default=false ~/.acme-work",

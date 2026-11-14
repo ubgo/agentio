@@ -5,6 +5,8 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	"github.com/ubgo/agentio/examples/internal/exampletest"
 )
 
 // testFixture is the fixture user home relative to this package dir.
@@ -15,7 +17,7 @@ func TestRun(t *testing.T) {
 	if err := run(context.Background(), &out, testFixture); err != nil {
 		t.Fatal(err)
 	}
-	got := out.String()
+	got := exampletest.Output(out.String())
 	for _, want := range []string{
 		"personal: login in file (~/.claude/.credentials.json)",
 		"work: login in keychain (Claude Code-credentials-<hash>)",
