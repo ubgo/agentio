@@ -25,7 +25,7 @@ Every library read goes through a Host (user home, environment, clock, HTTP clie
 | `Processes` | empty `FakeProcesses` | no process table |
 | `Exec` | `agenttest.FailExec{T: t}` | any process run fails the test |
 
-Options replace one field each: `WithUserHome`, `WithEnv`, `WithNow`, `WithHTTP`, `WithSecrets`, `WithProcesses`, `WithExec`. The helper below copies the fixture homes into a temp dir and points the Host at the copy; every later test in this page builds on it.
+Options replace one field each: `WithUserHome`, `WithEnv`, `WithNow`, `WithHTTP`, `WithSecrets`, `WithProcesses`, `WithExec`, and `WithSystem(goos, root)` sets `GOOS` and `SystemRoot` together (a fixture host has neither, so it never reads the machine's `/etc`). The helper below copies the fixture homes into a temp dir and points the Host at the copy; every later test in this page builds on it.
 
 <!-- snippet: examples/testing/main_test.go#newhost -->
 ```go

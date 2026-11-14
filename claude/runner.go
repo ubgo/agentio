@@ -27,7 +27,8 @@ const (
 	plutilJSONFormat = "json"
 	plutilOutput     = "-o"
 	plutilStdout     = "-"
-	managedPlistPath = "/Library/Managed Preferences/com.anthropic.claudecode.plist"
+	// managedPlistRel is relative to Host.SystemRoot (darwin only).
+	managedPlistRel = "Library/Managed Preferences/com.anthropic.claudecode.plist"
 )
 
 // run executes claude with args for h and returns stdout; a non-zero exit
@@ -213,10 +214,15 @@ func (r *Runner) AutoModeDefaults(ctx context.Context, h Home) (agentio.Raw, err
 }
 
 // ManagedPlist converts the macOS managed preferences plist to JSON with
-// plutil and returns it as a managed layer; nil when the plist is absent.
-// Does not run claude, so no login risk. cost: Process · Read (OD-9).
+// plutil and returns it as a managed layer; nil when the plist is absent
+// or the Host is not darwin with a SystemRoot. Does not run claude, so no
+// login risk. cost: Process · Read.
 func (r *Runner) ManagedPlist(ctx context.Context) (*SettingsLayer, error) {
-	if !fileExists(managedPlistPath) {
+	if r.a.host.GOOS != goosDarwin {
+		return nil, nil
+	}
+	managedPlistPath, ok := r.a.host.SystemPath(managedPlistRel)
+	if !ok || !fileExists(managedPlistPath) {
 		return nil, nil
 	}
 	if r.a.host.Exec == nil {

@@ -199,9 +199,7 @@ claude layer local    exists=true  ~/project/.claude/settings.local.json
 claude layer project  exists=true  ~/project/.claude/settings.json
 claude layer user     exists=true  ~/.claude/settings.json
 claude trust=unknown model="sonnet" autonomy=full
-codex layer managed  exists=false /etc/codex/config.toml
 codex layer user     exists=true  ~/.codex/config.toml
-codex layer managed  exists=false /etc/codex/managed_config.toml
 codex trust=unknown model="gpt-5.6-terra" autonomy=default
 == mcp ==
 claude proj-db        stdio scope=project fixture-db-mcp env=[DB_PASSWORD]
@@ -231,7 +229,7 @@ codex model gpt-reserve      visible=false context=128000
 ## Pitfalls
 
 - **Layer order differs by vendor.** Claude lists layers highest precedence first (local, project, user); Codex lists them in its own resolution order, where the system `config.toml` comes before the user file and `managed_config.toml` after it. Use `Scope` to label a layer; do not infer precedence from the slice index across vendors.
-- **Managed layers are absolute system paths.** Codex's managed files live under `/etc/codex` and are stat'ed on the real filesystem even with a fixture Host. They are listed with `Exists` false when absent.
+- **System layers need a system root.** Codex's system files (`/etc/codex/config.toml`, `managed_config.toml`) and Claude's managed files (`/etc/claude-code/...`) are resolved under `Host.SystemRoot` for `Host.GOOS`. `HostFromOS` sets both; a fixture or hand-built Host sets neither, so those layers are not listed at all and the machine's `/etc` never changes the output. With a system root they are listed with `Exists` false when absent.
 - **MCP env values never appear.** `EnvNames` are names only; the vendor types carry the values as `agentio.EnvValue`, which redacts like a token.
 - **Instruction discovery walks up from `dir`.** Claude collects `CLAUDE.md` files from the project folder's ancestors too, so a folder inside another project picks up the outer project's files. Tests should copy fixtures to a temp dir, as the example does.
 - **`ProjectTrust` is `unknown` for a folder the agent never recorded.** The fixture project has no trust entry, so both vendors answer `unknown`, not `untrusted`.

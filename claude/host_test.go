@@ -3,6 +3,7 @@ package claude
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"testing"
 
 	"github.com/ubgo/agentio"
@@ -59,5 +60,89 @@ func TestHomeLoginScrubsCredentialEnv(t *testing.T) {
 		if v, _ := agentio.EnvLookup(c.Env, "KEEP"); v != "1" {
 			t.Errorf("%s dropped an unrelated variable", label)
 		}
+	}
+}
+
+// TestFixtureHostHasNoSystemPaths guards that system and managed paths go
+// through Host: a fixture host (no GOOS, no SystemRoot) computes no managed
+// path at all, so a managed-settings.json, CLAUDE.md or managed-mcp.json in
+// the test machine's /etc/claude-code cannot change fixture output.
+func TestFixtureHostHasNoSystemPaths(t *testing.T) {
+	t.Parallel()
+	a, dir := fixtureAgent(t, fixtureVersions(t)[0])
+	if sp := a.SystemPaths(); sp != (SystemPaths{}) {
+		t.Fatalf("fixture host SystemPaths = %+v, want zero", sp)
+	}
+	h := a.DefaultHome()
+	layers, _ := a.ManagedSettings(h)
+	for _, l := range layers {
+		if l.Source.Kind != SourceRemote {
+			t.Errorf("fixture host read managed layer %s", l.Source.Path)
+		}
+	}
+	mem, err := a.MemoryFiles(h, Project{Dir: filepath.Join(dir, "project")}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range mem {
+		if m.Kind == MemoryManaged {
+			t.Errorf("fixture host read managed memory %s", m.Path)
+		}
+	}
+	servers, err := a.MCPServers(h, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range servers {
+		if s.Scope == MCPScopeManaged {
+			t.Errorf("fixture host read managed MCP server %s", s.Name)
+		}
+	}
+}
+
+// TestSystemPathsFollowHost: SystemPaths come from Host.GOOS and
+// Host.SystemRoot (never runtime.GOOS), and the managed readers read the
+// files a test places under that root.
+func TestSystemPathsFollowHost(t *testing.T) {
+	t.Parallel()
+	for goos, want := range map[string]string{
+		"linux":   filepath.Join("R", "etc", "claude-code"),
+		"darwin":  filepath.Join("R", "Library", "Application Support", "ClaudeCode"),
+		"windows": filepath.Join("R", "Program Files", "ClaudeCode"),
+	} {
+		a := New(agentio.Host{GOOS: goos, SystemRoot: "R"})
+		if got := a.SystemPaths().ManagedDir; got != want {
+			t.Errorf("%s ManagedDir = %q, want %q", goos, got, want)
+		}
+	}
+	root := t.TempDir()
+	managed := filepath.Join(root, "etc", "claude-code")
+	agenttest.WriteFile(t, managed, managedSettingsFile, `{"model":"opus"}`)
+	agenttest.WriteFile(t, managed, memoryFileName, "managed rules")
+	agenttest.WriteFile(t, managed, managedMCPFile, `{"mcpServers":{"corp":{"command":"corp-mcp"}}}`)
+	a, dir := fixtureAgent(t, fixtureVersions(t)[0], agenttest.WithSystem("linux", root))
+	h := a.DefaultHome()
+	layers, _ := a.ManagedSettings(h)
+	found := false
+	for _, l := range layers {
+		found = found || (l.Source.Kind == SourceManagedFile && l.Settings.Model == "opus")
+	}
+	if !found {
+		t.Errorf("managed settings under SystemRoot not read: %+v", layers)
+	}
+	mem, err := a.MemoryFiles(h, Project{Dir: filepath.Join(dir, "project")}, false)
+	if err != nil || len(mem) == 0 || mem[0].Kind != MemoryManaged {
+		t.Errorf("managed CLAUDE.md under SystemRoot not first: %+v %v", mem, err)
+	}
+	servers, err := a.MCPServers(h, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundMCP := false
+	for _, s := range servers {
+		foundMCP = foundMCP || (s.Scope == MCPScopeManaged && s.Name == "corp")
+	}
+	if !foundMCP {
+		t.Errorf("managed MCP under SystemRoot not read")
 	}
 }

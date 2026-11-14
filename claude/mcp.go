@@ -210,11 +210,13 @@ func (a *Agent) MCPServers(h Home, p *Project) ([]MCPServer, error) {
 		out = append(out, proj...)
 	}
 	out = append(out, sortedServers(g.MCPServers, gsrc)...)
-	managed, err := readMCPFile(a.SystemPaths().ManagedMCP, MCPScopeManaged, SourceManagedFile)
-	if err != nil {
-		return nil, err
+	if mp := a.SystemPaths().ManagedMCP; mp != "" {
+		managed, err := readMCPFile(mp, MCPScopeManaged, SourceManagedFile)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, managed...)
 	}
-	out = append(out, managed...)
 	legacy, err := readMCPFile(filepath.Join(h.Dir(), legacyMCPFile), MCPScopeLegacy, SourceUser)
 	if err != nil {
 		return nil, err

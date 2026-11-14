@@ -25,29 +25,55 @@ import (
 
 // OS names this file branches on.
 const (
-	goosDarwin = "darwin"
-	goosLinux  = "linux"
+	goosDarwin  = "darwin"
+	goosLinux   = "linux"
+	goosWindows = "windows"
 )
 
 // HostFromOS builds the real Host: $HOME, os.Environ(), the real clock, a
 // default HTTP client with a timeout, the macOS keychain (not-found
-// elsewhere), the process table (/proc on linux, `ps` on darwin) and an
-// exec-based runner. Disk · Read (resolves the home dir only).
+// elsewhere), the process table (/proc on linux, `ps` on darwin), an
+// exec-based runner, runtime.GOOS and the OS system root. It is the one
+// place that fills GOOS and SystemRoot, so only a real host reads /etc.
+// Disk · Read (resolves the home dir only).
 func HostFromOS() (Host, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return Host{}, fmt.Errorf("agentio: user home: %w", err)
 	}
 	return Host{
-		UserHome:  home,
-		User:      osAccount(),
-		Env:       os.Environ(),
-		Now:       time.Now,
-		HTTP:      &http.Client{Timeout: osHTTPTimeout},
-		Secrets:   osSecrets{},
-		Processes: osProcesses{},
-		Exec:      osRunner{},
+		UserHome:   home,
+		User:       osAccount(),
+		Env:        os.Environ(),
+		Now:        time.Now,
+		HTTP:       &http.Client{Timeout: osHTTPTimeout},
+		Secrets:    osSecrets{},
+		Processes:  osProcesses{},
+		Exec:       osRunner{},
+		GOOS:       runtime.GOOS,
+		SystemRoot: osSystemRoot(),
 	}, nil
+}
+
+// OS system roots: unix resolves system paths under "/"; Windows under the
+// system drive (%SystemDrive%, "C:" when unset) plus a separator.
+const (
+	unixSystemRoot     = "/"
+	envSystemDrive     = "SystemDrive"
+	defaultSystemDrive = "C:"
+	windowsPathSep     = `\`
+)
+
+// osSystemRoot is the root system and managed locations live under.
+func osSystemRoot() string {
+	if runtime.GOOS != goosWindows {
+		return unixSystemRoot
+	}
+	drive := os.Getenv(envSystemDrive)
+	if drive == "" {
+		drive = defaultSystemDrive
+	}
+	return drive + windowsPathSep
 }
 
 // osHTTPTimeout bounds one vendor HTTP call; usage endpoints answer in

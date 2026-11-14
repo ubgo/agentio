@@ -276,8 +276,10 @@ func (a *Agent) LocalSettings(p Project) (SettingsLayer, error) {
 	return l, l.Err
 }
 
-// ManagedSettings reads the managed file, its drop-in dir (sorted) and the
-// remote cache. Only present layers are returned. cost: Disk · Read.
+// ManagedSettings reads the remote cache, then the managed drop-in dir
+// (sorted) and file under SystemPaths. Only present layers are returned; a
+// Host without system locations returns only the remote cache.
+// cost: Disk · Read.
 func (a *Agent) ManagedSettings(h Home) ([]SettingsLayer, error) {
 	sp := a.SystemPaths()
 	var out []SettingsLayer
@@ -285,6 +287,9 @@ func (a *Agent) ManagedSettings(h Home) ([]SettingsLayer, error) {
 	if l := readLayer(ScopeManaged, SourceRemote, filepath.Join(h.Dir(), remoteSettingsFile)); l.Present && len(l.raw) > 0 {
 		out = append(out, l)
 		errs = append(errs, l.Err)
+	}
+	if sp.ManagedDir == "" {
+		return out, errors.Join(errs...)
 	}
 	if entries, err := os.ReadDir(sp.ManagedDropIn); err == nil {
 		names := make([]string, 0, len(entries))

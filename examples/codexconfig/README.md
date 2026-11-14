@@ -56,10 +56,8 @@ unknown some_future_key.nested = true
 approval=on-request known=true
 sandbox=brand-new-mode known=false
 warning: type-changed: inline.toml: model_context_window: expected integer, found string
-layer system       exists=false applied
 layer user         exists=true  applied
 layer project      exists=true  applied
-layer legacy-managed exists=false applied
 effective model from project
 effective model_reasoning_effort from user-profile
 effective model_verbosity from session

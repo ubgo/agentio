@@ -41,7 +41,8 @@ projects=~/.claude/projects sessions=~/.claude/sessions
 plugins installed=~/.claude/plugins/installed_plugins.json
 project settings=~/project/.claude/settings.json local=~/project/.claude/settings.local.json mcp=~/project/.mcp.json
 project memory files=[~/project/CLAUDE.md ~/project/.claude/CLAUDE.md ~/project/CLAUDE.local.md ~/project/AGENTS.md]
-managed settings=/etc/claude-code/managed-settings.json
+managed settings (fixture host)=""
+managed settings (linux host)=/etc/claude-code/managed-settings.json
 EncodePath("/work/proj12") = -work-proj12
 HistoryDir = ~/.claude/projects/-work-proj12
 

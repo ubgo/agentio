@@ -9,7 +9,7 @@ A `Host` is the machine agentio looks at: the user home, the base environment, t
 
 ## Step 1 — Build a Host from the OS
 
-`agentio.HostFromOS` is the one constructor that touches the real machine. It fills `UserHome` from `os.UserHomeDir`, `Env` from `os.Environ`, `Now` with `time.Now`, an HTTP client with a 30 second timeout, the macOS keychain (a not-found store elsewhere), the process table (`/proc` on Linux, `ps` on macOS) and an `os/exec` runner.
+`agentio.HostFromOS` is the one constructor that touches the real machine. It fills `UserHome` from `os.UserHomeDir`, `Env` from `os.Environ`, `Now` with `time.Now`, an HTTP client with a 30 second timeout, the macOS keychain (a not-found store elsewhere), the process table (`/proc` on Linux, `ps` on macOS), an `os/exec` runner, `GOOS` from `runtime.GOOS` and `SystemRoot` (`/` on unix, the system drive root on Windows).
 
 <!-- snippet: examples/quickstart/main.go#host-from-os -->
 ```go
@@ -37,10 +37,12 @@ Build it once at program start and pass it down; every agent constructor (`claud
 | `User` | `string` | the OS login name; Claude keychain lookups name it as the account | service-only lookup |
 | `Env` | `[]string` (`K=V`) | `PATH` lookups, the home variable, the base env of every built `Command` | empty child env, nothing found on PATH |
 | `Now` | `func() time.Time` | expiry checks, backup names, `Retry-After` dates | zero time |
-| `HTTP` | `*http.Client` | usage, subscription and probe calls | differs per vendor, see Pitfalls |
+| `HTTP` | `*http.Client` | usage, subscription and probe calls | every network call returns `ErrUnsupported` |
 | `Secrets` | `SecretStore` | keychain / keyring reads (`Get(ctx, service, account)`) | no secret is ever found |
 | `Processes` | `ProcessLister` | live sessions, process classification (`Processes`, `Cwd`) | no process is alive |
 | `Exec` | `ProcessRunner` | running the vendor binary, only from Runner doors (`Run` returns a `ProcessResult`) | Runner calls return an error |
+| `GOOS` | `string` | which OS's system and managed locations apply (`linux`, `darwin`, `windows`) | no system locations |
+| `SystemRoot` | `string` | the root system and managed paths resolve under (`/etc/claude-code`, `/etc/codex`); `Host.SystemPath(rel)` joins it | no system locations: managed settings, managed `CLAUDE.md` and MCP files and `/etc/codex` layers are never read |
 
 A minimal fixture Host needs only a home and an env:
 
@@ -151,6 +153,7 @@ empty PATH: agentio: binary not found on PATH: claude
 - **An absolute name is checked as is.** `LookPath(path, "/opt/claude/bin/claude")` ignores `PATH` and only checks that file.
 - **A file must be executable to count.** A non-executable `claude` file earlier on PATH is skipped, the same as the shell does.
 - **Duplicate env entries: the last wins.** `EnvLookup` and `Getenv` return the last `K=` entry; `ApplyEnv` removes every duplicate when it changes a name ([Targets and commands](launch.md#step-4--change-the-child-environment)).
+- **System locations need `GOOS` and `SystemRoot`.** Only `HostFromOS` fills them, so a Host you build yourself never reads `/etc/claude-code` or `/etc/codex` and fixture output cannot change with the machine. To test managed files, put them under a temp dir and pass `agenttest.WithSystem("linux", dir)`.
 - **`Exec` is only reached through a Runner door.** Building a launch command never runs anything; holding a Runner is the explicit opt-in to process calls ([Doors](../capabilities/doors.md)).
 - **A nil `HTTP` means "no network".** Every vendor network call (Claude usage, profile and probe, Codex usage) returns `ErrUnsupported` with the reason `Host.HTTP is nil`; the library never builds a client of its own, `HostFromOS` is the one place that does. In a test, prefer `agenttest.FailingHTTP` so an unexpected request fails loudly instead of returning a quiet `ErrUnsupported`.
 - **On macOS the process table comes from `ps`.** Arguments are split on spaces, so an argument that contains a space shows up as two.

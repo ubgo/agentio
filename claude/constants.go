@@ -127,11 +127,13 @@ const (
 	pluginIDSep            = "@"
 )
 
-// System (managed) locations per OS (docs "managed-settings").
+// System (managed) locations per OS (docs "managed-settings"), relative to
+// Host.SystemRoot and slash-separated: "/" + managedDirLinux is
+// /etc/claude-code, `C:\` + managedDirWindows is C:\Program Files\ClaudeCode.
 const (
-	managedDirDarwin    = "/Library/Application Support/ClaudeCode"
-	managedDirLinux     = "/etc/claude-code"
-	managedDirWindows   = `C:\Program Files\ClaudeCode`
+	managedDirDarwin    = "Library/Application Support/ClaudeCode"
+	managedDirLinux     = "etc/claude-code"
+	managedDirWindows   = "Program Files/ClaudeCode"
 	managedSettingsFile = "managed-settings.json"
 	managedDropInDir    = "managed-settings.d"
 	managedMCPFile      = "managed-mcp.json"

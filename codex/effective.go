@@ -39,10 +39,16 @@ func (k LayerKind) IsKnown() bool {
 	return false
 }
 
-// System config paths (unix; loader/mod.rs).
+// System config paths relative to Host.SystemRoot, slash-separated:
+// unix /etc/codex/config.toml (loader/mod.rs SYSTEM_CONFIG_TOML_FILE_UNIX)
+// and /etc/codex/managed_config.toml (loader/layer_io.rs); Windows
+// %ProgramData%\OpenAI\Codex\config.toml (default C:\ProgramData) and no
+// system managed file (Windows reads it from CODEX_HOME and ignores it).
 const (
-	systemConfigPath  = "/etc/codex/config.toml"
-	managedConfigPath = "/etc/codex/managed_config.toml"
+	systemConfigRel        = "etc/codex/config.toml"
+	managedConfigRel       = "etc/codex/managed_config.toml"
+	systemConfigRelWindows = "ProgramData/OpenAI/Codex/config.toml"
+	goosWindows            = "windows"
 	// reasonUntrusted marks a project layer Codex ignores.
 	reasonUntrusted = "folder is not trusted"
 	reasonNotRead   = "not readable by the library"
@@ -61,7 +67,7 @@ type EffectiveQuery struct {
 	Dir           string     // cwd for project layers and trust
 	Profile       string     // v2 profile name (`-p`)
 	Overrides     []Override // the -c list the caller will pass
-	IncludeSystem bool       // read /etc/codex/config.toml and managed_config.toml
+	IncludeSystem bool       // read /etc/codex/config.toml and managed_config.toml (only on a Host with a SystemRoot)
 }
 
 // EffectiveConfig is the merged config plus where each key came from.
@@ -126,8 +132,9 @@ func readLayer(kind LayerKind, path string) (layerEntries, error) {
 func (a *Agent) layers(h Home, q EffectiveQuery) ([]layerEntries, agentio.Warnings, error) {
 	p := a.Paths(h)
 	var out []layerEntries
-	if q.IncludeSystem {
-		le, err := readLayer(LayerSystem, systemConfigPath)
+	sysCfg, managedCfg := a.systemConfigPaths()
+	if q.IncludeSystem && sysCfg != "" {
+		le, err := readLayer(LayerSystem, sysCfg)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -199,14 +206,28 @@ func (a *Agent) layers(h Home, q EffectiveQuery) ([]layerEntries, agentio.Warnin
 		}
 		out = append(out, le)
 	}
-	if q.IncludeSystem {
-		le, err := readLayer(LayerLegacyManaged, managedConfigPath)
+	if q.IncludeSystem && managedCfg != "" {
+		le, err := readLayer(LayerLegacyManaged, managedCfg)
 		if err != nil {
 			return nil, nil, err
 		}
 		out = append(out, le)
 	}
 	return out, warns, nil
+}
+
+// systemConfigPaths are the system config.toml and the legacy system
+// managed_config.toml for Host.GOOS under Host.SystemRoot; "" for a path
+// the Host has no system location for (no SystemRoot, the fixture
+// default, so fixture output never depends on the test machine's /etc).
+func (a *Agent) systemConfigPaths() (system, managed string) {
+	if a.host.GOOS == goosWindows {
+		system, _ = a.host.SystemPath(systemConfigRelWindows)
+		return system, ""
+	}
+	system, _ = a.host.SystemPath(systemConfigRel)
+	managed, _ = a.host.SystemPath(managedConfigRel)
+	return system, managed
 }
 
 func decodeEntries(entries []tomlEntry, file string) (Config, agentio.Warnings, error) {

@@ -180,7 +180,7 @@ The fixture's remote cache is `{}`, so `ManagedSettings` returns no layer while 
 - **A changed key type degrades, it does not fail.** `ParseSettings` puts `"model": 7` into `Unknown` with an `agentio.WarnTypeChanged` warning and still decodes the rest. Read `Settings.Warnings` when you report drift.
 - Settings are presence-tracked: an absent scalar is a nil pointer or `""`, an absent list or map is nil. `Merged.Permissions` is nil when no layer has a `permissions` key, so guard before dereferencing.
 - `Origin` names the highest layer for keys that merge (`hooks`, `env`, …), even when lower layers contributed entries.
-- `ManagedSettings` reads absolute OS paths through the real filesystem (see [Claude paths](paths.md)): a fixture Host does not hide an admin's `/etc/claude-code/managed-settings.json` on the machine running the code.
+- `ManagedSettings` reads the managed files under `Host.SystemRoot` for `Host.GOOS` (see [Claude paths](paths.md)). A fixture or hand-built Host sets neither, so it returns only the remote cache and an admin's `/etc/claude-code/managed-settings.json` on the test machine never shows up; `HostFromOS` sets both.
 - `EnvInEffect` lists only known variables from the process environment; an unknown process variable is not listed, while every `env` key of a settings layer is.
 - Settings files are only read here. To change one, use the [Claude writer](writer.md), which backs the file up first.
 

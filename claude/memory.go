@@ -189,7 +189,9 @@ func (a *Agent) MemoryFiles(h Home, p Project, follow bool) ([]MemoryFile, error
 			out = append(out, m)
 		}
 	}
-	add(MemoryManaged, a.SystemPaths().ManagedMemory)
+	if mm := a.SystemPaths().ManagedMemory; mm != "" {
+		add(MemoryManaged, mm)
+	}
 	add(MemoryUser, filepath.Join(h.Dir(), memoryFileName))
 	for _, r := range markdownIn(filepath.Join(h.Dir(), rulesDir)) {
 		add(MemoryUserRule, r)

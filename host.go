@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -32,6 +33,27 @@ type Host struct {
 	Processes ProcessLister
 	// Exec runs a program; reached only from Runner doors.
 	Exec ProcessRunner
+	// GOOS is the operating system whose system locations apply ("linux",
+	// "darwin", "windows"), so a vendor never branches on runtime.GOOS and a
+	// test can inspect another OS's layout. "" = no system locations.
+	GOOS string
+	// SystemRoot is the root that system and managed locations are resolved
+	// under: "/" on unix and the system drive root on Windows from
+	// HostFromOS, a temp dir in a test that models /etc. "" (the fixture
+	// default) = the host has no system locations, so managed settings,
+	// managed CLAUDE.md and MCP files and /etc/codex layers are never read
+	// and fixture output cannot depend on the test machine's /etc.
+	SystemRoot string
+}
+
+// SystemPath returns rel (a slash-separated path relative to the system
+// root, such as "etc/claude-code") under SystemRoot; false when the host
+// has no SystemRoot or no GOOS. Pure.
+func (h Host) SystemPath(rel string) (string, bool) {
+	if h.SystemRoot == "" || h.GOOS == "" {
+		return "", false
+	}
+	return filepath.Join(h.SystemRoot, filepath.FromSlash(rel)), true
 }
 
 // Getenv returns the value of key in Host.Env and whether it is present.

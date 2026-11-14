@@ -184,12 +184,21 @@ func WithProcesses(p agentio.ProcessLister) HostOption {
 	return func(h *agentio.Host) { h.Processes = p }
 }
 
+// WithSystem sets Host.GOOS and Host.SystemRoot, so a test models system
+// and managed locations (/etc/claude-code, /etc/codex) under root, a temp
+// dir. NewHost leaves both empty: a fixture host has no system locations
+// and never reads the test machine's /etc. Pure.
+func WithSystem(goos, root string) HostOption {
+	return func(h *agentio.Host) { h.GOOS, h.SystemRoot = goos, root }
+}
+
 // WithExec sets the process runner. Pure.
 func WithExec(r agentio.ProcessRunner) HostOption { return func(h *agentio.Host) { h.Exec = r } }
 
 // NewHost builds a fixture Host: UserHome = t.TempDir(), Env = HOME + a
 // PATH with no binaries, User "tester", FixedNow, FailingHTTP, empty
-// FakeSecrets and FakeProcesses, FailExec. Options override. Disk · Write
+// FakeSecrets and FakeProcesses, FailExec, and no GOOS or SystemRoot (no
+// system locations; see WithSystem). Options override. Disk · Write
 // (creates the temp dir).
 func NewHost(t testing.TB, opts ...HostOption) agentio.Host {
 	t.Helper()

@@ -39,6 +39,8 @@ const (
 	backupName      = ".claude.json.backup.1794000000000"
 	backupsDir      = "backups"
 	historyFolder   = "/work/proj12" // a folder with a conversation in the fixture
+	linuxGOOS       = "linux"        // the OS a modelled real host reports
+	unixSystemRoot  = "/"            // the system root HostFromOS sets on unix
 	privateDirPerm  = 0o700
 	privateFilePerm = 0o600
 	execPerm        = 0o700
@@ -290,8 +292,13 @@ func showPaths(p printer, host agentio.Host) error {
 	p.line(fmt.Sprintf("project settings=%s local=%s mcp=%s", pp.Settings, pp.LocalSettings, pp.MCP))
 	p.line(fmt.Sprintf("project memory files=%v", pp.Memory))
 
-	sys := a.SystemPaths() // managed (admin) paths for the OS this binary runs on
-	p.line(fmt.Sprintf("managed settings=%s", sys.ManagedSettings))
+	// Managed (admin) paths come from Host.GOOS and Host.SystemRoot. This
+	// fixture host sets neither, so it has no managed locations and the
+	// machine's /etc never changes the output; HostFromOS fills both.
+	p.line(fmt.Sprintf("managed settings (fixture host)=%q", a.SystemPaths().ManagedSettings))
+	real := host
+	real.GOOS, real.SystemRoot = linuxGOOS, unixSystemRoot
+	p.line(fmt.Sprintf("managed settings (linux host)=%s", claude.New(real).SystemPaths().ManagedSettings))
 
 	p.line(fmt.Sprintf("EncodePath(%q) = %s", historyFolder, claude.EncodePath(historyFolder)))
 	p.line(fmt.Sprintf("HistoryDir = %s", a.HistoryDir(h, historyFolder)))

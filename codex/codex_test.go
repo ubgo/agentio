@@ -1121,3 +1121,34 @@ func TestHomeLoginScrubsCodexAPIKey(t *testing.T) {
 		}
 	}
 }
+
+// TestSystemConfigFollowsHost guards that /etc/codex goes through Host: a
+// fixture host (no SystemRoot) lists no system layers, so the test
+// machine's /etc/codex cannot change fixture output, and a host whose
+// SystemRoot is a temp dir reads the system config.toml placed there.
+func TestSystemConfigFollowsHost(t *testing.T) {
+	a, h := setup(t)
+	layers, err := a.ConfigLayers(h, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, l := range layers {
+		if l.Kind == LayerSystem || l.Kind == LayerLegacyManaged {
+			t.Errorf("fixture host listed system layer %s %s", l.Kind, l.File)
+		}
+	}
+	root := t.TempDir()
+	agenttest.WriteFile(t, root, systemConfigRel, "model = \"from-etc\"\n")
+	a, h = setup(t, agenttest.WithSystem("linux", root))
+	eff, err := a.Effective(h, EffectiveQuery{IncludeSystem: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(eff.Layers) == 0 || eff.Layers[0].Kind != LayerSystem || !eff.Layers[0].Exists || eff.Layers[0].File != filepath.Join(root, "etc", "codex", "config.toml") {
+		t.Fatalf("system layer %+v", eff.Layers)
+	}
+	win := New(agentio.Host{GOOS: "windows", SystemRoot: "R"})
+	if sys, managed := win.systemConfigPaths(); sys != filepath.Join("R", "ProgramData", "OpenAI", "Codex", "config.toml") || managed != "" {
+		t.Errorf("windows system paths %q %q", sys, managed)
+	}
+}

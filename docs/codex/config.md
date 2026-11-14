@@ -200,10 +200,8 @@ unknown some_future_key.nested = true
 approval=on-request known=true
 sandbox=brand-new-mode known=false
 warning: type-changed: inline.toml: model_context_window: expected integer, found string
-layer system       exists=false applied
 layer user         exists=true  applied
 layer project      exists=true  applied
-layer legacy-managed exists=false applied
 effective model from project
 effective model_reasoning_effort from user-profile
 effective model_verbosity from session
@@ -229,7 +227,7 @@ rejected: no '='
 - **Check `.Set`, not the zero value.** An absent `sandbox_mode` is `Set=false` with `V=""`; Codex then uses its own default, which this library does not invent.
 - **Untrusted project layers are skipped.** A project's `.codex/config.toml` applies only when the folder (or an ancestor) is `trust_level = "trusted"`; otherwise `ConfigLayers` lists it with `Disabled = "folder is not trusted"` and `Effective` ignores it. Some keys (for example `notify`) are denied in project layers even when trusted.
 - **MDM and cloud layers are never read.** `EffectiveConfig.NotEvaluated` lists them; the effective config can differ from what Codex sees on a managed machine.
-- **System layers are opt-in.** `/etc/codex/config.toml` and `managed_config.toml` are read only with `EffectiveQuery.IncludeSystem`.
+- **System layers are opt-in and need a system root.** `/etc/codex/config.toml` and `managed_config.toml` are read only with `EffectiveQuery.IncludeSystem`, and only on a Host with `GOOS` and `SystemRoot` set (`HostFromOS` sets them; a fixture host does not, so they are skipped). On Windows the system file is `%ProgramData%\OpenAI\Codex\config.toml` (under `SystemRoot`) and there is no system managed file.
 - **Secrets are never loaded into the struct.** MCP env values, `shell_environment_policy.set` values, `experimental_bearer_token` and inline bearer tokens are kept as names or presence flags only; read one MCP env value on purpose with [`MCPServerEnvValue`](mcp.md#step-1--list-mcp-servers).
 - **`ErrProfileConflict` is real.** Codex 0.162.1 refuses `-p NAME` while a legacy `[profiles.NAME]` table or `profile = "NAME"` exists; the doctor warns (`profile-conflict`) and `LaunchOptions.ProfileCheck` refuses it before launch.
 - **`ParseOverride` needs `=`**, else `ErrBadOverride`. A value that is not valid TOML is quoted as a string: `sandbox_mode=read-only` becomes `sandbox_mode="read-only"`.

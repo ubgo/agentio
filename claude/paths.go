@@ -2,7 +2,6 @@ package claude
 
 import (
 	"path/filepath"
-	"runtime"
 )
 
 // Paths are the files and dirs of one home, computed purely from the home
@@ -47,7 +46,9 @@ type ProjectPaths struct {
 	AutoMemory                                                            string // HistoryDir/memory
 }
 
-// SystemPaths are the managed (admin) locations for this OS.
+// SystemPaths are the managed (admin) locations for Host.GOOS under
+// Host.SystemRoot. Every field is "" when the Host has no system locations
+// (no GOOS or SystemRoot, the fixture default); readers skip "" paths.
 type SystemPaths struct {
 	ManagedDir                                                string
 	ManagedSettings, ManagedDropIn, ManagedMCP, ManagedMemory string
@@ -104,18 +105,21 @@ func (a *Agent) ProjectPaths(h Home, p Project) ProjectPaths {
 	}
 }
 
-// SystemPaths returns the managed locations for the OS this binary runs on.
-// cost: Pure.
-func (a *Agent) SystemPaths() SystemPaths { return systemPathsFor(runtime.GOOS) }
-
-// systemPathsFor maps GOOS to the managed dir (docs "managed-settings").
-func systemPathsFor(goos string) SystemPaths {
-	dir := managedDirLinux
-	switch goos {
+// SystemPaths returns the managed locations for Host.GOOS under
+// Host.SystemRoot, or the zero SystemPaths when the Host has neither (a
+// fixture host never sees the test machine's /etc). Never reads
+// runtime.GOOS. cost: Pure.
+func (a *Agent) SystemPaths() SystemPaths {
+	rel := managedDirLinux
+	switch a.host.GOOS {
 	case goosDarwin:
-		dir = managedDirDarwin
+		rel = managedDirDarwin
 	case goosWindows:
-		dir = managedDirWindows
+		rel = managedDirWindows
+	}
+	dir, ok := a.host.SystemPath(rel)
+	if !ok {
+		return SystemPaths{}
 	}
 	return SystemPaths{
 		ManagedDir: dir, ManagedSettings: filepath.Join(dir, managedSettingsFile),

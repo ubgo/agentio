@@ -12,7 +12,7 @@ Areas follow the library's layers: L1 is the neutral core every agent shares, L2
 | Install the module(s) you need (`go get`, module layout, which module pulls which dependency) | `agentio`, `claude`, `codex`, `codex/state`, `builtin` | [Install agentio](../getting-started/install.md#step-1--add-the-module-you-need) | — |
 | Quick start: `HostFromOS` → `claude.New` → `Install` → `Homes` | `agentio`, `claude` | [Your first agent](../getting-started/first-agent.md#step-1--build-a-host) | [quickstart](../../examples/quickstart/), [drift](../../examples/drift/) |
 | `HostFromOS` — the one constructor that reads the real machine | `agentio` | [Host: the only door to the machine](../core/host.md#step-1--build-a-host-from-the-os) | [quickstart](../../examples/quickstart/), [agentinfo](../../examples/agentinfo/) |
-| `Host` built by hand (`UserHome`, `User`, `Env`, `Now`, `HTTP`, `Secrets`, `Processes`, `Exec`) and `Host.Getenv`, `EnvLookup` | `agentio` | [Host: the only door to the machine](../core/host.md#step-2--build-a-host-by-hand) | [quickstart](../../examples/quickstart/) |
+| `Host` built by hand (`UserHome`, `User`, `Env`, `Now`, `HTTP`, `Secrets`, `Processes`, `Exec`, `GOOS`, `SystemRoot`) and `Host.Getenv`, `Host.SystemPath`, `EnvLookup` | `agentio` | [Host: the only door to the machine](../core/host.md#step-2--build-a-host-by-hand) | [quickstart](../../examples/quickstart/) |
 | Host inputs: `SecretStore`, `ProcessLister`, `ProcessRunner`, `ProcessResult` | `agentio` | [Host: the only door to the machine](../core/host.md#step-2--build-a-host-by-hand) | [doors](../../examples/doors/), [testing](../../examples/testing/) |
 | `LookPath`, `LookPathAll`, `Agent.LookPath` (PATH walk, never a shell) | `agentio` | [Host: the only door to the machine](../core/host.md#step-3--find-a-binary-on-path) | [quickstart](../../examples/quickstart/), [agentinfo](../../examples/agentinfo/) |
 | `Agent` interface (`ID`, `Name`, `Spec`, `LookPath`, `DefaultHome`, `HomeFromEnv`, `Homes`, `IsHome`, `Launch`) | `agentio` | [Agent, Spec and Core](../core/agent-and-spec.md#step-1--use-the-agent-interface) | [quickstart](../../examples/quickstart/), [agentinfo](../../examples/agentinfo/) |
@@ -115,7 +115,7 @@ Areas follow the library's layers: L1 is the neutral core every agent shares, L2
 
 | Feature | Package | Guide | Example |
 |---|---|---|---|
-| `agenttest.NewHost`, `HostOption` (`WithEnv`, `WithUserHome`, `WithNow`, `WithHTTP`, `WithSecrets`, `WithProcesses`, `WithExec`), `FixedNow` | `agenttest` | [Fakes and fixture hosts](../testing/agenttest.md#step-1--build-a-fixture-host) | [testing](../../examples/testing/) |
+| `agenttest.NewHost`, `HostOption` (`WithEnv`, `WithUserHome`, `WithNow`, `WithHTTP`, `WithSecrets`, `WithProcesses`, `WithExec`, `WithSystem`), `FixedNow` | `agenttest` | [Fakes and fixture hosts](../testing/agenttest.md#step-1--build-a-fixture-host) | [testing](../../examples/testing/) |
 | `FakeSecrets`, `NewFakeSecrets`, `SecretKey`, `FakeProcesses` | `agenttest` | [Fakes and fixture hosts](../testing/agenttest.md#step-2--fake-secrets-and-processes) | [testing](../../examples/testing/) |
 | `FakeExec`, `FailExec`, `ErrForbidden`, `ErrFakeNotFound` | `agenttest` | [Fakes and fixture hosts](../testing/agenttest.md#step-3--fake-the-vendor-binary) | [testing](../../examples/testing/) |
 | `FailingHTTP`, `WithHTTP` + `httptest` | `agenttest` | [Fakes and fixture hosts](../testing/agenttest.md#step-4--point-http-at-a-test-server) | [testing](../../examples/testing/) |
