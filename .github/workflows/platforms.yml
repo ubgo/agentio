@@ -32,7 +32,7 @@ jobs:
         # with the list, so one failing module never hides the others.
         run: |
           failed=""
-          for m in . claude codex codex/state builtin examples; do
+          for m in . claude codex codex/state gemini pi builtin examples; do
             echo "::group::$m"
             if ! (cd "$m" && go test -count=1 ./...); then failed="$failed $m"; fi
             echo "::endgroup::"
