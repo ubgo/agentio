@@ -309,7 +309,8 @@ func (a *Agent) MoveUnsupportedReason() string {
 // CachedUsage returns the last rate-limit snapshot (event_msg/token_count
 // with rate_limits) of the newest rollout, from a bounded tail read: usage
 // with zero network calls, timestamped by its record. found=false when no
-// rollout has a snapshot. Disk · Read (OD-10).
+// rollout has a snapshot. Disk · Read; an alternative to the live call
+// that cannot hit a 429.
 func (a *Agent) CachedUsage(h Home) (Usage, bool, error) {
 	files, err := walkRollouts(a.Paths(h).Sessions, false)
 	if err != nil {
@@ -371,7 +372,7 @@ func usageFromSnapshot(r Record) Usage {
 
 // Turns reads conversation id from offset from to the last complete line,
 // calling fn once per user or agent message, and returns the new offset
-// (G4, G6). Both the 0.15x+ item_completed items and the older
+// so a viewer can follow a live conversation by passing it back. Both the 0.15x+ item_completed items and the older
 // user_message / agent_message events are read; when a file has both,
 // item_completed wins so a message is not reported twice. Disk · Read.
 func (a *Agent) Turns(h Home, id string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {

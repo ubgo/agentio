@@ -17,8 +17,8 @@ import (
 // set: a value this version does not know is kept, IsKnown false, and the
 // line stays reachable through StreamMessage.Raw).
 //
-// Source: the recorded 2.1.325 run in testdata/stream/2.1.325 (OD-11,
-// closed 2026-11-14) for system, stream_event, assistant, rate_limit_event
+// Source: the recorded 2.1.325 run in testdata/stream/2.1.325 (recorded
+// 2026-11-14) for system, stream_event, assistant, rate_limit_event
 // and result; user is named by the docs (`headless`) and seen in transcripts
 // but did not occur in the recorded run (no tool call).
 type StreamType string

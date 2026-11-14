@@ -153,7 +153,8 @@ type MarketplaceDecl struct {
 }
 
 // Settings is one settings file, typed for the keys the library reads
-// (OD-17); every other key is kept in Unknown. Presence-tracked: absent
+// (a hand-picked subset, not a table generated from the docs); every
+// other key is kept in Unknown. Presence-tracked: absent
 // scalars are nil pointers or empty strings, absent lists and maps nil.
 type Settings struct {
 	Schema                            string                     `json:"$schema,omitempty"`

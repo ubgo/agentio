@@ -48,7 +48,8 @@ var (
 	_ agentio.UnsupportedReasoner = neutral{}
 )
 
-// modelListerReason is why Claude has no ModelLister (OD-15).
+// modelListerReason is why Claude has no ModelLister: nothing on disk
+// lists models in a recorded shape, and a hard-coded list would go stale.
 const modelListerReason = "Claude Code keeps no model catalog on disk that has a recorded shape; a static list would rot"
 
 // Neutral returns the L1/L2 view. cost: Pure.
@@ -520,7 +521,8 @@ func (n neutral) Defaults(h agentio.Home, dir string) (agentio.Defaults, error) 
 }
 
 // NewRunDecoder decodes a stream-json run (Type + docs-shaped Text/Tokens,
-// Raw always; OD-11). cost: Pure.
+// Raw always, so a field the decoder does not model is never lost).
+// cost: Pure.
 func (n neutral) NewRunDecoder(r io.Reader) agentio.RunDecoder { return newRunDecoder(r) }
 
 // Checks runs the L1 checks plus Claude's disk checks. cost: Disk · Read.

@@ -29,7 +29,7 @@ const (
 // Checks runs the doctor for h: binary, home, home env, API billing env
 // (shared), installed version against the tested range, config.toml parse
 // and drift, login presence and expiry, v2 profile files that collide with
-// legacy profiles (OD-18), and the stale update cache. Never calls a
+// legacy profiles (Codex refuses that -p), and the stale update cache. Never calls a
 // Runner method. Disk · Read, plus one keychain read (Process · Read via
 // Host.Secrets, MayTouchLogin false) for keyring and auto homes, as
 // Claude's doctor does.

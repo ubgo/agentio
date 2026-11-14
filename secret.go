@@ -117,7 +117,7 @@ func (e *EnvValue) UnmarshalJSON(b []byte) error { return unmarshalString(b, &e.
 func (e EnvValue) LogValue() slog.Value { return slog.StringValue(redact(e.v)) }
 
 // Personal is a personal value (email, display name, org name, account or
-// org id). OD-6 adopted: redacted in every output like Token, so a caller's
+// org id). It is redacted in every output like Token, so a caller's
 // no-leak sweep covers identity; a caller that must print it (agx whoami)
 // calls Reveal explicitly.
 type Personal struct{ v string }

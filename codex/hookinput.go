@@ -8,9 +8,9 @@ import (
 	"github.com/ubgo/agentio"
 )
 
-// Hook and notify payloads have NO recorded sample (CODEX_API.md §4.3,
-// SPEC OD-16): only the event / type name and the raw bytes are kept until
-// one Codex hook run and one notify call are recorded.
+// Hook and notify payloads have NO recorded sample yet, and the library
+// never invents a vendor shape: only the event / type name and the raw
+// bytes are kept until one Codex hook run and one notify call are recorded.
 
 // hook payload limits.
 const maxHookPayload = 16 << 20

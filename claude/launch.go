@@ -588,8 +588,8 @@ func (a *Agent) MCPListCommand(h Home, dir string) agentio.Command {
 	return c
 }
 
-// MCPAddCommand is `claude mcp add-json -s <scope> <name> <json>` (OD-7:
-// a vendor command, never a file edit). The CLI takes the server JSON only on
+// MCPAddCommand is `claude mcp add-json -s <scope> <name> <json>`: a
+// vendor command, never a file edit, because Claude Code owns the file. The CLI takes the server JSON only on
 // argv, so a server with env values or headers is refused: those are secrets
 // (EnvValue) and must never ride in argv (invariant 8). Add such a server
 // without them and set the values through Claude Code itself. cost: Pure.

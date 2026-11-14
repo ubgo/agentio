@@ -525,12 +525,21 @@ func TestRevealConfined(t *testing.T) {
 // nothing outside the private spec and leak into real output.
 var privateDesignID = regexp.MustCompile(`\bOD-[0-9]+\b|\bG[0-9]{1,2}\b`)
 
-// TestNoPrivateIDsInStrings: no string literal in non-test code names a
-// private design id (an Unsupported reason once printed "(OD-15)").
+// TestNoPrivateIDsInStrings: no string literal and no comment in non-test
+// code names a private design id. Strings reach real output (an
+// Unsupported reason once printed "(OD-15)"); comments reach the public
+// godoc, where an id explains nothing, so a comment states the reason.
 func TestNoPrivateIDsInStrings(t *testing.T) {
 	for _, f := range loadFiles(t) {
 		if f.test {
 			continue
+		}
+		for _, cg := range f.ast.Comments {
+			for _, c := range cg.List {
+				if privateDesignID.MatchString(c.Text) {
+					t.Errorf("%s: comment names a private design id: %s", pos(f, c), c.Text)
+				}
+			}
 		}
 		ast.Inspect(f.ast, func(n ast.Node) bool {
 			if lit, ok := n.(*ast.BasicLit); ok && lit.Kind == token.STRING && privateDesignID.MatchString(lit.Value) {

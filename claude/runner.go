@@ -13,14 +13,15 @@ import (
 
 // Runner is the Process door: reads that run the claude binary through
 // Host.Exec, with the home env rule applied and no TTY. Every method is
-// labelled "may touch login" (OD-5): vendor subcommands are never assumed
-// side-effect free. Nothing in the library calls a Runner method implicitly.
+// labelled "may touch login": vendor subcommands can refresh or rewrite
+// the login, so they are never assumed side-effect free. Nothing in the library calls a Runner method implicitly.
 type Runner struct{ a *Agent }
 
 // Runner returns the Process door. cost: Pure.
 func (a *Agent) Runner() *Runner { return &Runner{a: a} }
 
-// plutilBin and the managed preferences domain (OD-9).
+// plutilBin converts the macOS managed preferences plist to JSON; the
+// library runs plutil, never claude, to read it, so no login is touched.
 const (
 	plutilBin        = "/usr/bin/plutil"
 	plutilConvert    = "-convert"
@@ -96,7 +97,7 @@ func ParseAuthStatus(b []byte) (AuthStatus, error) {
 
 // AuthStatus runs `claude auth status --json` for h. cost: Process · Read ·
 // MAY TOUCH LOGIN (creates ~/.claude.json if missing per docs; refresh
-// unverified, OD-5).
+// unverified, so it is treated as able to rewrite the login).
 func (r *Runner) AuthStatus(ctx context.Context, h Home) (AuthStatus, error) {
 	out, err := r.run(ctx, h, subAuth, subStatus, flagJSON)
 	if err != nil {

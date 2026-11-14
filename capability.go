@@ -71,7 +71,8 @@ type BinaryVersion interface {
 // Identity is what is known about a home's login without the network.
 type Identity struct {
 	LoggedIn bool
-	// Email and Org are personal (OD-6): redacted in every output.
+	// Email and Org are personal: redacted in every output so a log or
+	// JSON dump never leaks who is logged in.
 	Email, Org Personal
 	// PlanLabel is a display label ("Max 20x").
 	PlanLabel  string

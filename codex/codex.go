@@ -215,7 +215,7 @@ func (a *Agent) InstallationID(h Home) (agentio.Personal, error) {
 }
 
 // Writer is the Disk · Write door. Codex v0.1 writes no Codex-owned file
-// (OD-7): config changes are vendor Commands (FeatureCommand,
+// (Codex rewrites them itself, so an edit could race it): config changes are vendor Commands (FeatureCommand,
 // MCPAddCommand), so the door exists but has no methods yet.
 type Writer struct{ a *Agent }
 

@@ -39,7 +39,8 @@ type GlobalConfig struct {
 }
 
 // OAuthAccount is `oauthAccount`: who is logged in. Every id, email and name
-// is agentio.Personal (OD-6) and prints redacted.
+// is agentio.Personal and prints redacted, so dumping the struct never
+// leaks who is logged in.
 type OAuthAccount struct {
 	AccountUUID, EmailAddress, OrganizationUUID, OrganizationName agentio.Personal
 	OrganizationType                                              OrgType

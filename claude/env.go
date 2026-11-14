@@ -38,8 +38,8 @@ func envRow(g EnvGroup, secret bool, names ...string) []EnvVar {
 }
 
 // KnownEnv lists the variables the library knows (the subset of the ~250
-// documented ones named in CLAUDE_API §15; OD-17 plans a generated table
-// from the docs pages). cost: Pure.
+// documented ones, hand-picked because a table generated from the docs
+// pages does not exist yet). cost: Pure.
 func KnownEnv() []EnvVar {
 	var out []EnvVar
 	out = append(out, envRow(EnvGroupHome, false, ConfigDirEnv)...)

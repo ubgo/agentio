@@ -5,7 +5,7 @@
 // scalars (`|`, `>`, with `-` / `+` chomping), block lists (`- item`) and
 // flow lists (`[a, "b"]`).
 //
-// Why a hand parser (OD-1 decided): the root module stays stdlib-only and
+// Why a hand parser: the root module stays stdlib-only and
 // these files use a small, stable subset; a full YAML dependency would be
 // pulled by every Claude-only caller for a handful of keys. Anchors, tags,
 // flow maps and multi-document streams are not supported; such a value is

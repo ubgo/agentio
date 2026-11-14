@@ -283,7 +283,8 @@ func (a *Agent) Turns(h Home, id string, from agentio.Offset, fn func(agentio.Tu
 	return TurnsFile(p, from, fn)
 }
 
-// TurnsFile is Turns over a transcript path (G4). cost: Disk · Read.
+// TurnsFile is Turns over a transcript path, for callers that hold a path
+// (a file watcher) rather than a home and id. cost: Disk · Read.
 func TurnsFile(path string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {
 	r, err := openTranscriptFile(path, from)
 	if err != nil {

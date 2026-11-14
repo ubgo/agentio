@@ -252,7 +252,7 @@ type ScopedHook struct {
 }
 
 // BackgroundTask is one entry of a hook input's background_tasks (ailog
-// hook.log sample, G7).
+// hook.log sample, the only recorded shape).
 type BackgroundTask struct {
 	ID          string `json:"id"`
 	Type        string `json:"type"`
@@ -267,7 +267,7 @@ type HookEffort struct {
 }
 
 // HookInput is the JSON a hook program receives on stdin. Common fields plus
-// the per-event ones recorded in ailog's hook log (G7); everything else is
+// the per-event ones recorded in ailog's hook log; everything else is
 // kept in Unknown.
 type HookInput struct {
 	SessionID            string           `json:"session_id"`

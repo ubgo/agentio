@@ -163,7 +163,8 @@ type LaunchOptions struct {
 	RemoteAuthTokenEnv string // a variable NAME, never a token
 	// ProfileCheck is the home's config.toml (ConfigFile) used to refuse a
 	// --profile that collides with a legacy profile before Codex does
-	// (OD-18). nil skips the check and adds a warning: building stays Pure.
+	// (Codex 0.162.1 refuses -p NAME while a legacy [profiles.NAME] exists).
+	// nil skips the check and adds a warning: building stays Pure.
 	ProfileCheck *Config
 	// trailing are LaunchRequest.Args from the neutral launch: appended
 	// last, verbatim (SPEC §5.4).
@@ -552,8 +553,8 @@ func (a *Agent) AppServer(h Home, listen string) agentio.Command {
 	return a.plainCommand(h, args)
 }
 
-// FeatureCommand builds `codex features enable|disable NAME` (OD-7: the
-// vendor edits its own config). Pure.
+// FeatureCommand builds `codex features enable|disable NAME`: the vendor
+// edits its own config, so the library never writes config.toml. Pure.
 func (a *Agent) FeatureCommand(h Home, name string, on bool) agentio.Command {
 	verb := subDisable
 	if on {

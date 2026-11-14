@@ -66,7 +66,7 @@ func (t RecordType) IsKnown() bool {
 }
 
 // isInternal reports the types that may carry system prompts and are never
-// decoded (OD-8).
+// decoded, so the library never surfaces a prompt it should not.
 func (t RecordType) isInternal() bool {
 	return t == RecordAPIRequest || t == RecordAPIRequestBlob || t == RecordAtisLatch
 }
@@ -451,7 +451,7 @@ func (r Record) AsPermissionMode() (PermissionMode, error) {
 
 // TranscriptReader streams records from a transcript, caller-driven. It
 // never advances past an incomplete trailing line, so a live file can be
-// re-opened later from Offset() (G4).
+// re-opened later from Offset() and read incrementally.
 type TranscriptReader struct {
 	f      *os.File
 	r      *bufio.Reader
@@ -652,7 +652,7 @@ func (a *Agent) PRLinks(h Home, id string) ([]PRLink, error) {
 
 // InternalRecords returns api-request, api-request-blob and atis-latch
 // lines from the tail as raw bytes, never decoded: they may carry system
-// prompts (OD-8). cost: Disk · Read (tail).
+// prompts, so the caller decides whether to look. cost: Disk · Read (tail).
 func (a *Agent) InternalRecords(h Home, id string) ([]agentio.Raw, error) {
 	recs, err := a.TranscriptTail(h, id, tailScanBytes)
 	if err != nil {

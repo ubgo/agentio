@@ -25,7 +25,8 @@ const (
 // Writer is the Disk · Write door. Every method backs its target up first
 // (<file>.agentio-bak-<UTC stamp>, never overwriting a backup) and returns
 // the agentio.Backup (invariant 11). It never edits ~/.claude.json or a
-// project .mcp.json (OD-7): those changes are vendor commands as data.
+// project .mcp.json: Claude Code rewrites those itself, so a library edit
+// could race it; those changes are vendor commands as data.
 type Writer struct{ a *Agent }
 
 // Writer returns the write door. cost: Pure.

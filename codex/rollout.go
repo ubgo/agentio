@@ -452,7 +452,8 @@ const (
 )
 
 // RolloutReader streams records from a rollout file, tracking the byte
-// offset just after the last complete line it returned (G4). An incomplete
+// offset just after the last complete line it returned, so a caller can
+// resume a live file from that offset later. An incomplete
 // trailing line (Codex still writing) is never consumed.
 type RolloutReader struct {
 	f      *os.File

@@ -51,7 +51,7 @@ func (s Skill) Neutral() agentio.Skill {
 }
 
 // readFrontMatter parses the front matter of the first 8 KiB of r with
-// the root frontmatter package (OD-1: no YAML dependency). A block cut by
+// the root frontmatter package (stdlib only, so no YAML dependency). A block cut by
 // the bound or a syntax problem yields an empty Doc, never an error.
 func readFrontMatter(r io.Reader) frontmatter.Doc {
 	b, err := io.ReadAll(io.LimitReader(r, frontmatterMaxBytes))

@@ -98,7 +98,8 @@ type Paths struct {
 	Log          string // log/ (or config log_dir)
 	Tmp          string // tmp/
 
-	// desktop app, listed only (OD-22)
+	// desktop app files: listed so callers know they exist, never parsed
+	// (no recorded shape)
 	DesktopState      string // .codex-global-state.json
 	DesktopDB         string // sqlite/codex-dev.db
 	IPCSocket         string // ipc/ipc.sock

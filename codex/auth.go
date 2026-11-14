@@ -132,7 +132,7 @@ func (p Plan) IsWorkspace() bool {
 
 // Identity is what auth.json says about a home's login, decoded from the
 // JWT claims without verifying or refreshing anything. Personal values
-// redact in every output (OD-6).
+// redact in every output, so a log or JSON dump never leaks identity.
 type Identity struct {
 	Mode      AuthMode
 	LoggedIn  bool

@@ -57,7 +57,7 @@ type Config struct {
 
 	// tables
 	ModelProviders map[string]ModelProvider
-	Profiles       map[string]LegacyProfile // [profiles.*] (legacy, read-only, OD-18)
+	Profiles       map[string]LegacyProfile // [profiles.*] (legacy, read-only: Codex keeps them only for old configs)
 	Profile        Opt[string]              // root `profile = "…"` (legacy selector)
 	MCPServers     map[string]MCPServer
 	Projects       map[string]Project     // key = absolute folder
@@ -1179,7 +1179,8 @@ func decodeAgents(d *tomlDecoder, a *AgentsConfig, e tomlEntry) {
 }
 
 // LegacyProfileNames lists [profiles.*] keys plus the root `profile`
-// selector, sorted, deduplicated (read-only view, OD-18). Pure.
+// selector, sorted, deduplicated (read-only view, used to refuse a -p
+// that collides with one). Pure.
 func (c Config) LegacyProfileNames() []string {
 	var out []string
 	for name := range c.Profiles {

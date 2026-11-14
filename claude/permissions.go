@@ -9,8 +9,10 @@ import (
 	"github.com/ubgo/agentio"
 )
 
-// PermissionMode is a permission mode (open set). OD-13: "manual" and
-// "default" decode to the one value ModeManual.
+// PermissionMode is a permission mode (open set). "manual" and "default"
+// decode to the one value ModeManual: both spellings appear in settings
+// files, the 2.1.323 --help lists "manual" (the spelling Launch emits), and
+// callers should compare one value.
 type PermissionMode string
 
 // CLI permission modes at 2.1.323.
@@ -34,7 +36,8 @@ func (m PermissionMode) IsKnown() bool {
 	return false
 }
 
-// UnmarshalText folds "default" into ModeManual (OD-13). cost: Pure.
+// UnmarshalText folds the older "default" spelling into ModeManual.
+// cost: Pure.
 func (m *PermissionMode) UnmarshalText(b []byte) error {
 	if string(b) == modeDefaultSpelling {
 		*m = ModeManual

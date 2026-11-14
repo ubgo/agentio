@@ -23,7 +23,7 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 
 - `ParseVersion` only starts a version at a word boundary: `x86_64 build 7` parses as `7.0.0`, no longer `64.0.0`.
 - Claude usage, profile and token-probe calls return `ErrUnsupported` when `Host.HTTP` is nil instead of building a default client that reached the real network (module `claude`).
-- User-facing strings no longer name private design ids: the Claude model-lister Unsupported reason dropped "(OD-15)" and the Codex accept-edits reason "(OD-14)"; an architecture test fails on any string literal naming one.
+- User-facing strings no longer name private design ids: the Claude model-lister Unsupported reason dropped "(OD-15)" and the Codex accept-edits reason "(OD-14)"; an architecture test fails on any string literal naming one. Code comments no longer name them either: each states the reason instead, and the same test covers comments in non-test code.
 - `state.Turn` encodes without an `Error` key when `error_json` is NULL instead of `"Error":null` (module `codex/state`).
 - The Claude doctor `retention` check warns about clock skew when the `.last-cleanup` stamp is after the host clock, instead of printing a negative age ("last cleanup -7 h ago").
 - `claude.Writer.MoveHistory` refuses while a Claude session runs in the source folder (or one of its conversations is live), with a typed `*claude.LiveSessionError` matching `agentio.ErrMoveBlocked` and the blocker text `PlanMove` lists.
