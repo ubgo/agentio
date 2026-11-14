@@ -82,6 +82,10 @@ func (t Token) LogValue() slog.Value { return slog.StringValue(redact(t.v)) }
 type TokenCredential struct {
 	Kind  TokenKind
 	Token Token
+	// Provider names the model provider when the agent's token variable
+	// depends on it (pi: "anthropic", "openai"); "" for agents with one
+	// variable per kind (Claude, a Gemini API key).
+	Provider string
 }
 
 // EnvValue is a secret-bearing environment value from a vendor config (MCP

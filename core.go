@@ -132,6 +132,12 @@ func resolveHomeDir(goos, userHome, dir string) string {
 // homeName derives "work" from ~/.claude-work, else the base without a dot.
 func (c *Core) homeName(dir string) string {
 	base := filepath.Base(dir)
+	if c.spec.HomeEnvNamesParent && base == c.spec.DefaultHome {
+		// <parent>/.gemini: the parent names the home (~/gemini-work/.gemini
+		// is "gemini-work").
+		base = filepath.Base(filepath.Dir(dir))
+		return strings.TrimPrefix(base, ".")
+	}
 	defBase := filepath.Base(c.spec.DefaultHome)
 	if rest, ok := strings.CutPrefix(base, defBase+homeNameSep); ok && rest != "" {
 		return rest
@@ -149,6 +155,9 @@ func (c *Core) HomeFromEnv() (Home, bool) {
 	v, ok := c.host.Getenv(c.spec.HomeEnv)
 	if !ok || v == "" {
 		return Home{}, false
+	}
+	if c.spec.HomeEnvNamesParent {
+		v = filepath.Join(resolveHomeDir(c.host.hostOS(), c.host.UserHome, v), c.spec.DefaultHome)
 	}
 	return c.HomeAt(v), true
 }
@@ -226,38 +235,93 @@ func (c *Core) IsHome(dir string) (bool, error) {
 // Owns returns ErrForeignHome when h is not this agent's home. Pure.
 func (c *Core) Owns(h Home) error { return CheckOwner(c.spec.ID, h) }
 
-// EnvChanges is the ordered env edit list for a launch (invariant 9):
-//  1. a scrub of Spec.CredentialEnv, for every login: an inherited
-//     credential variable overrides the home's stored login without a
-//     word, so the child never inherits one;
-//  2. Target.ExtraEnv, so a credential the caller sets on purpose is kept
-//     for a home login;
-//  3. token login only: the scrub again (an ExtraEnv credential must not
-//     beat the token) followed by the token's own changes;
-//  4. the home rule last so nothing can override it (invariant 2).
+// EnvChanges are the changes a launch on t applies to Host.Env, in order:
+//   - the home's own login (tokenEnv nil): Spec.CredentialEnv is scrubbed,
+//     because those variables would override the stored login;
+//   - a token login: only the variables that would override that token are
+//     scrubbed (tokenScrub, from TokenEnv.Scrub or CredentialEnv minus the
+//     token's own variable), again after Target.ExtraEnv, then the token is
+//     set. A variable that is itself the login mechanism is never listed,
+//     so it survives;
+//   - the home variable last (HomeEnvChange, or its parent for
+//     Spec.HomeEnvNamesParent).
 //
 // Pure.
 func (c *Core) EnvChanges(t Target, tokenEnv []EnvChange) []EnvChange {
-	out := ScrubEnv(c.spec.CredentialEnv)
+	return c.envChanges(t, tokenEnv, c.tokenScrub(tokenEnv))
+}
+
+// tokenScrub is CredentialEnv without the names tokenEnv sets: what a
+// token login removes when the agent did not describe the login per kind.
+// nil tokenEnv = the full list (home login). Pure.
+func (c *Core) tokenScrub(tokenEnv []EnvChange) []string {
+	if tokenEnv == nil {
+		return c.spec.CredentialEnv
+	}
+	var out []string
+	for _, n := range c.spec.CredentialEnv {
+		if !slices.ContainsFunc(tokenEnv, func(e EnvChange) bool { return e.name == n }) {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+// envChanges is EnvChanges with an explicit scrub list for the token login.
+func (c *Core) envChanges(t Target, tokenEnv []EnvChange, scrub []string) []EnvChange {
+	var out []EnvChange
+	if tokenEnv == nil {
+		out = ScrubEnv(c.spec.CredentialEnv)
+	} else {
+		out = ScrubEnv(scrub)
+	}
 	out = append(out, t.ExtraEnv...)
 	if tokenEnv != nil {
-		out = append(out, ScrubEnv(c.spec.CredentialEnv)...)
+		out = append(out, ScrubEnv(scrub)...)
 		out = append(out, tokenEnv...)
 	}
-	if hc, ok := HomeEnvChange(c.spec.HomeEnv, t.Home); ok {
+	if hc, ok := c.homeEnvChange(t.Home); ok {
 		out = append(out, hc)
 	}
 	return out
+}
+
+// homeEnvChange is the home variable for h: HomeEnvChange, or for
+// Spec.HomeEnvNamesParent the dir that contains h (unset for the default
+// home in both cases). Pure.
+func (c *Core) homeEnvChange(h Home) (EnvChange, bool) {
+	if !c.spec.HomeEnvNamesParent || h.IsDefault() || c.spec.HomeEnv == "" {
+		return HomeEnvChange(c.spec.HomeEnv, h)
+	}
+	return EnvSet(c.spec.HomeEnv, filepath.Dir(h.Dir())), true
+}
+
+// checkHomeSelectable refuses a home the home variable cannot select: with
+// Spec.HomeEnvNamesParent every non-default home must be named
+// DefaultHome inside its parent (<parent>/.gemini). Pure.
+func (c *Core) checkHomeSelectable(h Home) error {
+	if !c.spec.HomeEnvNamesParent || h.IsDefault() || filepath.Base(h.Dir()) == c.spec.DefaultHome {
+		return nil
+	}
+	return fmt.Errorf("%w: %s: %s selects <dir>/%s, so the home %s cannot be launched", ErrUnsupported, c.spec.ID, c.spec.HomeEnv, c.spec.DefaultHome, h.Dir())
 }
 
 // Command builds the Command for argv on t: owner check, Host.Env with
 // EnvChanges applied, Path = Spec.Binary. tokenEnv nil = the home's own
 // login. Pure.
 func (c *Core) Command(t Target, dir string, argv []string, tokenEnv []EnvChange) (Command, error) {
+	return c.command(t, dir, argv, tokenEnv, c.tokenScrub(tokenEnv))
+}
+
+// command is Command with an explicit token scrub list.
+func (c *Core) command(t Target, dir string, argv []string, tokenEnv []EnvChange, scrub []string) (Command, error) {
 	if err := c.Owns(t.Home); err != nil {
 		return Command{}, err
 	}
-	return c.host.NewCommand(c.spec.Binary, argv, dir, c.EnvChanges(t, tokenEnv)...), nil
+	if err := c.checkHomeSelectable(t.Home); err != nil {
+		return Command{}, err
+	}
+	return c.host.NewCommand(c.spec.Binary, argv, dir, c.envChanges(t, tokenEnv, scrub)...), nil
 }
 
 // CheckAutonomy applies the rule every builder shares: AutonomyFull needs
@@ -270,9 +334,10 @@ func CheckAutonomy(t Target, a Autonomy) error {
 }
 
 // Launch builds a command from the Spec templates (config-only agents).
-// Refusals: AutonomyFull without AllowDangerous; any other non-default
-// Autonomy, Headless, Credential, and any field without its template are
-// ErrUnsupported (never silently dropped). Pure.
+// Each request field needs its template: autonomy levels come from
+// Spec.AutonomyArgs, Headless from HeadlessArgs, a token login from
+// TokenEnv; a field without one is ErrUnsupported (never silently
+// dropped). AutonomyFull still needs Target.AllowDangerous. Pure.
 func (c *Core) Launch(t Target, r LaunchRequest) (Command, error) {
 	if err := CheckAutonomy(t, r.Autonomy); err != nil {
 		return Command{}, err
@@ -281,13 +346,12 @@ func (c *Core) Launch(t Target, r LaunchRequest) (Command, error) {
 	unsupported := func(what string) (Command, error) {
 		return Command{}, UnsupportedError(s.ID, what, "not described by the agent spec")
 	}
+	autonomy, autonomyOK := s.AutonomyArgs[r.Autonomy]
 	switch {
-	case r.Autonomy != AutonomyDefault:
+	case r.Autonomy != AutonomyDefault && !autonomyOK:
 		return unsupported("autonomy " + r.Autonomy.String())
-	case r.Headless:
+	case r.Headless && len(s.HeadlessArgs) == 0:
 		return unsupported("headless")
-	case r.Credential != nil:
-		return unsupported("token login")
 	case r.Model != "" && len(s.ModelArgs) == 0:
 		return unsupported("model")
 	case len(r.AddDirs) > 0 && len(s.AddDirArgs) == 0:
@@ -297,7 +361,25 @@ func (c *Core) Launch(t Target, r LaunchRequest) (Command, error) {
 	case r.ResumeID != "" && len(s.ResumeArgs) == 0:
 		return unsupported("resume")
 	}
+	var tokenEnv []EnvChange
+	var scrub []string
+	if r.Credential != nil {
+		e, ok := s.tokenEnvFor(*r.Credential)
+		if !ok {
+			what := "token login " + r.Credential.Kind.String()
+			if r.Credential.Provider != "" {
+				what += " for provider " + r.Credential.Provider
+			}
+			return unsupported(what)
+		}
+		tokenEnv = []EnvChange{EnvSetSecret(e.Env, r.Credential.Token)}
+		scrub = s.scrubFor(e)
+	}
 	args := slices.Clone(t.ExtraArgs)
+	args = append(args, autonomy...)
+	if r.Headless {
+		args = append(args, s.HeadlessArgs...)
+	}
 	if r.Model != "" {
 		args = append(args, expandTemplate(s.ModelArgs, placeholderModel, r.Model)...)
 	}
@@ -312,7 +394,18 @@ func (c *Core) Launch(t Target, r LaunchRequest) (Command, error) {
 	if r.ResumeID != "" {
 		tpl = expandTemplate(s.ResumeArgs, placeholderID, r.ResumeID)
 	}
-	return c.Command(t, r.Dir, spliceArgs(tpl, args), nil)
+	return c.command(t, r.Dir, spliceArgs(tpl, args), tokenEnv, scrub)
+}
+
+// Install finds Spec.Binary on Host.Env PATH and reads its version from
+// install metadata (InstallFromPath with Spec.Packages), never running it.
+// Disk · Read.
+func (c *Core) Install() (Install, error) {
+	in, err := InstallFromPath(c.host.LookPathAll(c.spec.Binary), c.spec.Packages)
+	if err != nil {
+		return Install{}, fmt.Errorf("%w: %s", err, c.spec.Binary)
+	}
+	return in, nil
 }
 
 // ClassifyProcess matches p against Spec.Process; config agents report

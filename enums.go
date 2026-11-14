@@ -89,6 +89,8 @@ const (
 	TokenOAuthToken
 	// TokenAPIKey: pay-per-token API key.
 	TokenAPIKey
+	// TokenAPIKeyHelper: a command the agent itself runs to get its key (Claude settings apiKeyHelper); the key never passes through the caller.
+	TokenAPIKeyHelper
 )
 
 // tokenKindKind labels TokenKind in errors.
@@ -96,7 +98,7 @@ const tokenKindKind = "token kind"
 
 // tokenKindNames is the wire spelling of each TokenKind, indexed by value. Pure.
 func tokenKindNames() []string {
-	return []string{"unknown", "oauth-token", "api-key"}
+	return []string{"unknown", "oauth-token", "api-key", "api-key-helper"}
 }
 
 // String returns the wire spelling. Pure.
@@ -845,3 +847,41 @@ func CapabilityValues() []Capability { return enumValues[Capability](capabilityN
 
 // ParseCapability parses a wire spelling. Pure.
 func ParseCapability(s string) (Capability, bool) { return enumParse[Capability](s, capabilityNames()) }
+
+// Liveness says whether a recorded process still runs (Host.ProcessAlive), for cleaning up per-run files only once their agent has ended.
+type Liveness uint8
+
+// Liveness values. Order is the wire order of names; append only.
+const (
+	// LivenessUnknown: could not be verified (no process table, or neither the start time nor the start env could be read); keep the run's files.
+	LivenessUnknown Liveness = iota
+	// LivenessAlive: the pid runs and is the recorded process (start time or start env matches).
+	LivenessAlive
+	// LivenessEnded: the pid is gone, or it was reused by another process (start time or start env differs).
+	LivenessEnded
+)
+
+// livenessKind labels Liveness in errors.
+const livenessKind = "liveness"
+
+// livenessNames is the wire spelling of each Liveness, indexed by value. Pure.
+func livenessNames() []string {
+	return []string{"unknown", "alive", "ended"}
+}
+
+// String returns the wire spelling. Pure.
+func (v Liveness) String() string { return enumString(v, livenessKind, livenessNames()) }
+
+// MarshalText encodes the wire spelling, so JSON and YAML carry names, not numbers. Pure.
+func (v Liveness) MarshalText() ([]byte, error) { return []byte(v.String()), nil }
+
+// UnmarshalText parses the wire spelling; an unknown name is an error (closed set). Pure.
+func (v *Liveness) UnmarshalText(b []byte) error {
+	return enumUnmarshal(v, b, livenessKind, livenessNames())
+}
+
+// LivenessValues lists every Liveness in order: the canonical iteration list. Pure.
+func LivenessValues() []Liveness { return enumValues[Liveness](livenessNames()) }
+
+// ParseLiveness parses a wire spelling. Pure.
+func ParseLiveness(s string) (Liveness, bool) { return enumParse[Liveness](s, livenessNames()) }
