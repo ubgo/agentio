@@ -1,0 +1,32 @@
+# name	spelling	since	until	source
+# pi feature table (SPEC §5.8). since/until are vendor versions of the npm
+# package (@mariozechner/pi-coding-agent up to 0.73.1, then
+# @earendil-works/pi-coding-agent); empty = unknown, never guessed. A
+# non-empty bound names its CHANGELOG.md entry (the file shipped in
+# @earendil-works/pi-coding-agent 1.5.2, read 2026-11-14).
+FlagSession	--session	0.10.0		CHANGELOG.md 0.10.0 (conversation session management with --continue, --resume and --session)
+FlagContinue	--continue	0.10.0		CHANGELOG.md 0.10.0 (conversation session management with --continue, --resume and --session)
+FlagResume	--resume	0.10.0		CHANGELOG.md 0.10.0 (conversation session management with --continue, --resume and --session)
+ProcessTitle	process title pi	0.46.0		CHANGELOG.md 0.46.0 #742 (CLI process title is now set to pi)
+AppendSystemFile	APPEND_SYSTEM.md	0.46.0		CHANGELOG.md 0.46.0 #716 (support APPEND_SYSTEM.md)
+FlagOffline	--offline	0.55.1		CHANGELOG.md 0.55.1 (added offline startup mode via --offline)
+FlagFork	--fork	0.60.0		CHANGELOG.md 0.60.0 #2290 (added --fork <path|id>)
+SessionDirEnv	PI_CODING_AGENT_SESSION_DIR	0.71.0		CHANGELOG.md 0.71.0 #4027 (added PI_CODING_AGENT_SESSION_DIR)
+FlagSessionID	--session-id	0.76.0		CHANGELOG.md 0.76.0 #4874 (added --session-id)
+FlagExcludeTools	--exclude-tools	0.77.0		CHANGELOG.md 0.77.0 #5109 (added --exclude-tools / -xt)
+FlagApprove	--approve	0.79.0		CHANGELOG.md 0.79.0 (project trust with --approve / --no-approve)
+AgentsOverride	AGENTS.override.md	0.84.0		CHANGELOG.md 0.84.0 #7681 (added per-directory AGENTS.override.md)
+MCPConfig	mcp.json	0.99.0		CHANGELOG.md 0.99.0 #10040 (codemode, tool search and MCP support as built-in extensions)
+FlagNoMCP	--no-mcp	1.0.4		CHANGELOG.md 1.0.4 (added --no-mcp)
+FlagModel	--model
+FlagProvider	--provider
+FlagThinking	--thinking
+FlagPrint	--print
+FlagModeJSON	--mode json
+FlagTools	--tools
+FlagNoExtensions	--no-extensions
+FlagName	--name
+FlagNoSession	--no-session
+FlagSystemPrompt	--system-prompt
+FlagAppendSystemPrompt	--append-system-prompt
+FlagNoContextFiles	--no-context-files
