@@ -1,0 +1,3 @@
+func ApplyEnv(base []string, changes ...EnvChange) []string {
+	return ApplyEnvFor(OSLinux, base, changes...)
+}

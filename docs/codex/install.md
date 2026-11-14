@@ -1,18 +1,18 @@
 # Codex install and updates
 
-Where `codex` is installed, how (npm, bun, pnpm, [Homebrew cask](ds:block?id=codex-agent-install-7wqjtcqk), standalone), which version, and how to update it, read from disk without running the binary. When you do need the binary's own answers (`--version`, `login status`, `features list`, the bundled model catalog), the [`Runner`](ds:block?id=codex-runner-476qyke4) door runs it through `Host.Exec` and says so in its name.
+Where `codex` is installed, how (npm, bun, pnpm, Volta, [Homebrew cask] or formula(ds:block?id=codex-agent-install-7wqjtcqk), standalone), which version, and how to update it, read from disk without running the binary. When you do need the binary's own answers (`--version`, `login status`, `features list`, the bundled model catalog), the [`Runner`](ds:block?id=codex-runner-476qyke4) door runs it through `Host.Exec` and says so in its name.
 
 ## Before you start
 
 - Module `github.com/ubgo/agentio/codex`; a `codex.Agent` from [The Codex agent](agent.md).
-- [`Install`](ds:block?id=codex-agent-install-7wqjtcqk) walks `Host.Env` `PATH` (never a shell). For a version it needs an npm-family layout: `bin/codex` resolving into `node_modules/@openai/codex`, where [`package.json`](ds:block?id=codex-packageversion-gts9xx4s) holds the version.
+- [`Install`](ds:block?id=codex-agent-install-7wqjtcqk) walks `Host.Env` `PATH` (never a shell). On Windows it tries each `PATHEXT` extension (`codex.cmd`). For a version it needs a layout that leads to the package: `bin/codex` resolving into `node_modules/@openai/codex` (npm, nvm), an npm or pnpm launcher shim naming it (read with `agentio.ShimTarget`), a bun or Volta bin dir, or a Homebrew formula (`Cellar/codex/<version>`); the package dir is where [`package.json`](ds:block?id=codex-packageversion-gts9xx4s) holds the version.
 - `Runner` calls need a `Host.Exec`; examples use a canned runner, real programs get one from `agentio.HostFromOS()`.
 
 The snippets come from [`examples/codexconfig`](../../examples/codexconfig/), which puts a fake npm install of codex 0.162.1 on `PATH` and answers Runner calls with recorded output.
 
 ## Step 1 — Read the install
 
-`Install` returns the first `codex` on `PATH`, any shadowed ones, the resolved real path, the install method and the version. [`codex.ParseVersion`](ds:block?id=codex-parseversion-zx9z9rav) accepts `codex-cli 0.162.1` or a bare version and keeps pre-release text; it returns `(agentio.Version, bool)` like `agentio.ParseVersion`. [`a.UpdateCommand()`](ds:block?id=codex-agent-updatecommand-mmv9gxga) is the vendor's own update command for the installed codex: it reads the install method with `Install` and resolves the package manager (`npm`, `bun`, `pnpm`, `brew`) on `Host.Env` `PATH`; the library never runs it.
+`Install` returns the first `codex` on `PATH`, any shadowed ones, the resolved real path, the install method and the version. [`codex.ParseVersion`](ds:block?id=codex-parseversion-zx9z9rav) accepts `codex-cli 0.162.1` or a bare version and keeps pre-release text; it returns `(agentio.Version, bool)` like `agentio.ParseVersion`. [`a.UpdateCommand()`](ds:block?id=codex-agent-updatecommand-mmv9gxga) is the vendor's own update command for the installed codex: it reads the install method with `Install` and resolves the package manager (`npm`, `bun`, `pnpm`, `brew`, `volta`; `npm.cmd` on Windows) on `Host.Env` `PATH`, and a Homebrew formula install upgrades without `--cask`; the library never runs it.
 
 <!-- snippet: examples/codexconfig/install.go#read-install -->
 ```go
@@ -144,7 +144,7 @@ bundled models: gpt-6-luna
 ## Pitfalls
 
 - **Every Runner method may rewrite [`auth.json`](ds:block?id=codex-runner-476qyke4).** Any Codex subcommand can refresh the login and rewrite the file, so all Runner methods are labelled MayTouchLogin and nothing on a read path calls them. Prefer `Install` (disk) over `BinaryVersion` (process) for the version.
-- **No version without `package.json`.** For Homebrew, standalone or an unknown layout, [`Install.Version`](ds:block?id=codex-agent-install-7wqjtcqk) is zero. Launch builders then warn [`version-unknown`](ds:block?id=codex-newbuilder-45cx4x37) instead of gating flags (see [Codex launch](launch.md#step-4--handle-unavailable-features)).
+- **No version without `package.json`.** For a Homebrew cask, standalone or an unknown layout (a Homebrew formula gives the version in its `Cellar` path), [`Install.Version`](ds:block?id=codex-agent-install-7wqjtcqk) is zero. Launch builders then warn [`version-unknown`](ds:block?id=codex-newbuilder-45cx4x37) instead of gating flags (see [Codex launch](launch.md#step-4--handle-unavailable-features)).
 - **[`ErrNotInstalled`](ds:block?id=codex-agent-install-7wqjtcqk) when no `PATH` entry has `codex`.** It is an error from `Install`; [`TargetFor`](ds:block?id=codex-agent-targetfor-nzpuwqwd) treats it as "version unknown" instead.
 - **[`UpdateCommand`](ds:block?id=codex-agent-updatecommand-mmv9gxga) needs the package manager on `PATH`.** It is a method with the same shape as Claude's (`(agentio.Command, error)`, Disk · Read): `agentio.ErrNotInstalled` when codex or the package manager is not on `Host.Env` `PATH`, `agentio.ErrUnsupported` for a standalone or unknown install (the installer script is not modelled). `Command.Path` is the resolved absolute path, never a bare `npm`.
 - **A stale update cache is normal.** [`LatestVersion`](ds:block?id=codex-agent-checks-kj5pjpxm) can be older than the installed version (the cache is only refreshed by the TUI); the doctor reports this as info, not as "update available".

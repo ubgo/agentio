@@ -215,6 +215,7 @@ logout             codex logout
 
 ## Pitfalls
 
+- **Keyring reads depend on the OS.** With `HostFromOS`, macOS reads the keychain (`security`) and Linux the Secret Service (`secret-tool`, from libsecret-tools). On Windows, or on Linux without `secret-tool` or a running Secret Service (a headless box), the keyring read is `agentio.ErrUnsupported` with the reason: a `keyring` store then reports that error (not "logged out") and an `auto` store falls back to `auth.json`, as Codex does ([Platforms](../platforms.md)).
 - **Nothing here refreshes a token.** An expired access token makes `Usage` return [`agentio.ErrExpired`](ds:block?id=codex-agent-usage-bnqunb32); run `codex` once to refresh it. Refreshing from your code would rotate the refresh token and log the CLI out.
 - **`Usage` is a network read that may 429.** A 429 maps to [`agentio.ErrRateLimited`](ds:block?id=codex-agent-usage-bnqunb32) ([with the server's retry-after](ds:block?id=ratelimiterror-pbyjx7ce)), 401/403 to `agentio.ErrUnauthorized`; there is no retry. Call it once per user action, never in a loop; prefer `CachedUsage` for dashboards.
 - **API-key logins have no plan usage.** `Usage` returns [`agentio.ErrBilledPerToken`](ds:block?id=codex-agent-usage-bnqunb32); [`Identity.Neutral()`](ds:block?id=codex-identity-neutral-8g73697s) reports per-token billing.

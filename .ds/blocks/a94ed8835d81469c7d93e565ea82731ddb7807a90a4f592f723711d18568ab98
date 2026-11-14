@@ -1,0 +1,35 @@
+func (osSecrets) Get(ctx context.Context, service, account string) (Token, bool, error) {
+	switch runtime.GOOS {
+	case goosDarwin:
+	case goosLinux:
+		return secretToolGet(ctx, service, account)
+	case goosWindows:
+		return Token{}, false, UnsupportedError("", "keyring", reasonWindowsKeyring)
+	default:
+		return Token{}, false, UnsupportedError("", "keyring", "no keyring reader for "+runtime.GOOS)
+	}
+	ctx, cancel := context.WithTimeout(ctx, keychainTimeout)
+	defer cancel()
+	args := []string{"find-generic-password", "-s", service}
+	if account != "" {
+		args = append(args, "-a", account)
+	}
+	args = append(args, "-w")
+	cmd := exec.CommandContext(ctx, securityBin, args...)
+	cmd.WaitDelay = osWaitDelay
+	out, err := cmd.Output()
+	if err == nil {
+		return NewToken(string(bytes.TrimSpace(out))), true, nil
+	}
+	var exitErr *exec.ExitError
+	switch {
+	case errors.Is(err, exec.ErrNotFound), errors.Is(err, os.ErrNotExist):
+		return Token{}, false, nil
+	case errors.As(err, &exitErr) && exitErr.ExitCode() == securityNotFoundExit:
+		return Token{}, false, nil
+	case ctx.Err() != nil:
+		return Token{}, false, fmt.Errorf("agentio: keychain lookup timed out after %s (unanswered prompt?): %w", keychainTimeout, ctx.Err())
+	}
+	// The error text of `security` never holds the secret (it is on stdout).
+	return Token{}, false, fmt.Errorf("agentio: keychain lookup %s: %w", service, err)
+}

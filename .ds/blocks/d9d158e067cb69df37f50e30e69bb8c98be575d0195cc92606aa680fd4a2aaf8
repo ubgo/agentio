@@ -1,0 +1,28 @@
+func (a *Agent) Install() (Install, error) {
+	path, err := a.LookPath()
+	if err != nil {
+		return Install{}, err
+	}
+	inst := Install{Install: agentio.Install{Path: path, RealPath: path}}
+	if real, err := filepath.EvalSymlinks(path); err == nil {
+		inst.RealPath = real
+	}
+	inst.Method, inst.Version = detectInstall(path, inst.RealPath)
+	for _, p := range a.host.LookPathAll(Binary) {
+		if p != path {
+			inst.Shadowed = append(inst.Shadowed, p)
+		}
+	}
+	def := a.DefaultHome()
+	if g, err := a.GlobalConfig(def); err == nil {
+		inst.RawMethod, inst.AutoUpdates = g.InstallMethod, g.AutoUpdates
+		inst.ProtectedForNative = g.AutoUpdatesProtectedForNative != nil && *g.AutoUpdatesProtectedForNative
+	}
+	if l, err := a.UserSettings(def); err == nil {
+		inst.Channel = l.Settings.AutoUpdatesChannel
+	}
+	if lu, err := a.LastUpdate(def); err == nil {
+		inst.LastUpdate = lu
+	}
+	return inst, nil
+}

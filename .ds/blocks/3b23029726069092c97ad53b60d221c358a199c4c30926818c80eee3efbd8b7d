@@ -1,0 +1,6 @@
+func (c *Core) Command(t Target, dir string, argv []string, tokenEnv []EnvChange) (Command, error) {
+	if err := c.Owns(t.Home); err != nil {
+		return Command{}, err
+	}
+	return c.host.NewCommand(c.spec.Binary, argv, dir, c.EnvChanges(t, tokenEnv)...), nil
+}

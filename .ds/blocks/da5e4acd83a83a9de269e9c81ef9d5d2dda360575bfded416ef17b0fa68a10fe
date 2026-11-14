@@ -1,0 +1,9 @@
+func darwinProcesses(ctx context.Context) ([]Process, error) {
+	cmd := exec.CommandContext(ctx, psBin, "-axww", "-o", "pid=,ppid=,lstart=,command=")
+	cmd.Env = []string{envLocaleC}
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("agentio: ps: %w", err)
+	}
+	return parseDarwinPS(out, time.Local), nil
+}

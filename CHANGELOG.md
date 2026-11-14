@@ -8,6 +8,12 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 
 - Modules `github.com/ubgo/agentio` (neutral core, typed capability accessors, `agenttest`), `claude` (Claude Code), `codex` (Codex), `codex/state` (Codex SQLite stores, read-only) and `builtin` (every built-in agent plus config-defined agents).
 - `codex.Agent.WithBaseURL` and `codex.DefaultBaseURL`: send Codex usage calls to a test server or proxy without a custom transport, the same mechanism as `claude.Agent.WithBaseURL` (module `codex`).
+- Platform rules by `Host.GOOS` (module root): `Host.LookPath`/`LookPathAll` and `LookPathAllFor` (`;` and `PATHEXT` on Windows, no exec bit there), `EnvLookupFor`, `ApplyEnvFor`, `NewCommandFor`, `Host.NewCommand`, `Host.ApplyEnv` (env names case-insensitive on Windows), `PathListSeparatorFor`, `OSLinux`/`OSDarwin`/`OSWindows`, `ShimTarget` (npm/pnpm launcher shims), `StripBOM`, `SymlinkPrivilegeError` (Windows without Developer Mode), and `InstallVolta`.
+- `HostFromOS` on Windows: a process table from one PowerShell `Get-CimInstance Win32_Process` run (CommandLineToArgvW splitting); on Linux a keyring reader through `secret-tool` (Secret Service). Windows Credential Manager and process working directories return `ErrUnsupported` with the reason.
+- `claude.Runner.ManagedRegistry` reads the Windows managed-settings policy registry values (`HKLM`/`HKCU\SOFTWARE\Policies\ClaudeCode`) with `reg.exe`; `SourceRegistryHKLM` and `SourceRegistryHKCU` (module `claude`).
+- Install detection for npm `.cmd` shims, pnpm shims, nvm, bun (also `.exe` on Windows), Volta, Homebrew formulas (`Cellar`) and Claude's copied native `claude.exe`; Codex `UpdateCommand` handles Volta and Homebrew formulas (modules `claude`, `codex`).
+- `examples/agentinfo -fixtures`, `task check:windows` (Windows vet and test compile, part of `task check`), `task test:distros` (Debian, Alpine, Fedora and Arch containers; manual), and a manual-only `.github/workflows/platforms.yml` for Linux, macOS and Windows runners.
+- A platforms guide (`docs/platforms.md`) and a README support table.
 
 ### Changed
 
@@ -21,6 +27,12 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 
 ### Fixed
 
+- `claude.EncodePath` now matches Claude Code exactly (2.1.325 bundle): one `-` per UTF-16 unit (it replaced each UTF-8 byte), and a key over 200 characters is cut and suffixed with a base-36 hash, so history of non-ASCII and long paths is found (module `claude`).
+- `settings.local.json` is read from the start folder on Windows and when the repo root is the user home, as Claude Code does (module `claude`).
+- On a linux or windows Host, Claude credentials come only from `.credentials.json`; the keychain is not consulted there (module `claude`).
+- The OS runner resolves a bare `Command.Path` on the Command's own `PATH` (with `PATHEXT` on Windows) instead of the parent process's, so `Runner.BinaryVersion` finds a codex that only the Host's PATH has.
+- Vendor JSON, TOML and JSONL readers accept a UTF-8 BOM (Windows editors) and CRLF.
+- The Codex doctor's `api-billing-env` no longer warns on `OPENAI_API_KEY` (Codex auth never reads it); it names `CODEX_API_KEY`, and `OPENAI_API_KEY` only when a model provider's `env_key` names it (module `codex`).
 - `ParseVersion` only starts a version at a word boundary: `x86_64 build 7` parses as `7.0.0`, no longer `64.0.0`.
 - Claude usage, profile and token-probe calls return `ErrUnsupported` when `Host.HTTP` is nil instead of building a default client that reached the real network (module `claude`).
 - User-facing strings no longer name private design ids: the Claude model-lister Unsupported reason dropped "(OD-15)" and the Codex accept-edits reason "(OD-14)"; an architecture test fails on any string literal naming one. Code comments no longer name them either: each states the reason instead, and the same test covers comments in non-test code.

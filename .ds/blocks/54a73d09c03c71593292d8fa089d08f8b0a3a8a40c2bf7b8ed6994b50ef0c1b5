@@ -1,0 +1,19 @@
+func EncodePath(dir string) string {
+	units := utf16.Encode([]rune(dir))
+	b := make([]byte, len(units))
+	for i, u := range units {
+		if u < utf8.RuneSelf && isASCIIAlnum(byte(u)) {
+			b[i] = byte(u)
+		} else {
+			b[i] = '-'
+		}
+	}
+	if len(b) <= maxKeyLen {
+		return string(b)
+	}
+	h := int64(stringHash(units))
+	if h < 0 {
+		h = -h
+	}
+	return string(b[:maxKeyLen]) + keyHashSep + strconv.FormatInt(h, keyHashBase)
+}

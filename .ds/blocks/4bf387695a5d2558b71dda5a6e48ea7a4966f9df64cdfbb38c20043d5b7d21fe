@@ -1,0 +1,16 @@
+func ShimTarget(p string) (string, bool) {
+	f, err := os.Open(p)
+	if err != nil {
+		return "", false
+	}
+	defer func() { _ = f.Close() }()
+	b, err := io.ReadAll(io.LimitReader(f, shimMaxBytes))
+	if err != nil || bytes.IndexByte(b, 0) >= 0 {
+		return "", false
+	}
+	rel, ok := shimRel(string(b))
+	if !ok {
+		return "", false
+	}
+	return filepath.Join(filepath.Dir(p), filepath.FromSlash(rel)), true
+}

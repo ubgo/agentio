@@ -16,6 +16,7 @@ agentio is an open-source Go library that tells a program everything it can know
 - [Install](#install)
 - [Quick start](#quick-start)
 - [What you can read and build](#what-you-can-read-and-build)
+- [Platforms](#platforms)
 - [Documentation](#documentation)
 - [Examples](#examples)
 - [FAQ](#faq)
@@ -195,6 +196,20 @@ A Claude-only program skips `builtin` and uses `claude.New(host)` directly; [`c.
 | Explicit writes with backup | ✅ settings, hooks, move history and conversations, link homes | ❌ by design: Codex keeps its own stores consistent, so changes go through Codex's own commands |
 
 The full list, with the cost of every call, is in the [feature index](docs/reference/features.md).
+
+## Platforms
+
+Every feature works on each OS below or returns `agentio.ErrUnsupported` with the reason. The rules follow `Host.GOOS`, so the tests prove the Windows rules on Linux too. Details and per-OS pitfalls: [Platforms](docs/platforms.md).
+
+| | macOS | Linux (glibc, musl) | Windows 10/11 |
+|---|---|---|---|
+| Install, version, homes, settings, MCP, skills, conversations | ✅ | ✅ | ✅ (`PATHEXT`, `.cmd` shims, `%USERPROFILE%`) |
+| Claude login | keychain + `.credentials.json` | `.credentials.json` | `.credentials.json` |
+| Codex keyring login | keychain | Secret Service (`secret-tool`) | `ErrUnsupported`; `auth.json` works |
+| Managed settings | files + plist | `/etc/claude-code`, `/etc/codex` | files + policy registry |
+| Process table, live sessions | `ps` | `/proc` (Alpine included) | PowerShell; no process cwd |
+| Home links | ✅ | ✅ | needs Developer Mode, else a typed error |
+| Tested | owner's Mac | Ubuntu, and Debian, Alpine, Fedora, Arch containers (`task test:distros`) | compiled and fixture-tested; real runs through the manual `platforms` workflow |
 
 ## Documentation
 
@@ -389,7 +404,7 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), whi
 <!-- ds:def id=claude-planlabel-8fuqam6b file=claude/usage.go pick=symbol:PlanLabel owner=@khanakia -->
 <!-- ds:def id=claude-prober-door-bbbbbbbb file=claude/credential.go pick=symbol:Prober owner=@khanakia -->
 <!-- ds:def id=claude-quota-door-tokenusage-j2fw66uu file=claude/credential.go pick=symbol:Prober.TokenUsage owner=@khanakia -->
-<!-- ds:def id=claude-project-localroot-rkts9std file=claude/agent.go pick=symbol:Project.localRoot owner=@khanakia -->
+<!-- ds:def id=claude-project-localroot-rkts9std file=claude/agent.go pick=symbol:Agent.localRoot owner=@khanakia -->
 <!-- ds:def id=claude-ratelimitwindow-zmkhyjn8 file=claude/stream.go pick=symbol:RateLimitWindow owner=@khanakia -->
 <!-- ds:def id=claude-readrawsettings-peagek4s file=claude/writer.go pick=symbol:readRawSettings owner=@khanakia -->
 <!-- ds:def id=claude-reasonnohttp-mb8pg2zh file=claude/usage.go pick=symbol:reasonNoHTTP owner=@khanakia -->
@@ -605,7 +620,7 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), whi
 <!-- ds:def id=core-runner-4jzfzpz9 file=core.go pick=symbol:Core.Runner owner=@khanakia -->
 <!-- ds:def id=costclassnames-x4rv84vr file=enums.go pick=symbol:costClassNames owner=@khanakia -->
 <!-- ds:def id=credentialsourcenames-8g8hwb67 file=enums.go pick=symbol:credentialSourceNames owner=@khanakia -->
-<!-- ds:def id=darwinprocesses-h9y8tzsg file=hostos.go pick=symbol:darwinProcesses owner=@khanakia -->
+<!-- ds:def id=darwinprocesses-h9y8tzsg file=hostos_procs.go pick=symbol:parseDarwinPS owner=@khanakia -->
 <!-- ds:def id=defaulthomename-2x8teypk file=core.go pick=symbol:DefaultHomeName owner=@khanakia -->
 <!-- ds:def id=enumparse-z445n2y9 file=enum.go pick=symbol:enumParse owner=@khanakia -->
 <!-- ds:def id=enumstring-57pf7m8z file=enum.go pick=symbol:enumString owner=@khanakia -->
@@ -685,7 +700,7 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), whi
 <!-- ds:def id=opt-or-x7yr72u4 file=value.go pick=symbol:Opt[T].Or owner=@khanakia -->
 <!-- ds:def id=opt-unmarshaljson-6u6vzm5j file=value.go pick=symbol:Opt[T].UnmarshalJSON owner=@khanakia -->
 <!-- ds:def id=oshttptimeout-3nmmj9j5 file=hostos.go pick=symbol:osHTTPTimeout owner=@khanakia -->
-<!-- ds:def id=osprocesses-processes-q5hpmdr9 file=hostos.go pick=symbol:osProcesses.Processes owner=@khanakia -->
+<!-- ds:def id=osprocesses-processes-q5hpmdr9 file=hostos_procs.go pick=symbol:osProcesses.Processes owner=@khanakia -->
 <!-- ds:def id=osrunner-a75g5r5m file=hostos.go pick=symbol:osRunner owner=@khanakia -->
 <!-- ds:def id=osrunner-run-hm7czx3q file=hostos.go pick=symbol:osRunner.Run owner=@khanakia -->
 <!-- ds:def id=ossecrets-get-ux5ua2mu file=hostos.go pick=symbol:osSecrets.Get owner=@khanakia -->
@@ -748,6 +763,11 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), whi
 <!-- ds:def id=warnings-has-e3uyt56b file=warning.go pick=symbol:Warnings.Has owner=@khanakia -->
 <!-- ds:def id=window-class-sgsfcuv5 file=capability.go pick=symbol:Window.Class owner=@khanakia -->
 <!-- ds:def id=windowclassnames-757ahrk7 file=enums.go pick=symbol:windowClassNames owner=@khanakia -->
+
+<!-- ds:def id=host-getenv-qyjtfrc3 file=host.go pick=symbol:Host.Getenv owner=@khanakia -->
+<!-- ds:def id=host-lookpath-4k46e3ag file=osrules.go pick=symbol:Host.LookPath owner=@khanakia -->
+<!-- ds:def id=host-newcommand-pu5aa4ej file=osrules.go pick=symbol:Host.NewCommand owner=@khanakia -->
+<!-- ds:def id=shimtarget-ubxq8m56 file=shim.go pick=symbol:ShimTarget owner=@khanakia -->
 
 ## License
 

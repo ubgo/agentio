@@ -1,0 +1,1 @@
+func (h Host) Getenv(key string) (string, bool) { return EnvLookupFor(h.hostOS(), h.Env, key) }

@@ -30,7 +30,7 @@ For a second home at `~/.claude-work` this prints `~/.claude-work/.claude.json` 
 
 ## Step 2 — Get project paths
 
-`ProjectPaths` covers one project folder for one home: [the four memory files Claude Code looks for](ds:block?id=claude-agent-projectpaths-kqyfxj5m) (`CLAUDE.md`, `.claude/CLAUDE.md`, `CLAUDE.local.md`, `AGENTS.md`), `Settings`, `LocalSettings` (at the repo root, or `Dir` outside git), `MCP` (`.mcp.json`), the project `.claude/` subdirs, `HistoryDir` and `AutoMemory`. `SystemPaths` returns the managed (admin) locations for `Host.GOOS` under `Host.SystemRoot`: `ManagedSettings`, `ManagedDropIn`, `ManagedMCP`, `ManagedMemory` ([`/etc/claude-code`](ds:block?id=claude-agent-systempaths-gu2kdp23) on linux, `/Library/Application Support/ClaudeCode` on macOS, `C:\Program Files\ClaudeCode` on Windows). `HostFromOS` fills both fields; [a fixture host sets neither, so every field is `""`](ds:block?id=host-systempath-7azvt62d) and the managed readers skip them. [`a.Project(dir)`](ds:block?id=claude-agent-project-bjb4pacx) is the one call here that reads disk: it resolves the folder and walks up to the git root, which decides where `LocalSettings` lives.
+`ProjectPaths` covers one project folder for one home: [the four memory files Claude Code looks for](ds:block?id=claude-agent-projectpaths-kqyfxj5m) (`CLAUDE.md`, `.claude/CLAUDE.md`, `CLAUDE.local.md`, `AGENTS.md`), `Settings`, `LocalSettings` (at the repo root; in `Dir` outside git, on Windows, and when the repo root is the user home), `MCP` (`.mcp.json`), the project `.claude/` subdirs, `HistoryDir` and `AutoMemory`. `SystemPaths` returns the managed (admin) locations for `Host.GOOS` under `Host.SystemRoot`: `ManagedSettings`, `ManagedDropIn`, `ManagedMCP`, `ManagedMemory` ([`/etc/claude-code`](ds:block?id=claude-agent-systempaths-gu2kdp23) on linux, `/Library/Application Support/ClaudeCode` on macOS, `C:\Program Files\ClaudeCode` on Windows). `HostFromOS` fills both fields; [a fixture host sets neither, so every field is `""`](ds:block?id=host-systempath-7azvt62d) and the managed readers skip them. [`a.Project(dir)`](ds:block?id=claude-agent-project-bjb4pacx) is the one call here that reads disk: it resolves the folder and walks up to the git root, which decides where `LocalSettings` lives.
 
 ```go
 // projectPaths prints the Claude files of one project folder for the
@@ -56,7 +56,7 @@ func projectPaths(w io.Writer, a *claude.Agent, dir string) error {
 
 ## Step 3 — Encode a history folder
 
-Claude Code stores a folder's conversations under `<home>/projects/<EncodePath(dir)>`: [every byte that is not an ASCII letter or digit becomes `-`](ds:block?id=claude-encodepath-cy277s2h). [`a.HistoryDir(h, dir)`](ds:block?id=claude-agent-historydir-em755axk) joins that for you. The example shows all three steps in one function:
+Claude Code stores a folder's conversations under `<home>/projects/<EncodePath(dir)>`: [every UTF-16 code unit that is not an ASCII letter or digit becomes `-`, and a key longer than 200 characters is cut and suffixed with `-` and a base-36 hash of the path, exactly as Claude Code 2.1.325 does on every OS (`C:\Users\x\proj` becomes `C--Users-x-proj`)](ds:block?id=claude-encodepath-cy277s2h). [`a.HistoryDir(h, dir)`](ds:block?id=claude-agent-historydir-em755axk) joins that for you. The example shows all three steps in one function:
 
 <!-- snippet: examples/claudesettings/main.go#paths -->
 ```go
@@ -117,10 +117,10 @@ HistoryDir = ~/.claude/projects/-work-proj12
 ## Pitfalls
 
 - **[`GlobalConfig` moves with the home.](ds:block?id=claude-agent-globalconfigpath-nne5tjpb)** For the default home it is `~/.claude.json` (beside the dir, not inside it); for any other home it is `<home>/.claude.json`.
-- [`EncodePath` is lossy](ds:block?id=claude-encodepath-cy277s2h): `/work/a_b` and `/work/a-b` map to the same folder name. Never decode a folder name back to a path; the cwd recorded inside old transcripts can also be stale after a move. Look up by the path you have.
+- [`EncodePath` is lossy](ds:block?id=claude-encodepath-cy277s2h): `/work/a_b` and `/work/a-b` map to the same folder name, and a path longer than 200 characters is cut and given a hash suffix. Never decode a folder name back to a path; the cwd recorded inside old transcripts can also be stale after a move. Look up by the path you have.
 - [`SystemPaths` follows the Host, not the running program](ds:block?id=host-systempath-7azvt62d): it uses `Host.GOOS` and `Host.SystemRoot`, which only `HostFromOS` fills. A Host you build yourself has no managed locations until you set both (for example `GOOS: "linux", SystemRoot: "/"`, or a temp dir in a test with `agenttest.WithSystem`).
 - `Credentials` is often absent on macOS, where the login lives in the keychain; read logins with the credential API, not this path (see [Claude credentials](credential.md)).
-- [`LocalSettings` sits at the git root](ds:block?id=claude-project-localroot-rkts9std), not at `Dir`, when the project is inside a repo.
+- [`LocalSettings` sits at the git root](ds:block?id=claude-project-localroot-rkts9std), not at `Dir`, when the project is inside a repo, except on Windows (`Host.GOOS`) and when the repo root is the user home, where Claude Code keeps it beside `.claude/settings.json` in `Dir`.
 
 ## Related
 

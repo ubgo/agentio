@@ -1,6 +1,6 @@
 # Claude install and updates
 
-[`a.Install()`](ds:block?id=claude-agent-install-472s4jn6) tells you where Claude Code is installed, how (native installer, npm, Homebrew cask), which version is on disk and what the last auto-update did, all without running `claude`. Use it for a status screen, a doctor check, or to pick the `Target.Version` a launch is checked against.
+[`a.Install()`](ds:block?id=claude-agent-install-472s4jn6) tells you where Claude Code is installed, how (native installer, npm, bun, pnpm, Volta, Homebrew cask), which version is on disk and what the last auto-update did, all without running `claude`. Use it for a status screen, a doctor check, or to pick the `Target.Version` a launch is checked against.
 
 ## Before you start
 
@@ -11,7 +11,7 @@ The snippets come from [`examples/claudesettings`](../../examples/claudesettings
 
 ## Step 1 — Read the install
 
-`Install` [walks `PATH` from `Host.Env` (never a shell)](ds:block?id=core-lookpath-ke3ntet7), resolves symlinks and derives the method from the real path: a `.../.local/share/claude/versions/<v>` path is [`agentio.InstallNative`](ds:block?id=claude-methodandversion-8h4tytjj) (version from the file name), a `node_modules/@anthropic-ai/claude-code` path is `claude.InstallNPMGlobal` (version from its `package.json`), a Caskroom path is `claude.InstallHomebrewCask` (no version on disk). It also lists other `claude` entries on `PATH` ([`Shadowed`](ds:block?id=claude-agent-install-472s4jn6)) and copies the default home's update facts: `RawMethod` and `AutoUpdates` from `.claude.json`, `Channel` from `settings.json`, `LastUpdate` from `.last-update-result.json`. [`claude.ParseVersion`](ds:block?id=claude-parseversion-n4kvb682) parses the `claude --version` text (`2.1.325 (Claude Code)`) for callers that ran the binary themselves.
+`Install` [walks `PATH` from `Host.Env` (never a shell)](ds:block?id=core-lookpath-ke3ntet7), resolves symlinks and derives the method from the real path: a `.../.local/share/claude/versions/<v>` path is [`agentio.InstallNative`](ds:block?id=claude-methodandversion-8h4tytjj) (version from the file name), a `node_modules/@anthropic-ai/claude-code` path is `claude.InstallNPMGlobal` (version from its `package.json`), a Caskroom path is `claude.InstallHomebrewCask` (no version on disk). It also lists other `claude` entries on `PATH` ([`Shadowed`](ds:block?id=claude-agent-install-472s4jn6)) and copies the default home's update facts: `RawMethod` and `AutoUpdates` from `.claude.json`, `Channel` from `settings.json`, `LastUpdate` from `.last-update-result.json`. [`claude.ParseVersion`](ds:block?id=claude-parseversion-n4kvb682) parses the `claude --version` text (`2.1.325 (Claude Code)`) for callers that ran the binary themselves. A path that is not a symlink is also followed through a launcher shim (npm on Windows writes `%APPDATA%\npm\claude.cmd`, pnpm writes a shim everywhere; `agentio.ShimTarget` reads it), a bun or Volta bin dir is recognised by its location, and a copied native `claude.exe` in `~/.local/bin` (the Windows layout) is native with the newest version under `~/.local/share/claude/versions`.
 
 <!-- snippet: examples/claudesettings/main.go#install -->
 ```go

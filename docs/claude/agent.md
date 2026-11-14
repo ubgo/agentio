@@ -76,7 +76,7 @@ func showHomes(p printer, host agentio.Host) error {
 
 ## Step 3 — Open a project
 
-[`a.Project(dir)`](ds:block?id=claude-agent-project-bjb4pacx) makes `dir` absolute and walks up for `.git`. `Project.Dir` is where Claude runs; [`Project.RepoRoot`](ds:block?id=claude-project-localroot-rkts9std) is the git root (`""` outside git), which is where `.claude/settings.local.json` lives. Project-aware readers (`Settings`, `Hooks`, `MCPServers`, `Skills`, …) take `*Project`; pass `nil` for home-only answers.
+[`a.Project(dir)`](ds:block?id=claude-agent-project-bjb4pacx) makes `dir` absolute and walks up for `.git`. `Project.Dir` is where Claude runs; [`Project.RepoRoot`](ds:block?id=claude-project-localroot-rkts9std) is the git root (`""` outside git), which is where `.claude/settings.local.json` lives, except on Windows and when the repo root is the user home: then it stays in `Project.Dir`. Project-aware readers (`Settings`, `Hooks`, `MCPServers`, `Skills`, …) take `*Project`; pass `nil` for home-only answers.
 
 <!-- snippet: examples/claudesettings/main.go#project -->
 ```go

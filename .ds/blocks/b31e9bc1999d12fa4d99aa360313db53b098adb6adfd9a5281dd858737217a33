@@ -1,0 +1,14 @@
+func packageVersion(path string) agentio.Version {
+	b, err := readFile(path)
+	if err != nil {
+		return agentio.Version{}
+	}
+	var pkg struct {
+		Version string `json:"version"`
+	}
+	if json.Unmarshal(b, &pkg) != nil {
+		return agentio.Version{}
+	}
+	v, _ := agentio.ParseVersion(pkg.Version)
+	return v
+}

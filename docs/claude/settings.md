@@ -82,7 +82,7 @@ func showEffectiveSettings(p printer, host agentio.Host) error {
 
 ## Step 3 — Read managed and remote settings
 
-`a.ManagedSettings(h)` returns the admin layers that are present: the server-managed cache (`remote-settings.json`, when non-empty), the managed drop-in dir (later files first) and the managed settings file. `a.RemoteSettings(h)` returns the remote cache as a layer plus its sync time from `remote-settings.json.synced-at`. On macOS, admins can also push settings as a managed preferences plist; `a.Runner().ManagedPlist(ctx)` converts it with `plutil` and returns it as a managed layer (a Process cost, behind the Runner door; it never runs `claude`).
+`a.ManagedSettings(h)` returns the admin layers that are present: the server-managed cache (`remote-settings.json`, when non-empty), the managed drop-in dir (later files first) and the managed settings file. `a.RemoteSettings(h)` returns the remote cache as a layer plus its sync time from `remote-settings.json.synced-at`. On macOS, admins can also push settings as a managed preferences plist; `a.Runner().ManagedPlist(ctx)` converts it with `plutil` and returns it as a managed layer (a Process cost, behind the Runner door; it never runs `claude`). On Windows the policy can also come from the registry: `a.Runner().ManagedRegistry(ctx)` runs `reg.exe query` for `HKLM\SOFTWARE\Policies\ClaudeCode` and the same `HKCU` key (value `Settings`, a JSON string) and returns each present one as a managed layer (`SourceRegistryHKLM`, `SourceRegistryHKCU`); Claude Code applies the user-writable `HKCU` value only when no admin document is present.
 
 <!-- snippet: examples/claudesettings/main.go#managed -->
 ```go

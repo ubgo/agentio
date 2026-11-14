@@ -1,0 +1,32 @@
+func (a *Agent) Checks(ctx context.Context, h Home) []agentio.Check {
+	out := a.core.Checks(ctx, h.Neutral())
+	in, err := a.Install()
+	if err == nil {
+		out = append(out, agentio.VersionCheck(Compat(), in.Version))
+	} else {
+		out = append(out, agentio.VersionCheck(Compat(), agentio.Version{}))
+	}
+	cfg, warns, cerr := a.ConfigFileWarnings(h)
+	switch {
+	case cerr != nil:
+		out = append(out, agentio.Check{ID: CheckConfigParse, Status: agentio.CheckFail, Message: cerr.Error()})
+	case len(warns) > 0:
+		out = append(out, agentio.Check{ID: CheckConfigParse, Status: agentio.CheckWarn, Message: fmt.Sprintf("%d config.toml key(s) changed type; kept raw", len(warns))})
+	default:
+		out = append(out, agentio.Check{ID: CheckConfigParse, Status: agentio.CheckOK, Message: a.Paths(h).Config})
+	}
+	if c, ok := a.providerKeyCheck(cfg); ok {
+		out = append(out, c)
+	}
+	out = append(out, a.loginCheck(ctx, h))
+	if c, ok := a.profileCheck(h, cfg); ok {
+		out = append(out, c)
+	}
+	if uc, ok, err := a.UpdateCache(h); err == nil && ok && in.Version.Major+in.Version.Minor+in.Version.Patch > 0 {
+		if uc.LatestVersion.Compare(in.Version) < 0 {
+			out = append(out, agentio.Check{ID: CheckStaleUpdate, Status: agentio.CheckInfo,
+				Message: "version.json latest " + uc.LatestVersion.String() + " is older than installed " + in.Version.String() + " (stale cache, not an update)"})
+		}
+	}
+	return out
+}

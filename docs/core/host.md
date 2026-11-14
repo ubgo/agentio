@@ -9,7 +9,7 @@ A `Host` is the machine agentio looks at: the user home, the base environment, t
 
 ## Step 1 — Build a Host from the OS
 
-[`agentio.HostFromOS`](ds:block?id=hostfromos-yvmqkxwe) is the one constructor that touches the real machine. It fills `UserHome` from `os.UserHomeDir`, `Env` from `os.Environ`, `Now` with `time.Now`, an HTTP client with a [30 second timeout](ds:block?id=oshttptimeout-3nmmj9j5), the macOS keychain (elsewhere a store whose `Get` returns `ErrUnsupported`), the process table [(`/proc` on Linux, `ps` on macOS)](ds:block?id=osprocesses-processes-q5hpmdr9), an `os/exec` runner, `GOOS` from `runtime.GOOS` and `SystemRoot` (`/` on unix, the system drive root on Windows).
+[`agentio.HostFromOS`](ds:block?id=hostfromos-yvmqkxwe) is the one constructor that touches the real machine. It fills `UserHome` from `os.UserHomeDir`, `Env` from `os.Environ`, `Now` with `time.Now`, an HTTP client with a [30 second timeout](ds:block?id=oshttptimeout-3nmmj9j5), the OS secret store (the macOS keychain through `security`, the Linux Secret Service through `secret-tool`, and on Windows a store whose `Get` returns `ErrUnsupported`), the process table [(`/proc` on Linux, `ps` on macOS, PowerShell `Win32_Process` on Windows)](ds:block?id=osprocesses-processes-q5hpmdr9), an `os/exec` runner, `GOOS` from `runtime.GOOS` and `SystemRoot` (`/` on unix, the system drive root on Windows).
 
 <!-- snippet: examples/quickstart/main.go#host-from-os -->
 ```go
@@ -41,7 +41,7 @@ Build it once at program start and pass it down; every agent constructor (`claud
 | `Secrets` | `SecretStore` | keychain / keyring reads (`Get(ctx, service, account)`) | [no secret is ever found](ds:block?id=claude-agent-keychainget-uj32ktdh) |
 | `Processes` | `ProcessLister` | live sessions, process classification (`Processes`, `Cwd`) | no process is alive |
 | `Exec` | `ProcessRunner` | running the vendor binary, only from Runner doors (`Run` returns a `ProcessResult`) | [Runner calls return an error](ds:block?id=runner-run-5rn5nerj) |
-| `GOOS` | `string` | which OS's system and managed locations apply (`linux`, `darwin`, `windows`) | [no system locations](ds:block?id=host-systempath-7azvt62d) |
+| `GOOS` | `string` | which OS's rules apply (`linux`, `darwin`, `windows`): system and managed locations, `PATH`/`PATHEXT` lookup, env name case, which credential stores a vendor reads | [no system locations], and the `PATH` and env rules of the OS the program was built for(ds:block?id=host-systempath-7azvt62d) |
 | `SystemRoot` | `string` | the root system and managed paths resolve under (`/etc/claude-code`, `/etc/codex`); [`Host.SystemPath(rel)`](ds:block?id=host-systempath-7azvt62d) joins it | no system locations: managed settings, managed `CLAUDE.md` and MCP files and `/etc/codex` layers are never read |
 
 A minimal fixture Host needs only a home and an env:
@@ -105,6 +105,8 @@ func findBinary(p printer, pathList string) {
 }
 ```
 
+The free functions use the separator of the OS the program was built for. To follow the Host instead, use [`Host.LookPath`](ds:block?id=host-lookpath-4k46e3ag) and `Host.LookPathAll`, which read `PATH` and `PATHEXT` from `Host.Env` and apply `Host.GOOS`'s rules: on Windows `;` separates entries, a bare name is tried with every `PATHEXT` extension (`codex.cmd`, `claude.exe`) and no exec bit is needed. `LookPathAllFor(goos, pathList, pathExt, name)` is the same with the OS as an argument. Every agent's `LookPath` and `Install` use the Host form ([Platforms](../platforms.md)).
+
 Every agent has [`Agent.LookPath()`](ds:block?id=core-lookpath-ke3ntet7), which does the same with its own binary name and `Host.Env`'s `PATH`. A miss is an error matching `agentio.ErrNotInstalled`:
 
 <!-- snippet: examples/quickstart/main.go#not-installed -->
@@ -152,6 +154,7 @@ empty PATH: agentio: binary not found on PATH: claude
 - **PATH lookups [skip empty and relative entries](ds:block?id=lookpathall-u48etgc3).** An empty `PATH` element means "current dir" to a shell; agentio never runs a binary from the current dir, so `PATH=:/usr/bin` only searches `/usr/bin`.
 - **[An absolute name is checked as is.](ds:block?id=lookpathall-u48etgc3)** `LookPath(path, "/opt/claude/bin/claude")` ignores `PATH` and only checks that file.
 - **[A file must be executable to count.](ds:block?id=isexecutable-395kvm4u)** A non-executable `claude` file earlier on PATH is skipped, the same as the shell does.
+- **Env names follow `Host.GOOS`.** On Windows `Host.Getenv("PATH")` also finds `Path=...`, and a Command built for a windows Host removes every spelling of a name it changes (`EnvLookupFor`, `ApplyEnvFor`); elsewhere names are case-sensitive.
 - **Duplicate env entries: the last wins.** [`EnvLookup`](ds:block?id=envlookup-ef3y8bwk) and `Getenv` return the last `K=` entry; [`ApplyEnv`](ds:block?id=applyenv-9fc572ee) removes every duplicate when it changes a name ([Targets and commands](launch.md#step-4--change-the-child-environment)).
 - **System locations need `GOOS` and `SystemRoot`.** [Only `HostFromOS` fills them](ds:block?id=hostfromos-yvmqkxwe), so a Host you build yourself never reads `/etc/claude-code` or `/etc/codex` and fixture output cannot change with the machine. To test managed files, put them under a temp dir and pass [`agenttest.WithSystem("linux", dir)`](ds:block?id=agenttest-withsystem-dpvygedy).
 - **[`Exec` is only reached through a Runner door.](ds:block?id=runner-run-5rn5nerj)** Building a launch command never runs anything; holding a Runner is the explicit opt-in to process calls ([Doors](../capabilities/doors.md)).

@@ -1,0 +1,17 @@
+func (a *Agent) Install() (Install, error) {
+	hits := a.host.LookPathAll(Binary)
+	if len(hits) == 0 {
+		return Install{}, fmt.Errorf("%w: %s", agentio.ErrNotInstalled, Binary)
+	}
+	in := Install{Install: agentio.Install{Path: hits[0], Method: agentio.InstallUnknown, Shadowed: hits[1:]}}
+	real, err := filepath.EvalSymlinks(hits[0])
+	if err != nil {
+		real = hits[0]
+	}
+	in.RealPath = real
+	detectInstall(&in, hits[0], real)
+	if in.PackageRoot != "" && in.Version.IsZero() {
+		in.Version = packageVersion(filepath.Join(in.PackageRoot, filePackageJSON))
+	}
+	return in, nil
+}

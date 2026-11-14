@@ -1,0 +1,7 @@
+func (a *Agent) HomeEnv(base []string, h Home) []string {
+	c, ok := agentio.HomeEnvChange(EnvHome, h.h)
+	if !ok {
+		return base
+	}
+	return a.host.ApplyEnv(base, c)
+}

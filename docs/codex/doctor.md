@@ -49,6 +49,7 @@ info  update-cache       version.json latest 0.156.1 is older than installed 0.1
 
 ## Pitfalls
 
+- **`api-billing-env` follows what Codex reads.** Codex auth reads only `CODEX_API_KEY` (in `codex exec`), so the shared check names it; `OPENAI_API_KEY` is named only when a configured `[model_providers.*]` table sets `env_key = "OPENAI_API_KEY"`, since only that provider then bills per token with it.
 - **Never a Runner call.** The version check uses the version from `package.json` (as [`Install`](install.md#step-1--read-the-install) reads it); with no npm-family install the version check warns instead of running `codex --version`.
 - **An expired access token is `info`, not a failure.** Codex refreshes it on its next run; the library never refreshes it, because refreshing rotates the refresh token.
 - **Keyring homes cost one keychain read.** For `cli_auth_credentials_store = "keyring"` or `"auto"`, the login check reads the OS keyring through `Host.Secrets`; a failed or unparsable read reports under `keyring-login`.

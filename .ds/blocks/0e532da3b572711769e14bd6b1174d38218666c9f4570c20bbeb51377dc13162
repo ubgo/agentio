@@ -1,0 +1,21 @@
+func parseDarwinPS(out []byte, loc *time.Location) []Process {
+	var procs []Process
+	for _, line := range strings.Split(string(out), "\n") {
+		f := strings.Fields(line)
+		if len(f) < 2+psLstartFields+1 {
+			continue
+		}
+		pid, err1 := strconv.Atoi(f[0])
+		ppid, err2 := strconv.Atoi(f[1])
+		if err1 != nil || err2 != nil {
+			continue
+		}
+		p := Process{PID: pid, PPID: ppid, Argv: f[2+psLstartFields:]}
+		if t, err := time.ParseInLocation(psLstartLayout, strings.Join(f[2:2+psLstartFields], " "), loc); err == nil {
+			p.Start = t
+		}
+		p.Exe = p.Argv[0]
+		procs = append(procs, p)
+	}
+	return procs
+}

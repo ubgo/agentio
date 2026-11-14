@@ -1,0 +1,6 @@
+func (h Host) LookPath(name string) (string, error) {
+	if all := h.LookPathAll(name); len(all) > 0 {
+		return all[0], nil
+	}
+	return "", fmt.Errorf("%w: %s", ErrNotInstalled, name)
+}

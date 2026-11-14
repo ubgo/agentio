@@ -6,7 +6,7 @@ The `claude` module reads the OAuth login Claude Code stored for a home, tells a
 
 - `go get github.com/ubgo/agentio/claude`.
 - A `Host` with `UserHome`, `User` (the OS login: [keychain lookups name it](ds:block?id=claude-agent-keychainaccount-hv9hcdts)) and `Secrets` (the keychain, or a fake). `HostFromOS()` gives the real ones; the example builds one by hand.
-- A Claude home with a login: `<home>/.credentials.json` (the file store, primary on Linux) or a keychain entry (macOS).
+- A Claude home with a login: `<home>/.credentials.json` (the only store on Linux and Windows, `%USERPROFILE%\.claude\.credentials.json` there) or a keychain entry (macOS). On a Host whose `GOOS` is linux or windows the keychain is not consulted at all.
 
 The snippets come from [`examples/claudeaccount`](../../examples/claudeaccount/). It reads the checked-in 2.1.325 fixture: the default home `~/.claude` has a `.credentials.json`; the work home `~/.claude-work` gets its login from an in-memory keychain holding a placeholder token.
 
@@ -164,7 +164,7 @@ command: claude setup-token                                 CLAUDE_CONFIG_DIR se
 - **The keychain hash is over the exact directory string.** [`KeychainServices` cleans the path and hashes it](ds:block?id=claude-keychainservices-vae8mc8e); a home reached through a different spelling (a symlinked path) maps to another service name, the same way Claude Code itself does. Pointing `CLAUDE_CONFIG_DIR` at the default home makes Claude Code use the hashed name and look logged out (the [doctor](doctor.md) reports this as [`home-env-default`](ds:block?id=claude-agent-doctor-v2kafdh7)).
 - **Unknown expiry is never expired.** [`Expired` returns false when `ExpiresAt` is nil](ds:block?id=claude-credential-expired-k3dc67ku); the server's 401 decides.
 - **An expired login is not refreshed.** Refreshing rotates the refresh token and logs Claude Code out, so the library never does it. [Live usage refuses an expired login with `agentio.ErrExpired`](ds:block?id=claude-agent-usablecredential-e8k4sjep); run `claude` once in that home to refresh it.
-- **On Linux the keychain is not consulted.** A `SecretStore` that answers `agentio.ErrUnsupported` (as `HostFromOS` does on Linux) [reads as "no entry"](ds:block?id=claude-agent-keychainget-uj32ktdh); `.credentials.json` is the store there.
+- **On Linux and Windows the keychain is not consulted.** On a Host whose `GOOS` is linux or windows Claude never asks `Host.Secrets`, and on any OS a `SecretStore` that answers `agentio.ErrUnsupported` [reads as "no entry"](ds:block?id=claude-agent-keychainget-uj32ktdh); `.credentials.json` is the store there.
 - **`TokenLifetime` for a setup-token is a belief, not a fact.** [One year is not verified against the server](ds:block?id=claude-setuptokenlifetime-rwu3ayz3); treat it as a hint for "renew soon" messages.
 - **[`DetectTokenKind` trims spaces but does not validate](ds:block?id=claude-agent-detecttokenkind-8826wbv6).** A known prefix says what kind a token claims to be, not that it works; only a request (for example [a probe](usage.md#step-4--probe-a-tokens-usage)) proves that.
 

@@ -1,0 +1,3 @@
+func (h Host) NewCommand(path string, args []string, dir string, changes ...EnvChange) Command {
+	return NewCommandFor(h.hostOS(), path, args, h.Env, dir, changes...)
+}

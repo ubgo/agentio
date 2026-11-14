@@ -1,0 +1,17 @@
+func (a *Agent) ProjectPaths(h Home, p Project) ProjectPaths {
+	dc := filepath.Join(p.Dir, dotClaudeDir)
+	j := func(n string) string { return filepath.Join(dc, n) }
+	hist := a.HistoryDir(h, p.Dir)
+	return ProjectPaths{
+		Memory: []string{
+			filepath.Join(p.Dir, memoryFileName), j(memoryFileName),
+			filepath.Join(p.Dir, localMemoryFile), filepath.Join(p.Dir, agentsMDFile),
+		},
+		Settings:      j(settingsFile),
+		LocalSettings: filepath.Join(a.localRoot(p), dotClaudeDir, localSettingsFile),
+		MCP:           filepath.Join(p.Dir, projectMCPFile), WorktreeInclude: filepath.Join(p.Dir, worktreeInclude),
+		Rules: j(rulesDir), Skills: j(skillsDir), Commands: j(commandsDir), Agents: j(agentsDir),
+		OutputStyles: j(outputStylesDir), Workflows: j(workflowsDir), AgentMemory: j(agentMemoryDir),
+		HistoryDir: hist, AutoMemory: filepath.Join(hist, memoryDir),
+	}
+}

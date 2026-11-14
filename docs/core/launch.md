@@ -65,7 +65,7 @@ The `Command` you get back:
 | `Env` | the full child environment; the one place a token may live |
 | `Dir` | the working dir (`LaunchRequest.Dir`) |
 | `Warnings` | drift notes from building (unknown or untested version) |
-| `String()` | [the shell-quoted argv, env never included](ds:block?id=command-string-uxssqggr) |
+| `String()` | [the POSIX shell-quoted argv for display, env never included; not PowerShell or cmd.exe quoting](ds:block?id=command-string-uxssqggr) |
 | `Redacted()` | a copy whose secret env values read [`[redacted]`](ds:block?id=command-redacted-qbsw6442) |
 | `SecretEnvNames()` | [env names whose values came from a `Token`](ds:block?id=command-secretenvnames-72t7wfqg) |
 | `MarshalJSON` | [always the redacted form](ds:block?id=command-marshaljson-gy7a7qs2) |
@@ -211,13 +211,15 @@ raw env holds the token: true
 
 ## Pitfalls
 
+- **`String()` is POSIX sh only.** It is for display and logs; never paste it into PowerShell or `cmd.exe`. To run a command on any OS, start `Path` with `Args`, `Env` and `Dir` through `exec.Cmd`: no shell, no quoting. The OS runner resolves a bare `Path` on the command's own `PATH` (with `PATHEXT` on Windows).
+- **Env edits follow the Host's OS.** Agent builders use `Host.NewCommand`, so on a windows Host a change to `PATH` or `CODEX_HOME` also removes `Path=` or `codex_home=`. `ApplyEnv` and `NewCommand` are the case-sensitive forms; `ApplyEnvFor` and `NewCommandFor` take the OS.
 - **Every launch removes inherited credential variables.** A base env carrying `ANTHROPIC_API_KEY` (as above) would make Claude Code bill per token instead of using the home's login, so `Launch` unsets [`Spec.CredentialEnv`](ds:block?id=claude-credentialenv-kqm45qxy) (Claude: `CLAUDE_CODE_OAUTH_TOKEN`, `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`; Codex: `CODEX_API_KEY`) for a home login too. To launch with a key on purpose, pass it as a token login (`LaunchRequest.Credential`) or set it in `Target.ExtraEnv`. [Codex keeps `OPENAI_API_KEY`](ds:block?id=codex-spec-ut8me6cu): Codex auth never reads it, and a model provider may name it as its key.
 - **`ExtraEnv` cannot set the home variable.** [The home rule is applied last](ds:block?id=core-envchanges-f8hrn3we); to launch another home, use that home's Target.
 - **[A prompt goes after `--`.](ds:block?id=claude-launchoptions-build-78wzjpre)** Claude's builder separates the prompt from flags, so a prompt that starts with `-` is never read as a flag.
 - **`Command.Env` holds real secrets.** Print `Redacted()`, `String()` or the JSON form; never `fmt.Println(cmd.Env)`.
 - **`Redacted` also masks names that look secret.** Values from `ExtraEnv` whose names contain `TOKEN`, `KEY`, `SECRET`, [`PASSWORD`](ds:block?id=sensitivenameparts-55jafnj3), `PASSWD`, `CREDENTIAL` or `AUTH` are masked even though they did not come from a Token; [`SecretEnvNames`](ds:block?id=secretnamesof-7pd7kykk) lists only the Token ones.
 - **[Unknown version builds and warns.](ds:block?id=featurespan-in-vh7rmz94)** A zero `Target.Version` is never a refusal; read `Command.Warnings`. A known version that provably lacks a flag returns an error matching [`ErrFeatureUnavailable`](ds:block?id=claude-checkfeature-am2yhjzp) ([Per-feature version table](../compat/features.md)).
-- **`EnvChange` hides its secret.** [`Value()`](ds:block?id=envchange-value-43pazd3a) returns `""` for a secret change and its `String()` and JSON are redacted; [only `ApplyEnv` reads the token](ds:block?id=applyenv-9fc572ee).
+- **`EnvChange` hides its secret.** [`Value()`](ds:block?id=envchange-value-43pazd3a) returns `""` for a secret change and its `String()` and JSON are redacted; [only `ApplyEnv` and `ApplyEnvFor` read the token](ds:block?id=applyenv-9fc572ee).
 
 ## Related
 

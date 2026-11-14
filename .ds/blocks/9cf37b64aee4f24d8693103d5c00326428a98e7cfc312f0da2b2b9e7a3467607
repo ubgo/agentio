@@ -1,0 +1,22 @@
+func methodAndVersion(real string) (agentio.InstallMethod, agentio.Version) {
+	slash := filepath.ToSlash(real)
+	switch {
+	case strings.Contains(slash, nativeVersionsDir):
+		v, _ := agentio.ParseVersion(filepath.Base(real))
+		return agentio.InstallNative, v
+	case strings.Contains(slash, npmPackageDir):
+		i := strings.Index(slash, npmPackageDir)
+		pkg := filepath.FromSlash(slash[:i+len(npmPackageDir)])
+		m := InstallNPMGlobal
+		switch {
+		case strings.Contains(slash, bunDirMarker):
+			m = agentio.InstallBun
+		case strings.Contains(strings.ToLower(slash), pnpmDirMarker):
+			m = agentio.InstallPNPM
+		}
+		return m, packageVersion(filepath.Join(pkg, packageJSONFile))
+	case strings.Contains(slash, caskroomDir):
+		return InstallHomebrewCask, agentio.Version{}
+	}
+	return agentio.InstallUnknown, agentio.Version{}
+}
