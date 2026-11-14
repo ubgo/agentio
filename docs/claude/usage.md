@@ -6,7 +6,7 @@ How much of a Claude plan is used, per window (the five-hour session, the weekly
 
 - `go get github.com/ubgo/agentio/claude`.
 - A home with a login (see [Claude credentials and tokens](credential.md)) for the live read; the cached read needs only `.claude.json`.
-- `Host.HTTP` for network reads (nil uses a client with a 15 second timeout) and `Host.Now` for `ObservedAt` and expiry checks.
+- `Host.HTTP` for network reads (nil makes every network call return `ErrUnsupported`; it never builds a client of its own) and `Host.Now` for `ObservedAt` and expiry checks.
 
 The snippets come from [`examples/claudeusage`](../../examples/claudeusage/). It points the agent at a local `httptest` server with `WithBaseURL`; the fake usage endpoint serves the body the fixture home cached, and the fake `/v1/messages` answers with rate-limit headers. No request reaches the vendor and no quota is spent.
 
@@ -152,6 +152,7 @@ half a header pair: claude: probe response has no usable rate-limit headers: ant
 - **A setup-token cannot read account endpoints.** The usage and profile endpoints answer 403 `oauth_scope_insufficient` for it, mapped to `agentio.ErrScopeLimited`; use the probe for token logins.
 - **Cached usage can be days old.** `ObservedAt` is when Claude Code fetched it, not when you read it; the fixture's copy is 16 days older than the clock.
 - **Percent units differ by source.** Usage windows always carry 0–100 (the probe converts its 0..1 headers). The stream's `rate_limit_event` keeps the wire fraction: `RateLimitWindow.Utilization` 0.52 means 52%.
+- **A nil `Host.HTTP` is `ErrUnsupported`.** `Usage`, `Subscription` and `TokenUsage` never fall back to a default client; set `Host.HTTP` (`HostFromOS` does) or expect `errors.Is(err, agentio.ErrUnsupported)`.
 - **401/403 is `agentio.ErrUnauthorized`.** Error text never repeats the token: the library replaces it with `[redacted]` if a body echoes it.
 
 ## Related

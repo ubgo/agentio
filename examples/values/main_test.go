@@ -25,7 +25,7 @@ func TestRun(t *testing.T) {
 		`unknown: theme raw={"name":"dark"}` + "\n",
 		"warning: type-changed: settings.json: cleanupPeriodDays: expected a number\n",
 		`parse "v1.2": ok=true version="1.2.0" major=1 pre=""` + "\n",
-		`parse "x86_64 build 7": ok=true version="64.0.0"`,
+		`parse "x86_64 build 7": ok=true version="7.0.0"`,
 		`parse "no version here": ok=false`,
 		"sorted: [0.162.1 1.0.0-alpha 1.0.0-beta.2 1.0.0-beta.11 1.0.0]\n",
 		`json autonomy yolo: agentio: unknown autonomy "yolo"` + "\n",

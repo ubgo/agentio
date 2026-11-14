@@ -305,7 +305,7 @@ const (
 	probeUserText          = "hi"
 	anthropicVersionHeader = "anthropic-version"
 	anthropicVersion       = "2023-06-01"
-	probeTimeout           = 30 * time.Second
+	whatProbe              = "token probe"
 )
 
 type probeBody struct {
@@ -349,9 +349,9 @@ func (p *Prober) TokenUsage(ctx context.Context, c agentio.TokenCredential) (Usa
 	req.Header.Set(anthropicVersionHeader, anthropicVersion)
 	req.Header.Set(headerContentType, mimeJSON)
 	req.Header.Set(headerUserAgent, userAgent)
-	client := p.a.host.HTTP
-	if client == nil {
-		client = &http.Client{Timeout: probeTimeout}
+	client, err := p.a.httpClient(whatProbe)
+	if err != nil {
+		return Usage{}, err
 	}
 	resp, err := client.Do(req)
 	if err != nil {

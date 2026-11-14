@@ -9,8 +9,9 @@ import (
 
 // snippet:start parse-version
 // parseVersions reads the version out of real `--version` output shapes.
-// ParseVersion scans for the first dotted number, so product text around
-// it does not matter; ok is false when there is no number. Pure.
+// ParseVersion scans for the first number that starts a word, so product
+// text around it does not matter and the 64 in "x86_64" is skipped; ok is
+// false when there is no such number. Pure.
 func parseVersions(p printer) error {
 	for _, s := range []string{
 		"2.1.325 (Claude Code)",

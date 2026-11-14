@@ -24,20 +24,22 @@ const (
 	versionVee = 'v'
 )
 
-// ParseVersion finds the first dotted number in s ("codex-cli 0.162.1",
-// "2.1.323 (Claude Code)", "v1.2") and parses it with an optional
-// "-pre" suffix. Why scan instead of a strict parse: vendor `--version`
-// output wraps the number in product text that changes between releases.
-// ok is false when s holds no number. Pure.
+// ParseVersion finds the first number that starts a token in s
+// ("codex-cli 0.162.1", "2.1.323 (Claude Code)", "v1.2") and parses it
+// with an optional "-pre" suffix. Why scan instead of a strict parse:
+// vendor `--version` output wraps the number in product text that changes
+// between releases. A token starts at the beginning of s or after a byte
+// that is not a letter, digit or one of "_.-+", optionally behind a 'v'
+// that itself starts the token: the 64 in "x86_64" and the 1 in "dev1.2"
+// are inside a word, so "x86_64 build 7" parses as 7.0.0. ok is false when
+// s holds no such number. Pure.
 func ParseVersion(s string) (Version, bool) {
 	raw := strings.TrimSpace(s)
 	for i := 0; i < len(raw); i++ {
 		if !isDigit(raw[i]) {
 			continue
 		}
-		// A number glued to a letter ("x86") is not a version start,
-		// except a leading 'v' ("v1.2").
-		if i > 0 && isAlnum(raw[i-1]) && raw[i-1] != versionVee {
+		if !versionStart(raw, i) {
 			continue
 		}
 		v, ok := parseVersionAt(raw[i:])
@@ -47,6 +49,29 @@ func ParseVersion(s string) (Version, bool) {
 		}
 	}
 	return Version{}, false
+}
+
+// versionWordBytes continue a word: a digit after one of them is inside
+// the word ("x86_64", "rc.3", "node-18"), never the start of a version.
+const versionWordBytes = "_.-+"
+
+// versionStart reports whether the digit at s[i] starts a version token:
+// at a token boundary, or right after a 'v' that is at one ("v1.2").
+func versionStart(s string, i int) bool {
+	if tokenBoundary(s, i) {
+		return true
+	}
+	return s[i-1] == versionVee && tokenBoundary(s, i-1)
+}
+
+// tokenBoundary reports whether a token can start at s[i]: i is 0 or the
+// byte before it is neither alphanumeric nor a word byte.
+func tokenBoundary(s string, i int) bool {
+	if i == 0 {
+		return true
+	}
+	c := s[i-1]
+	return !isAlnum(c) && !strings.ContainsRune(versionWordBytes, rune(c))
 }
 
 // parseVersionAt parses "M[.m[.p]][-pre]" at the start of s.

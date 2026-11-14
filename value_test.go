@@ -35,6 +35,18 @@ func TestParseVersion(t *testing.T) {
 		{"v1.2", "1.2.0", true},
 		{"1.0.0-beta.2", "1.0.0-beta.2", true},
 		{"x86 tool 3.4.5", "3.4.5", true},
+		// Real `claude --version` and `codex --version` output.
+		{"2.1.325 (Claude Code)\n", "2.1.325", true},
+		{"codex-cli 0.162.1\n", "0.162.1", true},
+		{"codex-cli 0.158.0-alpha.2.1", "0.158.0-alpha.2.1", true},
+		// A number inside a word is not a version start.
+		{"x86_64 build 7", "7.0.0", true},
+		{"x86_64", "", false},
+		{"dev1.2 release", "", false},
+		{"node-18 tool", "", false},
+		{"rc.3", "", false},
+		{"(v2.0.1)", "2.0.1", true},
+		{"claude/1.4.2", "1.4.2", true},
 		{"no version", "", false},
 		{"", "", false},
 	} {

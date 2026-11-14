@@ -9,13 +9,14 @@
 
 ## Step 1 — Parse a version
 
-`agentio.ParseVersion(s)` finds the first dotted number in `s` and parses it, with an optional `-pre` suffix. It scans instead of parsing strictly because vendor `--version` output wraps the number in product text that changes between releases. It returns `(Version, bool)`; `ok` is false when there is no number. `MustVersion(s)` is for constants known at compile time and yields the zero Version on a typo, never a panic.
+`agentio.ParseVersion(s)` finds the first number in `s` that starts a word and parses it, with an optional `-pre` suffix. It scans instead of parsing strictly because vendor `--version` output wraps the number in product text that changes between releases. It returns `(Version, bool)`; `ok` is false when there is no number. `MustVersion(s)` is for constants known at compile time and yields the zero Version on a typo, never a panic.
 
 <!-- snippet: examples/values/versions.go#parse-version -->
 ```go
 // parseVersions reads the version out of real `--version` output shapes.
-// ParseVersion scans for the first dotted number, so product text around
-// it does not matter; ok is false when there is no number. Pure.
+// ParseVersion scans for the first number that starts a word, so product
+// text around it does not matter and the 64 in "x86_64" is skipped; ok is
+// false when there is no such number. Pure.
 func parseVersions(p printer) error {
 	for _, s := range []string{
 		"2.1.325 (Claude Code)",
@@ -79,7 +80,7 @@ parse "2.1.325 (Claude Code)": ok=true version="2.1.325" major=2 pre=""
 parse "codex-cli 0.162.1": ok=true version="0.162.1" major=0 pre=""
 parse "v1.2": ok=true version="1.2.0" major=1 pre=""
 parse "1.0.0-beta.2": ok=true version="1.0.0-beta.2" major=1 pre="beta.2"
-parse "x86_64 build 7": ok=true version="64.0.0" major=64 pre=""
+parse "x86_64 build 7": ok=true version="7.0.0" major=7 pre=""
 parse "no version here": ok=false version="" major=0 pre=""
 must: 2.1.323 typo-is-zero=true
 sorted: [0.162.1 1.0.0-alpha 1.0.0-beta.2 1.0.0-beta.11 1.0.0]
@@ -89,7 +90,7 @@ unknown: IsZero=true String=""
 
 ## Pitfalls
 
-- **`ParseVersion` takes the first number it finds.** It skips a number glued to a letter (`x86`), but `x86_64 build 7` parses as `64.0.0` because `_` is not a letter. Pass it the version text itself, not a whole line of unrelated output.
+- **`ParseVersion` takes the first number that starts a word.** A number inside a word is skipped: the `86` and `64` in `x86_64`, the `1` in `dev1.2`, the `18` in `node-18` (a digit after a letter, digit, `_`, `.`, `-` or `+` is inside the word; a leading `v` is allowed). So `x86_64 build 7` parses as `7.0.0`. Pass it the version text itself, not a whole line of unrelated output.
 - **Missing parts are zero.** `v1.2` is `1.2.0`; the `v` prefix is accepted.
 - **The zero Version is "unknown", not `0.0.0`.** `IsZero()` is true and `String()` is `""`. A real `0.0.0` cannot be told apart, which no vendor ships.
 - **Vendor `ParseVersion` has a different signature.** `claude.ParseVersion` and `codex.ParseVersion` return `(agentio.Version, error)`, the root function returns `(Version, bool)`.

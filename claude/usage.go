@@ -387,7 +387,11 @@ func (a *Agent) get(ctx context.Context, path string, tok agentio.Token) ([]byte
 	req.Header.Set(oauthBetaHeader, oauthBetaValue)
 	req.Header.Set(headerAccept, mimeJSON)
 	req.Header.Set(headerUserAgent, userAgent)
-	resp, err := a.httpClient().Do(req)
+	client, err := a.httpClient(path)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("claude: request %s: %w", path, err)
 	}
@@ -422,13 +426,20 @@ func apiMessage(body []byte, token string) string {
 	return ": " + snippet([]byte(redactIn(e.Error.Message, token)))
 }
 
-// httpClient is Host.HTTP, or a client with defaultTimeout.
-func (a *Agent) httpClient() *http.Client {
-	if a.host.HTTP != nil {
-		return a.host.HTTP
+// httpClient is Host.HTTP. A nil Host.HTTP is ErrUnsupported naming the
+// call (what), never a private default client: building a real client here
+// would be hidden network access (no hidden state), and HostFromOS is the
+// one place that builds one.
+func (a *Agent) httpClient(what string) (*http.Client, error) {
+	if a.host.HTTP == nil {
+		return nil, agentio.UnsupportedError(ID, what, reasonNoHTTP)
 	}
-	return &http.Client{Timeout: defaultTimeout}
+	return a.host.HTTP, nil
 }
+
+// reasonNoHTTP is the Unsupported reason for a network call on a Host
+// without an HTTP client.
+const reasonNoHTTP = "Host.HTTP is nil"
 
 // now reads Host.Now; a zero time when the host has no clock.
 func (a *Agent) now() time.Time {
@@ -437,9 +448,6 @@ func (a *Agent) now() time.Time {
 	}
 	return a.host.Now()
 }
-
-// defaultTimeout bounds one usage request end to end.
-const defaultTimeout = 15 * time.Second
 
 // usableCredential resolves the home's login and refuses expired ones
 // before any request (never refreshed, invariant 1).

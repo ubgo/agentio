@@ -8,6 +8,11 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 
 - Modules `github.com/ubgo/agentio` (neutral core, typed capability accessors, `agenttest`), `claude` (Claude Code), `codex` (Codex), `codex/state` (Codex SQLite stores, read-only) and `builtin` (every built-in agent plus config-defined agents).
 
+### Fixed
+
+- `ParseVersion` only starts a version at a word boundary: `x86_64 build 7` parses as `7.0.0`, no longer `64.0.0`.
+- Claude usage, profile and token-probe calls return `ErrUnsupported` when `Host.HTTP` is nil instead of building a default client that reached the real network (module `claude`).
+
 ### Documentation
 
 - A documentation site under `docs/`: a learning path from the first `Host` to a production setup, a "start from your goal" table, and guides for the core, the shared capabilities, every Claude Code and Codex area, testing, and compatibility. Every guide has complete snippets, the real output of a runnable example, and pitfalls taken from the code and tests.

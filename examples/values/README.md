@@ -46,7 +46,7 @@ parse "2.1.325 (Claude Code)": ok=true version="2.1.325" major=2 pre=""
 parse "codex-cli 0.162.1": ok=true version="0.162.1" major=0 pre=""
 parse "v1.2": ok=true version="1.2.0" major=1 pre=""
 parse "1.0.0-beta.2": ok=true version="1.0.0-beta.2" major=1 pre="beta.2"
-parse "x86_64 build 7": ok=true version="64.0.0" major=64 pre=""
+parse "x86_64 build 7": ok=true version="7.0.0" major=7 pre=""
 parse "no version here": ok=false version="" major=0 pre=""
 must: 2.1.323 typo-is-zero=true
 sorted: [0.162.1 1.0.0-alpha 1.0.0-beta.2 1.0.0-beta.11 1.0.0]

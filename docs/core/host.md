@@ -152,7 +152,7 @@ empty PATH: agentio: binary not found on PATH: claude
 - **A file must be executable to count.** A non-executable `claude` file earlier on PATH is skipped, the same as the shell does.
 - **Duplicate env entries: the last wins.** `EnvLookup` and `Getenv` return the last `K=` entry; `ApplyEnv` removes every duplicate when it changes a name ([Targets and commands](launch.md#step-4--change-the-child-environment)).
 - **`Exec` is only reached through a Runner door.** Building a launch command never runs anything; holding a Runner is the explicit opt-in to process calls ([Doors](../capabilities/doors.md)).
-- **A nil `HTTP` is not "no network" for every vendor.** Codex usage calls return `ErrUnsupported` when `Host.HTTP` is nil, but Claude's usage, profile and probe calls fall back to a default `http.Client` and still reach the network. To forbid network in a test, set `HTTP` to a client that fails (`agenttest.FailingHTTP`) instead of leaving it nil.
+- **A nil `HTTP` means "no network".** Every vendor network call (Claude usage, profile and probe, Codex usage) returns `ErrUnsupported` with the reason `Host.HTTP is nil`; the library never builds a client of its own, `HostFromOS` is the one place that does. In a test, prefer `agenttest.FailingHTTP` so an unexpected request fails loudly instead of returning a quiet `ErrUnsupported`.
 - **On macOS the process table comes from `ps`.** Arguments are split on spaces, so an argument that contains a space shows up as two.
 
 ## Related
