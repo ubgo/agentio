@@ -29,7 +29,7 @@ tasks:
       - go run ./agentinfo -dir "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   drift:
-    desc: Drift check against this machine's real Claude/Codex homes (disk reads only; no vendor binary, no network). Flags after --, e.g. -- -claude-help help.txt -baseline last.tsv
+    desc: Drift check against this machine's real Claude/Codex homes (disk reads only; no vendor binary, no network). Flags after --, e.g. -- -fixtures (repo fixture homes, same output everywhere), -- -claude-help help.txt -baseline last.tsv
     dir: examples
     cmds:
       - go run ./drift {{.CLI_ARGS}}
@@ -39,6 +39,16 @@ tasks:
     cmds:
       - mkdir -p dist
       - cd examples && CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o ../dist/agentinfo-darwin-arm64 ./agentinfo
+
+  docs:check:
+    desc: Check public markdown - snippet sync, relative links and anchors, no hard wraps, no local paths, no attribution
+    cmds:
+      - go test -count=1 ./internal/docscheck/
+
+  docs:snippets:
+    desc: Rewrite markdown snippet blocks from their Go source regions
+    cmds:
+      - go test -count=1 ./internal/docscheck/ -run '^TestSnippets$' -args -update
 
   check:
     desc: Full gate - gofmt, vet, staticcheck (if installed), race tests, cross-compile 6 platforms, standalone (GOWORK=off) builds

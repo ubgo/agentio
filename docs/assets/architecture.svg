@@ -1,0 +1,171 @@
+<svg viewBox="8 0 814 659" width="814" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    text { font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', system-ui, sans-serif; }
+  </style>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="2" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L8,4 L0,8 L2,4 z" fill="#64748b"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="8" markerHeight="8" refX="2" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L8,4 L0,8 L2,4 z" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="2" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L8,4 L0,8 L2,4 z" fill="#22c55e"/>
+    </marker>
+  </defs>
+
+  <!-- Opaque light canvas so the diagram reads the same on GitHub light and dark themes. -->
+  <rect x="8" y="0" width="814" height="659" fill="#ffffff"/>
+
+  <!-- Content spans x 30..800, so the title sits on the content centre x=415. -->
+  <text x="415" y="34" font-size="16" fill="#1e293b" text-anchor="middle">agentio: from your call down to the machine and back</text>
+
+  <!-- Layer bands (main column x 30..610). Each band: title at top+14, boxes at top+25,
+       15px bottom padding, 20px gap to the next band. -->
+  <rect x="30" y="56" width="580" height="94" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6,4"/>
+  <text x="40" y="70" font-size="11" fill="#64748b">Callers · any Go program</text>
+  <rect x="30" y="170" width="580" height="94" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6,4"/>
+  <text x="40" y="184" font-size="11" fill="#64748b">Neutral core · github.com/ubgo/agentio · stdlib only</text>
+  <rect x="30" y="284" width="580" height="94" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6,4"/>
+  <text x="40" y="298" font-size="11" fill="#64748b">Vendor modules · one Go module per agent</text>
+  <rect x="30" y="398" width="580" height="94" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6,4"/>
+  <text x="40" y="412" font-size="11" fill="#64748b">agentio.Host · defined in the core, built once by HostFromOS()</text>
+  <rect x="30" y="512" width="580" height="94" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6,4"/>
+  <text x="40" y="526" font-size="11" fill="#64748b">The machine</text>
+
+  <!-- Side column (x 636..800): testing and ops, one box per layer it checks or replaces. -->
+  <rect x="636" y="56" width="164" height="550" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6,4"/>
+  <text x="646" y="70" font-size="11" fill="#64748b">Testing &amp; ops</text>
+
+  <!-- Primary flow down (blue) at x=530, return flow up (green) at x=570.
+       Start = source edge + 5, end = target edge - 11. -->
+  <path d="M530,140 L 530,184" fill="none" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <path d="M530,254 L 530,298" fill="none" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <path d="M530,368 L 530,412" fill="none" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <path d="M530,482 L 530,526" fill="none" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <path d="M570,532 L 570,488" fill="none" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+  <path d="M570,418 L 570,374" fill="none" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+  <path d="M570,304 L 570,260" fill="none" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+  <path d="M570,190 L 570,146" fill="none" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+
+  <!-- Side column to the layer it checks or stands in for (dashed, leftward). -->
+  <path d="M646,222 L 606,222" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <path d="M646,336 L 606,336" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <path d="M646,450 L 606,450" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <path d="M646,563 L 606,563" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+
+  <!-- Callers: 4 boxes w=118, gap 26, x 45..595. -->
+  <rect x="45" y="81" width="118" height="54" rx="6" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="104" y="103" font-size="12" fill="#1e40af" text-anchor="middle">agx</text>
+  <text x="104" y="121" font-size="10" fill="#1e40af" text-anchor="middle">multi-agent CLI</text>
+  <rect x="189" y="81" width="118" height="54" rx="6" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="248" y="103" font-size="12" fill="#1e40af" text-anchor="middle">agentop</text>
+  <text x="248" y="121" font-size="10" fill="#1e40af" text-anchor="middle">live process view</text>
+  <rect x="333" y="81" width="118" height="54" rx="6" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="392" y="103" font-size="12" fill="#1e40af" text-anchor="middle">ailog</text>
+  <text x="392" y="121" font-size="10" fill="#1e40af" text-anchor="middle">conversation logs</text>
+  <rect x="477" y="81" width="118" height="54" rx="6" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="536" y="103" font-size="12" fill="#1e40af" text-anchor="middle">your app</text>
+  <text x="536" y="121" font-size="10" fill="#1e40af" text-anchor="middle">any Go program</text>
+
+  <!-- Neutral core: 3 boxes w=166, gap 26. -->
+  <rect x="45" y="195" width="166" height="54" rx="6" fill="#fef3c7" stroke="#f59e0b"/>
+  <text x="128" y="217" font-size="12" fill="#b45309" text-anchor="middle">Agent · Home · Spec</text>
+  <text x="128" y="235" font-size="10" fill="#b45309" text-anchor="middle">Target · Command · Token</text>
+  <rect x="237" y="195" width="166" height="54" rx="6" fill="#fef3c7" stroke="#f59e0b"/>
+  <text x="320" y="217" font-size="12" fill="#b45309" text-anchor="middle">opt-in doors</text>
+  <text x="320" y="235" font-size="10" fill="#b45309" text-anchor="middle">Runner · Prober · Writer</text>
+  <rect x="429" y="195" width="166" height="54" rx="6" fill="#fef3c7" stroke="#f59e0b"/>
+  <text x="512" y="217" font-size="12" fill="#b45309" text-anchor="middle">typed accessors</text>
+  <text x="512" y="235" font-size="10" fill="#b45309" text-anchor="middle">UsageOf, ConversationsOf …</text>
+
+  <!-- Vendor modules: 3 boxes w=166, gap 26. -->
+  <rect x="45" y="309" width="166" height="54" rx="6" fill="#f3e8ff" stroke="#a855f7"/>
+  <text x="128" y="331" font-size="12" fill="#6b21a8" text-anchor="middle">codex/state</text>
+  <text x="128" y="349" font-size="10" fill="#6b21a8" text-anchor="middle">thread index, pulls SQLite</text>
+  <rect x="237" y="309" width="166" height="54" rx="6" fill="#f3e8ff" stroke="#a855f7"/>
+  <text x="320" y="331" font-size="12" fill="#6b21a8" text-anchor="middle">codex</text>
+  <text x="320" y="349" font-size="10" fill="#6b21a8" text-anchor="middle">config.toml, rollouts</text>
+  <rect x="429" y="309" width="166" height="54" rx="6" fill="#f3e8ff" stroke="#a855f7"/>
+  <text x="512" y="331" font-size="12" fill="#6b21a8" text-anchor="middle">claude</text>
+  <text x="512" y="349" font-size="10" fill="#6b21a8" text-anchor="middle">settings, transcripts, usage</text>
+
+  <!-- Host: 5 boxes w=90, gap 25, each above the machine resource it reaches. -->
+  <rect x="45" y="423" width="90" height="54" rx="6" fill="#fce7f3" stroke="#ec4899"/>
+  <text x="90" y="445" font-size="12" fill="#9d174d" text-anchor="middle">Exec</text>
+  <text x="90" y="463" font-size="10" fill="#9d174d" text-anchor="middle">ProcessRunner</text>
+  <rect x="160" y="423" width="90" height="54" rx="6" fill="#fce7f3" stroke="#ec4899"/>
+  <text x="205" y="445" font-size="12" fill="#9d174d" text-anchor="middle">HTTP</text>
+  <text x="205" y="463" font-size="10" fill="#9d174d" text-anchor="middle">*http.Client</text>
+  <rect x="275" y="423" width="90" height="54" rx="6" fill="#fce7f3" stroke="#ec4899"/>
+  <text x="320" y="445" font-size="12" fill="#9d174d" text-anchor="middle">Processes</text>
+  <text x="320" y="463" font-size="10" fill="#9d174d" text-anchor="middle">ProcessLister</text>
+  <rect x="390" y="423" width="90" height="54" rx="6" fill="#fce7f3" stroke="#ec4899"/>
+  <text x="435" y="445" font-size="12" fill="#9d174d" text-anchor="middle">Secrets</text>
+  <text x="435" y="463" font-size="10" fill="#9d174d" text-anchor="middle">SecretStore</text>
+  <rect x="505" y="423" width="90" height="54" rx="6" fill="#fce7f3" stroke="#ec4899"/>
+  <text x="550" y="445" font-size="12" fill="#9d174d" text-anchor="middle">UserHome</text>
+  <text x="550" y="463" font-size="10" fill="#9d174d" text-anchor="middle">Env · Now</text>
+
+  <!-- The machine: 5 boxes w=90, gap 25. -->
+  <rect x="45" y="537" width="90" height="54" rx="6" fill="#d1fae5" stroke="#22c55e"/>
+  <text x="90" y="559" font-size="12" fill="#166534" text-anchor="middle">binaries</text>
+  <text x="90" y="577" font-size="10" fill="#166534" text-anchor="middle">claude, codex</text>
+  <rect x="160" y="537" width="90" height="54" rx="6" fill="#d1fae5" stroke="#22c55e"/>
+  <text x="205" y="559" font-size="12" fill="#166534" text-anchor="middle">HTTP</text>
+  <text x="205" y="577" font-size="10" fill="#166534" text-anchor="middle">vendor APIs</text>
+  <rect x="275" y="537" width="90" height="54" rx="6" fill="#d1fae5" stroke="#22c55e"/>
+  <text x="320" y="559" font-size="12" fill="#166534" text-anchor="middle">processes</text>
+  <text x="320" y="577" font-size="10" fill="#166534" text-anchor="middle">ps, /proc</text>
+  <rect x="390" y="537" width="90" height="54" rx="6" fill="#d1fae5" stroke="#22c55e"/>
+  <text x="435" y="559" font-size="12" fill="#166534" text-anchor="middle">keychain</text>
+  <text x="435" y="577" font-size="10" fill="#166534" text-anchor="middle">OS keyring</text>
+  <rect x="505" y="537" width="90" height="54" rx="6" fill="#d1fae5" stroke="#22c55e"/>
+  <text x="550" y="559" font-size="12" fill="#166534" text-anchor="middle">homes</text>
+  <text x="550" y="577" font-size="10" fill="#166534" text-anchor="middle">files on disk</text>
+
+  <!-- Side boxes: w=134, h=81, gap 26; three lines, baselines at +28 / +46 / +61. -->
+  <rect x="651" y="81" width="134" height="81" rx="6" fill="#ffffff" stroke="#94a3b8"/>
+  <text x="718" y="109" font-size="12" fill="#1e293b" text-anchor="middle">examples</text>
+  <text x="718" y="127" font-size="10" fill="#64748b" text-anchor="middle">agentinfo report</text>
+  <text x="718" y="142" font-size="10" fill="#64748b" text-anchor="middle">drift report</text>
+  <rect x="651" y="188" width="134" height="81" rx="6" fill="#ffffff" stroke="#94a3b8"/>
+  <text x="718" y="216" font-size="12" fill="#1e293b" text-anchor="middle">conformance</text>
+  <text x="718" y="234" font-size="10" fill="#64748b" text-anchor="middle">one agenttest suite</text>
+  <text x="718" y="249" font-size="10" fill="#64748b" text-anchor="middle">for every Agent</text>
+  <rect x="651" y="295" width="134" height="81" rx="6" fill="#ffffff" stroke="#94a3b8"/>
+  <text x="718" y="323" font-size="12" fill="#1e293b" text-anchor="middle">compat &amp; drift</text>
+  <text x="718" y="341" font-size="10" fill="#64748b" text-anchor="middle">tested version range</text>
+  <text x="718" y="356" font-size="10" fill="#64748b" text-anchor="middle">features.tsv drift</text>
+  <rect x="651" y="402" width="134" height="81" rx="6" fill="#ffffff" stroke="#94a3b8"/>
+  <text x="718" y="430" font-size="12" fill="#1e293b" text-anchor="middle">agenttest fakes</text>
+  <text x="718" y="448" font-size="10" fill="#64748b" text-anchor="middle">fake Host, keychain,</text>
+  <text x="718" y="463" font-size="10" fill="#64748b" text-anchor="middle">processes, runner</text>
+  <rect x="651" y="509" width="134" height="81" rx="6" fill="#ffffff" stroke="#94a3b8"/>
+  <text x="718" y="537" font-size="12" fill="#1e293b" text-anchor="middle">fixture homes</text>
+  <text x="718" y="555" font-size="10" fill="#64748b" text-anchor="middle">real-shaped homes</text>
+  <text x="718" y="570" font-size="10" fill="#64748b" text-anchor="middle">per vendor version</text>
+
+  <!-- Step badges for the downward flow, centred in each 20px gap between bands,
+       with the step name to their left. -->
+  <circle cx="513" cy="160" r="8" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="513" y="163.5" font-size="10" fill="#1e40af" text-anchor="middle">1</text>
+  <text x="498" y="163.5" font-size="10" fill="#1e40af" text-anchor="end">call an accessor</text>
+  <circle cx="513" cy="274" r="8" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="513" y="277.5" font-size="10" fill="#1e40af" text-anchor="middle">2</text>
+  <text x="498" y="277.5" font-size="10" fill="#1e40af" text-anchor="end">dispatch to the vendor module</text>
+  <circle cx="513" cy="388" r="8" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="513" y="391.5" font-size="10" fill="#1e40af" text-anchor="middle">3</text>
+  <text x="498" y="391.5" font-size="10" fill="#1e40af" text-anchor="end">read only through Host</text>
+  <circle cx="513" cy="502" r="8" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="513" y="505.5" font-size="10" fill="#1e40af" text-anchor="middle">4</text>
+  <text x="498" y="505.5" font-size="10" fill="#1e40af" text-anchor="end">disk, process or network</text>
+
+  <!-- Colour key, below the bands. -->
+  <path d="M180,630 L 198,630" fill="none" stroke="#3b82f6" stroke-width="3"/>
+  <text x="208" y="634" font-size="10" fill="#64748b">call path, steps 1 to 4</text>
+  <path d="M348,630 L 366,630" fill="none" stroke="#22c55e" stroke-width="3"/>
+  <text x="376" y="634" font-size="10" fill="#64748b">typed values back up</text>
+  <path d="M508,630 L 526,630" fill="none" stroke="#94a3b8" stroke-width="3" stroke-dasharray="4,3"/>
+  <text x="536" y="634" font-size="10" fill="#64748b">checks or stands in for</text>
+</svg>
