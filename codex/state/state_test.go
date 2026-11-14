@@ -1,8 +1,10 @@
 package state
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -12,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ubgo/agentio"
 	"github.com/ubgo/agentio/codex"
 )
 
@@ -404,5 +407,18 @@ func TestOpenWithSomePaths(t *testing.T) {
 	var np *NoPathError
 	if !errors.As(err, &np) || !errors.Is(err, ErrNoPath) || np.File != FileGoals {
 		t.Fatalf("goals without a path: %v, want *NoPathError for %s", err, FileGoals)
+	}
+}
+
+// TestTurnErrorOmittedWhenNil: a turn without error_json encodes without
+// an Error key instead of "Error":null; a real error stays verbatim.
+func TestTurnErrorOmittedWhenNil(t *testing.T) {
+	b, err := json.Marshal(Turn{TurnID: "t1"})
+	if err != nil || bytes.Contains(b, []byte(`"Error"`)) {
+		t.Fatalf("nil Error encoded: %s %v", b, err)
+	}
+	b, err = json.Marshal(Turn{TurnID: "t2", Error: agentio.Raw(`{"message":"boom"}`)})
+	if err != nil || !bytes.Contains(b, []byte(`"Error":{"message":"boom"}`)) {
+		t.Fatalf("error not kept: %s %v", b, err)
 	}
 }

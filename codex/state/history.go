@@ -40,11 +40,14 @@ func (s TurnStatus) IsKnown() bool {
 // Turn is one row of thread_turns: a user prompt and the agent's work on
 // it, with the byte range it occupies in the rollout file.
 type Turn struct {
-	ThreadID          string
-	TurnID            string
-	RootTurnID        *string // 0008+
-	Status            TurnStatus
-	Error             agentio.Raw // error_json, shape vendor-defined
+	ThreadID   string
+	TurnID     string
+	RootTurnID *string // 0008+
+	Status     TurnStatus
+	// Error is error_json verbatim (shape vendor-defined); nil when the
+	// column is NULL. omitempty keeps a nil Error out of JSON instead of
+	// encoding it as null.
+	Error             agentio.Raw `json:",omitempty"`
 	Started           time.Time   // started_at (seconds)
 	Completed         time.Time   // completed_at (seconds)
 	Duration          time.Duration
