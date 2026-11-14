@@ -95,3 +95,19 @@ func TestRunJSON(t *testing.T) {
 		t.Fatalf("claude processes %+v", cl.Processes)
 	}
 }
+
+// TestFixturesFlag runs `agentinfo -fixtures` as main does: the repository
+// fixture homes read in place, with no real process table, keychain,
+// network or binary, so the platform workflow and the distro images can
+// run it on any OS.
+func TestFixturesFlag(t *testing.T) {
+	var out bytes.Buffer
+	if err := runOS(context.Background(), options{fixtures: true}, &out); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"=== Claude Code (claude) ===", "=== Codex (codex) ===", "install:   not installed"} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("output lacks %q", want)
+		}
+	}
+}

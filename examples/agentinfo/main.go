@@ -6,7 +6,9 @@
 //
 // By default it only reads disk and the process table. It never runs a vendor
 // binary unless --runner is given and never calls a vendor endpoint unless
-// --network is given.
+// --network is given. -fixtures reads the fixture homes checked into this
+// repository instead of this machine (same output on every OS; the platform
+// workflow and the distro images run it).
 package main
 
 import (
@@ -16,10 +18,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/ubgo/agentio"
 	"github.com/ubgo/agentio/builtin"
+	"github.com/ubgo/agentio/codex"
 )
 
 // recentConversations is how many conversations per home are listed.
@@ -31,6 +35,9 @@ type options struct {
 	runner  bool // allow Runner calls (runs the vendor binary: may touch login)
 	network bool // allow Network reads (vendor usage endpoint: may 429)
 	dir     string
+	// fixtures reads the repository fixture homes in place (read-only)
+	// instead of this machine.
+	fixtures bool
 }
 
 func main() {
@@ -39,6 +46,7 @@ func main() {
 	flag.BoolVar(&o.runner, "runner", false, "also run the vendor binary for its version (may touch the login)")
 	flag.BoolVar(&o.network, "network", false, "also fetch live usage from the vendor (one request per home; may 429)")
 	flag.StringVar(&o.dir, "dir", "", "project folder for per-project reads (default: current directory)")
+	flag.BoolVar(&o.fixtures, "fixtures", false, "read the fixture homes in this repository instead of this machine (run from examples/)")
 	flag.Parse()
 	if err := runOS(context.Background(), o, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "agentinfo:", err)
@@ -50,6 +58,16 @@ func main() {
 // agentio.HostFromOS (the one place that touches the real machine) and
 // uses the current directory when --dir is not given.
 func runOS(ctx context.Context, o options, w io.Writer) error {
+	if o.fixtures {
+		host, dir, err := repoFixtureHost(repoFromExamples)
+		if err != nil {
+			return err
+		}
+		if o.dir == "" {
+			o.dir = dir
+		}
+		return run(ctx, host, o, w)
+	}
 	host, err := agentio.HostFromOS()
 	if err != nil {
 		return err
@@ -71,8 +89,12 @@ func run(ctx context.Context, host agentio.Host, o options, w io.Writer) error {
 		return err
 	}
 	rep := Report{Generated: host.Now().UTC(), Dir: o.dir}
-	procs, perr := host.Processes.Processes(ctx)
-	rep.ProcessError = errText(perr)
+	var procs []agentio.Process
+	if host.Processes != nil {
+		var perr error
+		procs, perr = host.Processes.Processes(ctx)
+		rep.ProcessError = errText(perr)
+	}
 	for _, a := range agents.All() {
 		rep.Agents = append(rep.Agents, inspect(ctx, host, a, agents, procs, o))
 	}
@@ -217,3 +239,45 @@ func durationOrDash(d time.Duration) string {
 	}
 	return d.String()
 }
+
+// Repository fixtures as seen from `cd examples`: the Claude fixture is a
+// whole user home, the Codex fixture one home selected with CODEX_HOME.
+const (
+	repoFromExamples = ".."
+	repoClaudeHome   = "claude/testdata/homes/2.1.325/userhome"
+	repoCodexHome    = "codex/testdata/homes/0.162.1"
+	repoProjectDir   = "project"
+	repoNoBinaries   = "PATH=/nonexistent-bin"
+	repoFixtureUser  = "user"
+)
+
+// repoFixtureClock is the fixed time -fixtures reads at.
+func repoFixtureClock() time.Time { return time.Date(2026, 11, 13, 12, 0, 0, 0, time.UTC) }
+
+// repoFixtureHost is a Host over the fixture homes under repoRoot, read in
+// place: an empty process table, no keychain, no HTTP, no runner, a fixed
+// clock and no GOOS (so no system locations), which makes the report the
+// same on macOS, Linux and Windows. It also returns the fixture project dir.
+func repoFixtureHost(repoRoot string) (agentio.Host, string, error) {
+	root, err := filepath.Abs(repoRoot)
+	if err != nil {
+		return agentio.Host{}, "", err
+	}
+	home := filepath.Join(root, filepath.FromSlash(repoClaudeHome))
+	return agentio.Host{
+		UserHome:  home,
+		User:      repoFixtureUser,
+		Env:       []string{"HOME=" + home, repoNoBinaries, codex.EnvHome + "=" + filepath.Join(root, filepath.FromSlash(repoCodexHome))},
+		Now:       repoFixtureClock,
+		Processes: noProcesses{},
+	}, filepath.Join(home, repoProjectDir), nil
+}
+
+// noProcesses is an empty process table.
+type noProcesses struct{}
+
+// Processes returns no rows. Pure.
+func (noProcesses) Processes(context.Context) ([]agentio.Process, error) { return nil, nil }
+
+// Cwd knows no process. Pure.
+func (noProcesses) Cwd(context.Context, int) (string, error) { return "", agentio.ErrNotFound }

@@ -65,6 +65,7 @@ tasks:
       - task: check:staticcheck
       - task: lint
       - task: check:race
+      - task: check:windows
       - task: check:cross
       - task: check:standalone
       - task: docs:check
@@ -87,6 +88,22 @@ tasks:
     desc: Run every module's tests with the race detector
     cmds:
       - for m in {{.MODULES}}; do (cd $m && go test -race -count=1 ./...) || exit 1; done
+
+  check:windows:
+    desc: Vet every module for Windows and compile every test binary for Windows (GOOS=windows go vet, go test -c); the tests themselves run on Windows in the manual platforms workflow
+    cmds:
+      - |
+        out=$(mktemp -d)
+        trap 'rm -rf "$out"' EXIT
+        for m in {{.MODULES}}; do
+          (cd $m && GOOS=windows GOARCH=amd64 go vet ./... && GOOS=windows GOARCH=amd64 go test -c -o "$out/" ./... >/dev/null) || { echo "FAIL $m windows"; exit 1; }
+          echo "ok $m windows"
+        done
+
+  test:distros:
+    desc: Manual, slow (needs Docker and network) - run every module's tests plus agentinfo -fixtures and agentinfo on an empty and a seeded home in Debian, Alpine (musl), Fedora and Arch containers; not part of check
+    cmds:
+      - bash scripts/test-distros.sh
 
   check:cross:
     desc: Cross-compile every module for the 6 release platforms with CGO off

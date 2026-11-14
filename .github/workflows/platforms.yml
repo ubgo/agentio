@@ -1,0 +1,36 @@
+# platforms: every module's tests plus `agentinfo -fixtures` on Linux, macOS
+# and Windows runners. This is where the Windows code paths (PATHEXT, .cmd
+# shims, the PowerShell process table, case-insensitive env) run on a real
+# Windows; locally `task check` only compiles them for Windows.
+#
+# Manual only (workflow_dispatch), on purpose: the repository is private and
+# GitHub Actions minutes are billed (Windows and macOS minutes at a
+# multiple), so this never runs on push or pull request. Ask the owner
+# before starting it from the Actions tab.
+name: platforms
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.27.x" }
+      - name: workspace
+        run: go work init . ./claude ./codex ./codex/state ./builtin ./examples
+      - name: test every module
+        run: |
+          for m in . claude codex codex/state builtin examples; do
+            (cd "$m" && go test -count=1 ./...) || { echo "FAIL $m"; exit 1; }
+          done
+      - name: agentinfo -fixtures
+        working-directory: examples
+        run: go run ./agentinfo -fixtures
