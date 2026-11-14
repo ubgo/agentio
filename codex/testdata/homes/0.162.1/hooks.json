@@ -1,0 +1,11 @@
+{
+  "description": "test hooks",
+  "hooks": {
+    "SessionStart": [
+      {"hooks": [{"type": "command", "command": "/opt/test/hooks/start.sh", "timeout": 5, "statusMessage": "starting"}]}
+    ],
+    "PreToolUse": [
+      {"matcher": "apply_patch", "hooks": [{"type": "command", "command": "/opt/test/hooks/lint.sh", "commandWindows": "C:\\test\\lint.cmd", "newKey": 1}]}
+    ]
+  }
+}

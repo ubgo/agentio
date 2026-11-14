@@ -1,0 +1,8 @@
+prefix_rule(pattern=["python3", "-m", "http.server"], decision="allow")
+prefix_rule(pattern=["ollama", "show"], decision="allow")
+# a comment
+load("other.star")
+prefix_rule(
+    pattern=["git", "status"],
+    decision="prompt",
+)

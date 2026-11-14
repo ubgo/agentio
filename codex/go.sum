@@ -1,0 +1,4 @@
+github.com/khanakia/agentcli v0.0.0-20261114022936-789497f6c22c h1:a1uVtjIfv0BRQ7sEAt470q/CtKafcWeTVzWH7gYAI5U=
+github.com/khanakia/agentcli v0.0.0-20261114022936-789497f6c22c/go.mod h1:PR1wafnv4uW0eU9KSmiXTPcPGn8D8/nX3RUCB6saopc=
+github.com/pelletier/go-toml/v2 v2.4.3 h1:GTRvJQutkOSftxIFD5xw9aepkYNuPWmVJpffdDPYVpY=
+github.com/pelletier/go-toml/v2 v2.4.3/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=

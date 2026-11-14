@@ -1,0 +1,1 @@
+{"name": "github", "version": "26.928.31416", "description": "GitHub tools", "author": {"name": "OpenAI"}, "mcpServers": "./.mcp.json", "interface": {"displayName": "GitHub", "category": "Developer Tools", "capabilities": ["Read"], "defaultPrompt": ["Review my PR"]}}

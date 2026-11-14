@@ -1,0 +1,98 @@
+model = "gpt-5.6-terra"
+model_reasoning_effort = "medium"
+personality = "pragmatic"
+notify = ["/opt/test/notify", "--flag"]
+some_future_key = { nested = true, n = 3 }
+
+[features]
+js_repl = false
+hooks = true
+
+[projects."/work/proj"]
+trust_level = "trusted"
+
+[projects."/work/untrusted"]
+trust_level = "untrusted"
+
+[profiles.ollama-launch]
+openai_base_url = "http://localhost:11434/v1"
+forced_login_method = "api"
+model_provider = "ollama-launch"
+
+[model_providers.ollama-launch]
+name = "Ollama"
+base_url = "http://localhost:11434/v1"
+
+[mcp_servers.node_repl]
+command = "/opt/test/node_repl"
+args = []
+startup_timeout_sec = 120
+[mcp_servers.node_repl.env]
+CODEX_HOME = "/home/test/.codex"
+SECRET_TOKEN = "fake-secret-value"
+
+[mcp_servers.computer-use]
+command = "/opt/test/computer-use"
+args = ["--stdio"]
+cwd = "."
+enabled = false
+
+[plugins."github@openai-curated"]
+enabled = true
+
+[marketplaces.openai-bundled]
+source_type = "local"
+source = "/opt/test/marketplace"
+
+[[hooks.PermissionRequest]]
+matcher = "Bash"
+[[hooks.PermissionRequest.hooks]]
+type = "command"
+command = "/opt/test/hooks/permission.sh"
+timeout = 10
+
+[[hooks.PreToolUse]]
+matcher = "shell"
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = "/opt/test/hooks/pre-tool.sh"
+statusMessage = "checking command"
+[[hooks.PreToolUse.hooks]]
+type = "mcp_tool"
+server = "audit"
+tool = "record"
+input = { level = "info" }
+
+[[hooks.SessionStart]]
+[[hooks.SessionStart.hooks]]
+type = "command"
+command = "/opt/test/hook.sh"
+timeout = 30
+
+[[hooks.Stop]]
+[[hooks.Stop.hooks]]
+type = "command"
+command = "/opt/test/hooks/stop.sh"
+async = true
+futureHandlerKey = "x"
+
+[[hooks.UserPromptSubmit]]
+[[hooks.UserPromptSubmit.hooks]]
+type = "command"
+command = "/opt/test/hooks/prompt.sh"
+additionalContextLimit = 0
+
+[hooks.state."/home/test/.codex/hooks.json:session_start:0:0"]
+trusted_hash = "sha256:test"
+[hooks.state."/home/test/.codex/hooks.json:stop:0:0"]
+enabled = false
+trusted_hash = "sha256:test2"
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
+
+[desktop]
+conversationDetailMode = "STEPS_COMMANDS"
+
+[shell_environment_policy.set]
+NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "sha-test"

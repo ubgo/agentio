@@ -1,0 +1,43 @@
+# name	spelling	since	until	source
+# Codex feature table (SPEC §5.8, CODEX_API.md §0.1). since/until are vendor
+# versions; empty = unknown, never guessed. A non-empty bound must name its
+# release-note source (Codex GitHub release notes, read 2026-11-14).
+FlagIgnoreUserConfig	--ignore-user-config	0.122.0		release notes 0.122.0 #18646
+FlagIgnoreRules	--ignore-rules	0.122.0		release notes 0.122.0 #18646
+ExecJSONReasoningTokens	exec --json reasoning tokens	0.125.0		release notes 0.125.0 #19308
+ProfileV2Files	<name>.config.toml	0.131.0		release notes rust-v0.131.0 #17141 (feat: add layered --profile-v2 config files)
+LegacyProfileRejected	legacy [profiles] rejected with v2	0.131.0		release notes rust-v0.131.0 #22647 (Reject legacy [profiles] when using profile-v2); refusal at config/src/loader/mod.rs:303-320 rust-v0.162.1
+ExecResumeOutputSchema	exec resume --output-schema	0.132.0		release notes 0.132.0 #23123
+FlagApproveForMe	--approve-for-me	0.147.0		release notes 0.147.0 #36373
+FlagWorktree	--worktree	0.154.0		release notes 0.154.0 #42652
+FlagNoDaemon	--no-daemon	0.156.0		release notes 0.156.0 #46088
+FlagProfile	--profile
+FlagAddDir	--add-dir
+FlagSandbox	--sandbox
+FlagApproval	--ask-for-approval
+FlagModel	--model
+FlagCd	--cd
+FlagConfig	--config
+FlagEnable	--enable
+FlagDisable	--disable
+FlagStrictConfig	--strict-config
+FlagImage	--image
+FlagOSS	--oss
+FlagLocalProvider	--local-provider
+FlagSearch	--search
+FlagNoAltScreen	--no-alt-screen
+FlagRemote	--remote
+FlagRemoteAuthTokenEnv	--remote-auth-token-env
+FlagBypassApprovalsAndSandbox	--dangerously-bypass-approvals-and-sandbox
+SubResume	resume
+SubFork	fork
+SubExec	exec
+SubReview	review
+ExecJSON	exec --json
+FlagOutputLastMessage	--output-last-message
+FlagOutputSchema	--output-schema
+FlagColor	--color
+FlagSkipGitRepoCheck	--skip-git-repo-check
+FlagEphemeral	--ephemeral
+FlagThreadSource	--thread-source
+FlagCyberAccessProgram	--cyber-access-program
