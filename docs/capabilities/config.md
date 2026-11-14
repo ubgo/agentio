@@ -221,7 +221,7 @@ codex skill  imagegen       scope=system  plugin=""
 codex skill  pr-review      scope=plugin  plugin="github"
 codex plugin github@openai-curated version=26.928.31416 enabled=true
 == models ==
-claude: no model catalog (Claude Code keeps no model catalog on disk that has a recorded shape; a static list would rot (OD-15))
+claude: no model catalog (Claude Code keeps no model catalog on disk that has a recorded shape; a static list would rot)
 codex model gpt-6-luna       visible=true  context=272000
 codex model gpt-reserve      visible=false context=128000
 ```

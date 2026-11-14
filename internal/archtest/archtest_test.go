@@ -518,3 +518,24 @@ func TestRevealConfined(t *testing.T) {
 		})
 	}
 }
+
+// privateDesignID matches the private design-doc ids (open decisions
+// "OD-15", gaps "G7") that must never reach a user-facing string: they mean
+// nothing outside the private spec and leak into real output.
+var privateDesignID = regexp.MustCompile(`\bOD-[0-9]+\b|\bG[0-9]{1,2}\b`)
+
+// TestNoPrivateIDsInStrings: no string literal in non-test code names a
+// private design id (an Unsupported reason once printed "(OD-15)").
+func TestNoPrivateIDsInStrings(t *testing.T) {
+	for _, f := range loadFiles(t) {
+		if f.test {
+			continue
+		}
+		ast.Inspect(f.ast, func(n ast.Node) bool {
+			if lit, ok := n.(*ast.BasicLit); ok && lit.Kind == token.STRING && privateDesignID.MatchString(lit.Value) {
+				t.Errorf("%s: string names a private design id: %s", pos(f, lit), lit.Value)
+			}
+			return true
+		})
+	}
+}

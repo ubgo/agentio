@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ubgo/agentio"
@@ -144,5 +145,26 @@ func TestSystemPathsFollowHost(t *testing.T) {
 	}
 	if !foundMCP {
 		t.Errorf("managed MCP under SystemRoot not read")
+	}
+}
+
+// TestRetentionClockSkew: a .last-cleanup stamp after the Host clock (the
+// fixture's is 19:30, FixedNow is 12:00 the same day) reports clock skew as
+// a warning, never a negative age such as "-7 h ago".
+func TestRetentionClockSkew(t *testing.T) {
+	t.Parallel()
+	a, _ := fixtureAgent(t, fixtureVersions(t)[0])
+	var msg string
+	var status agentio.CheckStatus
+	for _, c := range a.Doctor(context.Background(), a.DefaultHome(), nil, DoctorOptions{}) {
+		if c.ID == CheckRetention {
+			msg, status = c.Message, c.Status
+		}
+	}
+	if strings.Contains(msg, "-") && strings.Contains(msg, "h ago") {
+		t.Fatalf("negative age in %q", msg)
+	}
+	if !strings.Contains(msg, "clock skew") || status != agentio.CheckWarn {
+		t.Fatalf("retention = %s %q, want a clock skew warning", status, msg)
 	}
 }

@@ -49,7 +49,7 @@ var (
 )
 
 // modelListerReason is why Claude has no ModelLister (OD-15).
-const modelListerReason = "Claude Code keeps no model catalog on disk that has a recorded shape; a static list would rot (OD-15)"
+const modelListerReason = "Claude Code keeps no model catalog on disk that has a recorded shape; a static list would rot"
 
 // Neutral returns the L1/L2 view. cost: Pure.
 func (a *Agent) Neutral() agentio.Agent { return neutral{Core: a.core, a: a} }

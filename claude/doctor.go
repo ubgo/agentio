@@ -185,8 +185,16 @@ func (a *Agent) retentionCheck(h Home, s Settings, add func(agentio.CheckID, age
 	}
 	msg := fmt.Sprintf("transcripts kept %d days", days)
 	if last, err := a.LastCleanup(h); err == nil && last != nil && !a.now().IsZero() {
-		msg += fmt.Sprintf("; last cleanup %d h ago", int(a.now().Sub(*last).Hours()))
-		if a.now().Sub(*last) > time.Duration(days)*hoursPerDay*time.Hour {
+		age := a.now().Sub(*last)
+		// A stamp after the Host clock is clock skew (or a stamp copied from
+		// another machine); an age computed from it would print as "-7 h ago".
+		if age < 0 {
+			msg += fmt.Sprintf("; last cleanup at %s is after the host clock (clock skew)", last.UTC().Format(time.RFC3339))
+			add(CheckRetention, agentio.CheckWarn, msg)
+			return
+		}
+		msg += fmt.Sprintf("; last cleanup %d h ago", int(age.Hours()))
+		if age > time.Duration(days)*hoursPerDay*time.Hour {
 			add(CheckRetention, agentio.CheckWarn, msg)
 			return
 		}

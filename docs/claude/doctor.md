@@ -27,7 +27,7 @@ Each `agentio.Check` has an `ID` (`agentio.CheckID`), a `Status` (`agentio.Check
 | `mcp-project-pending` | `claude.CheckMCPProjectPending` | info: `.mcp.json` servers not approved yet (needs a project) |
 | `plugins-missing` | `claude.CheckPluginsMissing` | warn: plugins enabled in settings but not installed |
 | `stale-live-sessions` | `claude.CheckStaleLiveSessions` | info: `sessions/*.json` entries whose process is gone |
-| `retention` | `claude.CheckRetention` | info: transcript retention days and last cleanup; warn when cleanup is overdue |
+| `retention` | `claude.CheckRetention` | info: transcript retention days and last cleanup; warn when cleanup is overdue, or when the last-cleanup stamp is after the host clock (clock skew) |
 | `history-size` | `claude.CheckHistorySize` | info: `history.jsonl` size and number of project history dirs |
 | `auth-status` | `claude.CheckAuthStatus` | only with `DoctorOptions.Runner`: result of `claude auth status` |
 
@@ -73,6 +73,7 @@ check auth-status          ok    auth status: logged in (claude.ai)
 
 - **Only firing checks are listed.** Most checks appear only when they find something; their absence means "fine" (for example no `plugins-missing` or `home-env` line). `binary-found`, `home`, `version-tested`, `login` and `retention` always appear; `history-size` whenever `history.jsonl` exists.
 - **Doctor never fails as a call.** It returns checks, not an error; a check that cannot read its input is skipped. Inspect `Status`, not the slice length.
+- **A stamp in the future is clock skew.** When `.last-cleanup` is later than `Host.Now` (a skewed clock, or a home copied from another machine), `retention` warns "after the host clock (clock skew)" instead of printing a negative age.
 - **The clock matters.** With no `Host.Now`, expiry is never reported and the retention message has no "last cleanup"; the example sets a clock after the fixture login's expiry, which is why `login-expired` fires.
 - **The auth-status check may touch the login.** It runs `claude auth status`; pass a Runner only when the user agreed to run the binary.
 - **Project checks need a project.** `mcp-project-pending` and project-level plugin and settings checks use `p`; pass nil to check the home only.

@@ -31,7 +31,7 @@ claude: 25 capabilities
 codex: 22 capabilities
   [installer binary-version identity usage cached-usage subscription login-commander conversations history-checker prompt-history live-sessions process-classifier turns home-linker instruction-files mcp-servers skills plugins config models run-events doctor]
 == unsupported ==
-claude lacks models: Claude Code keeps no model catalog on disk that has a recorded shape; a static list would rot (OD-15)
+claude lacks models: Claude Code keeps no model catalog on disk that has a recorded shape; a static list would rot
 codex lacks token-login: Codex has no token login: it logs in with `codex login` (ChatGPT, API key or access token on stdin)
 codex lacks token-prober: Codex has no quota probe: no token login to probe
 codex lacks history-mover: Codex indexes conversations in its own SQLite database with absolute paths (state_5.sqlite threads.rollout_path), so moving its files would break its index; continue Codex work in the original home

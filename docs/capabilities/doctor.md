@@ -83,7 +83,7 @@ claude personal ok    home            ~/.claude
 claude personal ok    version-tested  2.1.325 is tested
 claude personal ok    login           login in file
 claude personal info  stale-live-sessions 2 sessions/*.json entries whose process is gone
-claude personal info  retention       transcripts kept 30 days; last cleanup -7 h ago
+claude personal warn  retention       transcripts kept 30 days; last cleanup at 2026-11-13T19:30:55Z is after the host clock (clock skew)
 claude personal info  history-size    history.jsonl 0 MiB; 2 project history dirs
 claude work ok    binary-found    /opt/fake/bin/claude
 claude work ok    home            ~/.claude-work
@@ -106,7 +106,7 @@ claude warn 2.0.0 is untested (tested 2.1.323..2.1.325)
 claude warn installed version unknown; tested 2.1.323..2.1.325
 ```
 
-The fixture's `.last-cleanup` stamp is later than the example's fixed clock, hence "-7 h ago"; on a real machine the clock is later than the stamp.
+The fixture's `.last-cleanup` stamp is later than the example's fixed clock, so `retention` warns about clock skew instead of printing an age; on a real machine the clock is later than the stamp.
 
 ## Pitfalls
 

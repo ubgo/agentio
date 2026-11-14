@@ -626,7 +626,7 @@ func (a *Agent) launchNeutral(t agentio.Target, r agentio.LaunchRequest) (agenti
 	case agentio.AutonomyAsk:
 		o.Sandbox, o.Approval = ModeWorkspaceWrite, ApprovalOnRequest
 	case agentio.AutonomyAcceptEdits:
-		return agentio.Command{}, agentio.UnsupportedError(ID, "autonomy accept-edits", "Codex has no edits-only mode (OD-14); never mapped to a more permissive one")
+		return agentio.Command{}, agentio.UnsupportedError(ID, "autonomy accept-edits", "Codex has no edits-only mode; never mapped to a more permissive one")
 	case agentio.AutonomyFull:
 		if err := agentio.CheckAutonomy(t, r.Autonomy); err != nil {
 			return agentio.Command{}, err
