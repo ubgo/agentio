@@ -1,4 +1,4 @@
-package agentcli
+package agentio
 
 import (
 	"errors"
@@ -37,7 +37,7 @@ func (b Backup) Merge(o Backup) Backup {
 // Backup naming.
 const (
 	// backupInfix separates the original name from the stamp.
-	backupInfix = ".agentcli-bak-"
+	backupInfix = ".agentio-bak-"
 	// backupStamp is the UTC stamp layout: sortable, no ':' (Windows-safe).
 	backupStamp = "20060102T150405Z"
 	// maxBackupSuffix bounds the "-N" search for a free backup name.
@@ -47,7 +47,7 @@ const (
 	backupDirPerm os.FileMode = 0o700
 )
 
-// BackupPath returns `<path>.agentcli-bak-<UTC stamp>`, adding "-2", "-3",
+// BackupPath returns `<path>.agentio-bak-<UTC stamp>`, adding "-2", "-3",
 // … until the name is free, so a backup never overwrites another backup.
 // Disk · Read.
 func BackupPath(path string, now time.Time) (string, error) {
@@ -60,10 +60,10 @@ func BackupPath(path string, now time.Time) (string, error) {
 		if _, err := os.Lstat(p); errors.Is(err, fs.ErrNotExist) {
 			return p, nil
 		} else if err != nil {
-			return "", fmt.Errorf("agentcli: backup name %s: %w", p, err)
+			return "", fmt.Errorf("agentio: backup name %s: %w", p, err)
 		}
 	}
-	return "", fmt.Errorf("agentcli: no free backup name for %s", path)
+	return "", fmt.Errorf("agentio: no free backup name for %s", path)
 }
 
 // BackupFile copies path (file or directory tree) to BackupPath(path, now)
@@ -73,14 +73,14 @@ func BackupFile(path string, now time.Time) (Backup, error) {
 	if _, err := os.Lstat(path); errors.Is(err, fs.ErrNotExist) {
 		return Backup{}, nil
 	} else if err != nil {
-		return Backup{}, fmt.Errorf("agentcli: backup %s: %w", path, err)
+		return Backup{}, fmt.Errorf("agentio: backup %s: %w", path, err)
 	}
 	dst, err := BackupPath(path, now)
 	if err != nil {
 		return Backup{}, err
 	}
 	if err := CopyTree(path, dst); err != nil {
-		return Backup{}, fmt.Errorf("agentcli: backup %s: %w", path, err)
+		return Backup{}, fmt.Errorf("agentio: backup %s: %w", path, err)
 	}
 	return Backup{Entries: []BackupEntry{{Original: path, Copy: dst}}}, nil
 }
@@ -90,7 +90,7 @@ func BackupFile(path string, now time.Time) (Backup, error) {
 // exist. Disk · Write.
 func CopyTree(src, dst string) error {
 	if _, err := os.Lstat(dst); err == nil {
-		return fmt.Errorf("agentcli: copy: %s already exists", dst)
+		return fmt.Errorf("agentio: copy: %s already exists", dst)
 	}
 	return filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {

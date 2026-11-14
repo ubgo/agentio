@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // ErrFakeNotFound is returned by fakes for a missing entry (e.g. a cwd).
@@ -32,35 +32,35 @@ type SecretKey struct{ Service, Account string }
 // test can check the named-account-first rule (invariant 3).
 type FakeSecrets struct {
 	mu      sync.Mutex
-	Entries map[SecretKey]agentcli.Token
+	Entries map[SecretKey]agentio.Token
 	// Err, when set, is returned by every Get.
 	Err   error
 	Calls []SecretKey
 }
 
-var _ agentcli.SecretStore = (*FakeSecrets)(nil)
+var _ agentio.SecretStore = (*FakeSecrets)(nil)
 
 // NewFakeSecrets returns an empty store. Pure.
 func NewFakeSecrets() *FakeSecrets {
-	return &FakeSecrets{Entries: map[SecretKey]agentcli.Token{}}
+	return &FakeSecrets{Entries: map[SecretKey]agentio.Token{}}
 }
 
 // Put stores a value under (service, account). Pure.
 func (f *FakeSecrets) Put(service, account, value string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.Entries[SecretKey{service, account}] = agentcli.NewToken(value)
+	f.Entries[SecretKey{service, account}] = agentio.NewToken(value)
 }
 
 // Get looks up the exact key; account "" matches an entry stored with
 // account "" first, else any entry of the service (like `security -s`).
 // Pure.
-func (f *FakeSecrets) Get(_ context.Context, service, account string) (agentcli.Token, bool, error) {
+func (f *FakeSecrets) Get(_ context.Context, service, account string) (agentio.Token, bool, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.Calls = append(f.Calls, SecretKey{service, account})
 	if f.Err != nil {
-		return agentcli.Token{}, false, f.Err
+		return agentio.Token{}, false, f.Err
 	}
 	if t, ok := f.Entries[SecretKey{service, account}]; ok {
 		return t, true, nil
@@ -72,25 +72,25 @@ func (f *FakeSecrets) Get(_ context.Context, service, account string) (agentcli.
 			}
 		}
 	}
-	return agentcli.Token{}, false, nil
+	return agentio.Token{}, false, nil
 }
 
 // FakeProcesses is a fixed process table.
 type FakeProcesses struct {
-	List []agentcli.Process
+	List []agentio.Process
 	Cwds map[int]string
 	// Err, when set, is returned by Processes.
 	Err error
 }
 
-var _ agentcli.ProcessLister = (*FakeProcesses)(nil)
+var _ agentio.ProcessLister = (*FakeProcesses)(nil)
 
 // Processes returns List. Pure.
-func (f *FakeProcesses) Processes(context.Context) ([]agentcli.Process, error) {
+func (f *FakeProcesses) Processes(context.Context) ([]agentio.Process, error) {
 	if f.Err != nil {
 		return nil, f.Err
 	}
-	return append([]agentcli.Process(nil), f.List...), nil
+	return append([]agentio.Process(nil), f.List...), nil
 }
 
 // Cwd returns Cwds[pid]. Pure.
@@ -105,28 +105,28 @@ func (f *FakeProcesses) Cwd(_ context.Context, pid int) (string, error) {
 // never reach Host.Exec (invariant 1, SPEC §10).
 type FailExec struct{ T testing.TB }
 
-var _ agentcli.ProcessRunner = FailExec{}
+var _ agentio.ProcessRunner = FailExec{}
 
 // Run reports a test error and returns ErrForbidden. Pure.
-func (f FailExec) Run(_ context.Context, c agentcli.Command, _ io.Reader) (agentcli.ProcessResult, error) {
+func (f FailExec) Run(_ context.Context, c agentio.Command, _ io.Reader) (agentio.ProcessResult, error) {
 	f.T.Helper()
 	f.T.Errorf("agenttest: unexpected process run: %s", c.String())
-	return agentcli.ProcessResult{}, ErrForbidden
+	return agentio.ProcessResult{}, ErrForbidden
 }
 
 // FakeExec is a ProcessRunner returning canned results keyed by argv
 // (Command.String()), recording every call. Unmatched calls get Default.
 type FakeExec struct {
 	mu      sync.Mutex
-	Results map[string]agentcli.ProcessResult
-	Default agentcli.ProcessResult
-	Calls   []agentcli.Command
+	Results map[string]agentio.ProcessResult
+	Default agentio.ProcessResult
+	Calls   []agentio.Command
 }
 
-var _ agentcli.ProcessRunner = (*FakeExec)(nil)
+var _ agentio.ProcessRunner = (*FakeExec)(nil)
 
 // Run returns the canned result. Pure.
-func (f *FakeExec) Run(_ context.Context, c agentcli.Command, _ io.Reader) (agentcli.ProcessResult, error) {
+func (f *FakeExec) Run(_ context.Context, c agentio.Command, _ io.Reader) (agentio.ProcessResult, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.Calls = append(f.Calls, c)
@@ -162,39 +162,39 @@ const (
 )
 
 // HostOption adjusts a fixture Host.
-type HostOption func(*agentcli.Host)
+type HostOption func(*agentio.Host)
 
 // WithUserHome sets the user home. Pure.
-func WithUserHome(dir string) HostOption { return func(h *agentcli.Host) { h.UserHome = dir } }
+func WithUserHome(dir string) HostOption { return func(h *agentio.Host) { h.UserHome = dir } }
 
 // WithEnv replaces the base env (HOME is not added for you). Pure.
-func WithEnv(env ...string) HostOption { return func(h *agentcli.Host) { h.Env = env } }
+func WithEnv(env ...string) HostOption { return func(h *agentio.Host) { h.Env = env } }
 
 // WithNow sets the clock. Pure.
-func WithNow(now func() time.Time) HostOption { return func(h *agentcli.Host) { h.Now = now } }
+func WithNow(now func() time.Time) HostOption { return func(h *agentio.Host) { h.Now = now } }
 
 // WithHTTP sets the HTTP client (an httptest server's client). Pure.
-func WithHTTP(c *http.Client) HostOption { return func(h *agentcli.Host) { h.HTTP = c } }
+func WithHTTP(c *http.Client) HostOption { return func(h *agentio.Host) { h.HTTP = c } }
 
 // WithSecrets sets the secret store. Pure.
-func WithSecrets(s agentcli.SecretStore) HostOption { return func(h *agentcli.Host) { h.Secrets = s } }
+func WithSecrets(s agentio.SecretStore) HostOption { return func(h *agentio.Host) { h.Secrets = s } }
 
 // WithProcesses sets the process lister. Pure.
-func WithProcesses(p agentcli.ProcessLister) HostOption {
-	return func(h *agentcli.Host) { h.Processes = p }
+func WithProcesses(p agentio.ProcessLister) HostOption {
+	return func(h *agentio.Host) { h.Processes = p }
 }
 
 // WithExec sets the process runner. Pure.
-func WithExec(r agentcli.ProcessRunner) HostOption { return func(h *agentcli.Host) { h.Exec = r } }
+func WithExec(r agentio.ProcessRunner) HostOption { return func(h *agentio.Host) { h.Exec = r } }
 
 // NewHost builds a fixture Host: UserHome = t.TempDir(), Env = HOME + a
 // PATH with no binaries, User "tester", FixedNow, FailingHTTP, empty
 // FakeSecrets and FakeProcesses, FailExec. Options override. Disk · Write
 // (creates the temp dir).
-func NewHost(t testing.TB, opts ...HostOption) agentcli.Host {
+func NewHost(t testing.TB, opts ...HostOption) agentio.Host {
 	t.Helper()
 	home := t.TempDir()
-	h := agentcli.Host{
+	h := agentio.Host{
 		UserHome:  home,
 		User:      fixtureUser,
 		Env:       []string{"HOME=" + home, "PATH=" + fixturePath},

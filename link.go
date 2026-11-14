@@ -1,4 +1,4 @@
-package agentcli
+package agentio
 
 import (
 	"errors"
@@ -41,10 +41,10 @@ func ApplyHomeLinks(links []HomeLink) error {
 			continue
 		}
 		if err := os.MkdirAll(filepath.Dir(l.To), backupDirPerm); err != nil {
-			return fmt.Errorf("agentcli: link %s: %w", l.Name, err)
+			return fmt.Errorf("agentio: link %s: %w", l.Name, err)
 		}
 		if err := os.Symlink(l.From, l.To); err != nil {
-			return fmt.Errorf("agentcli: link %s: %w", l.Name, err)
+			return fmt.Errorf("agentio: link %s: %w", l.Name, err)
 		}
 	}
 	return nil

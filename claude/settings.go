@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // SettingsScope is a settings layer.
@@ -105,51 +105,51 @@ func (c UpdateChannel) IsKnown() bool { return c == ChannelLatest || c == Channe
 
 // ModelSetting is one entry of modelSettings.
 type ModelSetting struct {
-	EffortLevel Effort           `json:"effortLevel,omitempty"`
-	Unknown     agentcli.Unknown `json:"-"`
+	EffortLevel Effort          `json:"effortLevel,omitempty"`
+	Unknown     agentio.Unknown `json:"-"`
 }
 
 // StatusLine is the statusLine setting.
 type StatusLine struct {
-	Type    string           `json:"type"`
-	Command string           `json:"command"`
-	Padding *int             `json:"padding,omitempty"`
-	Unknown agentcli.Unknown `json:"-"`
+	Type    string          `json:"type"`
+	Command string          `json:"command"`
+	Padding *int            `json:"padding,omitempty"`
+	Unknown agentio.Unknown `json:"-"`
 }
 
 // Attribution is the attribution setting.
 type Attribution struct {
-	Commit     *string          `json:"commit,omitempty"`
-	PR         *string          `json:"pr,omitempty"`
-	SessionURL *bool            `json:"sessionUrl,omitempty"`
-	Unknown    agentcli.Unknown `json:"-"`
+	Commit     *string         `json:"commit,omitempty"`
+	PR         *string         `json:"pr,omitempty"`
+	SessionURL *bool           `json:"sessionUrl,omitempty"`
+	Unknown    agentio.Unknown `json:"-"`
 }
 
 // Sandbox is the sandbox setting: the switches the library reports; every
 // nested filesystem/network/credentials key stays raw in Unknown.
 type Sandbox struct {
-	Enabled                  *bool            `json:"enabled,omitempty"`
-	FailIfUnavailable        *bool            `json:"failIfUnavailable,omitempty"`
-	AutoAllowBashIfSandboxed *bool            `json:"autoAllowBashIfSandboxed,omitempty"`
-	AllowUnsandboxedCommands *bool            `json:"allowUnsandboxedCommands,omitempty"`
-	ExcludedCommands         []string         `json:"excludedCommands,omitempty"`
-	Unknown                  agentcli.Unknown `json:"-"`
+	Enabled                  *bool           `json:"enabled,omitempty"`
+	FailIfUnavailable        *bool           `json:"failIfUnavailable,omitempty"`
+	AutoAllowBashIfSandboxed *bool           `json:"autoAllowBashIfSandboxed,omitempty"`
+	AllowUnsandboxedCommands *bool           `json:"allowUnsandboxedCommands,omitempty"`
+	ExcludedCommands         []string        `json:"excludedCommands,omitempty"`
+	Unknown                  agentio.Unknown `json:"-"`
 }
 
 // WorktreeSettings is the worktree setting.
 type WorktreeSettings struct {
-	BaseRef            string           `json:"baseRef,omitempty"`
-	BgIsolation        string           `json:"bgIsolation,omitempty"`
-	Location           string           `json:"location,omitempty"`
-	SparsePaths        []string         `json:"sparsePaths,omitempty"`
-	SymlinkDirectories []string         `json:"symlinkDirectories,omitempty"`
-	Unknown            agentcli.Unknown `json:"-"`
+	BaseRef            string          `json:"baseRef,omitempty"`
+	BgIsolation        string          `json:"bgIsolation,omitempty"`
+	Location           string          `json:"location,omitempty"`
+	SparsePaths        []string        `json:"sparsePaths,omitempty"`
+	SymlinkDirectories []string        `json:"symlinkDirectories,omitempty"`
+	Unknown            agentio.Unknown `json:"-"`
 }
 
 // MarketplaceDecl is one extraKnownMarketplaces entry.
 type MarketplaceDecl struct {
 	Source  MarketplaceSource `json:"source"`
-	Unknown agentcli.Unknown  `json:"-"`
+	Unknown agentio.Unknown   `json:"-"`
 }
 
 // Settings is one settings file, typed for the keys the library reads
@@ -190,9 +190,9 @@ type Settings struct {
 	Sandbox                           *Sandbox                   `json:"sandbox,omitempty"`
 	Attribution                       *Attribution               `json:"attribution,omitempty"`
 	Worktree                          *WorktreeSettings          `json:"worktree,omitempty"`
-	Unknown                           agentcli.Unknown           `json:"-"`
+	Unknown                           agentio.Unknown            `json:"-"`
 	// Warnings lists keys whose type changed (invariant 17); never a value.
-	Warnings agentcli.Warnings `json:"-"`
+	Warnings agentio.Warnings `json:"-"`
 }
 
 // ParseSettings decodes one settings body; a key whose type changed lands
@@ -553,7 +553,7 @@ func concatLists(lower, higher json.RawMessage) (json.RawMessage, bool) {
 
 // SettingsPatch changes top-level keys of one settings file.
 type SettingsPatch struct {
-	Set    map[string]agentcli.Raw
+	Set    map[string]agentio.Raw
 	Delete []string
 }
 
@@ -564,12 +564,12 @@ func (a *Agent) settingsPath(h Home, p *Project, s SettingsScope) (string, error
 		return filepath.Join(h.Dir(), settingsFile), nil
 	case ScopeProject, ScopeLocal:
 		if p == nil {
-			return "", fmt.Errorf("%w: %s settings need a project", agentcli.ErrUnsupported, s)
+			return "", fmt.Errorf("%w: %s settings need a project", agentio.ErrUnsupported, s)
 		}
 		if s == ScopeProject {
 			return filepath.Join(p.Dir, dotClaudeDir, settingsFile), nil
 		}
 		return filepath.Join(p.localRoot(), dotClaudeDir, localSettingsFile), nil
 	}
-	return "", agentcli.UnsupportedError(ID, "write "+string(s)+" settings", "only user, project and local settings files are writable")
+	return "", agentio.UnsupportedError(ID, "write "+string(s)+" settings", "only user, project and local settings files are writable")
 }

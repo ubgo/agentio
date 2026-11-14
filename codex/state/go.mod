@@ -1,12 +1,8 @@
-module github.com/khanakia/agentcli/codex/state
+module github.com/ubgo/agentio/codex/state
 
 go 1.26.4
 
-require (
-	github.com/khanakia/agentcli v0.0.0-20261114022936-789497f6c22c
-	github.com/khanakia/agentcli/codex v0.0.0-20261114023318-71edb853a42a
-	modernc.org/sqlite v1.60.1
-)
+require modernc.org/sqlite v1.60.1
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect

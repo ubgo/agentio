@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/khanakia/agentcli/codex/internal/featuregen"
+	"github.com/ubgo/agentio/codex/internal/featuregen"
 )
 
 // File names relative to the codex package directory.

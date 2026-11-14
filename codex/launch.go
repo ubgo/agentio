@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Subcommands and flags, verbatim from `codex --help` and each subcommand's
@@ -198,17 +198,17 @@ var ErrInvalidOption = errors.New("codex: invalid launch option")
 
 // builder accumulates argv, warnings and the first error.
 type builder struct {
-	t        agentcli.Target
+	t        agentio.Target
 	trailing []string
 	args     []string
-	warns    agentcli.Warnings
+	warns    agentio.Warnings
 	err      error
 }
 
-func newBuilder(t agentcli.Target, sub ...string) *builder {
+func newBuilder(t agentio.Target, sub ...string) *builder {
 	b := &builder{t: t, args: slices.Clone(sub)}
 	if t.Version.IsZero() {
-		b.warns.Add(agentcli.WarnVersionUnknown, "", "", "installed codex version unknown; flags not checked against it")
+		b.warns.Add(agentio.WarnVersionUnknown, "", "", "installed codex version unknown; flags not checked against it")
 	} else if w, ok := Compat().Warning(t.Version); ok {
 		b.warns = append(b.warns, w)
 	}
@@ -291,7 +291,7 @@ func (b *builder) global(o LaunchOptions, exec bool) {
 	}
 	if o.BypassAll {
 		if !b.t.AllowDangerous {
-			b.fail(agentcli.ErrDangerousNotAllowed)
+			b.fail(agentio.ErrDangerousNotAllowed)
 			return
 		}
 		b.flag(FeatureFlagBypassApprovalsAndSandbox, flagBypass)
@@ -326,20 +326,20 @@ func (b *builder) global(o LaunchOptions, exec bool) {
 // legacy-conflict refusal of loader/mod.rs:303.
 func (b *builder) profile(o LaunchOptions) {
 	v := b.t.Version
-	legacyOnly := !v.IsZero() && v.Compare(agentcli.MustVersion(profileV2Since)) < 0
+	legacyOnly := !v.IsZero() && v.Compare(agentio.MustVersion(profileV2Since)) < 0
 	switch {
 	case legacyOnly:
 		// below 0.131.0 -p selects a legacy [profiles.NAME]: no conflict exists
 	case o.ProfileCheck == nil:
-		b.warns.Add(agentcli.WarnVersionUnknown, fileConfig, "profiles", "--profile conflict with a legacy profile not checked (no config given)")
+		b.warns.Add(agentio.WarnVersionUnknown, fileConfig, "profiles", "--profile conflict with a legacy profile not checked (no config given)")
 	default:
 		if err := o.ProfileCheck.ProfileConflict(o.Profile); err != nil {
 			b.fail(err)
 			return
 		}
 	}
-	if !legacyOnly && !v.IsZero() && v.Compare(agentcli.MustVersion(profileV2Certain)) < 0 {
-		b.warns.Add(agentcli.WarnVersionUnknown, "", flagProfile, "meaning of --profile between 0.131.0 and 0.162.1 is unverified; built as a v2 profile")
+	if !legacyOnly && !v.IsZero() && v.Compare(agentio.MustVersion(profileV2Certain)) < 0 {
+		b.warns.Add(agentio.WarnVersionUnknown, "", flagProfile, "meaning of --profile between 0.131.0 and 0.162.1 is unverified; built as a v2 profile")
 	}
 	b.flag(FeatureFlagProfile, flagProfile, o.Profile)
 }
@@ -379,9 +379,9 @@ func (b *builder) execFlags(o ExecOptions) {
 
 // finish appends the target's extra args and positionals and builds the
 // Command with the home rule.
-func (a *Agent) finish(b *builder, dir string, positional ...string) (agentcli.Command, error) {
+func (a *Agent) finish(b *builder, dir string, positional ...string) (agentio.Command, error) {
 	if b.err != nil {
-		return agentcli.Command{}, b.err
+		return agentio.Command{}, b.err
 	}
 	args := append(b.args, b.t.ExtraArgs...)
 	for _, p := range positional {
@@ -392,7 +392,7 @@ func (a *Agent) finish(b *builder, dir string, positional ...string) (agentcli.C
 	args = append(args, b.trailing...)
 	cmd, err := a.core.Command(b.t, dir, args, nil)
 	if err != nil {
-		return agentcli.Command{}, err
+		return agentio.Command{}, err
 	}
 	cmd.Warnings = append(cmd.Warnings, b.warns...)
 	return cmd, nil
@@ -406,7 +406,7 @@ func execPrompt(o LaunchOptions) string {
 }
 
 // New builds an interactive `codex [flags] [PROMPT]`. Pure.
-func (a *Agent) New(t agentcli.Target, o LaunchOptions) (agentcli.Command, error) {
+func (a *Agent) New(t agentio.Target, o LaunchOptions) (agentio.Command, error) {
 	b := newBuilder(t)
 	b.global(o, false)
 	return a.finish(b, o.Dir, o.Prompt)
@@ -416,9 +416,9 @@ func (a *Agent) New(t agentcli.Target, o LaunchOptions) (agentcli.Command, error
 var ErrNoSessionID = errors.New("codex: session id required")
 
 // Resume builds `codex resume [flags] ID [PROMPT]`. Pure.
-func (a *Agent) Resume(t agentcli.Target, id string, o LaunchOptions) (agentcli.Command, error) {
+func (a *Agent) Resume(t agentio.Target, id string, o LaunchOptions) (agentio.Command, error) {
 	if id == "" {
-		return agentcli.Command{}, ErrNoSessionID
+		return agentio.Command{}, ErrNoSessionID
 	}
 	b := newBuilder(t)
 	b.flag(FeatureSubResume, subResume)
@@ -427,7 +427,7 @@ func (a *Agent) Resume(t agentcli.Target, id string, o LaunchOptions) (agentcli.
 }
 
 // ResumeLast builds `codex resume --last [--all] [flags] [PROMPT]`. Pure.
-func (a *Agent) ResumeLast(t agentcli.Target, o LaunchOptions, all bool) (agentcli.Command, error) {
+func (a *Agent) ResumeLast(t agentio.Target, o LaunchOptions, all bool) (agentio.Command, error) {
 	b := newBuilder(t)
 	b.flag(FeatureSubResume, subResume, flagLast)
 	if all {
@@ -438,9 +438,9 @@ func (a *Agent) ResumeLast(t agentcli.Target, o LaunchOptions, all bool) (agentc
 }
 
 // Fork builds `codex fork [flags] ID [PROMPT]`. Pure.
-func (a *Agent) Fork(t agentcli.Target, id string, o LaunchOptions) (agentcli.Command, error) {
+func (a *Agent) Fork(t agentio.Target, id string, o LaunchOptions) (agentio.Command, error) {
 	if id == "" {
-		return agentcli.Command{}, ErrNoSessionID
+		return agentio.Command{}, ErrNoSessionID
 	}
 	b := newBuilder(t)
 	b.flag(FeatureSubFork, subFork)
@@ -449,7 +449,7 @@ func (a *Agent) Fork(t agentcli.Target, id string, o LaunchOptions) (agentcli.Co
 }
 
 // Exec builds `codex exec [flags] [PROMPT|-]`. Pure; RUNNING it spends Quota.
-func (a *Agent) Exec(t agentcli.Target, o ExecOptions) (agentcli.Command, error) {
+func (a *Agent) Exec(t agentio.Target, o ExecOptions) (agentio.Command, error) {
 	b := newBuilder(t)
 	b.flag(FeatureSubExec, subExec)
 	b.global(o.LaunchOptions, true)
@@ -459,9 +459,9 @@ func (a *Agent) Exec(t agentcli.Target, o ExecOptions) (agentcli.Command, error)
 
 // ExecResume builds `codex exec resume [flags] ID [PROMPT|-]`. Pure;
 // running it spends Quota.
-func (a *Agent) ExecResume(t agentcli.Target, id string, o ExecOptions) (agentcli.Command, error) {
+func (a *Agent) ExecResume(t agentio.Target, id string, o ExecOptions) (agentio.Command, error) {
 	if id == "" {
-		return agentcli.Command{}, ErrNoSessionID
+		return agentio.Command{}, ErrNoSessionID
 	}
 	b := newBuilder(t)
 	b.flag(FeatureSubExec, subExec, subResume)
@@ -475,7 +475,7 @@ func (a *Agent) ExecResume(t agentcli.Target, id string, o ExecOptions) (agentcl
 
 // Review builds `codex exec review [--uncommitted|--base B|--commit SHA]
 // [--title T] [flags]`. Pure; running it spends Quota.
-func (a *Agent) Review(t agentcli.Target, r ReviewTarget, o ExecOptions) (agentcli.Command, error) {
+func (a *Agent) Review(t agentio.Target, r ReviewTarget, o ExecOptions) (agentio.Command, error) {
 	n := 0
 	for _, set := range []bool{r.Uncommitted, r.Base != "", r.Commit != ""} {
 		if set {
@@ -483,7 +483,7 @@ func (a *Agent) Review(t agentcli.Target, r ReviewTarget, o ExecOptions) (agentc
 		}
 	}
 	if n > 1 {
-		return agentcli.Command{}, fmt.Errorf("%w: review takes one of uncommitted, base, commit", ErrInvalidOption)
+		return agentio.Command{}, fmt.Errorf("%w: review takes one of uncommitted, base, commit", ErrInvalidOption)
 	}
 	b := newBuilder(t)
 	b.flag(FeatureSubExec, subExec)
@@ -505,17 +505,17 @@ func (a *Agent) Review(t agentcli.Target, r ReviewTarget, o ExecOptions) (agentc
 }
 
 // Archive builds `codex archive ID`. Pure.
-func (a *Agent) Archive(h Home, id string) agentcli.Command {
+func (a *Agent) Archive(h Home, id string) agentio.Command {
 	return a.plainCommand(h, []string{subArchive, id})
 }
 
 // Unarchive builds `codex unarchive ID`. Pure.
-func (a *Agent) Unarchive(h Home, id string) agentcli.Command {
+func (a *Agent) Unarchive(h Home, id string) agentio.Command {
 	return a.plainCommand(h, []string{subUnarchive, id})
 }
 
 // Delete builds `codex delete [--force] ID`. Pure.
-func (a *Agent) Delete(h Home, id string, force bool) agentcli.Command {
+func (a *Agent) Delete(h Home, id string, force bool) agentio.Command {
 	args := []string{subDelete}
 	if force {
 		args = append(args, flagForce)
@@ -524,13 +524,13 @@ func (a *Agent) Delete(h Home, id string, force bool) agentcli.Command {
 }
 
 // Queue builds `codex queue --thread ID --message TEXT`. Pure.
-func (a *Agent) Queue(h Home, threadID, message string) agentcli.Command {
+func (a *Agent) Queue(h Home, threadID, message string) agentio.Command {
 	return a.plainCommand(h, []string{subQueue, flagThread, threadID, flagMessage, message})
 }
 
 // DoctorCommand builds `codex doctor [--json]` (the vendor's own report;
 // may touch the network and auth when run). Pure.
-func (a *Agent) DoctorCommand(h Home, json bool) agentcli.Command {
+func (a *Agent) DoctorCommand(h Home, json bool) agentio.Command {
 	args := []string{subDoctor}
 	if json {
 		args = append(args, flagJSON)
@@ -539,12 +539,12 @@ func (a *Agent) DoctorCommand(h Home, json bool) agentcli.Command {
 }
 
 // MCPServer builds `codex mcp-server` (stdio MCP exposing Codex). Pure.
-func (a *Agent) MCPServer(h Home) agentcli.Command {
+func (a *Agent) MCPServer(h Home) agentio.Command {
 	return a.plainCommand(h, []string{subMCPServer})
 }
 
 // AppServer builds `codex app-server [--listen URL]`; "" = stdio. Pure.
-func (a *Agent) AppServer(h Home, listen string) agentcli.Command {
+func (a *Agent) AppServer(h Home, listen string) agentio.Command {
 	args := []string{subAppServer}
 	if listen != "" {
 		args = append(args, flagListen, listen)
@@ -554,7 +554,7 @@ func (a *Agent) AppServer(h Home, listen string) agentcli.Command {
 
 // FeatureCommand builds `codex features enable|disable NAME` (OD-7: the
 // vendor edits its own config). Pure.
-func (a *Agent) FeatureCommand(h Home, name string, on bool) agentcli.Command {
+func (a *Agent) FeatureCommand(h Home, name string, on bool) agentio.Command {
 	verb := subDisable
 	if on {
 		verb = subEnable
@@ -570,19 +570,19 @@ type MCPAddSpec struct {
 	Args              []string
 	// Env values would ride on argv (`--env K=V`), which invariant 8
 	// forbids for EnvValue; a non-empty Env is refused.
-	Env map[string]agentcli.EnvValue
+	Env map[string]agentio.EnvValue
 }
 
 // MCPAddCommand builds `codex mcp add NAME (--url U [--bearer-token-env-var
 // V] | -- CMD ARGS…)`. Pure.
-func (a *Agent) MCPAddCommand(h Home, name string, s MCPAddSpec) (agentcli.Command, error) {
+func (a *Agent) MCPAddCommand(h Home, name string, s MCPAddSpec) (agentio.Command, error) {
 	if len(s.Env) > 0 {
-		return agentcli.Command{}, agentcli.UnsupportedError(ID, "mcp add with env values", "codex mcp add takes env values on argv (--env K=V), which would expose them; add the server without env and set env in config.toml")
+		return agentio.Command{}, agentio.UnsupportedError(ID, "mcp add with env values", "codex mcp add takes env values on argv (--env K=V), which would expose them; add the server without env and set env in config.toml")
 	}
 	args := []string{subMCP, subAdd, name}
 	switch {
 	case s.URL != "" && s.Command != "":
-		return agentcli.Command{}, fmt.Errorf("%w: mcp add takes a URL or a command, not both", ErrInvalidOption)
+		return agentio.Command{}, fmt.Errorf("%w: mcp add takes a URL or a command, not both", ErrInvalidOption)
 	case s.URL != "":
 		args = append(args, flagURL, s.URL)
 		if s.BearerTokenEnvVar != "" {
@@ -591,53 +591,53 @@ func (a *Agent) MCPAddCommand(h Home, name string, s MCPAddSpec) (agentcli.Comma
 	case s.Command != "":
 		args = append(append(args, flagArgsSep, s.Command), s.Args...)
 	default:
-		return agentcli.Command{}, fmt.Errorf("%w: mcp add needs a URL or a command", ErrInvalidOption)
+		return agentio.Command{}, fmt.Errorf("%w: mcp add needs a URL or a command", ErrInvalidOption)
 	}
 	return a.plainCommand(h, args), nil
 }
 
 // MCPRemoveCommand builds `codex mcp remove NAME`. Pure.
-func (a *Agent) MCPRemoveCommand(h Home, name string) agentcli.Command {
+func (a *Agent) MCPRemoveCommand(h Home, name string) agentio.Command {
 	return a.plainCommand(h, []string{subMCP, subRemove, name})
 }
 
 // TargetFor fills a launch target with the installed version from disk
 // (package.json), never by running codex. Disk · Read.
-func (a *Agent) TargetFor(h Home) (agentcli.Target, error) {
+func (a *Agent) TargetFor(h Home) (agentio.Target, error) {
 	t := h.Target()
 	in, err := a.Install()
-	if err != nil && !errors.Is(err, agentcli.ErrNotInstalled) {
+	if err != nil && !errors.Is(err, agentio.ErrNotInstalled) {
 		return t, err
 	}
 	t.Version = in.Version
 	return t, nil
 }
 
-// launchNeutral maps agentcli.LaunchRequest onto the builders (SPEC §5.4).
-func (a *Agent) launchNeutral(t agentcli.Target, r agentcli.LaunchRequest) (agentcli.Command, error) {
+// launchNeutral maps agentio.LaunchRequest onto the builders (SPEC §5.4).
+func (a *Agent) launchNeutral(t agentio.Target, r agentio.LaunchRequest) (agentio.Command, error) {
 	if r.Credential != nil {
-		return agentcli.Command{}, agentcli.UnsupportedError(ID, "token login", "Codex has no token login; log in with codex login")
+		return agentio.Command{}, agentio.UnsupportedError(ID, "token login", "Codex has no token login; log in with codex login")
 	}
 	o := LaunchOptions{Prompt: r.Prompt, Model: r.Model, AddDirs: r.AddDirs}
 	switch r.Autonomy {
-	case agentcli.AutonomyDefault:
-	case agentcli.AutonomyReadOnly:
+	case agentio.AutonomyDefault:
+	case agentio.AutonomyReadOnly:
 		o.Sandbox, o.Approval = ModeReadOnly, ApprovalOnRequest
-	case agentcli.AutonomyAsk:
+	case agentio.AutonomyAsk:
 		o.Sandbox, o.Approval = ModeWorkspaceWrite, ApprovalOnRequest
-	case agentcli.AutonomyAcceptEdits:
-		return agentcli.Command{}, agentcli.UnsupportedError(ID, "autonomy accept-edits", "Codex has no edits-only mode (OD-14); never mapped to a more permissive one")
-	case agentcli.AutonomyFull:
-		if err := agentcli.CheckAutonomy(t, r.Autonomy); err != nil {
-			return agentcli.Command{}, err
+	case agentio.AutonomyAcceptEdits:
+		return agentio.Command{}, agentio.UnsupportedError(ID, "autonomy accept-edits", "Codex has no edits-only mode (OD-14); never mapped to a more permissive one")
+	case agentio.AutonomyFull:
+		if err := agentio.CheckAutonomy(t, r.Autonomy); err != nil {
+			return agentio.Command{}, err
 		}
 		o.BypassAll = true
 	default:
-		return agentcli.Command{}, agentcli.UnsupportedError(ID, "autonomy "+r.Autonomy.String(), "unknown autonomy level")
+		return agentio.Command{}, agentio.UnsupportedError(ID, "autonomy "+r.Autonomy.String(), "unknown autonomy level")
 	}
 	o.trailing = slices.Clone(r.Args)
 	var (
-		cmd agentcli.Command
+		cmd agentio.Command
 		err error
 	)
 	switch {
@@ -651,7 +651,7 @@ func (a *Agent) launchNeutral(t agentcli.Target, r agentcli.LaunchRequest) (agen
 		cmd, err = a.New(t, o)
 	}
 	if err != nil {
-		return agentcli.Command{}, err
+		return agentio.Command{}, err
 	}
 	cmd.Dir = r.Dir
 	return cmd, nil

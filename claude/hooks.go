@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // HookEvent names a hook event (docs `hooks`, 33 events). Unknown names are
@@ -156,9 +156,9 @@ type HookHandler struct {
 	Headers                  map[string]string
 	AllowedEnvVars           []string
 	Server, Tool             string
-	Input                    agentcli.Raw
+	Input                    agentio.Raw
 	Prompt, Model            string
-	Unknown                  agentcli.Unknown
+	Unknown                  agentio.Unknown
 }
 
 type wireHookHandler struct {
@@ -219,7 +219,7 @@ func (h HookHandler) MarshalJSON() ([]byte, error) {
 
 // marshalWithUnknown encodes a wire struct and merges the kept unknown keys
 // back in (known keys win).
-func marshalWithUnknown(w json.Marshaler, unknown agentcli.Unknown) ([]byte, error) {
+func marshalWithUnknown(w json.Marshaler, unknown agentio.Unknown) ([]byte, error) {
 	b, err := w.MarshalJSON()
 	if err != nil || len(unknown) == 0 {
 		return b, err
@@ -284,17 +284,17 @@ type HookInput struct {
 	LastAssistantMessage string           `json:"last_assistant_message,omitempty"`
 	StopHookActive       bool             `json:"stop_hook_active,omitempty"`
 	BackgroundTasks      []BackgroundTask `json:"background_tasks,omitempty"`
-	SessionCrons         []agentcli.Raw   `json:"session_crons,omitempty"`
+	SessionCrons         []agentio.Raw    `json:"session_crons,omitempty"`
 	Source               string           `json:"source,omitempty"`
 	Reason               string           `json:"reason,omitempty"`
 	ToolName             string           `json:"tool_name,omitempty"`
-	ToolInput            agentcli.Raw     `json:"tool_input,omitempty"`
-	ToolResponse         agentcli.Raw     `json:"tool_response,omitempty"`
+	ToolInput            agentio.Raw      `json:"tool_input,omitempty"`
+	ToolResponse         agentio.Raw      `json:"tool_response,omitempty"`
 	ToolUseID            string           `json:"tool_use_id,omitempty"`
 	Model                string           `json:"model,omitempty"`
 	FromModel            string           `json:"from_model,omitempty"`
 	ToModel              string           `json:"to_model,omitempty"`
-	Unknown              agentcli.Unknown `json:"-"`
+	Unknown              agentio.Unknown  `json:"-"`
 }
 
 // DecodeHookInput decodes a hook's stdin. cost: Pure.

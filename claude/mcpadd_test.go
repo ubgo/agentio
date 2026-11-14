@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/khanakia/agentcli"
-	"github.com/khanakia/agentcli/agenttest"
+	"github.com/ubgo/agentio"
+	"github.com/ubgo/agentio/agenttest"
 )
 
 // TestMCPAddCommandNeverPutsSecretsOnArgv guards invariant 8: env values and
@@ -16,11 +16,11 @@ func TestMCPAddCommandNeverPutsSecretsOnArgv(t *testing.T) {
 	h := a.DefaultHome()
 	secret := "s3cret-value"
 	for _, s := range []MCPServer{
-		{Name: "e", Transport: "stdio", Command: "srv", Env: map[string]agentcli.EnvValue{"K": agentcli.NewEnvValue(secret)}},
-		{Name: "h", Transport: "http", URL: "https://x", Headers: map[string]agentcli.EnvValue{"Authorization": agentcli.NewEnvValue(secret)}},
+		{Name: "e", Transport: "stdio", Command: "srv", Env: map[string]agentio.EnvValue{"K": agentio.NewEnvValue(secret)}},
+		{Name: "h", Transport: "http", URL: "https://x", Headers: map[string]agentio.EnvValue{"Authorization": agentio.NewEnvValue(secret)}},
 	} {
 		c, err := a.MCPAddCommand(h, "", s)
-		if !errors.Is(err, agentcli.ErrUnsupported) {
+		if !errors.Is(err, agentio.ErrUnsupported) {
 			t.Fatalf("%s: err = %v, want ErrUnsupported", s.Name, err)
 		}
 		if strings.Contains(strings.Join(c.Args, " "), secret) || strings.Contains(err.Error(), secret) {

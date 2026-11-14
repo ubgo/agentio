@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Hook handler keys, verbatim from config/src/hook_config.rs at
@@ -54,7 +54,7 @@ type HooksFile struct {
 	Path        string
 	Description Opt[string]
 	Events      map[HookEvent][]HookMatcherGroup
-	Unknown     agentcli.Unknown // top-level keys besides description/hooks
+	Unknown     agentio.Unknown // top-level keys besides description/hooks
 }
 
 type hooksFileWire struct {
@@ -89,17 +89,17 @@ func hookHandlerKnownKeys() []string {
 // ParseHooksFile decodes hooks.json bytes. A handler that does not decode
 // keeps its type (if readable) and raw keys in UnknownJSON plus a warning;
 // the rest of the file still reads. Pure.
-func ParseHooksFile(b []byte, path string) (HooksFile, agentcli.Warnings, error) {
+func ParseHooksFile(b []byte, path string) (HooksFile, agentio.Warnings, error) {
 	var w hooksFileWire
 	if err := json.Unmarshal(b, &w); err != nil {
 		return HooksFile{}, nil, fmt.Errorf("codex: decode %s: %w", fileHooks, err)
 	}
 	hf := HooksFile{Path: path}
 	if w.Description != nil {
-		hf.Description = agentcli.Some(*w.Description)
+		hf.Description = agentio.Some(*w.Description)
 	}
-	hf.Unknown, _ = agentcli.ExtractUnknown(b, []string{hookKeyDescription, hookKeyHooks})
-	var warns agentcli.Warnings
+	hf.Unknown, _ = agentio.ExtractUnknown(b, []string{hookKeyDescription, hookKeyHooks})
+	var warns agentio.Warnings
 	for ev, groups := range w.Hooks {
 		if hf.Events == nil {
 			hf.Events = map[HookEvent][]HookMatcherGroup{}
@@ -107,12 +107,12 @@ func ParseHooksFile(b []byte, path string) (HooksFile, agentcli.Warnings, error)
 		for _, g := range groups {
 			mg := HookMatcherGroup{}
 			if g.Matcher != nil {
-				mg.Matcher = agentcli.Some(*g.Matcher)
+				mg.Matcher = agentio.Some(*g.Matcher)
 			}
 			for _, raw := range g.Hooks {
 				hh, ok := decodeHookHandlerJSON(raw)
 				if !ok {
-					warns.Add(agentcli.WarnTypeChanged, path, string(ev), "a hook handler did not decode; kept raw")
+					warns.Add(agentio.WarnTypeChanged, path, string(ev), "a hook handler did not decode; kept raw")
 				}
 				mg.Hooks = append(mg.Hooks, hh)
 			}
@@ -124,17 +124,17 @@ func ParseHooksFile(b []byte, path string) (HooksFile, agentcli.Warnings, error)
 
 func decodeHookHandlerJSON(raw json.RawMessage) (HookHandler, bool) {
 	var hh HookHandler
-	hh.UnknownJSON, _ = agentcli.ExtractUnknown(raw, hookHandlerKnownKeys())
+	hh.UnknownJSON, _ = agentio.ExtractUnknown(raw, hookHandlerKnownKeys())
 	var w hookHandlerWire
 	if err := json.Unmarshal(raw, &w); err != nil {
-		all, _ := agentcli.ExtractUnknown(raw, nil)
+		all, _ := agentio.ExtractUnknown(raw, nil)
 		hh.UnknownJSON = all
 		return hh, false
 	}
 	hh.Type = w.Type
 	optStr := func(dst *Opt[string], v *string) {
 		if v != nil {
-			*dst = agentcli.Some(*v)
+			*dst = agentio.Some(*v)
 		}
 	}
 	optStr(&hh.Command, w.Command)
@@ -144,16 +144,16 @@ func decodeHookHandlerJSON(raw json.RawMessage) (HookHandler, bool) {
 	optStr(&hh.Server, w.Server)
 	optStr(&hh.Tool, w.Tool)
 	if w.Timeout != nil {
-		hh.Timeout = agentcli.Some(time.Duration(*w.Timeout * float64(time.Second)))
+		hh.Timeout = agentio.Some(time.Duration(*w.Timeout * float64(time.Second)))
 	}
 	if w.Async != nil {
-		hh.Async = agentcli.Some(*w.Async)
+		hh.Async = agentio.Some(*w.Async)
 	}
 	if w.AdditionalContextLimit != nil {
-		hh.AdditionalContextLimit = agentcli.Some(*w.AdditionalContextLimit)
+		hh.AdditionalContextLimit = agentio.Some(*w.AdditionalContextLimit)
 	}
 	if len(w.Input) > 0 {
-		hh.InputJSON = agentcli.Raw(w.Input)
+		hh.InputJSON = agentio.Raw(w.Input)
 	}
 	return hh, true
 }

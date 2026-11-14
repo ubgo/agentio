@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // streamFixtureRoot holds one directory per Claude Code version, each with a
@@ -91,7 +91,7 @@ func TestStreamFixtures(t *testing.T) {
 						if in.Unknown != nil {
 							t.Errorf("init unknown keys %v", in.Unknown.Keys())
 						}
-						if m.Neutral().Type != agentcli.RunEventStarted {
+						if m.Neutral().Type != agentio.RunEventStarted {
 							t.Error("init is not Started")
 						}
 					case SubtypeStatus:
@@ -144,7 +144,7 @@ func TestStreamFixtures(t *testing.T) {
 					if a.Message.Content.Text() != "ok" || a.RequestID == "" || a.Timestamp.IsZero() || a.Message.Usage == nil || a.Unknown != nil {
 						t.Errorf("assistant = %+v", a)
 					}
-					if ev := m.Neutral(); ev.Type != agentcli.RunEventMessage || ev.Text != "ok" {
+					if ev := m.Neutral(); ev.Type != agentio.RunEventMessage || ev.Text != "ok" {
 						t.Errorf("assistant neutral = %+v", ev)
 					}
 				case StreamTypeRateLimit:
@@ -168,7 +168,7 @@ func TestStreamFixtures(t *testing.T) {
 						t.Error("stream result has no model_usage_since_last_result")
 					}
 					ev := m.Neutral()
-					if ev.Type != agentcli.RunEventDone || ev.Text != "ok" || ev.Tokens == nil || ev.Tokens.Output == 0 {
+					if ev.Type != agentio.RunEventDone || ev.Text != "ok" || ev.Tokens == nil || ev.Tokens.Output == 0 {
 						t.Errorf("result neutral = %+v", ev)
 					}
 				}
@@ -234,7 +234,7 @@ func TestStreamUnknownTypeIsRaw(t *testing.T) {
 	if m.Type != "brand_new" || m.Type.IsKnown() || string(m.Raw) != line {
 		t.Fatalf("msg = %+v", m)
 	}
-	if m.Neutral().Type != agentcli.RunEventOther {
+	if m.Neutral().Type != agentio.RunEventOther {
 		t.Fatal("unknown type is not Other")
 	}
 	if _, err := m.AsResult(); !errors.Is(err, ErrWrongStreamMessage) {
@@ -242,7 +242,7 @@ func TestStreamUnknownTypeIsRaw(t *testing.T) {
 	}
 	// An error subtype maps to Error even when is_error is absent.
 	r := readStreamString(t, `{"type":"result","subtype":"error_max_turns","session_id":"s"}`)[0]
-	if !r.Subtype.IsResultError() || r.Neutral().Type != agentcli.RunEventError {
+	if !r.Subtype.IsResultError() || r.Neutral().Type != agentio.RunEventError {
 		t.Fatalf("error result = %+v", r.Neutral())
 	}
 	// A new key on a typed line lands in Unknown.

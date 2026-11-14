@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/khanakia/agentcli"
-	"github.com/khanakia/agentcli/agenttest"
+	"github.com/ubgo/agentio"
+	"github.com/ubgo/agentio/agenttest"
 )
 
 // fixtureVersions lists every recorded fixture home; each reader test runs
@@ -64,7 +64,7 @@ func TestSpecValidates(t *testing.T) {
 	if err := Spec().Validate(); err != nil {
 		t.Fatal(err)
 	}
-	if New(agentcli.Host{}).core == nil {
+	if New(agentio.Host{}).core == nil {
 		t.Fatal("core not built")
 	}
 }
@@ -75,7 +75,7 @@ func TestCompatParses(t *testing.T) {
 		t.Fatalf("bad compat %+v", c)
 	}
 	for _, v := range fixtureVersions(t) {
-		if c.Check(agentcli.MustVersion(v)) == agentcli.CompatUnknown {
+		if c.Check(agentio.MustVersion(v)) == agentio.CompatUnknown {
 			t.Fatalf("fixture %s outside compat", v)
 		}
 	}
@@ -111,7 +111,7 @@ func TestFeaturesTableMatchesGenerated(t *testing.T) {
 			t.Errorf("feature %d spelling %q, tsv %q", i, f.String(), r[1])
 		}
 		span := FeatureInfo(f)
-		if span.Since.String() != agentcli.MustVersion(r[2]).String() || span.Until.String() != agentcli.MustVersion(r[3]).String() {
+		if span.Since.String() != agentio.MustVersion(r[2]).String() || span.Until.String() != agentio.MustVersion(r[3]).String() {
 			t.Errorf("%s bounds %v, tsv %q %q", r[0], span, r[2], r[3])
 		}
 		if span.Known() && FeatureSource(f) == "" {
@@ -143,7 +143,7 @@ func TestHomes(t *testing.T) {
 		if len(hs) != 2 || !hs[0].IsDefault() || hs[1].Name() != "work" {
 			t.Fatalf("homes %v", hs)
 		}
-		if _, err := a.HomeOf(agentcli.NewHome("codex", dir, true, "x")); !errors.Is(err, agentcli.ErrForeignHome) {
+		if _, err := a.HomeOf(agentio.NewHome("codex", dir, true, "x")); !errors.Is(err, agentio.ErrForeignHome) {
 			t.Fatal("foreign home accepted")
 		}
 	}
@@ -171,7 +171,7 @@ func TestGlobalConfigAndIdentity(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !id.LoggedIn || id.PlanLabel != "Max (20x)" || id.Identity.Credential != agentcli.CredentialFile {
+		if !id.LoggedIn || id.PlanLabel != "Max (20x)" || id.Identity.Credential != agentio.CredentialFile {
 			t.Fatalf("identity %+v", id.Identity)
 		}
 		if strings.Contains(id.Email.String(), "@") {
@@ -213,10 +213,10 @@ func TestCachedUsage(t *testing.T) {
 		if err != nil || !found {
 			t.Fatal(err, found)
 		}
-		if u.Source != agentcli.UsageCache || u.ObservedAt.IsZero() || len(u.Windows) < 2 {
+		if u.Source != agentio.UsageCache || u.ObservedAt.IsZero() || len(u.Windows) < 2 {
 			t.Fatalf("usage %+v", u.Usage)
 		}
-		if u.Windows[0].Length != 5*time.Hour || u.Windows[0].Class() != agentcli.WindowShort {
+		if u.Windows[0].Length != 5*time.Hour || u.Windows[0].Class() != agentio.WindowShort {
 			t.Fatalf("window %+v", u.Windows[0])
 		}
 		if _, err := ExtraUsageOf(u.Neutral()); err != nil {
@@ -247,7 +247,7 @@ func TestUsageAndProfileHTTP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(gotAuth, "Bearer sk-ant-oat01-FIXTURE") || len(u.Windows) != 2 || !u.Extra.IsEnabled || u.Source != agentcli.UsageServer {
+	if !strings.HasPrefix(gotAuth, "Bearer sk-ant-oat01.FIXTURE") || len(u.Windows) != 2 || !u.Extra.IsEnabled || u.Source != agentio.UsageServer {
 		t.Fatalf("usage %+v", u)
 	}
 	s, err := a.Subscription(context.Background(), a.DefaultHome())
@@ -262,9 +262,9 @@ func TestUsageErrors(t *testing.T) {
 		body   string
 		want   error
 	}{
-		{http.StatusTooManyRequests, `{}`, agentcli.ErrRateLimited},
-		{http.StatusUnauthorized, `{"error":{"message":"bad sk-ant-oat01-FIXTURE-NOT-A-TOKEN"}}`, agentcli.ErrUnauthorized},
-		{http.StatusForbidden, `{"error":{"details":{"error_code":"oauth_scope_insufficient"}}}`, agentcli.ErrScopeLimited},
+		{http.StatusTooManyRequests, `{}`, agentio.ErrRateLimited},
+		{http.StatusUnauthorized, `{"error":{"message":"bad sk-ant-oat01.FIXTURE-NOT-A-TOKEN"}}`, agentio.ErrUnauthorized},
+		{http.StatusForbidden, `{"error":{"details":{"error_code":"oauth_scope_insufficient"}}}`, agentio.ErrScopeLimited},
 	} {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(tc.status)
@@ -293,7 +293,7 @@ func TestProbe(t *testing.T) {
 	}))
 	defer srv.Close()
 	a, _ := fixtureAgent(t, fixtureVersions(t)[0], agenttest.WithHTTP(srv.Client()))
-	u, err := a.WithBaseURL(srv.URL).Prober().TokenUsage(context.Background(), agentcli.TokenCredential{Kind: agentcli.TokenOAuthToken, Token: agentcli.NewToken("sk-ant-oat01-x")})
+	u, err := a.WithBaseURL(srv.URL).Prober().TokenUsage(context.Background(), agentio.TokenCredential{Kind: agentio.TokenOAuthToken, Token: agentio.NewToken("sk-ant-oat01-x")})
 	if err != nil || len(u.Windows) != 1 || u.Windows[0].Percent != 100 {
 		t.Fatalf("%+v %v", u, err)
 	}
@@ -330,7 +330,7 @@ func TestSettingsTypeChangeDegrades(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s.Theme != "dark" || !s.Warnings.Has(agentcli.WarnTypeChanged) || s.Unknown["model"] == nil {
+	if s.Theme != "dark" || !s.Warnings.Has(agentio.WarnTypeChanged) || s.Unknown["model"] == nil {
 		t.Fatalf("%+v", s)
 	}
 }
@@ -361,7 +361,7 @@ func TestMCPServers(t *testing.T) {
 func TestConversations(t *testing.T) {
 	for _, v := range fixtureVersions(t) {
 		a, _ := fixtureAgent(t, v)
-		cs, err := a.Conversations(context.Background(), a.DefaultHome(), agentcli.ConversationQuery{Limit: 5})
+		cs, err := a.Conversations(context.Background(), a.DefaultHome(), agentio.ConversationQuery{Limit: 5})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -382,7 +382,7 @@ func TestConversations(t *testing.T) {
 			t.Fatal("history not found", err)
 		}
 		hs, _ := a.Homes()
-		wc, err := a.Conversations(context.Background(), hs[1], agentcli.ConversationQuery{Dir: "/work/proj99"})
+		wc, err := a.Conversations(context.Background(), hs[1], agentio.ConversationQuery{Dir: "/work/proj99"})
 		if err != nil || len(wc) != 1 || wc[0].Title != "Work home fixture" || wc[0].TitleSource != TitleAI {
 			t.Fatalf("work conversations %+v %v", wc, err)
 		}
@@ -393,8 +393,8 @@ func TestTurnsOffsetResume(t *testing.T) {
 	a, dir := fixtureAgent(t, fixtureVersions(t)[0])
 	hs, _ := a.Homes()
 	id := "0b5e3a8e-0000-4000-8000-000000000099"
-	var turns []agentcli.Turn
-	off, err := a.Turns(hs[1], id, 0, func(tn agentcli.Turn) error { turns = append(turns, tn); return nil })
+	var turns []agentio.Turn
+	off, err := a.Turns(hs[1], id, 0, func(tn agentio.Turn) error { turns = append(turns, tn); return nil })
 	if err != nil || len(turns) != 2 || turns[1].Tokens == nil || turns[1].Tokens.CachedInput != 300 {
 		t.Fatalf("turns %+v %v", turns, err)
 	}
@@ -406,7 +406,7 @@ func TestTurnsOffsetResume(t *testing.T) {
 	}
 	_, _ = f.WriteString(`{"type":"user","message":{"content":"partial`)
 	_ = f.Close()
-	off2, err := a.Turns(hs[1], id, off, func(agentcli.Turn) error { t.Fatal("partial line read"); return nil })
+	off2, err := a.Turns(hs[1], id, off, func(agentio.Turn) error { t.Fatal("partial line read"); return nil })
 	if err != nil || off2 != off {
 		t.Fatalf("offset moved %d -> %d (%v)", off, off2, err)
 	}
@@ -450,24 +450,24 @@ func TestLaunchHomeRuleAndFeatures(t *testing.T) {
 	if got := strings.Join(cmd.Args, " "); got != "--model opus --permission-mode plan -- -hi" {
 		t.Fatal(got)
 	}
-	if !cmd.Warnings.Has(agentcli.WarnVersionUnknown) {
+	if !cmd.Warnings.Has(agentio.WarnVersionUnknown) {
 		t.Fatal("unknown version not warned")
 	}
 	work := a.HomeAt(filepath.Join(dir, ".claude-work"))
 	wt := work.Target()
-	wt.Version = agentcli.MustVersion("2.1.40")
+	wt.Version = agentio.MustVersion("2.1.40")
 	name := ""
 	_, err = a.Launch(wt, LaunchOptions{Worktree: &name})
 	var fe *FeatureUnavailableError
-	if !errors.As(err, &fe) || !errors.Is(err, agentcli.ErrFeatureUnavailable) || fe.Feature != FeatureFlagWorktree {
+	if !errors.As(err, &fe) || !errors.Is(err, agentio.ErrFeatureUnavailable) || fe.Feature != FeatureFlagWorktree {
 		t.Fatalf("worktree on 2.1.40: %v", err)
 	}
-	wt.Version = agentcli.MustVersion("2.1.400")
+	wt.Version = agentio.MustVersion("2.1.400")
 	cmd, err = a.Launch(wt, LaunchOptions{Resume: "abc"})
-	if err != nil || !cmd.Warnings.Has(agentcli.WarnUntestedVersion) {
+	if err != nil || !cmd.Warnings.Has(agentio.WarnUntestedVersion) {
 		t.Fatalf("newer version: %v %v", err, cmd.Warnings)
 	}
-	if v, _ := agentcli.EnvLookup(cmd.Env, ConfigDirEnv); v != work.Dir() {
+	if v, _ := agentio.EnvLookup(cmd.Env, ConfigDirEnv); v != work.Dir() {
 		t.Fatalf("non-default home env %q", v)
 	}
 	if _, err := (LaunchOptions{OutputFormat: OutputJSON}).Args(); !errors.Is(err, ErrInvalidLaunch) {
@@ -477,18 +477,18 @@ func TestLaunchHomeRuleAndFeatures(t *testing.T) {
 
 func TestNeutralLaunchToken(t *testing.T) {
 	a, _ := fixtureAgent(t, fixtureVersions(t)[0], agenttest.WithEnv("PATH=/bin", APIKeyEnv+"=old"))
-	tok := agentcli.NewToken("sk-ant-oat01-secret")
-	cmd, err := a.launchRequest(a.DefaultHome().Target(), agentcli.LaunchRequest{Headless: true, Prompt: "x", Autonomy: agentcli.AutonomyAcceptEdits, Credential: &agentcli.TokenCredential{Kind: agentcli.TokenOAuthToken, Token: tok}})
+	tok := agentio.NewToken("sk-ant-oat01-secret")
+	cmd, err := a.launchRequest(a.DefaultHome().Target(), agentio.LaunchRequest{Headless: true, Prompt: "x", Autonomy: agentio.AutonomyAcceptEdits, Credential: &agentio.TokenCredential{Kind: agentio.TokenOAuthToken, Token: tok}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(strings.Join(cmd.Args, " "), "secret") || strings.Contains(cmd.Redacted().String(), "secret") {
 		t.Fatal("token leaked")
 	}
-	if v, ok := agentcli.EnvLookup(cmd.Env, APIKeyEnv); ok {
+	if v, ok := agentio.EnvLookup(cmd.Env, APIKeyEnv); ok {
 		t.Fatalf("api key not scrubbed: %q", v)
 	}
-	if _, err := a.launchRequest(a.DefaultHome().Target(), agentcli.LaunchRequest{Autonomy: agentcli.AutonomyFull}); !errors.Is(err, agentcli.ErrDangerousNotAllowed) {
+	if _, err := a.launchRequest(a.DefaultHome().Target(), agentio.LaunchRequest{Autonomy: agentio.AutonomyFull}); !errors.Is(err, agentio.ErrDangerousNotAllowed) {
 		t.Fatal("full autonomy without AllowDangerous")
 	}
 }
@@ -544,7 +544,7 @@ func TestInstallNative(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if inst.Method != agentcli.InstallNative || inst.Version.String() != "2.1.323" || inst.RawMethod != "native" || inst.LastUpdate == nil {
+	if inst.Method != agentio.InstallNative || inst.Version.String() != "2.1.323" || inst.RawMethod != "native" || inst.LastUpdate == nil {
 		t.Fatalf("install %+v", inst)
 	}
 }
@@ -557,7 +557,7 @@ func TestConformance(t *testing.T) {
 			t.Fatal(err)
 		}
 		agenttest.Conformance(t, a.Neutral(), hs[0].Neutral())
-		if r, ok := agentcli.Unsupported(a.Neutral(), agentcli.CapModels); !ok || r == "" {
+		if r, ok := agentio.Unsupported(a.Neutral(), agentio.CapModels); !ok || r == "" {
 			t.Fatal("ModelLister reason not declared")
 		}
 	}
@@ -567,14 +567,14 @@ func TestDoctor(t *testing.T) {
 	a, dir := fixtureAgent(t, fixtureVersions(t)[0], agenttest.WithNow(agenttest.FixedNow))
 	p := Project{Dir: filepath.Join(dir, "project")}
 	checks := a.Doctor(context.Background(), a.DefaultHome(), &p, DoctorOptions{})
-	ids := map[agentcli.CheckID]agentcli.CheckStatus{}
+	ids := map[agentio.CheckID]agentio.CheckStatus{}
 	for _, c := range checks {
 		ids[c.ID] = c.Status
 		if strings.Contains(c.Message, "FIXTURE-NOT-A-TOKEN") || strings.Contains(c.Message, "user@example.com") {
 			t.Fatalf("value in check %s", c.ID)
 		}
 	}
-	for _, want := range []agentcli.CheckID{agentcli.CheckVersionTested, agentcli.CheckLogin, CheckRetention, CheckHistorySize} {
+	for _, want := range []agentio.CheckID{agentio.CheckVersionTested, agentio.CheckLogin, CheckRetention, CheckHistorySize} {
 		if _, ok := ids[want]; !ok {
 			t.Errorf("missing check %s in %v", want, ids)
 		}
@@ -585,7 +585,7 @@ func TestDoctor(t *testing.T) {
 // commands are built with the home env rule, and the login files of the
 // fixture home are unchanged afterwards (bytes and mtime, SPEC §10).
 func TestRunnerBuiltNotRun(t *testing.T) {
-	fx := &agenttest.FakeExec{Results: map[string]agentcli.ProcessResult{
+	fx := &agenttest.FakeExec{Results: map[string]agentio.ProcessResult{
 		"claude --version":           {Stdout: []byte("2.1.323 (Claude Code)\n")},
 		"claude auth status --json":  {Stdout: []byte(`{"loggedIn":true,"authMethod":"claude.ai","email":"user@example.com","planTier":"max_20x","newKey":1}`)},
 		"claude plugin list --json":  {Stdout: []byte(`[{"id":"p@m","version":"1","scope":"user","enabled":true,"installPath":"/x"}]`)},
@@ -615,7 +615,7 @@ func TestRunnerBuiltNotRun(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, c := range fx.Calls {
-		if _, ok := agentcli.EnvLookup(c.Env, ConfigDirEnv); ok {
+		if _, ok := agentio.EnvLookup(c.Env, ConfigDirEnv); ok {
 			t.Fatalf("default home run carries %s", ConfigDirEnv)
 		}
 	}

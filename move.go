@@ -1,4 +1,4 @@
-package agentcli
+package agentio
 
 import (
 	"errors"
@@ -47,7 +47,7 @@ type MovePlan struct {
 }
 
 // ApplyMovePlan executes a plan the same way for every agent: back up every
-// source item into one sibling dir `<from home>.agentcli-bak-<stamp>/`
+// source item into one sibling dir `<from home>.agentio-bak-<stamp>/`
 // (paths relative to the source home), then rename each item into place.
 // If a rename fails, the items already moved are renamed back, so a failed
 // move leaves both homes as they were. Renames need both homes on one
@@ -72,9 +72,9 @@ func ApplyMovePlan(plan MovePlan, now time.Time) (Backup, error) {
 		}
 		if err != nil {
 			if rbErr := rollbackMove(done); rbErr != nil {
-				return backup, fmt.Errorf("agentcli: move %s: %w (rollback also failed: %v; restore from the backup)", it.From, err, rbErr)
+				return backup, fmt.Errorf("agentio: move %s: %w (rollback also failed: %v; restore from the backup)", it.From, err, rbErr)
 			}
-			return backup, fmt.Errorf("agentcli: move %s: %w (nothing was changed)", it.From, err)
+			return backup, fmt.Errorf("agentio: move %s: %w (nothing was changed)", it.From, err)
 		}
 		done = append(done, it)
 	}
@@ -99,11 +99,11 @@ func backupMoveItems(plan MovePlan, now time.Time) (Backup, error) {
 	for _, it := range plan.Items {
 		rel, err := filepath.Rel(plan.From.Dir(), it.From)
 		if err != nil {
-			return Backup{}, fmt.Errorf("agentcli: backup path for %s: %w", it.From, err)
+			return Backup{}, fmt.Errorf("agentio: backup path for %s: %w", it.From, err)
 		}
 		dst := filepath.Join(root, rel)
 		if err := CopyTree(it.From, dst); err != nil {
-			return Backup{}, fmt.Errorf("agentcli: backup %s: %w", it.From, err)
+			return Backup{}, fmt.Errorf("agentio: backup %s: %w", it.From, err)
 		}
 		b.Entries = append(b.Entries, BackupEntry{Original: it.From, Copy: dst})
 	}

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Flags and subcommands at 2.1.323 (`claude --help`, verbatim).
@@ -141,7 +141,7 @@ type LaunchOptions struct {
 	ReplayUserMessages     bool
 	ForwardSubagentText    bool
 	Verbose                bool
-	JSONSchema             agentcli.Raw
+	JSONSchema             agentio.Raw
 	MaxBudgetUSD           *float64
 	NoSessionPersistence   bool
 
@@ -403,46 +403,46 @@ func (o LaunchOptions) Args() ([]string, error) {
 // checked against t.Version: provably unavailable → *FeatureUnavailableError;
 // unknown version → built with a warning; outside Compat() → built with an
 // "untested" warning (SPEC §5.8). cost: Pure.
-func (a *Agent) Launch(t agentcli.Target, o LaunchOptions) (agentcli.Command, error) {
+func (a *Agent) Launch(t agentio.Target, o LaunchOptions) (agentio.Command, error) {
 	return a.launch(t, o, nil)
 }
 
-func (a *Agent) launch(t agentcli.Target, o LaunchOptions, tokenEnv []agentcli.EnvChange) (agentcli.Command, error) {
+func (a *Agent) launch(t agentio.Target, o LaunchOptions, tokenEnv []agentio.EnvChange) (agentio.Command, error) {
 	b, err := o.build()
 	if err != nil {
-		return agentcli.Command{}, err
+		return agentio.Command{}, err
 	}
 	for _, f := range b.feats {
 		if err := checkFeature(f, t.Version); err != nil {
-			return agentcli.Command{}, err
+			return agentio.Command{}, err
 		}
 	}
 	argv := slices.Concat(t.ExtraArgs, b.args)
 	cmd, err := a.core.Command(t, "", argv, tokenEnv)
 	if err != nil {
-		return agentcli.Command{}, err
+		return agentio.Command{}, err
 	}
 	cmd.Warnings = append(cmd.Warnings, versionWarnings(t.Version)...)
 	return cmd, nil
 }
 
 // versionWarnings adds the unknown-version and untested-version warnings.
-func versionWarnings(v agentcli.Version) agentcli.Warnings {
+func versionWarnings(v agentio.Version) agentio.Warnings {
 	if v.IsZero() {
-		return agentcli.Warnings{{Kind: agentcli.WarnVersionUnknown, Detail: "installed Claude Code version unknown; flags not checked"}}
+		return agentio.Warnings{{Kind: agentio.WarnVersionUnknown, Detail: "installed Claude Code version unknown; flags not checked"}}
 	}
 	if w, ok := Compat().Warning(v); ok {
-		return agentcli.Warnings{w}
+		return agentio.Warnings{w}
 	}
 	return nil
 }
 
 // TargetFor fills a target's Version from the on-disk install, never by
 // running the binary. cost: Disk · Read.
-func (a *Agent) TargetFor(h Home) (agentcli.Target, error) {
+func (a *Agent) TargetFor(h Home) (agentio.Target, error) {
 	t := h.Target()
 	inst, err := a.Install()
-	if err != nil && !errors.Is(err, agentcli.ErrNotInstalled) {
+	if err != nil && !errors.Is(err, agentio.ErrNotInstalled) {
 		return t, err
 	}
 	t.Version = inst.Version
@@ -451,20 +451,20 @@ func (a *Agent) TargetFor(h Home) (agentcli.Target, error) {
 
 // launchFromRequest maps the neutral request onto LaunchOptions
 // (SPEC §5.4 table). A neutral level with no exact Claude mode is refused.
-func launchFromRequest(r agentcli.LaunchRequest) (LaunchOptions, error) {
+func launchFromRequest(r agentio.LaunchRequest) (LaunchOptions, error) {
 	o := LaunchOptions{Prompt: r.Prompt, Resume: r.ResumeID, Model: r.Model, AddDirs: r.AddDirs, ExtraArgs: r.Args}
 	switch r.Autonomy {
-	case agentcli.AutonomyDefault:
-	case agentcli.AutonomyReadOnly:
+	case agentio.AutonomyDefault:
+	case agentio.AutonomyReadOnly:
 		o.PermissionMode = ModePlan
-	case agentcli.AutonomyAsk:
+	case agentio.AutonomyAsk:
 		o.PermissionMode = ModeManual
-	case agentcli.AutonomyAcceptEdits:
+	case agentio.AutonomyAcceptEdits:
 		o.PermissionMode = ModeAcceptEdits
-	case agentcli.AutonomyFull:
+	case agentio.AutonomyFull:
 		o.DangerouslySkipPermissions = true
 	default:
-		return o, agentcli.UnsupportedError(ID, "autonomy "+r.Autonomy.String(), "no matching Claude permission mode")
+		return o, agentio.UnsupportedError(ID, "autonomy "+r.Autonomy.String(), "no matching Claude permission mode")
 	}
 	if r.Headless {
 		o.Print, o.OutputFormat, o.Verbose = true, OutputStreamJSON, true
@@ -474,23 +474,23 @@ func launchFromRequest(r agentcli.LaunchRequest) (LaunchOptions, error) {
 
 // launchRequest is the neutral Launch: Autonomy rules, token login env,
 // then the rich builder.
-func (a *Agent) launchRequest(t agentcli.Target, r agentcli.LaunchRequest) (agentcli.Command, error) {
-	if err := agentcli.CheckAutonomy(t, r.Autonomy); err != nil {
-		return agentcli.Command{}, err
+func (a *Agent) launchRequest(t agentio.Target, r agentio.LaunchRequest) (agentio.Command, error) {
+	if err := agentio.CheckAutonomy(t, r.Autonomy); err != nil {
+		return agentio.Command{}, err
 	}
 	o, err := launchFromRequest(r)
 	if err != nil {
-		return agentcli.Command{}, err
+		return agentio.Command{}, err
 	}
-	var tokenEnv []agentcli.EnvChange
+	var tokenEnv []agentio.EnvChange
 	if r.Credential != nil {
 		if tokenEnv, err = a.TokenEnv(*r.Credential); err != nil {
-			return agentcli.Command{}, err
+			return agentio.Command{}, err
 		}
 	}
 	cmd, err := a.launch(t, o, tokenEnv)
 	if err != nil {
-		return agentcli.Command{}, err
+		return agentio.Command{}, err
 	}
 	cmd.Dir = r.Dir
 	return cmd, nil
@@ -514,19 +514,19 @@ func EncodeAgentsFlag(defs map[string]SubagentDef) (string, error) {
 }
 
 // command builds a data-only Command for h (home rule applied).
-func (a *Agent) command(h Home, args ...string) agentcli.Command {
+func (a *Agent) command(h Home, args ...string) agentio.Command {
 	cmd, err := a.core.Command(h.Target(), "", args, nil)
 	if err != nil {
-		return agentcli.NewCommand(Binary, args, a.host.Env, "")
+		return agentio.NewCommand(Binary, args, a.host.Env, "")
 	}
 	return cmd
 }
 
 // UpdateCommand is `claude update` (data). cost: Pure.
-func (a *Agent) UpdateCommand() agentcli.Command { return a.command(a.DefaultHome(), subUpdate) }
+func (a *Agent) UpdateCommand() agentio.Command { return a.command(a.DefaultHome(), subUpdate) }
 
 // InstallCommand is `claude install <target>` (stable, latest or a version). cost: Pure.
-func (a *Agent) InstallCommand(target string) agentcli.Command {
+func (a *Agent) InstallCommand(target string) agentio.Command {
 	return a.command(a.DefaultHome(), subInstall, target)
 }
 
@@ -543,7 +543,7 @@ const (
 // LoginCommand is `claude auth login --claudeai|--console|--sso [--email e]`
 // for h, with the other credential variables scrubbed so the new login is
 // the one used. cost: Pure.
-func (a *Agent) LoginCommand(h Home, mode LoginMode, email string) agentcli.Command {
+func (a *Agent) LoginCommand(h Home, mode LoginMode, email string) agentio.Command {
 	args := []string{subAuth, subLogin}
 	switch mode {
 	case LoginConsole:
@@ -556,7 +556,7 @@ func (a *Agent) LoginCommand(h Home, mode LoginMode, email string) agentcli.Comm
 	if email != "" {
 		args = append(args, flagEmail, email)
 	}
-	cmd, err := a.core.Command(h.Target(), "", args, agentcli.ScrubEnv(credentialEnv()))
+	cmd, err := a.core.Command(h.Target(), "", args, agentio.ScrubEnv(credentialEnv()))
 	if err != nil {
 		return a.command(h, args...)
 	}
@@ -564,14 +564,14 @@ func (a *Agent) LoginCommand(h Home, mode LoginMode, email string) agentcli.Comm
 }
 
 // LogoutCommand is `claude auth logout` for h. cost: Pure.
-func (a *Agent) LogoutCommand(h Home) agentcli.Command { return a.command(h, subAuth, subLogout) }
+func (a *Agent) LogoutCommand(h Home) agentio.Command { return a.command(h, subAuth, subLogout) }
 
 // SetupTokenCommand is `claude setup-token` for h. cost: Pure.
-func (a *Agent) SetupTokenCommand(h Home) agentcli.Command { return a.command(h, subSetupToken) }
+func (a *Agent) SetupTokenCommand(h Home) agentio.Command { return a.command(h, subSetupToken) }
 
 // MCPListCommand is `claude mcp list` (data). Running it spawns every
 // server for a health check, so the library never runs it. cost: Pure.
-func (a *Agent) MCPListCommand(h Home, dir string) agentcli.Command {
+func (a *Agent) MCPListCommand(h Home, dir string) agentio.Command {
 	c := a.command(h, subMCP, subList)
 	c.Dir = dir
 	return c
@@ -582,9 +582,9 @@ func (a *Agent) MCPListCommand(h Home, dir string) agentcli.Command {
 // argv, so a server with env values or headers is refused: those are secrets
 // (EnvValue) and must never ride in argv (invariant 8). Add such a server
 // without them and set the values through Claude Code itself. cost: Pure.
-func (a *Agent) MCPAddCommand(h Home, dir string, s MCPServer) (agentcli.Command, error) {
+func (a *Agent) MCPAddCommand(h Home, dir string, s MCPServer) (agentio.Command, error) {
 	if len(s.Env) > 0 || len(s.Headers) > 0 {
-		return agentcli.Command{}, agentcli.UnsupportedError(ID, "mcp add-json with env or headers",
+		return agentio.Command{}, agentio.UnsupportedError(ID, "mcp add-json with env or headers",
 			"claude mcp add-json takes the server only on argv; env values and headers are secrets and never go on argv")
 	}
 	type wire struct {
@@ -596,7 +596,7 @@ func (a *Agent) MCPAddCommand(h Home, dir string, s MCPServer) (agentcli.Command
 	w := wire{Type: s.Transport, Command: s.Command, Args: s.Args, URL: s.URL}
 	js, err := json.Marshal(w)
 	if err != nil {
-		return agentcli.Command{}, err
+		return agentio.Command{}, err
 	}
 	scope := s.Scope
 	if scope == "" {
@@ -608,14 +608,14 @@ func (a *Agent) MCPAddCommand(h Home, dir string, s MCPServer) (agentcli.Command
 }
 
 // MCPRemoveCommand is `claude mcp remove -s <scope> <name>`. cost: Pure.
-func (a *Agent) MCPRemoveCommand(h Home, dir string, scope MCPScope, name string) agentcli.Command {
+func (a *Agent) MCPRemoveCommand(h Home, dir string, scope MCPScope, name string) agentio.Command {
 	c := a.command(h, subMCP, subRemove, flagScope, string(scope), name)
 	c.Dir = dir
 	return c
 }
 
 // MCPResetProjectChoicesCommand is `claude mcp reset-project-choices`. cost: Pure.
-func (a *Agent) MCPResetProjectChoicesCommand(h Home, dir string) agentcli.Command {
+func (a *Agent) MCPResetProjectChoicesCommand(h Home, dir string) agentio.Command {
 	c := a.command(h, subMCP, subResetProjectChoices)
 	c.Dir = dir
 	return c
@@ -633,27 +633,27 @@ const (
 )
 
 // PluginInstallCommand is `claude plugin install <id> -s <scope>`. cost: Pure.
-func (a *Agent) PluginInstallCommand(h Home, id PluginID, scope PluginScope) agentcli.Command {
+func (a *Agent) PluginInstallCommand(h Home, id PluginID, scope PluginScope) agentio.Command {
 	return a.command(h, subPlugin, subInstall, string(id), flagScope, string(scope))
 }
 
 // PluginEnableCommand is `claude plugin enable <id>`. cost: Pure.
-func (a *Agent) PluginEnableCommand(h Home, id PluginID) agentcli.Command {
+func (a *Agent) PluginEnableCommand(h Home, id PluginID) agentio.Command {
 	return a.command(h, subPlugin, subEnable, string(id))
 }
 
 // PluginDisableCommand is `claude plugin disable <id>`. cost: Pure.
-func (a *Agent) PluginDisableCommand(h Home, id PluginID) agentcli.Command {
+func (a *Agent) PluginDisableCommand(h Home, id PluginID) agentio.Command {
 	return a.command(h, subPlugin, subDisable, string(id))
 }
 
 // MarketplaceAddCommand is `claude plugin marketplace add <source>`. cost: Pure.
-func (a *Agent) MarketplaceAddCommand(h Home, source string) agentcli.Command {
+func (a *Agent) MarketplaceAddCommand(h Home, source string) agentio.Command {
 	return a.command(h, subPlugin, subMarketplace, subAdd, source)
 }
 
 // MarketplaceUpdateCommand is `claude plugin marketplace update [name]`. cost: Pure.
-func (a *Agent) MarketplaceUpdateCommand(h Home, name string) agentcli.Command {
+func (a *Agent) MarketplaceUpdateCommand(h Home, name string) agentio.Command {
 	args := []string{subPlugin, subMarketplace, subUpdate}
 	if name != "" {
 		args = append(args, name)
@@ -662,7 +662,7 @@ func (a *Agent) MarketplaceUpdateCommand(h Home, name string) agentcli.Command {
 }
 
 // PurgeCommand is `claude purge <dir> [--dry-run]`. cost: Pure.
-func (a *Agent) PurgeCommand(dir string, dryRun bool) agentcli.Command {
+func (a *Agent) PurgeCommand(dir string, dryRun bool) agentio.Command {
 	args := []string{subPurge, dir}
 	if dryRun {
 		args = append(args, flagDryRun)
@@ -671,16 +671,16 @@ func (a *Agent) PurgeCommand(dir string, dryRun bool) agentcli.Command {
 }
 
 // AttachCommand is `claude attach <id>`. cost: Pure.
-func (a *Agent) AttachCommand(id string) agentcli.Command {
+func (a *Agent) AttachCommand(id string) agentio.Command {
 	return a.command(a.DefaultHome(), subAttach, id)
 }
 
 // StopCommand is `claude stop <id>`. cost: Pure.
-func (a *Agent) StopCommand(id string) agentcli.Command {
+func (a *Agent) StopCommand(id string) agentio.Command {
 	return a.command(a.DefaultHome(), subStop, id)
 }
 
 // LogsCommand is `claude logs <id>`. cost: Pure.
-func (a *Agent) LogsCommand(id string) agentcli.Command {
+func (a *Agent) LogsCommand(id string) agentio.Command {
 	return a.command(a.DefaultHome(), subLogs, id)
 }

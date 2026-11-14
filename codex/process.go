@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // argv words that refine a Codex process's kind.
@@ -26,8 +26,8 @@ const (
 
 // LiveProcess is one running Codex process from Host.Processes.
 type LiveProcess struct {
-	agentcli.Process
-	Kind agentcli.ProcessKind
+	agentio.Process
+	Kind agentio.ProcessKind
 	// Home is "" unless argv names it; CODEX_HOME in another process's env
 	// is not readable on macOS (SPEC §5.1).
 	Home string
@@ -38,35 +38,35 @@ type LiveProcess struct {
 // the npm launcher (`node …/codex.js`), `exec`, `app-server` (daemon or
 // proxy), `mcp-server`, else the interactive CLI. Session is true for cli
 // and exec (conversation processes). Pure.
-func (a *Agent) ClassifyProcess(p agentcli.Process) (agentcli.ProcessInfo, bool) {
+func (a *Agent) ClassifyProcess(p agentio.Process) (agentio.ProcessInfo, bool) {
 	if !Spec().Process.Match(p) {
-		return agentcli.ProcessInfo{}, false
+		return agentio.ProcessInfo{}, false
 	}
 	kind := classifyArgs(p)
-	session := kind == agentcli.ProcessCLI || kind == agentcli.ProcessExec
-	return agentcli.ProcessInfo{Agent: ID, Kind: kind, Session: session}, true
+	session := kind == agentio.ProcessCLI || kind == agentio.ProcessExec
+	return agentio.ProcessInfo{Agent: ID, Kind: kind, Session: session}, true
 }
 
-func classifyArgs(p agentcli.Process) agentcli.ProcessKind {
+func classifyArgs(p agentio.Process) agentio.ProcessKind {
 	argv := p.Argv
 	base := ""
 	if len(argv) > 0 {
 		base = filepath.Base(argv[0])
 	}
 	if base == nodeBinary || (len(argv) > 1 && strings.HasSuffix(argv[1], launcherFile)) {
-		return agentcli.ProcessLauncher
+		return agentio.ProcessLauncher
 	}
 	for _, arg := range argv[min(1, len(argv)):] {
 		switch arg {
 		case subExec:
-			return agentcli.ProcessExec
+			return agentio.ProcessExec
 		case subAppServer:
-			return agentcli.ProcessAppServer
+			return agentio.ProcessAppServer
 		case subMCPServer:
-			return agentcli.ProcessMCPServer
+			return agentio.ProcessMCPServer
 		}
 	}
-	return agentcli.ProcessCLI
+	return agentio.ProcessCLI
 }
 
 // Processes lists running Codex processes through Host.Processes (one
@@ -74,7 +74,7 @@ func classifyArgs(p agentcli.Process) agentcli.ProcessKind {
 // Process · Read, MayTouchLogin false.
 func (a *Agent) Processes(ctx context.Context) ([]LiveProcess, error) {
 	if a.host.Processes == nil {
-		return nil, agentcli.UnsupportedError(ID, "processes", "Host.Processes is nil")
+		return nil, agentio.UnsupportedError(ID, "processes", "Host.Processes is nil")
 	}
 	rows, err := a.host.Processes.Processes(ctx)
 	if err != nil {
@@ -188,9 +188,9 @@ func (a *Agent) ThreadLocks(h Home) ([]ThreadLock, error) {
 // at lockTime: a Codex process other than the npm launcher (exec, the
 // interactive CLI, the app-server daemon the TUI attaches to, mcp-server
 // all write threads) that started no later than the lock. Pure.
-func (a *Agent) writerCandidate(p agentcli.Process, lockTime time.Time) bool {
+func (a *Agent) writerCandidate(p agentio.Process, lockTime time.Time) bool {
 	info, ok := a.ClassifyProcess(p)
-	if !ok || info.Kind == agentcli.ProcessLauncher {
+	if !ok || info.Kind == agentio.ProcessLauncher {
 		return false
 	}
 	if p.Start.IsZero() || lockTime.IsZero() {
@@ -215,32 +215,32 @@ func (a *Agent) writerCandidate(p agentcli.Process, lockTime time.Time) bool {
 // another home also counts; FindLiveSession therefore never matches a
 // Codex pid. A failed process-table read leaves every Alive false.
 // Disk · Read + one process-table read (Host.Processes).
-func (a *Agent) LiveSessions(h Home) ([]agentcli.LiveSession, error) {
+func (a *Agent) LiveSessions(h Home) ([]agentio.LiveSession, error) {
 	locks, err := a.ThreadLocks(h)
 	if err != nil || len(locks) == 0 {
 		return nil, err
 	}
-	var procs []agentcli.Process
+	var procs []agentio.Process
 	if a.host.Processes != nil {
 		if rows, perr := a.host.Processes.Processes(context.Background()); perr == nil {
 			procs = rows
 		}
 	}
-	out := make([]agentcli.LiveSession, 0, len(locks))
+	out := make([]agentio.LiveSession, 0, len(locks))
 	for _, l := range locks {
-		s := agentcli.LiveSession{
+		s := agentio.LiveSession{
 			ConversationID: l.ThreadID,
 			Home:           h.Neutral(),
-			Status:         agentcli.SessionStatusUnknown,
+			Status:         agentio.SessionStatusUnknown,
 			StartedAt:      l.ModTime,
-			Alive:          slices.ContainsFunc(procs, func(p agentcli.Process) bool { return a.writerCandidate(p, l.ModTime) }),
+			Alive:          slices.ContainsFunc(procs, func(p agentio.Process) bool { return a.writerCandidate(p, l.ModTime) }),
 		}
 		if c, cerr := a.Conversation(h, l.ThreadID); cerr == nil {
 			s.Dir = c.Dir
 		}
 		out = append(out, s)
 	}
-	slices.SortFunc(out, func(x, y agentcli.LiveSession) int { return strings.Compare(x.ConversationID, y.ConversationID) })
+	slices.SortFunc(out, func(x, y agentio.LiveSession) int { return strings.Compare(x.ConversationID, y.ConversationID) })
 	return out, nil
 }
 
@@ -254,7 +254,7 @@ func (a *Agent) IsLive(h Home, conversationID string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return slices.ContainsFunc(all, func(s agentcli.LiveSession) bool {
+	return slices.ContainsFunc(all, func(s agentio.LiveSession) bool {
 		return s.ConversationID == conversationID && s.Alive
 	}), nil
 }

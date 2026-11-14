@@ -6,21 +6,21 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // ID is Claude Code's agent id.
-const ID agentcli.ID = "claude"
+const ID agentio.ID = "claude"
 
-// Agent is Claude Code on one Host. It is not an agentcli.Agent itself:
+// Agent is Claude Code on one Host. It is not an agentio.Agent itself:
 // Neutral() returns the L1/L2 view, so vendor methods keep their rich types
 // (c.Usage returns claude.Usage, the neutral view's Usage returns
-// agentcli.Usage) without two methods fighting over one name (SPEC §5.3).
+// agentio.Usage) without two methods fighting over one name (SPEC §5.3).
 type Agent struct {
-	host agentcli.Host
+	host agentio.Host
 	// core is the shared L1 implementation built from Spec(): homes, env
 	// rule, PATH lookup, Command assembly.
-	core *agentcli.Core
+	core *agentio.Core
 	// baseURL is the API origin for usage, profile and probe calls;
 	// WithBaseURL points it at an httptest server.
 	baseURL string
@@ -29,8 +29,8 @@ type Agent struct {
 // New returns the Claude agent for h. cost: Pure; no error, no I/O. Spec()
 // is a constant that TestSpecValidates proves valid, so NewCore cannot fail
 // here; a nil core would only follow an edit that breaks that test.
-func New(h agentcli.Host) *Agent {
-	core, err := agentcli.NewCore(Spec(), h)
+func New(h agentio.Host) *Agent {
+	core, err := agentio.NewCore(Spec(), h)
 	if err != nil {
 		core = nil
 	}
@@ -46,10 +46,10 @@ func (a *Agent) WithBaseURL(base string) *Agent {
 }
 
 // Host returns the host the agent reads through. cost: Pure.
-func (a *Agent) Host() agentcli.Host { return a.host }
+func (a *Agent) Host() agentio.Host { return a.host }
 
 // ID returns claude.ID. cost: Pure.
-func (a *Agent) ID() agentcli.ID { return ID }
+func (a *Agent) ID() agentio.ID { return ID }
 
 // Name returns "Claude Code". cost: Pure.
 func (a *Agent) Name() string { return displayName }
@@ -77,8 +77,8 @@ func apiBillingEnv() []string {
 }
 
 // Spec returns the data Claude's core is built from. cost: Pure.
-func Spec() agentcli.Spec {
-	return agentcli.Spec{
+func Spec() agentio.Spec {
+	return agentio.Spec{
 		ID: ID, Name: displayName, Binary: Binary,
 		HomeEnv: ConfigDirEnv, DefaultHome: defaultDirName, ExtraHomes: extraHomesGlob,
 		HomeMarkers:     homeMarkers(),
@@ -93,7 +93,7 @@ func Spec() agentcli.Spec {
 		SharedHomeFiles: sharedHomeFiles(),
 		CredentialEnv:   credentialEnv(),
 		APIBillingEnv:   apiBillingEnv(),
-		Process: agentcli.ProcessMatch{
+		Process: agentio.ProcessMatch{
 			Basenames: []string{Binary},
 			Exclude:   []string{excludeDesktopApp, excludeChromeHost, excludeDesktopSupport},
 		},
@@ -101,14 +101,14 @@ func Spec() agentcli.Spec {
 }
 
 // Spec returns claude.Spec(). cost: Pure.
-func (a *Agent) Spec() agentcli.Spec { return Spec() }
+func (a *Agent) Spec() agentio.Spec { return Spec() }
 
 // Home is one Claude config dir. It wraps the neutral handle so every L3
 // method is compile-checked against Claude.
-type Home struct{ h agentcli.Home }
+type Home struct{ h agentio.Home }
 
 // Neutral returns the shared handle. cost: Pure.
-func (h Home) Neutral() agentcli.Home { return h.h }
+func (h Home) Neutral() agentio.Home { return h.h }
 
 // Dir is the config dir. cost: Pure.
 func (h Home) Dir() string { return h.h.Dir() }
@@ -120,7 +120,7 @@ func (h Home) IsDefault() bool { return h.h.IsDefault() }
 func (h Home) Name() string { return h.h.Name() }
 
 // Target is a plain launch target for this home (Version zero). cost: Pure.
-func (h Home) Target() agentcli.Target { return h.h.Target() }
+func (h Home) Target() agentio.Target { return h.h.Target() }
 
 // String is "claude:<dir>". cost: Pure.
 func (h Home) String() string { return h.h.String() }
@@ -129,15 +129,15 @@ func (h Home) String() string { return h.h.String() }
 func (h Home) MarshalJSON() ([]byte, error) { return h.h.MarshalJSON() }
 
 // wrap converts a neutral home of this agent.
-func wrap(h agentcli.Home) Home { return Home{h: h} }
+func wrap(h agentio.Home) Home { return Home{h: h} }
 
 // HomeAt returns the home at a caller-named dir (any CLAUDE_CONFIG_DIR);
 // relative dirs resolve against UserHome. cost: Pure.
 func (a *Agent) HomeAt(dir string) Home { return wrap(a.core.HomeAt(dir)) }
 
 // HomeOf converts a neutral home; ErrForeignHome for another agent's. cost: Pure.
-func (a *Agent) HomeOf(n agentcli.Home) (Home, error) {
-	if err := agentcli.CheckOwner(ID, n); err != nil {
+func (a *Agent) HomeOf(n agentio.Home) (Home, error) {
+	if err := agentio.CheckOwner(ID, n); err != nil {
 		return Home{}, err
 	}
 	return Home{h: n}, nil

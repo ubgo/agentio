@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // PromptEntry is one history.jsonl line: {session_id, ts, text}. Codex
@@ -34,7 +34,7 @@ const historyChunk = 64 << 10
 // q.ConversationID filters by session, q.Since stops the scan; q.Dir
 // cannot match (Codex records no dir) and returns nothing when set.
 // Disk · Read.
-func (a *Agent) PromptHistory(h Home, q agentcli.PromptQuery) ([]PromptEntry, error) {
+func (a *Agent) PromptHistory(h Home, q agentio.PromptQuery) ([]PromptEntry, error) {
 	if q.Dir != "" {
 		return nil, nil
 	}
@@ -93,9 +93,9 @@ func (a *Agent) PromptHistory(h Home, q agentcli.PromptQuery) ([]PromptEntry, er
 	return out, nil
 }
 
-// Neutral maps onto agentcli.PromptEntry. Pure.
-func (e PromptEntry) Neutral() agentcli.PromptEntry {
-	return agentcli.PromptEntry{Time: e.Time, Text: e.Text, ConversationID: e.SessionID}
+// Neutral maps onto agentio.PromptEntry. Pure.
+func (e PromptEntry) Neutral() agentio.PromptEntry {
+	return agentio.PromptEntry{Time: e.Time, Text: e.Text, ConversationID: e.SessionID}
 }
 
 // ReasoningLevel is one supported_reasoning_levels entry.
@@ -107,7 +107,7 @@ type ReasoningLevel struct {
 // ModelUpgrade is a model's `upgrade` hint; shape kept raw until a non-null
 // sample is recorded.
 type ModelUpgrade struct {
-	Raw agentcli.Raw
+	Raw agentio.Raw
 }
 
 // ModelInfo is one models_cache.json model.
@@ -129,7 +129,7 @@ type ModelInfo struct {
 	SupportsVerbosity       bool
 	ServiceTiers            []string
 	Upgrade                 *ModelUpgrade
-	Unknown                 agentcli.Unknown // ~25 more tool/behaviour flags kept raw
+	Unknown                 agentio.Unknown // ~25 more tool/behaviour flags kept raw
 }
 
 type modelWire struct {
@@ -157,7 +157,7 @@ const visibilityList = "list"
 // ModelCatalog is models_cache.json.
 type ModelCatalog struct {
 	FetchedAt     time.Time
-	ClientVersion agentcli.Version
+	ClientVersion agentio.Version
 	ETag          string
 	Models        []ModelInfo
 }
@@ -171,19 +171,19 @@ type catalogWire struct {
 
 // ParseModelCatalog decodes models_cache.json bytes. A model that fails to
 // decode is skipped with a warning. Pure.
-func ParseModelCatalog(b []byte) (ModelCatalog, agentcli.Warnings, error) {
+func ParseModelCatalog(b []byte) (ModelCatalog, agentio.Warnings, error) {
 	var w catalogWire
 	if err := json.Unmarshal(b, &w); err != nil {
 		return ModelCatalog{}, nil, fmt.Errorf("codex: decode %s: %w", fileModelsCache, err)
 	}
-	cv, _ := agentcli.ParseVersion(w.ClientVersion)
+	cv, _ := agentio.ParseVersion(w.ClientVersion)
 	cat := ModelCatalog{FetchedAt: parseRFC3339(w.FetchedAt), ClientVersion: cv, ETag: w.ETag}
-	var warns agentcli.Warnings
+	var warns agentio.Warnings
 	known := modelKnownKeys()
 	for _, raw := range w.Models {
 		var m modelWire
 		if err := json.Unmarshal(raw, &m); err != nil {
-			warns.Add(agentcli.WarnTypeChanged, fileModelsCache, "models", "a model entry did not decode")
+			warns.Add(agentio.WarnTypeChanged, fileModelsCache, "models", "a model entry did not decode")
 			continue
 		}
 		info := ModelInfo{
@@ -202,9 +202,9 @@ func ParseModelCatalog(b []byte) (ModelCatalog, agentcli.Warnings, error) {
 			}
 		}
 		if len(bytes.TrimSpace(m.Upgrade)) > 0 && string(bytes.TrimSpace(m.Upgrade)) != jsonNull {
-			info.Upgrade = &ModelUpgrade{Raw: agentcli.Raw(m.Upgrade)}
+			info.Upgrade = &ModelUpgrade{Raw: agentio.Raw(m.Upgrade)}
 		}
-		info.Unknown, _ = agentcli.ExtractUnknown(raw, known)
+		info.Unknown, _ = agentio.ExtractUnknown(raw, known)
 		cat.Models = append(cat.Models, info)
 	}
 	return cat, warns, nil
@@ -247,9 +247,9 @@ func (c ModelCatalog) Validate(model string, effort ReasoningEffort) error {
 	return fmt.Errorf("%w: %s", ErrUnknownModel, model)
 }
 
-// Neutral maps onto agentcli.Model. Pure.
-func (m ModelInfo) Neutral() agentcli.Model {
-	return agentcli.Model{Slug: m.Slug, DisplayName: m.DisplayName, Visible: m.Visible, ContextWindow: m.ContextWindow}
+// Neutral maps onto agentio.Model. Pure.
+func (m ModelInfo) Neutral() agentio.Model {
+	return agentio.Model{Slug: m.Slug, DisplayName: m.DisplayName, Visible: m.Visible, ContextWindow: m.ContextWindow}
 }
 
 // modelKnownKeys lists the models_cache.json model keys ModelInfo types.

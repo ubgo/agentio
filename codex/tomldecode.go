@@ -4,19 +4,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Opt is the root presence-tracked scalar, re-exported so Codex config
 // types read Opt[T] (CODEX_API.md §0).
-type Opt[T agentcli.Scalar] = agentcli.Opt[T]
+type Opt[T agentio.Scalar] = agentio.Opt[T]
 
 // tomlDecoder collects what one file's typed decode could not place:
 // unknown keys (kept as source text) and type-changed keys (kept as source
 // text plus a Warning), so one bad key never fails the file (invariant 17).
 type tomlDecoder struct {
 	file  string
-	warns agentcli.Warnings
+	warns agentio.Warnings
 	// target is where the entry being decoded goes when it is unknown or
 	// type-changed: the Unknown map of the struct that owns it, keyed
 	// relative to that struct (prefix parts dropped).
@@ -67,8 +67,8 @@ func (d *tomlDecoder) keep(e tomlEntry) {
 // mismatch keeps e and warns that its type differs from the model.
 func (d *tomlDecoder) mismatch(e tomlEntry, want tomlKind) {
 	d.keep(e)
-	d.warns = append(d.warns, agentcli.Warning{
-		Kind:   agentcli.WarnTypeChanged,
+	d.warns = append(d.warns, agentio.Warning{
+		Kind:   agentio.WarnTypeChanged,
 		File:   d.file,
 		Key:    e.key(),
 		Detail: "expected " + want.String() + ", found " + e.val.kind.String(),
@@ -89,7 +89,7 @@ func (d *tomlDecoder) str(dst *Opt[string], e tomlEntry) {
 		d.mismatch(e, tomlString)
 		return
 	}
-	*dst = agentcli.Some(e.val.str)
+	*dst = agentio.Some(e.val.str)
 }
 
 // enum decodes a string into an open string enum, keeping unknown values.
@@ -98,7 +98,7 @@ func enumOpt[T ~string](d *tomlDecoder, dst *Opt[T], e tomlEntry) {
 		d.mismatch(e, tomlString)
 		return
 	}
-	*dst = agentcli.Some(T(e.val.str))
+	*dst = agentio.Some(T(e.val.str))
 }
 
 func (d *tomlDecoder) boolean(dst *Opt[bool], e tomlEntry) {
@@ -106,7 +106,7 @@ func (d *tomlDecoder) boolean(dst *Opt[bool], e tomlEntry) {
 		d.mismatch(e, tomlBool)
 		return
 	}
-	*dst = agentcli.Some(e.val.b)
+	*dst = agentio.Some(e.val.b)
 }
 
 func (d *tomlDecoder) integer(dst *Opt[int64], e tomlEntry) {
@@ -114,16 +114,16 @@ func (d *tomlDecoder) integer(dst *Opt[int64], e tomlEntry) {
 		d.mismatch(e, tomlInt)
 		return
 	}
-	*dst = agentcli.Some(e.val.i)
+	*dst = agentio.Some(e.val.i)
 }
 
 // duration decodes an integer (or float) count of unit.
 func (d *tomlDecoder) duration(dst *Opt[time.Duration], e tomlEntry, unit time.Duration) {
 	switch e.val.kind {
 	case tomlInt:
-		*dst = agentcli.Some(time.Duration(e.val.i) * unit)
+		*dst = agentio.Some(time.Duration(e.val.i) * unit)
 	case tomlFloat:
-		*dst = agentcli.Some(time.Duration(e.val.f * float64(unit)))
+		*dst = agentio.Some(time.Duration(e.val.f * float64(unit)))
 	default:
 		d.mismatch(e, tomlInt)
 	}

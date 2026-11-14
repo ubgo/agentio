@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // StreamType is the `type` of one `--output-format stream-json` line (open
@@ -128,7 +128,7 @@ type StreamMessage struct {
 	SessionID       string        `json:"session_id,omitempty"`
 	UUID            string        `json:"uuid,omitempty"`
 	ParentToolUseID *string       `json:"parent_tool_use_id,omitempty"`
-	Raw             agentcli.Raw  `json:"-"`
+	Raw             agentio.Raw   `json:"-"`
 }
 
 // StreamDecoder reads stream-json lines a caller feeds it.
@@ -153,7 +153,7 @@ func (d *StreamDecoder) Next() (StreamMessage, error) {
 		if err := json.Unmarshal(line, &m); err != nil {
 			return StreamMessage{}, fmt.Errorf("claude: stream line: %w", err)
 		}
-		m.Raw = agentcli.Raw(bytes.Clone(line))
+		m.Raw = agentio.Raw(bytes.Clone(line))
 		return m, nil
 	}
 	if err := d.sc.Err(); err != nil {
@@ -167,20 +167,20 @@ func (d *StreamDecoder) Next() (StreamMessage, error) {
 // text_delta), user with tool results → Tool, result → Done (Error when
 // is_error or an error subtype), everything else Other. Raw is always the
 // line; a body that fails to decode leaves Text/Tokens empty. cost: Pure.
-func (m StreamMessage) Neutral() agentcli.RunEvent {
-	ev := agentcli.RunEvent{Type: agentcli.RunEventOther, ConversationID: m.SessionID, Raw: m.Raw}
+func (m StreamMessage) Neutral() agentio.RunEvent {
+	ev := agentio.RunEvent{Type: agentio.RunEventOther, ConversationID: m.SessionID, Raw: m.Raw}
 	switch m.Type {
 	case StreamTypeSystem:
 		if m.Subtype == SubtypeInit {
-			ev.Type = agentcli.RunEventStarted
+			ev.Type = agentio.RunEventStarted
 		}
 	case StreamTypeAssistant:
-		ev.Type = agentcli.RunEventMessage
+		ev.Type = agentio.RunEventMessage
 		if a, err := m.AsAssistant(); err == nil {
 			ev.Text = a.Message.Content.Text()
 		}
 	case StreamTypeEvent:
-		ev.Type = agentcli.RunEventMessage
+		ev.Type = agentio.RunEventMessage
 		if e, err := m.AsEvent(); err == nil && e.Event.Delta != nil && e.Event.Delta.Type == DeltaText {
 			ev.Text = e.Event.Delta.Text
 		}
@@ -188,19 +188,19 @@ func (m StreamMessage) Neutral() agentcli.RunEvent {
 		if u, err := m.AsUser(); err == nil {
 			for _, b := range u.Message.Content {
 				if b.Type == BlockToolResult {
-					ev.Type = agentcli.RunEventTool
+					ev.Type = agentio.RunEventTool
 				}
 			}
 		}
 	case StreamTypeResult:
-		ev.Type = agentcli.RunEventDone
+		ev.Type = agentio.RunEventDone
 		if m.Subtype.IsResultError() {
-			ev.Type = agentcli.RunEventError
+			ev.Type = agentio.RunEventError
 		}
 		if r, err := m.AsResult(); err == nil {
 			ev.Text = r.Result
 			if r.IsError {
-				ev.Type = agentcli.RunEventError
+				ev.Type = agentio.RunEventError
 			}
 			t := r.Usage.Neutral()
 			ev.Tokens = &t
@@ -221,7 +221,7 @@ type streamBody interface {
 
 // decodeBody checks the envelope against t (and sub when non-empty) and
 // decodes the line into W, returning the top-level keys W does not model.
-func decodeBody[W streamBody](m StreamMessage, t StreamType, sub StreamSubtype) (W, agentcli.Unknown, error) {
+func decodeBody[W streamBody](m StreamMessage, t StreamType, sub StreamSubtype) (W, agentio.Unknown, error) {
 	var w W
 	if m.Type != t || (sub != "" && m.Subtype != sub) {
 		return w, nil, fmt.Errorf("%w: %s/%s", ErrWrongStreamMessage, m.Type, m.Subtype)
@@ -232,7 +232,7 @@ func decodeBody[W streamBody](m StreamMessage, t StreamType, sub StreamSubtype) 
 
 // dropEnvelope removes the keys StreamMessage itself models, so a body's
 // Unknown never repeats them. The key list comes from StreamMessage's tags.
-func dropEnvelope(u agentcli.Unknown) agentcli.Unknown {
+func dropEnvelope(u agentio.Unknown) agentio.Unknown {
 	for k := range jsonKeys(reflect.TypeFor[StreamMessage]()) {
 		delete(u, k)
 	}
@@ -303,7 +303,7 @@ type StreamInit struct {
 	UltrathinkAvailable     bool
 	UltrathinkTypedRaises   bool
 	ViewMode                string
-	Unknown                 agentcli.Unknown
+	Unknown                 agentio.Unknown
 }
 
 type wireInit struct {
@@ -367,7 +367,7 @@ type StreamStatus struct {
 	// Status is "" for a JSON null (status cleared).
 	Status         string
 	PermissionMode PermissionMode // "" when the line does not carry it
-	Unknown        agentcli.Unknown
+	Unknown        agentio.Unknown
 }
 
 type wireStatus struct {
@@ -413,7 +413,7 @@ type wireCommandsChanged struct {
 // slash commands after skills and plugins loaded (recorded 2.1.325).
 type StreamCommandsChanged struct {
 	Commands []StreamCommand
-	Unknown  agentcli.Unknown
+	Unknown  agentio.Unknown
 }
 
 // AsCommandsChanged decodes a system/commands_changed line. cost: Pure.
@@ -439,7 +439,7 @@ type StreamAPIMessage struct {
 	StopReason   string // "" while streaming (null)
 	StopSequence string
 	Usage        *MessageUsage
-	Unknown      agentcli.Unknown
+	Unknown      agentio.Unknown
 }
 
 type wireAPIMessage struct {
@@ -478,7 +478,7 @@ type StreamDelta struct {
 	Text         string
 	StopReason   string
 	StopSequence string
-	Unknown      agentcli.Unknown
+	Unknown      agentio.Unknown
 }
 
 type wireDelta struct {
@@ -516,7 +516,7 @@ type APIStreamEvent struct {
 	ContentBlock *ContentBlock
 	Delta        *StreamDelta
 	Usage        *MessageUsage
-	Unknown      agentcli.Unknown
+	Unknown      agentio.Unknown
 }
 
 type wireAPIStreamEvent struct {
@@ -547,7 +547,7 @@ type StreamEventMessage struct {
 	TTFT *time.Duration
 	// ThinkingDisplay is set on message_start only ("updates" recorded).
 	ThinkingDisplay string
-	Unknown         agentcli.Unknown
+	Unknown         agentio.Unknown
 }
 
 type wireStreamEvent struct {
@@ -578,7 +578,7 @@ type StreamAssistantMessage struct {
 	Message   StreamAPIMessage
 	RequestID string
 	Timestamp time.Time
-	Unknown   agentcli.Unknown
+	Unknown   agentio.Unknown
 }
 
 type wireStreamAssistant struct {
@@ -608,7 +608,7 @@ type StreamUserMessage struct {
 		Role    string  `json:"role"`
 		Content Content `json:"content"`
 	}
-	Unknown agentcli.Unknown
+	Unknown agentio.Unknown
 }
 
 type wireStreamUser struct {
@@ -661,7 +661,7 @@ type RateLimitInfo struct {
 	IsUsingOverage        bool
 	// UnifiedWindows is keyed by window name ("seven_day" recorded).
 	UnifiedWindows map[string]RateLimitWindow
-	Unknown        agentcli.Unknown
+	Unknown        agentio.Unknown
 }
 
 type wireRateLimitInfo struct {
@@ -693,7 +693,7 @@ func unixSeconds(s int64) time.Time {
 // each request).
 type RateLimitEvent struct {
 	Info    RateLimitInfo
-	Unknown agentcli.Unknown
+	Unknown agentio.Unknown
 }
 
 // AsRateLimit decodes a rate_limit_event line. cost: Pure.
@@ -765,16 +765,16 @@ type SubagentRefused struct {
 // SubagentStats is result.subagent_stats. ByType was an empty object in the
 // recorded run, so its value shape is unknown and kept raw per key.
 type SubagentStats struct {
-	Spawned             int64                   `json:"spawned"`
-	Requested           SubagentRequested       `json:"requested"`
-	StartedInBackground int64                   `json:"started_in_background"`
-	MaxDepth            int64                   `json:"max_depth"`
-	SpawnedBySubagents  int64                   `json:"spawned_by_subagents"`
-	Completed           int64                   `json:"completed"`
-	Failed              int64                   `json:"failed"`
-	Killed              SubagentKilled          `json:"killed"`
-	Refused             SubagentRefused         `json:"refused"`
-	ByType              map[string]agentcli.Raw `json:"by_type"`
+	Spawned             int64                  `json:"spawned"`
+	Requested           SubagentRequested      `json:"requested"`
+	StartedInBackground int64                  `json:"started_in_background"`
+	MaxDepth            int64                  `json:"max_depth"`
+	SpawnedBySubagents  int64                  `json:"spawned_by_subagents"`
+	Completed           int64                  `json:"completed"`
+	Failed              int64                  `json:"failed"`
+	Killed              SubagentKilled         `json:"killed"`
+	Refused             SubagentRefused        `json:"refused"`
+	ByType              map[string]agentio.Raw `json:"by_type"`
 }
 
 // StreamResult is the result line of stream-json and the single document of
@@ -799,7 +799,7 @@ type StreamResult struct {
 	ModelUsage                map[string]ResultModelUsage
 	ModelUsageSinceLastResult map[string]ResultModelUsage
 	// PermissionDenials was empty in the recorded run; elements stay raw.
-	PermissionDenials []agentcli.Raw
+	PermissionDenials []agentio.Raw
 	SubagentStats     *SubagentStats
 	SafetyStops       int
 	QueuedTurnCount   int
@@ -812,8 +812,8 @@ type StreamResult struct {
 	// CredentialExpiresAt is when the OAuth access token expires; nil when
 	// the line does not carry it (API key login).
 	CredentialExpiresAt *time.Time
-	Unknown             agentcli.Unknown
-	Raw                 agentcli.Raw
+	Unknown             agentio.Unknown
+	Raw                 agentio.Raw
 }
 
 type wireResult struct {
@@ -831,7 +831,7 @@ type wireResult struct {
 	Usage                     MessageUsage                `json:"usage"`
 	ModelUsage                map[string]ResultModelUsage `json:"modelUsage"`
 	ModelUsageSinceLastResult map[string]ResultModelUsage `json:"model_usage_since_last_result"`
-	PermissionDenials         []agentcli.Raw              `json:"permission_denials"`
+	PermissionDenials         []agentio.Raw               `json:"permission_denials"`
 	SubagentStats             *SubagentStats              `json:"subagent_stats"`
 	SafetyStops               int                         `json:"safety_stops"`
 	QueuedTurnCount           int                         `json:"queued_turn_count"`
@@ -849,7 +849,7 @@ type wireResult struct {
 }
 
 // resultFrom converts the wire result.
-func resultFrom(w wireResult, unknown agentcli.Unknown, raw agentcli.Raw) StreamResult {
+func resultFrom(w wireResult, unknown agentio.Unknown, raw agentio.Raw) StreamResult {
 	r := StreamResult{
 		Subtype: w.Subtype, IsError: w.IsError, Result: w.Result, SessionID: w.SessionID, UUID: w.UUID, NumTurns: w.NumTurns,
 		TerminalReason: w.TerminalReason, APIErrorStatus: w.APIErrorStatus, TotalCostUSD: w.TotalCostUSD, Usage: w.Usage,
@@ -888,7 +888,7 @@ func DecodeJSONResult(r io.Reader) (StreamResult, error) {
 	if err := json.Unmarshal(b, &m); err != nil {
 		return StreamResult{}, fmt.Errorf("claude: json result: %w", err)
 	}
-	m.Raw = agentcli.Raw(b)
+	m.Raw = agentio.Raw(b)
 	return m.AsResult()
 }
 
@@ -947,16 +947,16 @@ func (m StreamMessage) AsTaskNotification() (TaskNotification, error) {
 // runDecoder adapts StreamDecoder to the neutral RunDecoder.
 type runDecoder struct{ d *StreamDecoder }
 
-var _ agentcli.RunDecoder = runDecoder{}
+var _ agentio.RunDecoder = runDecoder{}
 
 // Next is Pure.
-func (r runDecoder) Next() (agentcli.RunEvent, error) {
+func (r runDecoder) Next() (agentio.RunEvent, error) {
 	m, err := r.d.Next()
 	if err != nil {
-		return agentcli.RunEvent{}, err
+		return agentio.RunEvent{}, err
 	}
 	return m.Neutral(), nil
 }
 
 // newRunDecoder is the neutral RunEvents constructor.
-func newRunDecoder(r io.Reader) agentcli.RunDecoder { return runDecoder{d: NewStreamDecoder(r)} }
+func newRunDecoder(r io.Reader) agentio.RunDecoder { return runDecoder{d: NewStreamDecoder(r)} }

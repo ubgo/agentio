@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // RecordKind is a rollout line's top-level `type`. Open set: a new kind is
@@ -135,41 +135,41 @@ type Record struct {
 	TurnContext *TurnContext
 	Compacted   *Compacted
 	TokenUsage  *TokenUsageRecord
-	WorldState  agentcli.Raw // large, rarely needed; kept raw
+	WorldState  agentio.Raw // large, rarely needed; kept raw
 
-	Raw agentcli.Raw
+	Raw agentio.Raw
 }
 
 // SessionMeta is the first record of a rollout. Only id, timestamp and cwd
 // are always present; the rest are presence-tracked by zero/nil.
 type SessionMeta struct {
-	ID                    string           `json:"id"`
-	SessionID             string           `json:"session_id,omitempty"`
-	ForkedFromID          string           `json:"forked_from_id,omitempty"`
-	ParentThreadID        string           `json:"parent_thread_id,omitempty"`
-	Timestamp             string           `json:"timestamp"`
-	Cwd                   string           `json:"cwd"`
-	Originator            string           `json:"originator,omitempty"`
-	CLIVersion            string           `json:"cli_version,omitempty"`
-	Source                SessionSource    `json:"source,omitempty"`
-	ModelProvider         string           `json:"model_provider,omitempty"`
-	HistoryMode           string           `json:"history_mode,omitempty"`
-	ThreadSource          string           `json:"thread_source,omitempty"`
-	AgentNickname         string           `json:"agent_nickname,omitempty"`
-	AgentRole             string           `json:"agent_role,omitempty"`
-	Git                   *GitInfo         `json:"git,omitempty"`
-	RuntimeWorkspaceRoots []string         `json:"runtime_workspace_roots,omitempty"`
-	CreatorUserID         string           `json:"creator_user_id,omitempty"`
-	CreatorAccountID      string           `json:"creator_account_id,omitempty"`
-	Unknown               agentcli.Unknown `json:"-"`
+	ID                    string          `json:"id"`
+	SessionID             string          `json:"session_id,omitempty"`
+	ForkedFromID          string          `json:"forked_from_id,omitempty"`
+	ParentThreadID        string          `json:"parent_thread_id,omitempty"`
+	Timestamp             string          `json:"timestamp"`
+	Cwd                   string          `json:"cwd"`
+	Originator            string          `json:"originator,omitempty"`
+	CLIVersion            string          `json:"cli_version,omitempty"`
+	Source                SessionSource   `json:"source,omitempty"`
+	ModelProvider         string          `json:"model_provider,omitempty"`
+	HistoryMode           string          `json:"history_mode,omitempty"`
+	ThreadSource          string          `json:"thread_source,omitempty"`
+	AgentNickname         string          `json:"agent_nickname,omitempty"`
+	AgentRole             string          `json:"agent_role,omitempty"`
+	Git                   *GitInfo        `json:"git,omitempty"`
+	RuntimeWorkspaceRoots []string        `json:"runtime_workspace_roots,omitempty"`
+	CreatorUserID         string          `json:"creator_user_id,omitempty"`
+	CreatorAccountID      string          `json:"creator_account_id,omitempty"`
+	Unknown               agentio.Unknown `json:"-"`
 }
 
 // Created parses Timestamp; zero when unparsable. Pure.
 func (m SessionMeta) Created() time.Time { return parseRFC3339(m.Timestamp) }
 
 // Version parses CLIVersion; zero when absent. Pure.
-func (m SessionMeta) Version() agentcli.Version {
-	v, _ := agentcli.ParseVersion(m.CLIVersion)
+func (m SessionMeta) Version() agentio.Version {
+	v, _ := agentio.ParseVersion(m.CLIVersion)
 	return v
 }
 
@@ -188,7 +188,7 @@ type ResponseItem struct {
 	CallID    string        `json:"call_id,omitempty"`
 	Arguments string        `json:"arguments,omitempty"`
 	Input     string        `json:"input,omitempty"`
-	Output    agentcli.Raw  `json:"output,omitempty"`
+	Output    agentio.Raw   `json:"output,omitempty"`
 	Summary   []ContentItem `json:"summary,omitempty"`
 	Status    string        `json:"status,omitempty"`
 }
@@ -230,9 +230,9 @@ type EventError struct {
 // TurnItem is the typed item of item_completed (header + text; the full
 // item stays in Raw because its schema is per item type).
 type TurnItem struct {
-	Type ItemType     `json:"type"`
-	ID   string       `json:"id"`
-	Raw  agentcli.Raw `json:"-"`
+	Type ItemType    `json:"type"`
+	ID   string      `json:"id"`
+	Raw  agentio.Raw `json:"-"`
 	text string
 }
 
@@ -265,7 +265,7 @@ func (t *TurnItem) UnmarshalJSON(b []byte) error {
 	if text == "" {
 		text = w.Text
 	}
-	*t = TurnItem{Type: w.Type, ID: w.ID, Raw: append(agentcli.Raw(nil), b...), text: text}
+	*t = TurnItem{Type: w.Type, ID: w.ID, Raw: append(agentio.Raw(nil), b...), text: text}
 	return nil
 }
 
@@ -279,10 +279,10 @@ type TokenCounts struct {
 	Total           int64 `json:"total_tokens"`
 }
 
-// Neutral maps onto agentcli.TokenCounts (CacheWriteInput → CacheWrite,
+// Neutral maps onto agentio.TokenCounts (CacheWriteInput → CacheWrite,
 // ReasoningOutput → Reasoning; Total dropped, derivable). Pure.
-func (t TokenCounts) Neutral() agentcli.TokenCounts {
-	return agentcli.TokenCounts{Input: t.Input, CachedInput: t.CachedInput, CacheWrite: t.CacheWriteInput, Output: t.Output, Reasoning: t.ReasoningOutput}
+func (t TokenCounts) Neutral() agentio.TokenCounts {
+	return agentio.TokenCounts{Input: t.Input, CachedInput: t.CachedInput, CacheWrite: t.CacheWriteInput, Output: t.Output, Reasoning: t.ReasoningOutput}
 }
 
 // TokenUsageInfo is token_count.info.
@@ -298,8 +298,8 @@ type RateLimits struct {
 	LimitName            string           `json:"limit_name,omitempty"`
 	Primary              *RateLimitWindow `json:"primary,omitempty"`
 	Secondary            *RateLimitWindow `json:"secondary,omitempty"`
-	Credits              agentcli.Raw     `json:"credits,omitempty"`
-	IndividualLimit      agentcli.Raw     `json:"individual_limit,omitempty"`
+	Credits              agentio.Raw      `json:"credits,omitempty"`
+	IndividualLimit      agentio.Raw      `json:"individual_limit,omitempty"`
 	SpendControlReached  *bool            `json:"spend_control_reached,omitempty"`
 	PlanType             string           `json:"plan_type,omitempty"`
 	RateLimitReachedType string           `json:"rate_limit_reached_type,omitempty"`
@@ -323,8 +323,8 @@ type TurnContext struct {
 	Summary           ReasoningSummary `json:"summary,omitempty"`
 	Timezone          string           `json:"timezone,omitempty"`
 	CurrentDate       string           `json:"current_date,omitempty"`
-	CollaborationMode agentcli.Raw     `json:"collaboration_mode,omitempty"`
-	PermissionProfile agentcli.Raw     `json:"permission_profile,omitempty"`
+	CollaborationMode agentio.Raw      `json:"collaboration_mode,omitempty"`
+	PermissionProfile agentio.Raw      `json:"permission_profile,omitempty"`
 }
 
 // Compacted is a compacted payload.
@@ -367,13 +367,13 @@ func ParseRecord(line []byte) (Record, error) {
 	if err := json.Unmarshal(line, &w); err != nil {
 		return Record{}, fmt.Errorf("codex: rollout line: %w", err)
 	}
-	r := Record{Time: parseRFC3339(w.Timestamp), Ordinal: w.Ordinal, Kind: w.Type, Raw: append(agentcli.Raw(nil), line...)}
+	r := Record{Time: parseRFC3339(w.Timestamp), Ordinal: w.Ordinal, Kind: w.Type, Raw: append(agentio.Raw(nil), line...)}
 	p := w.Payload
 	switch w.Type {
 	case KindSessionMeta:
 		var m SessionMeta
 		if json.Unmarshal(p, &m) == nil {
-			m.Unknown, _ = agentcli.ExtractUnknown(p, sessionMetaKnownKeys())
+			m.Unknown, _ = agentio.ExtractUnknown(p, sessionMetaKnownKeys())
 			r.SessionMeta = &m
 		}
 	case KindResponseItem:
@@ -406,7 +406,7 @@ func ParseRecord(line []byte) (Record, error) {
 			r.TokenUsage = &v
 		}
 	case KindWorldState:
-		r.WorldState = append(agentcli.Raw(nil), p...)
+		r.WorldState = append(agentio.Raw(nil), p...)
 	}
 	return r, nil
 }
@@ -457,7 +457,7 @@ const (
 type RolloutReader struct {
 	f      *os.File
 	br     *bufio.Reader
-	offset agentcli.Offset
+	offset agentio.Offset
 }
 
 // OpenRollout opens path for streaming from the start. Disk · Read.
@@ -466,11 +466,11 @@ func (a *Agent) OpenRollout(path string) (*RolloutReader, error) {
 }
 
 // OpenRolloutAt opens path and resumes after a stored offset. Disk · Read.
-func (a *Agent) OpenRolloutAt(path string, from agentcli.Offset) (*RolloutReader, error) {
+func (a *Agent) OpenRolloutAt(path string, from agentio.Offset) (*RolloutReader, error) {
 	return openRolloutAt(path, from)
 }
 
-func openRolloutAt(path string, from agentcli.Offset) (*RolloutReader, error) {
+func openRolloutAt(path string, from agentio.Offset) (*RolloutReader, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("codex: open rollout: %w", err)
@@ -516,7 +516,7 @@ func (r *RolloutReader) readLine() ([]byte, error) {
 		}
 		switch {
 		case err == nil:
-			r.offset += agentcli.Offset(len(buf))
+			r.offset += agentio.Offset(len(buf))
 			return buf, nil
 		case errors.Is(err, bufio.ErrBufferFull):
 			continue
@@ -529,7 +529,7 @@ func (r *RolloutReader) readLine() ([]byte, error) {
 }
 
 // Offset is the byte offset just after the last complete line returned. Pure.
-func (r *RolloutReader) Offset() agentcli.Offset { return r.offset }
+func (r *RolloutReader) Offset() agentio.Offset { return r.offset }
 
 // Close releases the file. Pure (no write).
 func (r *RolloutReader) Close() error { return r.f.Close() }

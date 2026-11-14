@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/khanakia/agentcli"
-	"github.com/khanakia/agentcli/frontmatter"
+	"github.com/ubgo/agentio"
+	"github.com/ubgo/agentio/frontmatter"
 )
 
 // SkillScope is where a skill, command, subagent or output style comes from.
@@ -108,15 +108,15 @@ func valueJSON(v frontmatter.Value) json.RawMessage {
 }
 
 // docUnknown keeps the keys of d that known does not list.
-func docUnknown(d frontmatter.Doc, known []string) agentcli.Unknown {
-	var u agentcli.Unknown
+func docUnknown(d frontmatter.Doc, known []string) agentio.Unknown {
+	var u agentio.Unknown
 	for _, k := range d.Keys() {
 		if slices.Contains(known, k) {
 			continue
 		}
 		v, _ := d.Get(k)
 		if u == nil {
-			u = agentcli.Unknown{}
+			u = agentio.Unknown{}
 		}
 		u[k] = valueJSON(v)
 	}
@@ -177,7 +177,7 @@ type Skill struct {
 	Hooks                                      Hooks
 	Metadata                                   map[string]string
 	// Unknown holds other frontmatter keys, re-encoded to JSON.
-	Unknown agentcli.Unknown
+	Unknown agentio.Unknown
 	// Err is a frontmatter parse error; the entry is still listed.
 	Err error
 }
@@ -205,7 +205,7 @@ func skillFromDoc(d frontmatter.Doc, file, fallbackName string, scope SkillScope
 }
 
 // SlashCommand is a commands/*.md file; named so it never collides with
-// agentcli.Command.
+// agentio.Command.
 type SlashCommand struct{ Skill }
 
 // Workflow is a workflows/*.js file that becomes /<name>.

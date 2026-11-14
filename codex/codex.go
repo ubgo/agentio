@@ -17,11 +17,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // ID is Codex's agent ID.
-const ID agentcli.ID = "codex"
+const ID agentio.ID = "codex"
 
 // Spec facts (agx provider/codex/codex.go, codex --help at 0.162.1).
 const (
@@ -43,7 +43,7 @@ const (
 	npmPackage = "@openai/codex"
 )
 
-// spec placeholders understood by agentcli templates.
+// spec placeholders understood by agentio templates.
 const (
 	tplArgs = "{args}"
 	tplID   = "{id}"
@@ -51,8 +51,8 @@ const (
 
 // Spec is the data Codex's L1 core is built from: binary, home variable,
 // default home, markers (§2), resume template, process match. Pure.
-func Spec() agentcli.Spec {
-	return agentcli.Spec{
+func Spec() agentio.Spec {
+	return agentio.Spec{
 		ID:          ID,
 		Name:        displayName,
 		Binary:      Binary,
@@ -68,7 +68,7 @@ func Spec() agentcli.Spec {
 		SharedHomeFiles: nil,
 		CredentialEnv:   []string{EnvAPIKey, EnvCodexAPIKey},
 		APIBillingEnv:   []string{EnvAPIKey, EnvCodexAPIKey},
-		Process: agentcli.ProcessMatch{
+		Process: agentio.ProcessMatch{
 			Basenames:    []string{Binary},
 			ArgvContains: []string{npmPackage},
 		},
@@ -76,15 +76,15 @@ func Spec() agentcli.Spec {
 }
 
 // Agent is the Codex implementation, built once per Host. It is not an
-// agentcli.Agent: Neutral returns the L1/L2 view (SPEC §5.3).
+// agentio.Agent: Neutral returns the L1/L2 view (SPEC §5.3).
 type Agent struct {
-	host agentcli.Host
-	core *agentcli.Core
+	host agentio.Host
+	core *agentio.Core
 }
 
 // New builds the Codex agent. Nothing is read at construction. Pure.
-func New(h agentcli.Host) *Agent {
-	core, err := agentcli.NewCore(Spec(), h)
+func New(h agentio.Host) *Agent {
+	core, err := agentio.NewCore(Spec(), h)
 	if err != nil {
 		// Spec() is a constant this package controls and a test validates;
 		// a failure here is a programming error in this file.
@@ -94,23 +94,23 @@ func New(h agentcli.Host) *Agent {
 }
 
 // ID returns codex.ID. Pure.
-func (a *Agent) ID() agentcli.ID { return ID }
+func (a *Agent) ID() agentio.ID { return ID }
 
 // Name returns the display name. Pure.
 func (a *Agent) Name() string { return displayName }
 
 // Spec returns Spec(). Pure.
-func (a *Agent) Spec() agentcli.Spec { return Spec() }
+func (a *Agent) Spec() agentio.Spec { return Spec() }
 
 // LookPath finds the codex binary on Host.Env PATH (never a shell). Disk · Read.
 func (a *Agent) LookPath() (string, error) { return a.core.LookPath() }
 
 // Home is a Codex home; L3 methods take it so they are compile-checked
 // against Codex.
-type Home struct{ h agentcli.Home }
+type Home struct{ h agentio.Home }
 
-// Neutral returns the agentcli.Home. Pure.
-func (h Home) Neutral() agentcli.Home { return h.h }
+// Neutral returns the agentio.Home. Pure.
+func (h Home) Neutral() agentio.Home { return h.h }
 
 // Dir is the home directory. Pure.
 func (h Home) Dir() string { return h.h.Dir() }
@@ -122,14 +122,14 @@ func (h Home) IsDefault() bool { return h.h.IsDefault() }
 func (h Home) Name() string { return h.h.Name() }
 
 // Target is a plain launch target for h (version unknown). Pure.
-func (h Home) Target() agentcli.Target { return h.h.Target() }
+func (h Home) Target() agentio.Target { return h.h.Target() }
 
 // MarshalJSON writes the neutral home. Pure.
 func (h Home) MarshalJSON() ([]byte, error) { return h.h.MarshalJSON() }
 
 // HomeOf converts a neutral home; ErrForeignHome for another agent's. Pure.
-func (a *Agent) HomeOf(n agentcli.Home) (Home, error) {
-	if err := agentcli.CheckOwner(ID, n); err != nil {
+func (a *Agent) HomeOf(n agentio.Home) (Home, error) {
+	if err := agentio.CheckOwner(ID, n); err != nil {
 		return Home{}, err
 	}
 	return Home{h: n}, nil
@@ -168,7 +168,7 @@ func (a *Agent) HomeAt(dir string) (Home, error) {
 		return Home{}, err
 	}
 	if !ok {
-		return Home{}, fmt.Errorf("%w: no Codex home marker in %s", agentcli.ErrNotFound, h.Dir())
+		return Home{}, fmt.Errorf("%w: no Codex home marker in %s", agentio.ErrNotFound, h.Dir())
 	}
 	return Home{h: h}, nil
 }
@@ -179,20 +179,20 @@ func (a *Agent) IsHome(dir string) (bool, error) { return a.core.IsHome(dir) }
 // HomeEnv returns base with the home rule applied: CODEX_HOME removed for
 // the default home, set otherwise (invariant 2). Pure.
 func (a *Agent) HomeEnv(base []string, h Home) []string {
-	c, ok := agentcli.HomeEnvChange(EnvHome, h.h)
+	c, ok := agentio.HomeEnvChange(EnvHome, h.h)
 	if !ok {
 		return base
 	}
-	return agentcli.ApplyEnv(base, c)
+	return agentio.ApplyEnv(base, c)
 }
 
 // InstallationID reads <home>/installation_id (a uuid). Disk · Read.
-func (a *Agent) InstallationID(h Home) (agentcli.Personal, error) {
+func (a *Agent) InstallationID(h Home) (agentio.Personal, error) {
 	b, err := os.ReadFile(a.Paths(h).InstallationID)
 	if err != nil {
-		return agentcli.Personal{}, fmt.Errorf("codex: read %s: %w", fileInstallationID, err)
+		return agentio.Personal{}, fmt.Errorf("codex: read %s: %w", fileInstallationID, err)
 	}
-	return agentcli.NewPersonal(strings.TrimSpace(string(b))), nil
+	return agentio.NewPersonal(strings.TrimSpace(string(b))), nil
 }
 
 // Writer is the Disk · Write door. Codex v0.1 writes no Codex-owned file
@@ -215,13 +215,13 @@ func (a *Agent) now() time.Time {
 
 // plainCommand builds `codex <args>` on h's default target, ignoring a
 // foreign-home error (the caller passed a codex.Home, so it cannot be).
-func (a *Agent) plainCommand(h Home, args []string) agentcli.Command {
+func (a *Agent) plainCommand(h Home, args []string) agentio.Command {
 	cmd, err := a.core.Command(h.Target(), "", args, nil)
 	if err != nil {
-		return agentcli.Command{Path: Binary, Args: args}
+		return agentio.Command{Path: Binary, Args: args}
 	}
 	return cmd
 }
 
 // lookupEnv reads a variable from an env list.
-func lookupEnv(env []string, key string) (string, bool) { return agentcli.EnvLookup(env, key) }
+func lookupEnv(env []string, key string) (string, bool) { return agentio.EnvLookup(env, key) }

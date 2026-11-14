@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Local-data file name shapes.
@@ -40,7 +40,7 @@ type Checkpoint struct {
 // FileHistory lists file-history/<session>/ checkpoints. cost: Disk · Read.
 func (a *Agent) FileHistory(h Home, session string) ([]Checkpoint, error) {
 	if session == "" || strings.ContainsAny(session, `/\`) {
-		return nil, fmt.Errorf("%w: session %q", agentcli.ErrNotFound, session)
+		return nil, fmt.Errorf("%w: session %q", agentio.ErrNotFound, session)
 	}
 	dir := filepath.Join(h.Dir(), fileHistoryDir, session)
 	entries, err := os.ReadDir(dir)
@@ -197,8 +197,8 @@ type IDELock struct {
 	Workspace []string
 	IDEName   string
 	Transport string
-	Raw       agentcli.Raw
-	Unknown   agentcli.Unknown
+	Raw       agentio.Raw
+	Unknown   agentio.Unknown
 }
 
 type wireIDELock struct {
@@ -227,7 +227,7 @@ func (a *Agent) IDELocks(h Home) ([]IDELock, error) {
 		if err != nil || !found {
 			continue
 		}
-		l := IDELock{Raw: agentcli.Raw(data)}
+		l := IDELock{Raw: agentio.Raw(data)}
 		l.Port, _ = strconv.Atoi(strings.TrimSuffix(e.Name(), ideLockExt))
 		var w wireIDELock
 		if unknown, _, err := decodeLenient(ideDir, data, reflect.TypeFor[wireIDELock](), func(b []byte) error { w = wireIDELock{}; return json.Unmarshal(b, &w) }); err == nil {

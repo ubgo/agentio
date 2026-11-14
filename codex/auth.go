@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Plan is chatgpt_plan_type (protocol/src/auth.rs KnownPlan). Unknown plans
@@ -136,10 +136,10 @@ func (p Plan) IsWorkspace() bool {
 type Identity struct {
 	Mode      AuthMode
 	LoggedIn  bool
-	Email     agentcli.Personal
-	Name      agentcli.Personal
-	AccountID agentcli.Personal // tokens.account_id / chatgpt_account_id
-	UserID    agentcli.Personal
+	Email     agentio.Personal
+	Name      agentio.Personal
+	AccountID agentio.Personal // tokens.account_id / chatgpt_account_id
+	UserID    agentio.Personal
 	Plan      Plan
 
 	SubscriptionActiveStart *time.Time
@@ -147,7 +147,7 @@ type Identity struct {
 	SubscriptionLastChecked *time.Time
 
 	// Organizations: element shape unseen (empty list on the sample home).
-	Organizations []agentcli.Raw
+	Organizations []agentio.Raw
 
 	AccessExpiresAt  time.Time // access_token exp; zero when not a JWT
 	IDTokenExpiresAt time.Time
@@ -159,7 +159,7 @@ type Identity struct {
 	Keyring         KeyringEntry // the keyring entry consulted (keyring and auto stores); zero for file
 	HasAPIKey       bool         // OPENAI_API_KEY present (value never loaded)
 
-	Unknown agentcli.Unknown
+	Unknown agentio.Unknown
 }
 
 // authFileWire is auth.json. The refresh token is never decoded; token
@@ -269,13 +269,13 @@ func ParseAuth(b []byte, source string) (Identity, error) {
 		return Identity{}, fmt.Errorf("codex: decode %s: %w", fileAuth, err)
 	}
 	id := Identity{Mode: w.AuthMode, CredentialStore: StoreFile, Source: source}
-	id.Unknown, _ = agentcli.ExtractUnknown(b, authKnownKeys())
+	id.Unknown, _ = agentio.ExtractUnknown(b, authKnownKeys())
 	id.HasAPIKey = w.OpenAIAPIKey != nil && *w.OpenAIAPIKey != ""
 	if t, err := time.Parse(time.RFC3339Nano, w.LastRefresh); err == nil {
 		id.LastRefresh = t.UTC()
 	}
 	if w.Tokens != nil {
-		id.AccountID = agentcli.NewPersonal(w.Tokens.AccountID)
+		id.AccountID = agentio.NewPersonal(w.Tokens.AccountID)
 		if c, ok := decodeJWT(w.Tokens.AccessToken); ok {
 			id.AccessExpiresAt = unixTime(c.Exp)
 		}
@@ -296,20 +296,20 @@ func applyIDClaims(id *Identity, c jwtClaims) {
 	if email == "" && c.Profile != nil {
 		email = c.Profile.Email
 	}
-	id.Email = agentcli.NewPersonal(email)
-	id.Name = agentcli.NewPersonal(c.Name)
+	id.Email = agentio.NewPersonal(email)
+	id.Name = agentio.NewPersonal(c.Name)
 	if c.Auth == nil {
 		return
 	}
 	a := c.Auth
 	if id.AccountID.IsZero() {
-		id.AccountID = agentcli.NewPersonal(a.ChatGPTAccountID)
+		id.AccountID = agentio.NewPersonal(a.ChatGPTAccountID)
 	}
 	uid := a.ChatGPTUserID
 	if uid == "" {
 		uid = a.UserID
 	}
-	id.UserID = agentcli.NewPersonal(uid)
+	id.UserID = agentio.NewPersonal(uid)
 	if a.ChatGPTPlanType != "" {
 		id.Plan = ParsePlan(a.ChatGPTPlanType)
 	}
@@ -317,7 +317,7 @@ func applyIDClaims(id *Identity, c jwtClaims) {
 	id.SubscriptionActiveUntil = claimTime(a.SubscriptionUntil)
 	id.SubscriptionLastChecked = claimTime(a.SubscriptionChecked)
 	for _, o := range a.Organizations {
-		id.Organizations = append(id.Organizations, agentcli.Raw(o))
+		id.Organizations = append(id.Organizations, agentio.Raw(o))
 	}
 }
 
@@ -436,7 +436,7 @@ func (a *Agent) loadAuth(ctx context.Context, h Home) (storedAuth, error) {
 		return f, nil
 	case StoreEphemeral:
 		return storedAuth{store: StoreEphemeral},
-			agentcli.UnsupportedError(ID, "ephemeral login", "cli_auth_credentials_store = \"ephemeral\" keeps the login in the running codex process's memory only (storage.rs:543-584)")
+			agentio.UnsupportedError(ID, "ephemeral login", "cli_auth_credentials_store = \"ephemeral\" keeps the login in the running codex process's memory only (storage.rs:543-584)")
 	}
 	return a.loadFile(h)
 }
@@ -528,26 +528,26 @@ func (a *Agent) IdentityContext(ctx context.Context, h Home) (Identity, error) {
 	return id, nil
 }
 
-// Neutral projects onto agentcli.Identity: plan display name, PerToken for
+// Neutral projects onto agentio.Identity: plan display name, PerToken for
 // API-key logins, file credential, access-token expiry. Pure.
-func (i Identity) Neutral() agentcli.Identity {
-	out := agentcli.Identity{
+func (i Identity) Neutral() agentio.Identity {
+	out := agentio.Identity{
 		LoggedIn:   i.LoggedIn,
 		Email:      i.Email,
 		PlanLabel:  i.Plan.DisplayName(),
-		Billing:    agentcli.BillingUnknown,
-		Credential: agentcli.CredentialNone,
+		Billing:    agentio.BillingUnknown,
+		Credential: agentio.CredentialNone,
 	}
 	switch {
 	case i.Mode == AuthAPIKey:
-		out.Billing = agentcli.BillingPerToken
+		out.Billing = agentio.BillingPerToken
 	case i.Mode == AuthChatGPT || i.Plan != "":
-		out.Billing = agentcli.BillingSubscription
+		out.Billing = agentio.BillingSubscription
 	}
 	if i.LoggedIn {
-		out.Credential = agentcli.CredentialFile
+		out.Credential = agentio.CredentialFile
 		if i.CredentialStore == StoreKeyring {
-			out.Credential = agentcli.CredentialKeyring
+			out.Credential = agentio.CredentialKeyring
 		}
 	}
 	if !i.AccessExpiresAt.IsZero() {
@@ -562,26 +562,26 @@ func (i Identity) Neutral() agentcli.Identity {
 // never leaves this package except on the request header of a GET the
 // caller asked for. No stored login is ErrNotLoggedIn. Disk · Read /
 // Process · Read via Host.Secrets.
-func (a *Agent) readAccess(ctx context.Context, h Home) (agentcli.Token, string, AuthMode, bool, error) {
+func (a *Agent) readAccess(ctx context.Context, h Home) (agentio.Token, string, AuthMode, bool, error) {
 	s, err := a.loadAuth(ctx, h)
 	if err != nil {
-		return agentcli.Token{}, "", AuthNone, false, err
+		return agentio.Token{}, "", AuthNone, false, err
 	}
 	if !s.found {
-		return agentcli.Token{}, "", AuthNone, false, agentcli.ErrNotLoggedIn
+		return agentio.Token{}, "", AuthNone, false, agentio.ErrNotLoggedIn
 	}
 	var w authFileWire
 	if err := json.Unmarshal(s.raw, &w); err != nil {
 		if s.store == StoreKeyring {
-			return agentcli.Token{}, "", AuthNone, false, &KeyringError{Entry: s.keyring, Err: ErrKeyringValue}
+			return agentio.Token{}, "", AuthNone, false, &KeyringError{Entry: s.keyring, Err: ErrKeyringValue}
 		}
-		return agentcli.Token{}, "", AuthNone, false, fmt.Errorf("codex: decode %s: %w", fileAuth, err)
+		return agentio.Token{}, "", AuthNone, false, fmt.Errorf("codex: decode %s: %w", fileAuth, err)
 	}
 	apiKey := w.OpenAIAPIKey != nil && *w.OpenAIAPIKey != ""
 	if w.Tokens == nil || w.Tokens.AccessToken == "" {
-		return agentcli.Token{}, "", w.AuthMode, apiKey, nil
+		return agentio.Token{}, "", w.AuthMode, apiKey, nil
 	}
-	return agentcli.NewToken(w.Tokens.AccessToken), w.Tokens.AccountID, w.AuthMode, apiKey, nil
+	return agentio.NewToken(w.Tokens.AccessToken), w.Tokens.AccountID, w.AuthMode, apiKey, nil
 }
 
 // login flags (`codex login --help` at 0.162.1).
@@ -596,23 +596,23 @@ const (
 // LoginCommand builds `codex login [--device-auth|--with-api-key|
 // --with-access-token]` for h. Secrets are read by Codex from stdin, never
 // argv. An unknown flow returns ErrUnsupported. Pure.
-func (a *Agent) LoginCommand(h Home, f agentcli.LoginFlow) (agentcli.Command, error) {
+func (a *Agent) LoginCommand(h Home, f agentio.LoginFlow) (agentio.Command, error) {
 	args := []string{subLogin}
 	switch f {
-	case agentcli.LoginBrowser:
-	case agentcli.LoginDevice:
+	case agentio.LoginBrowser:
+	case agentio.LoginDevice:
 		args = append(args, flagDeviceAuth)
-	case agentcli.LoginAPIKeyStdin:
+	case agentio.LoginAPIKeyStdin:
 		args = append(args, flagWithAPIKey)
-	case agentcli.LoginAccessTokenStdin:
+	case agentio.LoginAccessTokenStdin:
 		args = append(args, flagWithAccessToken)
 	default:
-		return agentcli.Command{}, agentcli.UnsupportedError(ID, "login flow "+f.String(), "codex login has no such flow")
+		return agentio.Command{}, agentio.UnsupportedError(ID, "login flow "+f.String(), "codex login has no such flow")
 	}
 	return a.plainCommand(h, args), nil
 }
 
 // LogoutCommand builds `codex logout` for h. Pure.
-func (a *Agent) LogoutCommand(h Home) agentcli.Command {
+func (a *Agent) LogoutCommand(h Home) agentio.Command {
 	return a.plainCommand(h, []string{subLogout})
 }

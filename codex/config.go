@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Config is one config.toml layer, typed after upstream ConfigToml
@@ -190,11 +190,11 @@ const (
 )
 
 // Transport is "http" when a URL is set, else "stdio". Pure.
-func (s MCPServer) Transport() agentcli.MCPTransport {
+func (s MCPServer) Transport() agentio.MCPTransport {
 	if s.URL.Set {
-		return agentcli.MCPTransport(transportHTTP)
+		return agentio.MCPTransport(transportHTTP)
 	}
-	return agentcli.MCPTransport(transportStdio)
+	return agentio.MCPTransport(transportStdio)
 }
 
 // Project is [projects."<dir>"].
@@ -272,12 +272,12 @@ type HookHandler struct {
 	AdditionalContextLimit Opt[int64] // tokens; 0 disables spilling
 	// mcp_tool
 	Server, Tool Opt[string]
-	Input        TOMLRaw      // mcp_tool input table (config.toml)
-	InputJSON    agentcli.Raw // mcp_tool input object (hooks.json)
+	Input        TOMLRaw     // mcp_tool input table (config.toml)
+	InputJSON    agentio.Raw // mcp_tool input object (hooks.json)
 	// Unknown keeps unmodelled keys: config.toml source text here,
 	// hooks.json raw values in UnknownJSON.
 	Unknown     UnknownTOML
-	UnknownJSON agentcli.Unknown
+	UnknownJSON agentio.Unknown
 }
 
 // HookHandlerType is a hook handler's `type`.
@@ -354,7 +354,7 @@ type LegacyProfile struct {
 // ParseConfig decodes config.toml bytes. file names the source in
 // warnings. A syntax error fails the file; a key whose type changed only
 // degrades that key (kept in Unknown, Warning added). Pure.
-func ParseConfig(src []byte, file string) (Config, agentcli.Warnings, error) {
+func ParseConfig(src []byte, file string) (Config, agentio.Warnings, error) {
 	entries, err := parseTOML(src)
 	if err != nil {
 		return Config{}, nil, err
@@ -365,7 +365,7 @@ func ParseConfig(src []byte, file string) (Config, agentcli.Warnings, error) {
 
 // decodeEntriesInto decodes flattened entries into a Config and tallies
 // KeyCount (Typed = Total − Raw − Unknown).
-func decodeEntriesInto(entries []tomlEntry, file string) (Config, agentcli.Warnings) {
+func decodeEntriesInto(entries []tomlEntry, file string) (Config, agentio.Warnings) {
 	d := newTOMLDecoder(file)
 	var c Config
 	for _, e := range entries {
@@ -387,11 +387,11 @@ func (a *Agent) ConfigFile(h Home) (Config, error) {
 
 // ConfigFileWarnings is ConfigFile plus the drift warnings of the decode.
 // Disk · Read.
-func (a *Agent) ConfigFileWarnings(h Home) (Config, agentcli.Warnings, error) {
+func (a *Agent) ConfigFileWarnings(h Home) (Config, agentio.Warnings, error) {
 	return readConfigPath(a.Paths(h).Config)
 }
 
-func readConfigPath(path string) (Config, agentcli.Warnings, error) {
+func readConfigPath(path string) (Config, agentio.Warnings, error) {
 	b, err := os.ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
 		return Config{}, nil, nil
@@ -435,7 +435,7 @@ func decodeConfigEntry(d *tomlDecoder, c *Config, e tomlEntry) {
 	case keyApprovalPolicy:
 		// table form: approval_policy = { granular = {...} }
 		if len(p) >= 2 && p[1] == keyGranular {
-			c.ApprovalPolicy = agentcli.Some(ApprovalGranular)
+			c.ApprovalPolicy = agentio.Some(ApprovalGranular)
 			d.raw(&c.ApprovalGranular, e, 2)
 			return
 		}

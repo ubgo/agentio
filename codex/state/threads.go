@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
-	"github.com/khanakia/agentcli/codex"
+	"github.com/ubgo/agentio"
+	"github.com/ubgo/agentio/codex"
 )
 
 // Table and column names of state_5.sqlite (upstream state/migrations,
@@ -91,19 +91,19 @@ type Thread struct {
 	Sandbox          codex.SandboxPolicy
 	Approval         codex.ApprovalPolicy
 	TokensUsed       int64
-	CLIVersion       agentcli.Version // zero when the column is empty or absent
+	CLIVersion       agentio.Version // zero when the column is empty or absent
 	Git              *codex.GitInfo
 	Agent            *SubAgentInfo
 	MemoryMode       *string
 	HistoryMode      HistoryMode
 	ProjectID        *string
 	SectionID        *string
-	CreatorUserID    agentcli.Personal
-	CreatorAccountID agentcli.Personal
+	CreatorUserID    agentio.Personal
+	CreatorAccountID agentio.Personal
 	// Warnings lists columns whose value did not decode (e.g. a
 	// sandbox_policy shape this library has not seen); the rest of the row
 	// still reads (invariant 17).
-	Warnings agentcli.Warnings
+	Warnings agentio.Warnings
 }
 
 // ThreadStatusFilter narrows Threads. Zero value = every thread, newest
@@ -264,8 +264,8 @@ func scanThread(rows *sql.Rows) (Thread, error) {
 		MemoryMode:      strPtr(memMode),
 		HistoryMode:     HistoryMode(histMode.String),
 		ProjectID:       strPtr(project), SectionID: strPtr(section),
-		CreatorUserID:    agentcli.NewPersonal(creatorUser.String),
-		CreatorAccountID: agentcli.NewPersonal(creatorAccount.String),
+		CreatorUserID:    agentio.NewPersonal(creatorUser.String),
+		CreatorAccountID: agentio.NewPersonal(creatorAccount.String),
 	}
 	if !histMode.Valid {
 		// Before migration 0040 every thread was legacy (column default).
@@ -273,7 +273,7 @@ func scanThread(rows *sql.Rows) (Thread, error) {
 	}
 	if sandbox.String != "" {
 		if err := json.Unmarshal([]byte(sandbox.String), &t.Sandbox); err != nil {
-			t.Warnings = append(t.Warnings, agentcli.Warning{Kind: agentcli.WarnTypeChanged, File: FileState.String(), Key: "threads.sandbox_policy", Detail: "unrecognised sandbox_policy shape"})
+			t.Warnings = append(t.Warnings, agentio.Warning{Kind: agentio.WarnTypeChanged, File: FileState.String(), Key: "threads.sandbox_policy", Detail: "unrecognised sandbox_policy shape"})
 		}
 	}
 	if cliVersion.String != "" {
@@ -281,7 +281,7 @@ func scanThread(rows *sql.Rows) (Thread, error) {
 		if err == nil {
 			t.CLIVersion = v
 		} else {
-			t.Warnings = append(t.Warnings, agentcli.Warning{Kind: agentcli.WarnTypeChanged, File: FileState.String(), Key: "threads.cli_version", Detail: "unparseable version"})
+			t.Warnings = append(t.Warnings, agentio.Warning{Kind: agentio.WarnTypeChanged, File: FileState.String(), Key: "threads.cli_version", Detail: "unparseable version"})
 		}
 	}
 	if gitSHA.Valid || gitBranch.Valid || gitURL.Valid {
@@ -367,7 +367,7 @@ type Project struct {
 	Name     string
 	Position int64
 	Roots    []string // in position order
-	Metadata agentcli.Raw
+	Metadata agentio.Raw
 	Created  time.Time
 	Updated  time.Time
 }
@@ -402,7 +402,7 @@ func (d *DB) Projects(ctx context.Context) ([]Project, error) {
 			return nil, fmt.Errorf("codex/state: projects: %w", err)
 		}
 		if meta.String != "" {
-			p.Metadata = agentcli.Raw(meta.String)
+			p.Metadata = agentio.Raw(meta.String)
 		}
 		p.Created, p.Updated = fromMillis(created), fromMillis(updated)
 		idx[p.ID] = len(out)

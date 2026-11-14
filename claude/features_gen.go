@@ -2,7 +2,7 @@
 
 package claude
 
-import "github.com/khanakia/agentcli"
+import "github.com/ubgo/agentio"
 
 // Feature constants, one per features.tsv row.
 const (
@@ -219,48 +219,48 @@ func featureSpellings() []string {
 
 // FeatureInfo returns the versions a feature exists in; zero bounds are
 // unknown, never invented (invariant 15). cost: Pure.
-func FeatureInfo(f Feature) agentcli.FeatureSpan {
+func FeatureInfo(f Feature) agentio.FeatureSpan {
 	switch f {
 	case FeatureFlagStreamJSON:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("0.2.66"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.2.66"), Until: agentio.MustVersion("")}
 	case FeatureFlagMCPConfig:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("0.2.75"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.2.75"), Until: agentio.MustVersion("")}
 	case FeatureFlagDisallowedTools:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("0.2.82"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.2.82"), Until: agentio.MustVersion("")}
 	case FeatureFlagContinue:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("0.2.93"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.2.93"), Until: agentio.MustVersion("")}
 	case FeatureFlagResume:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("0.2.93"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.2.93"), Until: agentio.MustVersion("")}
 	case FeatureConfigDirEnv:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("1.0.6"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("1.0.6"), Until: agentio.MustVersion("")}
 	case FeatureFlagAddDir:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("1.0.18"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("1.0.18"), Until: agentio.MustVersion("")}
 	case FeatureFlagSystemPromptFile:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("1.0.55"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("1.0.55"), Until: agentio.MustVersion("")}
 	case FeatureFlagSettings:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("1.0.61"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("1.0.61"), Until: agentio.MustVersion("")}
 	case FeatureFlagIncludePartialMessages:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("1.0.109"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("1.0.109"), Until: agentio.MustVersion("")}
 	case FeatureFlagAgents:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("2.0.0"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.0.0"), Until: agentio.MustVersion("")}
 	case FeatureFlagMaxBudgetUSD:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("2.0.28"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.0.28"), Until: agentio.MustVersion("")}
 	case FeatureSessionIDWithFork:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("2.0.73"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.0.73"), Until: agentio.MustVersion("")}
 	case FeatureFlagFromPR:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("2.1.27"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.27"), Until: agentio.MustVersion("")}
 	case FeatureFlagWorktree:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("2.1.49"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.49"), Until: agentio.MustVersion("")}
 	case FeatureFlagName:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("2.1.76"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.76"), Until: agentio.MustVersion("")}
 	case FeaturePluginDirZip:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("2.1.128"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.128"), Until: agentio.MustVersion("")}
 	case FeatureFallbackModelInteractive:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("2.1.166"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.166"), Until: agentio.MustVersion("")}
 	case FeatureFlagRestricted:
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("2.1.248"), Until: agentcli.MustVersion("")}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.248"), Until: agentio.MustVersion("")}
 	}
-	return agentcli.FeatureSpan{}
+	return agentio.FeatureSpan{}
 }
 
 // featureSource names the CHANGELOG line behind a bound. cost: Pure.

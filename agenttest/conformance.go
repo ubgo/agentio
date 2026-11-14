@@ -8,13 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Conformance probe values. The secret is distinctive so a leak is
 // unambiguous in any formatted output.
 const (
-	conformanceSecret   = "sk-agenttest-CONFORMANCE-SECRET-7f3a"
+	conformanceSecret   = "sk_agenttest-CONFORMANCE-SECRET-7f3a"
 	conformanceResumeID = "agenttest-resume-0001"
 	conformanceDir      = "/agenttest/project"
 )
@@ -34,7 +34,7 @@ const (
 //
 // Unknown-key preservation is format-specific and stays in each vendor's
 // reader tests.
-func Conformance(t *testing.T, a agentcli.Agent, fixtureHome agentcli.Home) {
+func Conformance(t *testing.T, a agentio.Agent, fixtureHome agentio.Home) {
 	t.Helper()
 	t.Run("home-env", func(t *testing.T) { conformHomeEnv(t, a, fixtureHome) })
 	t.Run("resume", func(t *testing.T) { conformResume(t, a) })
@@ -44,7 +44,7 @@ func Conformance(t *testing.T, a agentcli.Agent, fixtureHome agentcli.Home) {
 }
 
 // conformHomeEnv checks invariant 2 on the default and a non-default home.
-func conformHomeEnv(t *testing.T, a agentcli.Agent, fixture agentcli.Home) {
+func conformHomeEnv(t *testing.T, a agentio.Agent, fixture agentio.Home) {
 	spec := a.Spec()
 	def := a.DefaultHome()
 	if def.Agent() != a.ID() || !def.IsDefault() {
@@ -54,8 +54,8 @@ func conformHomeEnv(t *testing.T, a agentcli.Agent, fixture agentcli.Home) {
 		return
 	}
 	defStale := def.Target()
-	defStale.ExtraEnv = []agentcli.EnvChange{agentcli.EnvSet(spec.HomeEnv, "/stale")}
-	cmd, err := a.Launch(defStale, agentcli.LaunchRequest{})
+	defStale.ExtraEnv = []agentio.EnvChange{agentio.EnvSet(spec.HomeEnv, "/stale")}
+	cmd, err := a.Launch(defStale, agentio.LaunchRequest{})
 	if err != nil {
 		t.Fatalf("Launch(default): %v", err)
 	}
@@ -64,17 +64,17 @@ func conformHomeEnv(t *testing.T, a agentcli.Agent, fixture agentcli.Home) {
 	}
 	other := fixture
 	if other.IsDefault() {
-		other = agentcli.NewHome(a.ID(), def.Dir()+"-agenttest", false, "agenttest")
+		other = agentio.NewHome(a.ID(), def.Dir()+"-agenttest", false, "agenttest")
 	}
-	cmd, err = a.Launch(other.Target(), agentcli.LaunchRequest{})
+	cmd, err = a.Launch(other.Target(), agentio.LaunchRequest{})
 	if err != nil {
 		t.Fatalf("Launch(non-default): %v", err)
 	}
 	if vals := envValues(cmd.Env, spec.HomeEnv); len(vals) != 1 || vals[0] != other.Dir() {
 		t.Errorf("non-default home: %s = %v, want [%s]", spec.HomeEnv, vals, other.Dir())
 	}
-	foreign := agentcli.NewHome("agenttest-foreign", "/x", false, "x")
-	if _, err := a.Launch(foreign.Target(), agentcli.LaunchRequest{}); err == nil {
+	foreign := agentio.NewHome("agenttest-foreign", "/x", false, "x")
+	if _, err := a.Launch(foreign.Target(), agentio.LaunchRequest{}); err == nil {
 		t.Errorf("Launch(foreign home) = nil error, want ErrForeignHome")
 	}
 }
@@ -91,8 +91,8 @@ func envValues(env []string, key string) []string {
 }
 
 // conformResume checks the resume id is placed in argv.
-func conformResume(t *testing.T, a agentcli.Agent) {
-	cmd, err := a.Launch(a.DefaultHome().Target(), agentcli.LaunchRequest{ResumeID: conformanceResumeID})
+func conformResume(t *testing.T, a agentio.Agent) {
+	cmd, err := a.Launch(a.DefaultHome().Target(), agentio.LaunchRequest{ResumeID: conformanceResumeID})
 	if err != nil {
 		t.Skipf("resume not supported: %v", err)
 	}
@@ -102,16 +102,16 @@ func conformResume(t *testing.T, a agentcli.Agent) {
 }
 
 // conformSupported checks Supported against Unsupported and costs.
-func conformSupported(t *testing.T, a agentcli.Agent) {
-	sup := agentcli.Supported(a)
-	for _, c := range agentcli.CapabilityValues() {
+func conformSupported(t *testing.T, a agentio.Agent) {
+	sup := agentio.Supported(a)
+	for _, c := range agentio.CapabilityValues() {
 		has := slices.Contains(sup, c)
-		if reason, declared := agentcli.Unsupported(a, c); has && declared {
+		if reason, declared := agentio.Unsupported(a, c); has && declared {
 			t.Errorf("%s: supported but declares unsupported reason %q", c, reason)
 		}
 	}
 	for _, c := range sup {
-		if c != agentcli.CapProcessClassifier && c != agentcli.CapTokenLogin && c != agentcli.CapLoginCommander && c != agentcli.CapRunEvents && c.Cost() == (agentcli.Cost{}) {
+		if c != agentio.CapProcessClassifier && c != agentio.CapTokenLogin && c != agentio.CapLoginCommander && c != agentio.CapRunEvents && c.Cost() == (agentio.Cost{}) {
 			t.Errorf("%s: no cost row", c)
 		}
 	}
@@ -119,7 +119,7 @@ func conformSupported(t *testing.T, a agentcli.Agent) {
 
 // conformReads calls every read accessor on the fixture home; FailExec and
 // FailingHTTP in the Host report any process run or network call.
-func conformReads(t *testing.T, a agentcli.Agent, h agentcli.Home) {
+func conformReads(t *testing.T, a agentio.Agent, h agentio.Home) {
 	ctx := context.Background()
 	var outputs []string
 	keep := func(name string, v fmt.Stringer, err error) {
@@ -130,51 +130,51 @@ func conformReads(t *testing.T, a agentcli.Agent, h agentcli.Home) {
 			outputs = append(outputs, v.String())
 		}
 	}
-	if x, ok := agentcli.InstallerOf(a); ok {
+	if x, ok := agentio.InstallerOf(a); ok {
 		v, err := x.Install()
 		keep("install", dump(v), err)
 	}
-	if x, ok := agentcli.IdentityOf(a); ok {
+	if x, ok := agentio.IdentityOf(a); ok {
 		v, err := x.Identity(h)
 		keep("identity", dump(v), err)
 	}
-	if x, ok := agentcli.CachedUsageOf(a); ok {
+	if x, ok := agentio.CachedUsageOf(a); ok {
 		v, _, err := x.CachedUsage(h)
 		keep("cached usage", dump(v), err)
 	}
-	if x, ok := agentcli.ConversationsOf(a); ok {
-		v, err := x.Conversations(ctx, h, agentcli.ConversationQuery{Limit: 5})
+	if x, ok := agentio.ConversationsOf(a); ok {
+		v, err := x.Conversations(ctx, h, agentio.ConversationQuery{Limit: 5})
 		keep("conversations", dump(v), err)
 	}
-	if x, ok := agentcli.HistoryCheckerOf(a); ok {
+	if x, ok := agentio.HistoryCheckerOf(a); ok {
 		_, err := x.HasHistory(h, conformanceDir)
 		keep("history", nil, err)
 	}
-	if x, ok := agentcli.PromptHistoryOf(a); ok {
-		v, err := x.PromptHistory(h, agentcli.PromptQuery{Limit: 5})
+	if x, ok := agentio.PromptHistoryOf(a); ok {
+		v, err := x.PromptHistory(h, agentio.PromptQuery{Limit: 5})
 		keep("prompts", dump(v), err)
 	}
-	if x, ok := agentcli.LiveSessionsOf(a); ok {
+	if x, ok := agentio.LiveSessionsOf(a); ok {
 		v, err := x.LiveSessions(h)
 		keep("live", dump(v), err)
 	}
-	if x, ok := agentcli.InstructionFilesOf(a); ok {
+	if x, ok := agentio.InstructionFilesOf(a); ok {
 		v, err := x.InstructionFiles(h, conformanceDir)
 		keep("instructions", dump(v), err)
 	}
-	if x, ok := agentcli.MCPServersOf(a); ok {
+	if x, ok := agentio.MCPServersOf(a); ok {
 		v, err := x.MCPServers(h, conformanceDir)
 		keep("mcp", dump(v), err)
 	}
-	if x, ok := agentcli.SkillsOf(a); ok {
+	if x, ok := agentio.SkillsOf(a); ok {
 		v, err := x.Skills(h, conformanceDir)
 		keep("skills", dump(v), err)
 	}
-	if x, ok := agentcli.PluginsOf(a); ok {
+	if x, ok := agentio.PluginsOf(a); ok {
 		v, err := x.Plugins(h, conformanceDir)
 		keep("plugins", dump(v), err)
 	}
-	if x, ok := agentcli.ConfigOf(a); ok {
+	if x, ok := agentio.ConfigOf(a); ok {
 		v, err := x.ConfigLayers(h, conformanceDir)
 		keep("config", dump(v), err)
 		_, err = x.ProjectTrust(h, conformanceDir)
@@ -182,11 +182,11 @@ func conformReads(t *testing.T, a agentcli.Agent, h agentcli.Home) {
 		_, err = x.Defaults(h, conformanceDir)
 		keep("defaults", nil, err)
 	}
-	if x, ok := agentcli.ModelsOf(a); ok {
+	if x, ok := agentio.ModelsOf(a); ok {
 		v, err := x.Models(h)
 		keep("models", dump(v), err)
 	}
-	if x, ok := agentcli.DoctorOf(a); ok {
+	if x, ok := agentio.DoctorOf(a); ok {
 		keep("doctor", dump(x.Checks(ctx, h)), nil)
 	}
 	if _, err := a.Homes(); err != nil {
@@ -207,7 +207,7 @@ func (f formatted) String() string { return string(f) }
 
 // dump renders %v, %+v, %#v and JSON of v together. Values are rendered
 // through the concrete types the suite passes, so this needs no `any`.
-func dump[T agentcli.Token | agentcli.Install | agentcli.Identity | agentcli.Usage | []agentcli.Conversation | []agentcli.PromptEntry | []agentcli.LiveSession | []agentcli.InstructionFile | []agentcli.MCPServer | []agentcli.Skill | []agentcli.Plugin | []agentcli.ConfigLayer | []agentcli.Model | []agentcli.Check | agentcli.Command](v T) fmt.Stringer {
+func dump[T agentio.Token | agentio.Install | agentio.Identity | agentio.Usage | []agentio.Conversation | []agentio.PromptEntry | []agentio.LiveSession | []agentio.InstructionFile | []agentio.MCPServer | []agentio.Skill | []agentio.Plugin | []agentio.ConfigLayer | []agentio.Model | []agentio.Check | agentio.Command](v T) fmt.Stringer {
 	j, err := json.Marshal(v)
 	if err != nil {
 		j = []byte(err.Error())
@@ -216,8 +216,8 @@ func dump[T agentcli.Token | agentcli.Install | agentcli.Identity | agentcli.Usa
 }
 
 // conformToken checks invariant 8 on a token launch.
-func conformToken(t *testing.T, a agentcli.Agent) {
-	tl, ok := agentcli.TokenLoginOf(a)
+func conformToken(t *testing.T, a agentio.Agent) {
+	tl, ok := agentio.TokenLoginOf(a)
 	if !ok {
 		return
 	}
@@ -225,8 +225,8 @@ func conformToken(t *testing.T, a agentcli.Agent) {
 	if len(kinds) == 0 {
 		t.Fatal("TokenKinds() is empty")
 	}
-	cred := &agentcli.TokenCredential{Kind: kinds[0], Token: agentcli.NewToken(conformanceSecret)}
-	cmd, err := a.Launch(a.DefaultHome().Target(), agentcli.LaunchRequest{Credential: cred})
+	cred := &agentio.TokenCredential{Kind: kinds[0], Token: agentio.NewToken(conformanceSecret)}
+	cmd, err := a.Launch(a.DefaultHome().Target(), agentio.LaunchRequest{Credential: cred})
 	if err != nil {
 		if strings.Contains(err.Error(), conformanceSecret) {
 			t.Errorf("launch error leaks the token")

@@ -6,56 +6,56 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // neutral is the L1 + L2 view of the Claude agent: it embeds the shared
 // Core (L1) and projects every rich Claude result onto the neutral types.
 // The compile-time assertions below declare its capabilities (SPEC §6.2).
 type neutral struct {
-	*agentcli.Core
+	*agentio.Core
 	a *Agent
 }
 
 // Capabilities Claude has (SPEC §6.2 support table).
 var (
-	_ agentcli.Agent               = neutral{}
-	_ agentcli.Installer           = neutral{}
-	_ agentcli.BinaryVersion       = neutral{}
-	_ agentcli.IdentityReader      = neutral{}
-	_ agentcli.UsageReader         = neutral{}
-	_ agentcli.CachedUsageReader   = neutral{}
-	_ agentcli.SubscriptionReader  = neutral{}
-	_ agentcli.TokenLogin          = neutral{}
-	_ agentcli.TokenProber         = neutral{}
-	_ agentcli.LoginCommander      = neutral{}
-	_ agentcli.ConversationLister  = neutral{}
-	_ agentcli.HistoryChecker      = neutral{}
-	_ agentcli.HistoryMover        = neutral{}
-	_ agentcli.ConversationMover   = neutral{}
-	_ agentcli.PromptHistoryReader = neutral{}
-	_ agentcli.LiveSessionLister   = neutral{}
-	_ agentcli.ProcessClassifier   = neutral{}
-	_ agentcli.TurnReader          = neutral{}
-	_ agentcli.HomeLinker          = neutral{}
-	_ agentcli.InstructionFiles    = neutral{}
-	_ agentcli.MCPLister           = neutral{}
-	_ agentcli.SkillLister         = neutral{}
-	_ agentcli.PluginLister        = neutral{}
-	_ agentcli.ConfigReader        = neutral{}
-	_ agentcli.RunEvents           = neutral{}
-	_ agentcli.Doctor              = neutral{}
-	_ agentcli.UnsupportedReasoner = neutral{}
+	_ agentio.Agent               = neutral{}
+	_ agentio.Installer           = neutral{}
+	_ agentio.BinaryVersion       = neutral{}
+	_ agentio.IdentityReader      = neutral{}
+	_ agentio.UsageReader         = neutral{}
+	_ agentio.CachedUsageReader   = neutral{}
+	_ agentio.SubscriptionReader  = neutral{}
+	_ agentio.TokenLogin          = neutral{}
+	_ agentio.TokenProber         = neutral{}
+	_ agentio.LoginCommander      = neutral{}
+	_ agentio.ConversationLister  = neutral{}
+	_ agentio.HistoryChecker      = neutral{}
+	_ agentio.HistoryMover        = neutral{}
+	_ agentio.ConversationMover   = neutral{}
+	_ agentio.PromptHistoryReader = neutral{}
+	_ agentio.LiveSessionLister   = neutral{}
+	_ agentio.ProcessClassifier   = neutral{}
+	_ agentio.TurnReader          = neutral{}
+	_ agentio.HomeLinker          = neutral{}
+	_ agentio.InstructionFiles    = neutral{}
+	_ agentio.MCPLister           = neutral{}
+	_ agentio.SkillLister         = neutral{}
+	_ agentio.PluginLister        = neutral{}
+	_ agentio.ConfigReader        = neutral{}
+	_ agentio.RunEvents           = neutral{}
+	_ agentio.Doctor              = neutral{}
+	_ agentio.UnsupportedReasoner = neutral{}
 )
 
 // modelListerReason is why Claude has no ModelLister (OD-15).
 const modelListerReason = "Claude Code keeps no model catalog on disk that has a recorded shape; a static list would rot (OD-15)"
 
 // Neutral returns the L1/L2 view. cost: Pure.
-func (a *Agent) Neutral() agentcli.Agent { return neutral{Core: a.core, a: a} }
+func (a *Agent) Neutral() agentio.Agent { return neutral{Core: a.core, a: a} }
 
 // home converts a neutral home, refusing another agent's.
-func (n neutral) home(h agentcli.Home) (Home, error) { return n.a.HomeOf(h) }
+func (n neutral) home(h agentio.Home) (Home, error) { return n.a.HomeOf(h) }
 
 // project builds a Project for dir; "" means no project.
 func (n neutral) project(dir string) (*Project, error) {
@@ -70,128 +70,128 @@ func (n neutral) project(dir string) (*Project, error) {
 }
 
 // UnsupportedReason declares the capabilities Claude lacks. cost: Pure.
-func (n neutral) UnsupportedReason(c agentcli.Capability) (string, bool) {
-	if c == agentcli.CapModels {
+func (n neutral) UnsupportedReason(c agentio.Capability) (string, bool) {
+	if c == agentio.CapModels {
 		return modelListerReason, true
 	}
 	return "", false
 }
 
 // Launch maps the neutral request onto LaunchOptions. cost: Pure.
-func (n neutral) Launch(t agentcli.Target, r agentcli.LaunchRequest) (agentcli.Command, error) {
+func (n neutral) Launch(t agentio.Target, r agentio.LaunchRequest) (agentio.Command, error) {
 	return n.a.launchRequest(t, r)
 }
 
 // Install is Disk · Read.
-func (n neutral) Install() (agentcli.Install, error) {
+func (n neutral) Install() (agentio.Install, error) {
 	i, err := n.a.Install()
 	return i.Install, err
 }
 
 // BinaryVersion runs `claude --version` (Process · Read; reached only
 // through BinaryVersionOf, the door accessor).
-func (n neutral) BinaryVersion(ctx context.Context) (agentcli.Version, error) {
+func (n neutral) BinaryVersion(ctx context.Context) (agentio.Version, error) {
 	return n.a.Runner().BinaryVersion(ctx)
 }
 
 // Identity is Disk · Read + keychain.
-func (n neutral) Identity(h agentcli.Home) (agentcli.Identity, error) {
+func (n neutral) Identity(h agentio.Home) (agentio.Identity, error) {
 	ch, err := n.home(h)
 	if err != nil {
-		return agentcli.Identity{}, err
+		return agentio.Identity{}, err
 	}
 	id, err := n.a.Identity(ch)
 	return id.Identity, err
 }
 
 // Usage is Network · Read.
-func (n neutral) Usage(ctx context.Context, h agentcli.Home) (agentcli.Usage, error) {
+func (n neutral) Usage(ctx context.Context, h agentio.Home) (agentio.Usage, error) {
 	ch, err := n.home(h)
 	if err != nil {
-		return agentcli.Usage{}, err
+		return agentio.Usage{}, err
 	}
 	u, err := n.a.Usage(ctx, ch)
 	return u.Usage, err
 }
 
 // CachedUsage is Disk · Read.
-func (n neutral) CachedUsage(h agentcli.Home) (agentcli.Usage, bool, error) {
+func (n neutral) CachedUsage(h agentio.Home) (agentio.Usage, bool, error) {
 	ch, err := n.home(h)
 	if err != nil {
-		return agentcli.Usage{}, false, err
+		return agentio.Usage{}, false, err
 	}
 	u, ok, err := n.a.CachedUsage(ch)
 	return u.Usage, ok, err
 }
 
 // Subscription is Network · Read.
-func (n neutral) Subscription(ctx context.Context, h agentcli.Home) (agentcli.Subscription, error) {
+func (n neutral) Subscription(ctx context.Context, h agentio.Home) (agentio.Subscription, error) {
 	ch, err := n.home(h)
 	if err != nil {
-		return agentcli.Subscription{}, err
+		return agentio.Subscription{}, err
 	}
 	return n.a.Subscription(ctx, ch)
 }
 
 // TokenKinds is Pure.
-func (n neutral) TokenKinds() []agentcli.TokenKind { return n.a.TokenKinds() }
+func (n neutral) TokenKinds() []agentio.TokenKind { return n.a.TokenKinds() }
 
 // DetectTokenKind is Pure; unusable tokens (refresh, admin) report false.
-func (n neutral) DetectTokenKind(t agentcli.Token) (agentcli.TokenKind, bool) {
+func (n neutral) DetectTokenKind(t agentio.Token) (agentio.TokenKind, bool) {
 	k, ok, err := n.a.DetectTokenKind(t)
 	return k, ok && err == nil
 }
 
 // TokenEnv is Pure.
-func (n neutral) TokenEnv(c agentcli.TokenCredential) ([]agentcli.EnvChange, error) {
+func (n neutral) TokenEnv(c agentio.TokenCredential) ([]agentio.EnvChange, error) {
 	return n.a.TokenEnv(c)
 }
 
 // TokenSetupCommand is Pure.
-func (n neutral) TokenSetupCommand(h agentcli.Home) (agentcli.Command, bool) {
+func (n neutral) TokenSetupCommand(h agentio.Home) (agentio.Command, bool) {
 	ch, err := n.home(h)
 	if err != nil {
-		return agentcli.Command{}, false
+		return agentio.Command{}, false
 	}
 	return n.a.SetupTokenCommand(ch), true
 }
 
 // TokenUsage is Quota · Read (the TokenProberOf door).
-func (n neutral) TokenUsage(ctx context.Context, c agentcli.TokenCredential) (agentcli.Usage, error) {
+func (n neutral) TokenUsage(ctx context.Context, c agentio.TokenCredential) (agentio.Usage, error) {
 	u, err := n.a.Prober().TokenUsage(ctx, c)
 	return u.Usage, err
 }
 
 // LoginCommand maps the neutral flows: browser → claude.ai login; Claude
 // has no device or stdin login flow. cost: Pure.
-func (n neutral) LoginCommand(h agentcli.Home, f agentcli.LoginFlow) (agentcli.Command, error) {
+func (n neutral) LoginCommand(h agentio.Home, f agentio.LoginFlow) (agentio.Command, error) {
 	ch, err := n.home(h)
 	if err != nil {
-		return agentcli.Command{}, err
+		return agentio.Command{}, err
 	}
-	if f != agentcli.LoginBrowser {
-		return agentcli.Command{}, agentcli.UnsupportedError(ID, "login flow "+f.String(), "Claude Code logs in through the browser; tokens go through TokenEnv")
+	if f != agentio.LoginBrowser {
+		return agentio.Command{}, agentio.UnsupportedError(ID, "login flow "+f.String(), "Claude Code logs in through the browser; tokens go through TokenEnv")
 	}
 	return n.a.LoginCommand(ch, LoginClaudeAI, ""), nil
 }
 
 // LogoutCommand is Pure.
-func (n neutral) LogoutCommand(h agentcli.Home) agentcli.Command {
+func (n neutral) LogoutCommand(h agentio.Home) agentio.Command {
 	ch, err := n.home(h)
 	if err != nil {
-		return agentcli.Command{}
+		return agentio.Command{}
 	}
 	return n.a.LogoutCommand(ch)
 }
 
 // Conversations is Disk · Read.
-func (n neutral) Conversations(ctx context.Context, h agentcli.Home, q agentcli.ConversationQuery) ([]agentcli.Conversation, error) {
+func (n neutral) Conversations(ctx context.Context, h agentio.Home, q agentio.ConversationQuery) ([]agentio.Conversation, error) {
 	ch, err := n.home(h)
 	if err != nil {
 		return nil, err
 	}
 	cs, err := n.a.Conversations(ctx, ch, q)
-	out := make([]agentcli.Conversation, len(cs))
+	out := make([]agentio.Conversation, len(cs))
 	for i, c := range cs {
 		out[i] = c.Conversation
 	}
@@ -199,17 +199,17 @@ func (n neutral) Conversations(ctx context.Context, h agentcli.Home, q agentcli.
 }
 
 // Conversation is Disk · Read.
-func (n neutral) Conversation(h agentcli.Home, id string) (agentcli.Conversation, error) {
+func (n neutral) Conversation(h agentio.Home, id string) (agentio.Conversation, error) {
 	ch, err := n.home(h)
 	if err != nil {
-		return agentcli.Conversation{}, err
+		return agentio.Conversation{}, err
 	}
 	c, err := n.a.Conversation(ch, id)
 	return c.Conversation, err
 }
 
 // HasHistory is Disk · Read.
-func (n neutral) HasHistory(h agentcli.Home, dir string) (bool, error) {
+func (n neutral) HasHistory(h agentio.Home, dir string) (bool, error) {
 	ch, err := n.home(h)
 	if err != nil {
 		return false, err
@@ -218,31 +218,31 @@ func (n neutral) HasHistory(h agentcli.Home, dir string) (bool, error) {
 }
 
 // MoveHistory is Disk · Write (the HistoryMoverOf door).
-func (n neutral) MoveHistory(h agentcli.Home, from, to string) (agentcli.Backup, error) {
+func (n neutral) MoveHistory(h agentio.Home, from, to string) (agentio.Backup, error) {
 	ch, err := n.home(h)
 	if err != nil {
-		return agentcli.Backup{}, err
+		return agentio.Backup{}, err
 	}
 	_, b, err := n.a.Writer().MoveHistory(ch, from, to)
 	return b, err
 }
 
 // PlanMove is Disk · Read.
-func (n neutral) PlanMove(r agentcli.MoveRequest) (agentcli.MovePlan, error) { return n.a.PlanMove(r) }
+func (n neutral) PlanMove(r agentio.MoveRequest) (agentio.MovePlan, error) { return n.a.PlanMove(r) }
 
 // ApplyMove is Disk · Write (the ConversationMoverOf door).
-func (n neutral) ApplyMove(p agentcli.MovePlan) (agentcli.Backup, error) {
+func (n neutral) ApplyMove(p agentio.MovePlan) (agentio.Backup, error) {
 	return n.a.Writer().ApplyMove(p)
 }
 
 // PromptHistory is Disk · Read.
-func (n neutral) PromptHistory(h agentcli.Home, q agentcli.PromptQuery) ([]agentcli.PromptEntry, error) {
+func (n neutral) PromptHistory(h agentio.Home, q agentio.PromptQuery) ([]agentio.PromptEntry, error) {
 	ch, err := n.home(h)
 	if err != nil {
 		return nil, err
 	}
 	es, err := n.a.PromptHistory(ch, HistoryQuery{Project: q.Dir, SessionID: q.ConversationID, Since: q.Since, Limit: q.Limit})
-	out := make([]agentcli.PromptEntry, len(es))
+	out := make([]agentio.PromptEntry, len(es))
 	for i, e := range es {
 		out[i] = e.neutral()
 	}
@@ -250,13 +250,13 @@ func (n neutral) PromptHistory(h agentcli.Home, q agentcli.PromptQuery) ([]agent
 }
 
 // LiveSessions is Disk · Read + process table.
-func (n neutral) LiveSessions(h agentcli.Home) ([]agentcli.LiveSession, error) {
+func (n neutral) LiveSessions(h agentio.Home) ([]agentio.LiveSession, error) {
 	ch, err := n.home(h)
 	if err != nil {
 		return nil, err
 	}
 	ls, err := n.a.LiveSessions(ch)
-	out := make([]agentcli.LiveSession, len(ls))
+	out := make([]agentio.LiveSession, len(ls))
 	for i, l := range ls {
 		out[i] = l.Neutral(ch)
 	}
@@ -264,7 +264,7 @@ func (n neutral) LiveSessions(h agentcli.Home) ([]agentcli.LiveSession, error) {
 }
 
 // IsLive is Disk · Read + process table.
-func (n neutral) IsLive(h agentcli.Home, id string) (bool, error) {
+func (n neutral) IsLive(h agentio.Home, id string) (bool, error) {
 	ch, err := n.home(h)
 	if err != nil {
 		return false, err
@@ -273,12 +273,12 @@ func (n neutral) IsLive(h agentcli.Home, id string) (bool, error) {
 }
 
 // ClassifyProcess is Pure; Claude refines Kind on top of Spec.Process.
-func (n neutral) ClassifyProcess(p agentcli.Process) (agentcli.ProcessInfo, bool) {
+func (n neutral) ClassifyProcess(p agentio.Process) (agentio.ProcessInfo, bool) {
 	return n.a.ClassifyProcess(p)
 }
 
 // Turns is Disk · Read.
-func (n neutral) Turns(h agentcli.Home, id string, from agentcli.Offset, fn func(agentcli.Turn) error) (agentcli.Offset, error) {
+func (n neutral) Turns(h agentio.Home, id string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {
 	ch, err := n.home(h)
 	if err != nil {
 		return from, err
@@ -287,25 +287,25 @@ func (n neutral) Turns(h agentcli.Home, id string, from agentcli.Offset, fn func
 }
 
 // memoryScope maps a memory kind onto the neutral instruction scope.
-func memoryScope(k MemoryKind) agentcli.InstructionScope {
+func memoryScope(k MemoryKind) agentio.InstructionScope {
 	switch k {
 	case MemoryManaged:
-		return agentcli.InstructionManaged
+		return agentio.InstructionManaged
 	case MemoryUser, MemoryUserRule, MemoryAgentMemory:
-		return agentcli.InstructionUser
+		return agentio.InstructionUser
 	case MemoryLocal:
-		return agentcli.InstructionLocal
+		return agentio.InstructionLocal
 	case MemoryAuto:
-		return agentcli.InstructionAuto
+		return agentio.InstructionAuto
 	case MemoryImport:
-		return agentcli.InstructionImported
+		return agentio.InstructionImported
 	}
-	return agentcli.InstructionProject
+	return agentio.InstructionProject
 }
 
 // InstructionFiles lists memory files in load order plus auto memory.
 // cost: Disk · Read.
-func (n neutral) InstructionFiles(h agentcli.Home, dir string) ([]agentcli.InstructionFile, error) {
+func (n neutral) InstructionFiles(h agentio.Home, dir string) ([]agentio.InstructionFile, error) {
 	ch, err := n.home(h)
 	if err != nil {
 		return nil, err
@@ -323,34 +323,34 @@ func (n neutral) InstructionFiles(h agentcli.Home, dir string) ([]agentcli.Instr
 		return nil, err
 	}
 	files = append(files, auto...)
-	out := make([]agentcli.InstructionFile, len(files))
+	out := make([]agentio.InstructionFile, len(files))
 	for i, f := range files {
-		out[i] = agentcli.InstructionFile{Path: f.Path, Scope: memoryScope(f.Kind), Kind: string(f.Kind), Bytes: f.Size}
+		out[i] = agentio.InstructionFile{Path: f.Path, Scope: memoryScope(f.Kind), Kind: string(f.Kind), Bytes: f.Size}
 	}
 	return out, nil
 }
 
 // mcpScope maps an MCP scope onto the neutral config scope.
-func mcpScope(s MCPScope) agentcli.ConfigScope {
+func mcpScope(s MCPScope) agentio.ConfigScope {
 	switch s {
 	case MCPScopeLocal:
-		return agentcli.ConfigLocal
+		return agentio.ConfigLocal
 	case MCPScopeUser, MCPScopeLegacy:
-		return agentcli.ConfigUser
+		return agentio.ConfigUser
 	case MCPScopeProject:
-		return agentcli.ConfigProject
+		return agentio.ConfigProject
 	case MCPScopeManaged:
-		return agentcli.ConfigManaged
+		return agentio.ConfigManaged
 	case MCPScopePlugin:
-		return agentcli.ConfigPlugin
+		return agentio.ConfigPlugin
 	case MCPScopeSession:
-		return agentcli.ConfigCLI
+		return agentio.ConfigCLI
 	}
-	return agentcli.ConfigScopeUnknown
+	return agentio.ConfigScopeUnknown
 }
 
 // MCPServers lists servers with env names only. cost: Disk · Read.
-func (n neutral) MCPServers(h agentcli.Home, dir string) ([]agentcli.MCPServer, error) {
+func (n neutral) MCPServers(h agentio.Home, dir string) ([]agentio.MCPServer, error) {
 	ch, err := n.home(h)
 	if err != nil {
 		return nil, err
@@ -360,14 +360,14 @@ func (n neutral) MCPServers(h agentcli.Home, dir string) ([]agentcli.MCPServer, 
 		return nil, err
 	}
 	ss, err := n.a.MCPServers(ch, p)
-	out := make([]agentcli.MCPServer, len(ss))
+	out := make([]agentio.MCPServer, len(ss))
 	for i, s := range ss {
 		names := make([]string, 0, len(s.Env))
 		for k := range s.Env {
 			names = append(names, k)
 		}
 		sort.Strings(names)
-		ns := agentcli.MCPServer{Name: s.Name, Transport: agentcli.MCPTransport(s.Transport), Scope: mcpScope(s.Scope),
+		ns := agentio.MCPServer{Name: s.Name, Transport: agentio.MCPTransport(s.Transport), Scope: mcpScope(s.Scope),
 			Command: s.Command, Args: s.Args, URL: s.URL, EnvNames: names, Source: s.Source.Path}
 		switch s.Approval {
 		case ApprovalApproved:
@@ -381,24 +381,24 @@ func (n neutral) MCPServers(h agentcli.Home, dir string) ([]agentcli.MCPServer, 
 }
 
 // skillScope maps a Claude skill scope onto the neutral one.
-func skillScope(s SkillScope) agentcli.SkillScope {
+func skillScope(s SkillScope) agentio.SkillScope {
 	switch s {
 	case SkillScopeUser:
-		return agentcli.SkillUser
+		return agentio.SkillUser
 	case SkillScopeProject, SkillScopeAddDir:
-		return agentcli.SkillProject
+		return agentio.SkillProject
 	case SkillScopePlugin:
-		return agentcli.SkillPlugin
+		return agentio.SkillPlugin
 	case SkillScopeManaged:
-		return agentcli.SkillManaged
+		return agentio.SkillManaged
 	case SkillScopeBundled, SkillScopeSynced:
-		return agentcli.SkillSystem
+		return agentio.SkillSystem
 	}
-	return agentcli.SkillScope(s)
+	return agentio.SkillScope(s)
 }
 
 // Skills is Disk · Read.
-func (n neutral) Skills(h agentcli.Home, dir string) ([]agentcli.Skill, error) {
+func (n neutral) Skills(h agentio.Home, dir string) ([]agentio.Skill, error) {
 	ch, err := n.home(h)
 	if err != nil {
 		return nil, err
@@ -408,15 +408,15 @@ func (n neutral) Skills(h agentcli.Home, dir string) ([]agentcli.Skill, error) {
 		return nil, err
 	}
 	ss, err := n.a.Skills(ch, p)
-	out := make([]agentcli.Skill, len(ss))
+	out := make([]agentio.Skill, len(ss))
 	for i, s := range ss {
-		out[i] = agentcli.Skill{Name: s.Name, Description: s.Description, Dir: s.Dir, Plugin: string(s.Plugin), Scope: skillScope(s.Scope)}
+		out[i] = agentio.Skill{Name: s.Name, Description: s.Description, Dir: s.Dir, Plugin: string(s.Plugin), Scope: skillScope(s.Scope)}
 	}
 	return out, err
 }
 
 // Plugins is Disk · Read.
-func (n neutral) Plugins(h agentcli.Home, dir string) ([]agentcli.Plugin, error) {
+func (n neutral) Plugins(h agentio.Home, dir string) ([]agentio.Plugin, error) {
 	ch, err := n.home(h)
 	if err != nil {
 		return nil, err
@@ -426,34 +426,34 @@ func (n neutral) Plugins(h agentcli.Home, dir string) ([]agentcli.Plugin, error)
 		return nil, err
 	}
 	ps, err := n.a.Plugins(ch, p)
-	out := make([]agentcli.Plugin, len(ps))
+	out := make([]agentio.Plugin, len(ps))
 	for i, pl := range ps {
 		name, market := pl.ID.Split()
-		out[i] = agentcli.Plugin{Name: name, Marketplace: market, Version: pl.Version, Dir: pl.InstallPath, Enabled: pl.Enabled || pl.ProjectEnabled}
+		out[i] = agentio.Plugin{Name: name, Marketplace: market, Version: pl.Version, Dir: pl.InstallPath, Enabled: pl.Enabled || pl.ProjectEnabled}
 	}
 	return out, err
 }
 
 // settingsConfigScope maps a settings layer onto the neutral scope.
-func settingsConfigScope(s SettingsScope) agentcli.ConfigScope {
+func settingsConfigScope(s SettingsScope) agentio.ConfigScope {
 	switch s {
 	case ScopeManaged:
-		return agentcli.ConfigManaged
+		return agentio.ConfigManaged
 	case ScopeCLI:
-		return agentcli.ConfigCLI
+		return agentio.ConfigCLI
 	case ScopeLocal:
-		return agentcli.ConfigLocal
+		return agentio.ConfigLocal
 	case ScopeProject:
-		return agentcli.ConfigProject
+		return agentio.ConfigProject
 	case ScopeUser:
-		return agentcli.ConfigUser
+		return agentio.ConfigUser
 	}
-	return agentcli.ConfigScopeUnknown
+	return agentio.ConfigScopeUnknown
 }
 
 // ConfigLayers lists the settings files that apply, highest first, with
 // presence. cost: Disk · Read.
-func (n neutral) ConfigLayers(h agentcli.Home, dir string) ([]agentcli.ConfigLayer, error) {
+func (n neutral) ConfigLayers(h agentio.Home, dir string) ([]agentio.ConfigLayer, error) {
 	ch, err := n.home(h)
 	if err != nil {
 		return nil, err
@@ -463,57 +463,57 @@ func (n neutral) ConfigLayers(h agentcli.Home, dir string) ([]agentcli.ConfigLay
 		return nil, err
 	}
 	eff, err := n.a.Settings(ch, p, nil)
-	out := make([]agentcli.ConfigLayer, 0, len(eff.Layers))
+	out := make([]agentio.ConfigLayer, 0, len(eff.Layers))
 	for _, l := range eff.Layers {
-		out = append(out, agentcli.ConfigLayer{Scope: settingsConfigScope(l.Scope), Path: l.Source.Path, Exists: l.Present})
+		out = append(out, agentio.ConfigLayer{Scope: settingsConfigScope(l.Scope), Path: l.Source.Path, Exists: l.Present})
 	}
 	return out, err
 }
 
 // ProjectTrust reads hasTrustDialogAccepted. cost: Disk · Read.
-func (n neutral) ProjectTrust(h agentcli.Home, dir string) (agentcli.Trust, error) {
+func (n neutral) ProjectTrust(h agentio.Home, dir string) (agentio.Trust, error) {
 	ch, err := n.home(h)
 	if err != nil {
-		return agentcli.TrustUnknown, err
+		return agentio.TrustUnknown, err
 	}
 	ps, err := n.a.ProjectState(ch, filepath.Clean(dir))
 	if err != nil || ps == nil {
-		return agentcli.TrustUnknown, err
+		return agentio.TrustUnknown, err
 	}
 	if ps.TrustAccepted {
-		return agentcli.TrustTrusted, nil
+		return agentio.TrustTrusted, nil
 	}
-	return agentcli.TrustUntrusted, nil
+	return agentio.TrustUntrusted, nil
 }
 
 // autonomyOf maps a permission mode onto the neutral level; modes with no
 // exact level (auto, dontAsk) stay AutonomyDefault.
-func autonomyOf(m PermissionMode) agentcli.Autonomy {
+func autonomyOf(m PermissionMode) agentio.Autonomy {
 	switch m {
 	case ModePlan:
-		return agentcli.AutonomyReadOnly
+		return agentio.AutonomyReadOnly
 	case ModeManual:
-		return agentcli.AutonomyAsk
+		return agentio.AutonomyAsk
 	case ModeAcceptEdits:
-		return agentcli.AutonomyAcceptEdits
+		return agentio.AutonomyAcceptEdits
 	case ModeBypassPermissions:
-		return agentcli.AutonomyFull
+		return agentio.AutonomyFull
 	}
-	return agentcli.AutonomyDefault
+	return agentio.AutonomyDefault
 }
 
 // Defaults reads the merged model and permission mode. cost: Disk · Read.
-func (n neutral) Defaults(h agentcli.Home, dir string) (agentcli.Defaults, error) {
+func (n neutral) Defaults(h agentio.Home, dir string) (agentio.Defaults, error) {
 	ch, err := n.home(h)
 	if err != nil {
-		return agentcli.Defaults{}, err
+		return agentio.Defaults{}, err
 	}
 	p, err := n.project(dir)
 	if err != nil {
-		return agentcli.Defaults{}, err
+		return agentio.Defaults{}, err
 	}
 	eff, err := n.a.Settings(ch, p, nil)
-	d := agentcli.Defaults{Model: eff.Merged.Model}
+	d := agentio.Defaults{Model: eff.Merged.Model}
 	if eff.Merged.Permissions != nil {
 		d.Autonomy = autonomyOf(eff.Merged.Permissions.DefaultMode)
 	}
@@ -522,13 +522,13 @@ func (n neutral) Defaults(h agentcli.Home, dir string) (agentcli.Defaults, error
 
 // NewRunDecoder decodes a stream-json run (Type + docs-shaped Text/Tokens,
 // Raw always; OD-11). cost: Pure.
-func (n neutral) NewRunDecoder(r io.Reader) agentcli.RunDecoder { return newRunDecoder(r) }
+func (n neutral) NewRunDecoder(r io.Reader) agentio.RunDecoder { return newRunDecoder(r) }
 
 // Checks runs the L1 checks plus Claude's disk checks. cost: Disk · Read.
-func (n neutral) Checks(ctx context.Context, h agentcli.Home) []agentcli.Check {
+func (n neutral) Checks(ctx context.Context, h agentio.Home) []agentio.Check {
 	ch, err := n.home(h)
 	if err != nil {
-		return []agentcli.Check{{ID: agentcli.CheckHome, Status: agentcli.CheckFail, Message: err.Error()}}
+		return []agentio.Check{{ID: agentio.CheckHome, Status: agentio.CheckFail, Message: err.Error()}}
 	}
 	return n.a.Doctor(ctx, ch, nil, DoctorOptions{})
 }

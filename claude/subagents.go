@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/khanakia/agentcli"
-	"github.com/khanakia/agentcli/frontmatter"
+	"github.com/ubgo/agentio"
+	"github.com/ubgo/agentio/frontmatter"
 )
 
 // SubagentDef is one subagent definition (agents/*.md frontmatter or an
@@ -29,7 +29,7 @@ type SubagentDef struct {
 	OmitClaudeMD              *bool
 	MCPServers                map[string]MCPServer
 	Hooks                     Hooks
-	Unknown                   agentcli.Unknown
+	Unknown                   agentio.Unknown
 	// Err is a frontmatter parse error; the entry is still listed.
 	Err error
 }
@@ -101,7 +101,7 @@ type SubagentRun struct {
 	SpawnDepth                                                  int
 	PermissionMode                                              PermissionMode
 	Transcript                                                  string
-	Unknown                                                     agentcli.Unknown
+	Unknown                                                     agentio.Unknown
 }
 
 type wireSubagentMeta struct {

@@ -9,7 +9,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // MCPScope is where an MCP server is configured.
@@ -73,7 +73,7 @@ type MCPOAuth struct {
 }
 
 // MCPServer is one configured server. Env and header values are
-// agentcli.EnvValue: they often hold keys, so they print redacted.
+// agentio.EnvValue: they often hold keys, so they print redacted.
 type MCPServer struct {
 	Name      string
 	Scope     MCPScope
@@ -81,22 +81,22 @@ type MCPServer struct {
 	Transport MCPTransport
 	Command   string
 	Args      []string
-	Env       map[string]agentcli.EnvValue
+	Env       map[string]agentio.EnvValue
 	URL       string
-	Headers   map[string]agentcli.EnvValue
+	Headers   map[string]agentio.EnvValue
 	OAuth     *MCPOAuth
 	Approval  MCPApproval
-	Unknown   agentcli.Unknown
+	Unknown   agentio.Unknown
 }
 
 type wireMCPServer struct {
-	Type    MCPTransport                 `json:"type"`
-	Command string                       `json:"command"`
-	Args    []string                     `json:"args"`
-	Env     map[string]agentcli.EnvValue `json:"env"`
-	URL     string                       `json:"url"`
-	Headers map[string]agentcli.EnvValue `json:"headers"`
-	OAuth   *MCPOAuth                    `json:"oauth"`
+	Type    MCPTransport                `json:"type"`
+	Command string                      `json:"command"`
+	Args    []string                    `json:"args"`
+	Env     map[string]agentio.EnvValue `json:"env"`
+	URL     string                      `json:"url"`
+	Headers map[string]agentio.EnvValue `json:"headers"`
+	OAuth   *MCPOAuth                   `json:"oauth"`
 }
 
 // parseMCPServer decodes one server entry.
@@ -117,7 +117,7 @@ func parseMCPServer(name string, raw json.RawMessage) (MCPServer, error) {
 }
 
 // parseServerMap decodes an mcpServers object; bad entries become warnings.
-func parseServerMap(in map[string]json.RawMessage, scope MCPScope, file string, warns agentcli.Warnings) (map[string]MCPServer, agentcli.Warnings) {
+func parseServerMap(in map[string]json.RawMessage, scope MCPScope, file string, warns agentio.Warnings) (map[string]MCPServer, agentio.Warnings) {
 	if in == nil {
 		return nil, warns
 	}
@@ -125,7 +125,7 @@ func parseServerMap(in map[string]json.RawMessage, scope MCPScope, file string, 
 	for name, raw := range in {
 		s, err := parseMCPServer(name, raw)
 		if err != nil {
-			warns = append(warns, agentcli.Warning{Kind: agentcli.WarnTypeChanged, File: file, Key: "mcpServers", Detail: "one server entry did not decode"})
+			warns = append(warns, agentio.Warning{Kind: agentio.WarnTypeChanged, File: file, Key: "mcpServers", Detail: "one server entry did not decode"})
 			continue
 		}
 		s.Scope = scope

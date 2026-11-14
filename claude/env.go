@@ -3,7 +3,7 @@ package claude
 import (
 	"sort"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // EnvGroup groups the variables Claude Code reads.
@@ -71,10 +71,10 @@ func KnownEnv() []EnvVar {
 const EnvFromProcess SettingsScope = "process"
 
 // EnvSetting is one variable in effect and where it came from. Value is an
-// agentcli.EnvValue: it prints redacted.
+// agentio.EnvValue: it prints redacted.
 type EnvSetting struct {
 	Name   string
-	Value  agentcli.EnvValue
+	Value  agentio.EnvValue
 	From   SettingsScope
 	Secret bool
 }
@@ -89,7 +89,7 @@ func (a *Agent) EnvInEffect(h Home, p *Project) ([]EnvSetting, error) {
 	for _, k := range known {
 		secret[k.Name] = k.Secret
 		if v, ok := a.host.Getenv(k.Name); ok {
-			out = append(out, EnvSetting{Name: k.Name, Value: agentcli.NewEnvValue(v), From: EnvFromProcess, Secret: k.Secret})
+			out = append(out, EnvSetting{Name: k.Name, Value: agentio.NewEnvValue(v), From: EnvFromProcess, Secret: k.Secret})
 		}
 	}
 	eff, err := a.Settings(h, p, nil)
@@ -103,7 +103,7 @@ func (a *Agent) EnvInEffect(h Home, p *Project) ([]EnvSetting, error) {
 		}
 		sort.Strings(names)
 		for _, n := range names {
-			out = append(out, EnvSetting{Name: n, Value: agentcli.NewEnvValue(l.Settings.Env[n]), From: l.Scope, Secret: secret[n]})
+			out = append(out, EnvSetting{Name: n, Value: agentio.NewEnvValue(l.Settings.Env[n]), From: l.Scope, Secret: secret[n]})
 		}
 	}
 	return out, nil

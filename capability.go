@@ -1,4 +1,4 @@
-package agentcli
+package agentio
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 )
 
 // This file holds every shared L2 capability interface and its neutral
-// types (SPEC §6.3). Signatures take agentcli.Home; a home of another agent
+// types (SPEC §6.3). Signatures take agentio.Home; a home of another agent
 // returns ErrForeignHome. Each method's cost is in its doc comment and the
 // worst case per capability is in Capability.Cost.
 

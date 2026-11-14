@@ -4,15 +4,15 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/khanakia/agentcli"
-	"github.com/khanakia/agentcli/agenttest"
-	"github.com/khanakia/agentcli/claude"
-	"github.com/khanakia/agentcli/codex"
+	"github.com/ubgo/agentio"
+	"github.com/ubgo/agentio/agenttest"
+	"github.com/ubgo/agentio/claude"
+	"github.com/ubgo/agentio/codex"
 )
 
 // sampleSpec is a minimal config-only agent used to prove custom specs load.
-func sampleSpec(id agentcli.ID) agentcli.Spec {
-	return agentcli.Spec{
+func sampleSpec(id agentio.ID) agentio.Spec {
+	return agentio.Spec{
 		ID: id, Name: "Sample", Binary: "sample",
 		HomeEnv: "SAMPLE_HOME", DefaultHome: ".sample", HomeMarkers: []string{"config.json"},
 		NewArgs: []string{"{args}"}, ResumeArgs: []string{"--resume", "{id}", "{args}"},
@@ -39,16 +39,16 @@ func TestNewOrderAndLookup(t *testing.T) {
 
 func TestNewRejectsBuiltinAndDuplicateIDs(t *testing.T) {
 	h := agenttest.NewHost(t)
-	if _, err := New(h, sampleSpec(claude.ID)); !errors.Is(err, agentcli.ErrInvalidSpec) {
+	if _, err := New(h, sampleSpec(claude.ID)); !errors.Is(err, agentio.ErrInvalidSpec) {
 		t.Fatalf("built-in id: err = %v", err)
 	}
-	if _, err := New(h, sampleSpec("x"), sampleSpec("x")); !errors.Is(err, agentcli.ErrInvalidSpec) {
+	if _, err := New(h, sampleSpec("x"), sampleSpec("x")); !errors.Is(err, agentio.ErrInvalidSpec) {
 		t.Fatalf("duplicate id: err = %v", err)
 	}
 }
 
-func ids(as []agentcli.Agent) []agentcli.ID {
-	out := make([]agentcli.ID, 0, len(as))
+func ids(as []agentio.Agent) []agentio.ID {
+	out := make([]agentio.ID, 0, len(as))
 	for _, a := range as {
 		out = append(out, a.ID())
 	}

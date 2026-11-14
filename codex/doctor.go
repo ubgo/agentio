@@ -12,18 +12,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Codex-specific doctor check IDs (open set beside the neutral ones).
 const (
-	CheckProfileConflict agentcli.CheckID = "profile-conflict"
-	CheckStaleUpdate     agentcli.CheckID = "update-cache"
-	CheckConfigParse     agentcli.CheckID = "config"
+	CheckProfileConflict agentio.CheckID = "profile-conflict"
+	CheckStaleUpdate     agentio.CheckID = "update-cache"
+	CheckConfigParse     agentio.CheckID = "config"
 	// CheckKeyring reports a keyring login that could not be read (lookup
 	// failure, unparsable value) or an ephemeral store; a readable keyring
 	// login reports under the neutral CheckLogin.
-	CheckKeyring agentcli.CheckID = "keyring-login"
+	CheckKeyring agentio.CheckID = "keyring-login"
 )
 
 // Checks runs the doctor for h: binary, home, home env, API billing env
@@ -33,22 +33,22 @@ const (
 // Runner method. Disk · Read, plus one keychain read (Process · Read via
 // Host.Secrets, MayTouchLogin false) for keyring and auto homes, as
 // Claude's doctor does.
-func (a *Agent) Checks(ctx context.Context, h Home) []agentcli.Check {
+func (a *Agent) Checks(ctx context.Context, h Home) []agentio.Check {
 	out := a.core.Checks(ctx, h.Neutral())
 	in, err := a.Install()
 	if err == nil {
-		out = append(out, agentcli.VersionCheck(Compat(), in.Version))
+		out = append(out, agentio.VersionCheck(Compat(), in.Version))
 	} else {
-		out = append(out, agentcli.VersionCheck(Compat(), agentcli.Version{}))
+		out = append(out, agentio.VersionCheck(Compat(), agentio.Version{}))
 	}
 	cfg, warns, cerr := a.ConfigFileWarnings(h)
 	switch {
 	case cerr != nil:
-		out = append(out, agentcli.Check{ID: CheckConfigParse, Status: agentcli.CheckFail, Message: cerr.Error()})
+		out = append(out, agentio.Check{ID: CheckConfigParse, Status: agentio.CheckFail, Message: cerr.Error()})
 	case len(warns) > 0:
-		out = append(out, agentcli.Check{ID: CheckConfigParse, Status: agentcli.CheckWarn, Message: fmt.Sprintf("%d config.toml key(s) changed type; kept raw", len(warns))})
+		out = append(out, agentio.Check{ID: CheckConfigParse, Status: agentio.CheckWarn, Message: fmt.Sprintf("%d config.toml key(s) changed type; kept raw", len(warns))})
 	default:
-		out = append(out, agentcli.Check{ID: CheckConfigParse, Status: agentcli.CheckOK, Message: a.Paths(h).Config})
+		out = append(out, agentio.Check{ID: CheckConfigParse, Status: agentio.CheckOK, Message: a.Paths(h).Config})
 	}
 	out = append(out, a.loginCheck(ctx, h))
 	if c, ok := a.profileCheck(h, cfg); ok {
@@ -56,7 +56,7 @@ func (a *Agent) Checks(ctx context.Context, h Home) []agentcli.Check {
 	}
 	if uc, ok, err := a.UpdateCache(h); err == nil && ok && in.Version.Major+in.Version.Minor+in.Version.Patch > 0 {
 		if uc.LatestVersion.Compare(in.Version) < 0 {
-			out = append(out, agentcli.Check{ID: CheckStaleUpdate, Status: agentcli.CheckInfo,
+			out = append(out, agentio.Check{ID: CheckStaleUpdate, Status: agentio.CheckInfo,
 				Message: "version.json latest " + uc.LatestVersion.String() + " is older than installed " + in.Version.String() + " (stale cache, not an update)"})
 		}
 	}
@@ -67,23 +67,23 @@ func (a *Agent) Checks(ctx context.Context, h Home) []agentcli.Check {
 // Like Claude's doctor (claude/doctor.go loginChecks → Credential) it
 // reads the keychain for keyring and auto homes: Process · Read via
 // Host.Secrets, MayTouchLogin false.
-func (a *Agent) loginCheck(ctx context.Context, h Home) agentcli.Check {
+func (a *Agent) loginCheck(ctx context.Context, h Home) agentio.Check {
 	id, err := a.IdentityContext(ctx, h)
 	var kerr *KeyringError
 	switch {
-	case errors.Is(err, agentcli.ErrUnsupported):
-		return agentcli.Check{ID: CheckKeyring, Status: agentcli.CheckInfo, Message: err.Error()}
+	case errors.Is(err, agentio.ErrUnsupported):
+		return agentio.Check{ID: CheckKeyring, Status: agentio.CheckInfo, Message: err.Error()}
 	case errors.As(err, &kerr):
-		return agentcli.Check{ID: CheckKeyring, Status: agentcli.CheckWarn, Message: kerr.Error()}
+		return agentio.Check{ID: CheckKeyring, Status: agentio.CheckWarn, Message: kerr.Error()}
 	case err != nil:
-		return agentcli.Check{ID: agentcli.CheckLogin, Status: agentcli.CheckFail, Message: err.Error()}
+		return agentio.Check{ID: agentio.CheckLogin, Status: agentio.CheckFail, Message: err.Error()}
 	case !id.LoggedIn:
 		cmd := a.plainCommand(h, []string{subLogin})
-		return agentcli.Check{ID: agentcli.CheckLogin, Status: agentcli.CheckWarn, Message: "not logged in" + storeWhere(id), Fix: &cmd}
+		return agentio.Check{ID: agentio.CheckLogin, Status: agentio.CheckWarn, Message: "not logged in" + storeWhere(id), Fix: &cmd}
 	case !id.AccessExpiresAt.IsZero() && !a.now().IsZero() && !a.now().Before(id.AccessExpiresAt):
-		return agentcli.Check{ID: agentcli.CheckLogin, Status: agentcli.CheckInfo, Message: "access token expired at " + id.AccessExpiresAt.Format(time.RFC3339) + "; codex refreshes it on its next run"}
+		return agentio.Check{ID: agentio.CheckLogin, Status: agentio.CheckInfo, Message: "access token expired at " + id.AccessExpiresAt.Format(time.RFC3339) + "; codex refreshes it on its next run"}
 	}
-	return agentcli.Check{ID: agentcli.CheckLogin, Status: agentcli.CheckOK, Message: "logged in (" + string(id.Mode) + ", " + string(id.CredentialStore) + ")"}
+	return agentio.Check{ID: agentio.CheckLogin, Status: agentio.CheckOK, Message: "logged in (" + string(id.Mode) + ", " + string(id.CredentialStore) + ")"}
 }
 
 // storeWhere says where a missing login was looked for (entry names only).
@@ -200,10 +200,10 @@ func topLevel(home, p string) string {
 // NAME that is also a legacy `[profiles.NAME]` table or the root
 // `profile = "NAME"` selector (config/src/loader/mod.rs:303-320 at
 // rust-v0.162.1). A v2 file with a legacy name is the live conflict.
-func (a *Agent) profileCheck(h Home, cfg Config) (agentcli.Check, bool) {
+func (a *Agent) profileCheck(h Home, cfg Config) (agentio.Check, bool) {
 	legacy := cfg.LegacyProfileNames()
 	if len(legacy) == 0 {
-		return agentcli.Check{}, false
+		return agentio.Check{}, false
 	}
 	v2, _ := a.ProfileFiles(h)
 	var clash []string
@@ -217,5 +217,5 @@ func (a *Agent) profileCheck(h Home, cfg Config) (agentcli.Check, bool) {
 	if len(clash) > 0 {
 		msg += "; v2 file(s) already collide: " + strings.Join(clash, ", ")
 	}
-	return agentcli.Check{ID: CheckProfileConflict, Status: agentcli.CheckWarn, Message: msg}, true
+	return agentio.Check{ID: CheckProfileConflict, Status: agentio.CheckWarn, Message: msg}, true
 }

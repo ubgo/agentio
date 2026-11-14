@@ -11,7 +11,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Usage endpoint and request details (agx provider/codex/codex.go, the
@@ -24,7 +24,7 @@ const (
 	headerUserAgent  = "User-Agent"
 	bearerPrefix     = "Bearer "
 	mimeJSON         = "application/json"
-	userAgent        = "agentcli"
+	userAgent        = "agentio"
 	maxResponseBytes = 1 << 20
 	snippetMax       = 200
 )
@@ -48,16 +48,16 @@ type UsageWindow struct {
 
 // Usage is a Codex usage snapshot from the server or from a rollout.
 type Usage struct {
-	Email               agentcli.Personal
+	Email               agentio.Personal
 	Plan                Plan
 	LimitReached        bool
 	Windows             []UsageWindow
-	Credits             agentcli.Raw // shape unseen (null on the sample home)
-	IndividualLimit     agentcli.Raw // shape unseen (null on the sample home)
+	Credits             agentio.Raw // shape unseen (null on the sample home)
+	IndividualLimit     agentio.Raw // shape unseen (null on the sample home)
 	SpendControlReached *bool
 	ObservedAt          time.Time // server fetch time for Usage, record time for CachedUsage
-	Source              agentcli.UsageSource
-	Raw                 agentcli.Raw // vendor body (server) or the token_count payload (cached)
+	Source              agentio.UsageSource
+	Raw                 agentio.Raw // vendor body (server) or the token_count payload (cached)
 }
 
 type wireUsage struct {
@@ -86,7 +86,7 @@ func ParseUsage(body []byte) (Usage, error) {
 	if err := json.Unmarshal(body, &w); err != nil {
 		return Usage{}, fmt.Errorf("codex: decode usage: %w", err)
 	}
-	u := Usage{Email: agentcli.NewPersonal(w.Email), Source: agentcli.UsageServer, Raw: agentcli.Raw(body)}
+	u := Usage{Email: agentio.NewPersonal(w.Email), Source: agentio.UsageServer, Raw: agentio.Raw(body)}
 	if w.PlanType != "" {
 		u.Plan = ParsePlan(w.PlanType)
 	}
@@ -134,13 +134,13 @@ func (a *Agent) usageAt(ctx context.Context, h Home, endpoint string) (Usage, er
 	}
 	if tok.IsZero() {
 		if apiKey || mode == AuthAPIKey {
-			return Usage{}, fmt.Errorf("codex: API-key login: %w", agentcli.ErrBilledPerToken)
+			return Usage{}, fmt.Errorf("codex: API-key login: %w", agentio.ErrBilledPerToken)
 		}
-		return Usage{}, agentcli.ErrNotLoggedIn
+		return Usage{}, agentio.ErrNotLoggedIn
 	}
 	now := a.now()
 	if c, ok := decodeJWT(tok.Reveal()); ok && c.Exp > 0 && !now.Before(unixTime(c.Exp)) {
-		return Usage{}, fmt.Errorf("codex: access token expired at %s (run codex to refresh it): %w", unixTime(c.Exp).Format(time.RFC3339), agentcli.ErrExpired)
+		return Usage{}, fmt.Errorf("codex: access token expired at %s (run codex to refresh it): %w", unixTime(c.Exp).Format(time.RFC3339), agentio.ErrExpired)
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
@@ -154,7 +154,7 @@ func (a *Agent) usageAt(ctx context.Context, h Home, endpoint string) (Usage, er
 	req.Header.Set(headerUserAgent, userAgent)
 	client := a.host.HTTP
 	if client == nil {
-		return Usage{}, agentcli.UnsupportedError(ID, "usage", "Host.HTTP is nil")
+		return Usage{}, agentio.UnsupportedError(ID, "usage", "Host.HTTP is nil")
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -168,9 +168,9 @@ func (a *Agent) usageAt(ctx context.Context, h Home, endpoint string) (Usage, er
 	}
 	switch {
 	case resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden:
-		return Usage{}, fmt.Errorf("codex: HTTP %d: %w", resp.StatusCode, agentcli.ErrUnauthorized)
+		return Usage{}, fmt.Errorf("codex: HTTP %d: %w", resp.StatusCode, agentio.ErrUnauthorized)
 	case resp.StatusCode == http.StatusTooManyRequests:
-		return Usage{}, agentcli.RateLimitError(resp.Header, now)
+		return Usage{}, agentio.RateLimitError(resp.Header, now)
 	case resp.StatusCode != http.StatusOK:
 		return Usage{}, fmt.Errorf("codex: unexpected HTTP %d: %s", resp.StatusCode, snippet(body))
 	}
@@ -213,12 +213,12 @@ func windowLabel(d time.Duration) string {
 	return fmt.Sprintf("%dd", int(d/(hoursPerDay*time.Hour)))
 }
 
-// Neutral projects onto agentcli.Usage (Length, Percent, ResetsAt,
+// Neutral projects onto agentio.Usage (Length, Percent, ResetsAt,
 // VendorKind; Raw = vendor body). Pure.
-func (u Usage) Neutral() agentcli.Usage {
-	out := agentcli.Usage{
+func (u Usage) Neutral() agentio.Usage {
+	out := agentio.Usage{
 		Agent:      ID,
-		Billing:    agentcli.BillingSubscription,
+		Billing:    agentio.BillingSubscription,
 		ObservedAt: u.ObservedAt,
 		Source:     u.Source,
 		Raw:        u.Raw,
@@ -228,7 +228,7 @@ func (u Usage) Neutral() agentcli.Usage {
 		if w.LimitID != "" && w.LimitID != limitIDCodex {
 			scope = w.LimitID
 		}
-		out.Windows = append(out.Windows, agentcli.Window{
+		out.Windows = append(out.Windows, agentio.Window{
 			Length: w.Length, Scope: scope, Label: windowLabel(w.Length),
 			Percent: w.Percent, ResetsAt: w.ResetsAt, VendorKind: w.Vendor,
 		})
@@ -245,7 +245,7 @@ type Subscription struct {
 	ActiveStart *time.Time
 	ActiveUntil *time.Time
 	LastChecked *time.Time
-	Source      agentcli.UsageSource // Cache (id_token claims) or Server
+	Source      agentio.UsageSource // Cache (id_token claims) or Server
 }
 
 // Subscription answers from the id_token claims on disk first; only when
@@ -258,16 +258,16 @@ func (a *Agent) Subscription(ctx context.Context, h Home) (Subscription, error) 
 	}
 	if id.Plan != "" {
 		return Subscription{Plan: id.Plan, ActiveStart: id.SubscriptionActiveStart, ActiveUntil: id.SubscriptionActiveUntil,
-			LastChecked: id.SubscriptionLastChecked, Source: agentcli.UsageCache}, nil
+			LastChecked: id.SubscriptionLastChecked, Source: agentio.UsageCache}, nil
 	}
 	u, err := a.Usage(ctx, h)
 	if err != nil {
 		return Subscription{}, err
 	}
-	return Subscription{Plan: u.Plan, Source: agentcli.UsageServer}, nil
+	return Subscription{Plan: u.Plan, Source: agentio.UsageServer}, nil
 }
 
-// Neutral projects onto agentcli.Subscription. Pure.
-func (s Subscription) Neutral() agentcli.Subscription {
-	return agentcli.Subscription{Plan: s.Plan.DisplayName(), StartedAt: s.ActiveStart}
+// Neutral projects onto agentio.Subscription. Pure.
+func (s Subscription) Neutral() agentio.Subscription {
+	return agentio.Subscription{Plan: s.Plan.DisplayName(), StartedAt: s.ActiveStart}
 }

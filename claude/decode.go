@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // maxTypeChangeRetries bounds how many top-level keys decodeLenient moves
@@ -88,18 +88,18 @@ func jsonKeys(t reflect.Type) map[string]bool {
 // model. A key whose value changed type is moved to Unknown with a
 // WarnTypeChanged warning and the rest of the object still decodes
 // (invariant 17). file names the source for warnings; it never holds a value.
-func decodeLenient(file string, data []byte, known reflect.Type, decode func([]byte) error) (agentcli.Unknown, agentcli.Warnings, error) {
+func decodeLenient(file string, data []byte, known reflect.Type, decode func([]byte) error) (agentio.Unknown, agentio.Warnings, error) {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, nil, fmt.Errorf("claude: decode %s: %w", file, err)
 	}
 	keys := jsonKeys(known)
-	var unknown agentcli.Unknown
-	var warns agentcli.Warnings
+	var unknown agentio.Unknown
+	var warns agentio.Warnings
 	for k, v := range raw {
 		if !keys[k] {
 			if unknown == nil {
-				unknown = agentcli.Unknown{}
+				unknown = agentio.Unknown{}
 			}
 			unknown[k] = v
 		}
@@ -120,11 +120,11 @@ func decodeLenient(file string, data []byte, known reflect.Type, decode func([]b
 			return unknown, warns, fmt.Errorf("claude: decode %s: %w", file, err)
 		}
 		if unknown == nil {
-			unknown = agentcli.Unknown{}
+			unknown = agentio.Unknown{}
 		}
 		unknown[top] = v
 		delete(raw, top)
-		warns = append(warns, agentcli.Warning{Kind: agentcli.WarnTypeChanged, File: file, Key: top, Detail: "expected " + te.Type.String()})
+		warns = append(warns, agentio.Warning{Kind: agentio.WarnTypeChanged, File: file, Key: top, Detail: "expected " + te.Type.String()})
 		if body, err = json.Marshal(raw); err != nil {
 			return unknown, warns, fmt.Errorf("claude: decode %s: %w", file, err)
 		}
@@ -222,11 +222,11 @@ func isNotExist(err error) bool { return errors.Is(err, fs.ErrNotExist) }
 func boolPtr(b bool) *bool { return &b }
 
 // rawOrNil keeps a raw JSON value unless it is absent or null.
-func rawOrNil(b json.RawMessage) agentcli.Raw {
+func rawOrNil(b json.RawMessage) agentio.Raw {
 	if len(b) == 0 || string(b) == jsonNull {
 		return nil
 	}
-	return agentcli.Raw(b)
+	return agentio.Raw(b)
 }
 
 // readAllBounded reads a response body up to maxResponseBytes.

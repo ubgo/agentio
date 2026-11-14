@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // InstallMethod values beyond the neutral set (install-context/src/lib.rs).
 const (
-	InstallVitePlus agentcli.InstallMethod = "vite-plus"
+	InstallVitePlus agentio.InstallMethod = "vite-plus"
 )
 
 // Install-path facts (install-context/src/lib.rs:121-131, 304-316; a real
@@ -34,16 +34,16 @@ const (
 
 // Install is the on-disk install of the codex binary.
 type Install struct {
-	agentcli.Install
+	agentio.Install
 	PackageRoot string // node_modules/@openai/codex for npm-family installs
 }
 
 // ParseVersion accepts "codex-cli 0.162.1" and bare "0.162.1";
 // "0.158.0-alpha.2.1" → Pre "alpha.2.1". Pure.
-func ParseVersion(s string) (agentcli.Version, error) {
-	v, ok := agentcli.ParseVersion(s)
+func ParseVersion(s string) (agentio.Version, error) {
+	v, ok := agentio.ParseVersion(s)
 	if !ok {
-		return agentcli.Version{}, fmt.Errorf("codex: no version in %q", s)
+		return agentio.Version{}, fmt.Errorf("codex: no version in %q", s)
 	}
 	return v, nil
 }
@@ -54,11 +54,11 @@ func ParseVersion(s string) (agentcli.Version, error) {
 // when no PATH entry has it. Disk · Read.
 func (a *Agent) Install() (Install, error) {
 	pathList, _ := lookupEnv(a.host.Env, envPath)
-	hits := agentcli.LookPathAll(pathList, Binary)
+	hits := agentio.LookPathAll(pathList, Binary)
 	if len(hits) == 0 {
-		return Install{}, fmt.Errorf("%w: %s", agentcli.ErrNotInstalled, Binary)
+		return Install{}, fmt.Errorf("%w: %s", agentio.ErrNotInstalled, Binary)
 	}
-	in := Install{Install: agentcli.Install{Path: hits[0], Method: agentcli.InstallUnknown, Shadowed: hits[1:]}}
+	in := Install{Install: agentio.Install{Path: hits[0], Method: agentio.InstallUnknown, Shadowed: hits[1:]}}
 	real, err := filepath.EvalSymlinks(hits[0])
 	if err != nil {
 		real = hits[0]
@@ -69,34 +69,34 @@ func (a *Agent) Install() (Install, error) {
 	case strings.Contains(slashed, nodeModulesMarker):
 		i := strings.Index(slashed, nodeModulesMarker)
 		in.PackageRoot = filepath.FromSlash(slashed[:i+len(nodeModulesMarker)])
-		in.Method = agentcli.InstallNPM
+		in.Method = agentio.InstallNPM
 		switch {
 		case strings.Contains(slashed, bunMarker):
-			in.Method = agentcli.InstallBun
+			in.Method = agentio.InstallBun
 		case strings.Contains(slashed, pnpmMarker):
-			in.Method = agentcli.InstallPNPM
+			in.Method = agentio.InstallPNPM
 		}
 		in.Version = packageVersion(filepath.Join(in.PackageRoot, filePackageJSON))
 	case strings.Contains(slashed, fileCaskroom):
-		in.Method = agentcli.InstallBrew
+		in.Method = agentio.InstallBrew
 	case strings.Contains(slashed, dirStandalone):
-		in.Method = agentcli.InstallStandalone
+		in.Method = agentio.InstallStandalone
 	}
 	return in, nil
 }
 
-func packageVersion(path string) agentcli.Version {
+func packageVersion(path string) agentio.Version {
 	b, err := os.ReadFile(path)
 	if err != nil {
-		return agentcli.Version{}
+		return agentio.Version{}
 	}
 	var pkg struct {
 		Version string `json:"version"`
 	}
 	if json.Unmarshal(b, &pkg) != nil {
-		return agentcli.Version{}
+		return agentio.Version{}
 	}
-	v, _ := agentcli.ParseVersion(pkg.Version)
+	v, _ := agentio.ParseVersion(pkg.Version)
 	return v
 }
 
@@ -108,28 +108,28 @@ const (
 // UpdateCommand is the vendor's own update argv for method m; false for
 // unknown methods (standalone re-runs the installer script, not modelled).
 // Never run by the library. Pure.
-func UpdateCommand(m agentcli.InstallMethod) (agentcli.Command, bool) {
+func UpdateCommand(m agentio.InstallMethod) (agentio.Command, bool) {
 	switch m {
-	case agentcli.InstallNPM:
-		return agentcli.Command{Path: "npm", Args: []string{"install", "-g", npmPkg}}, true
-	case agentcli.InstallBun:
-		return agentcli.Command{Path: "bun", Args: []string{"install", "-g", npmPkg}}, true
-	case agentcli.InstallPNPM:
-		return agentcli.Command{Path: "pnpm", Args: []string{"add", "-g", npmPkg}}, true
-	case agentcli.InstallBrew:
-		return agentcli.Command{Path: "brew", Args: []string{"upgrade", "--cask", Binary}}, true
+	case agentio.InstallNPM:
+		return agentio.Command{Path: "npm", Args: []string{"install", "-g", npmPkg}}, true
+	case agentio.InstallBun:
+		return agentio.Command{Path: "bun", Args: []string{"install", "-g", npmPkg}}, true
+	case agentio.InstallPNPM:
+		return agentio.Command{Path: "pnpm", Args: []string{"add", "-g", npmPkg}}, true
+	case agentio.InstallBrew:
+		return agentio.Command{Path: "brew", Args: []string{"upgrade", "--cask", Binary}}, true
 	}
-	return agentcli.Command{}, false
+	return agentio.Command{}, false
 }
 
 // UpdateCache is <home>/version.json, written only by the TUI's startup
 // check: LatestVersion can be older than the installed one (stale, not
 // "an update is available").
 type UpdateCache struct {
-	LatestVersion    agentcli.Version
+	LatestVersion    agentio.Version
 	LastCheckedAt    time.Time
-	DismissedVersion *agentcli.Version
-	Unknown          agentcli.Unknown
+	DismissedVersion *agentio.Version
+	Unknown          agentio.Unknown
 }
 
 type updateCacheWire struct {
@@ -151,14 +151,14 @@ func (a *Agent) UpdateCache(h Home) (UpdateCache, bool, error) {
 	if err := json.Unmarshal(b, &w); err != nil {
 		return UpdateCache{}, false, fmt.Errorf("codex: decode %s: %w", fileVersionCache, err)
 	}
-	lv, _ := agentcli.ParseVersion(w.LatestVersion)
+	lv, _ := agentio.ParseVersion(w.LatestVersion)
 	uc := UpdateCache{LatestVersion: lv, LastCheckedAt: parseRFC3339(w.LastCheckedAt)}
 	if w.DismissedVersion != nil {
-		if dv, ok := agentcli.ParseVersion(*w.DismissedVersion); ok {
+		if dv, ok := agentio.ParseVersion(*w.DismissedVersion); ok {
 			uc.DismissedVersion = &dv
 		}
 	}
-	uc.Unknown, _ = agentcli.ExtractUnknown(b, []string{"latest_version", "last_checked_at", "dismissed_version"})
+	uc.Unknown, _ = agentio.ExtractUnknown(b, []string{"latest_version", "last_checked_at", "dismissed_version"})
 	return uc, true, nil
 }
 
@@ -167,7 +167,7 @@ func (a *Agent) UpdateCache(h Home) (UpdateCache, bool, error) {
 // are MayTouchLogin and none is called implicitly (SPEC §4).
 type Runner struct {
 	a    *Agent
-	core agentcli.Runner
+	core agentio.Runner
 }
 
 // Runner returns the Process door. Pure.
@@ -175,7 +175,7 @@ func (a *Agent) Runner() *Runner { return &Runner{a: a, core: a.core.Runner()} }
 
 // BinaryVersion runs `codex --version`. Process · Read; not yet proven
 // login-safe (CODEX_API.md §21).
-func (r *Runner) BinaryVersion(ctx context.Context) (agentcli.Version, error) {
+func (r *Runner) BinaryVersion(ctx context.Context) (agentio.Version, error) {
 	return r.core.Version(ctx)
 }
 

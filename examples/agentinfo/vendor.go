@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/khanakia/agentcli"
-	"github.com/khanakia/agentcli/builtin"
-	"github.com/khanakia/agentcli/claude"
-	"github.com/khanakia/agentcli/codex"
+	"github.com/ubgo/agentio"
+	"github.com/ubgo/agentio/builtin"
+	"github.com/ubgo/agentio/claude"
+	"github.com/ubgo/agentio/codex"
 )
 
 // vendorReport adds the L3 compat line for agents the example knows by type.
@@ -20,7 +20,7 @@ func vendorReport(r *AgentReport, all builtin.Agents, _ options) {
 
 // vendorHomeReport adds the L3 paths and settings summary of one home.
 // Disk · Read.
-func vendorHomeReport(hr *HomeReport, all builtin.Agents, id agentcli.ID, h agentcli.Home, dir string) {
+func vendorHomeReport(hr *HomeReport, all builtin.Agents, id agentio.ID, h agentio.Home, dir string) {
 	switch id {
 	case claude.ID:
 		claudeHome(hr, all.Claude, h, dir)

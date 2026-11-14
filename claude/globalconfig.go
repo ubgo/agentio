@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // GlobalConfig is the typed part of ~/.claude.json (default home) or
@@ -29,19 +29,19 @@ type GlobalConfig struct {
 	MigrationVersion               int
 	Theme, EditorMode              string
 	Verbose, AutoConnectIDE        *bool
-	UserID, AnonymousID, MachineID agentcli.Personal
+	UserID, AnonymousID, MachineID agentio.Personal
 	OAuthAccount                   *OAuthAccount
 	MCPServers                     map[string]MCPServer
 	Projects                       map[string]ProjectState
 	CachedUsage                    *CachedUsage
-	Unknown                        agentcli.Unknown
-	Warnings                       agentcli.Warnings
+	Unknown                        agentio.Unknown
+	Warnings                       agentio.Warnings
 }
 
 // OAuthAccount is `oauthAccount`: who is logged in. Every id, email and name
-// is agentcli.Personal (OD-6) and prints redacted.
+// is agentio.Personal (OD-6) and prints redacted.
 type OAuthAccount struct {
-	AccountUUID, EmailAddress, OrganizationUUID, OrganizationName agentcli.Personal
+	AccountUUID, EmailAddress, OrganizationUUID, OrganizationName agentio.Personal
 	OrganizationType                                              OrgType
 	OrganizationRole                                              *string
 	WorkspaceRole                                                 *string
@@ -50,13 +50,13 @@ type OAuthAccount struct {
 	BillingType                                                   BillingType
 	PlanDisplayName, SeatTier                                     *string
 	HasExtraUsageEnabled                                          bool
-	DisplayName, FullName                                         agentcli.Personal
+	DisplayName, FullName                                         agentio.Personal
 	AccountCreatedAt                                              *time.Time
 	SubscriptionCreatedAt                                         *time.Time
 	ProfileFetchedAt                                              time.Time
 	TrialEndsAt                                                   *time.Time
 	TrialDurationDays                                             *int
-	Unknown                                                       agentcli.Unknown
+	Unknown                                                       agentio.Unknown
 }
 
 // OrgType is `organizationType`: "claude_max" seen; others from agx label.go.
@@ -98,7 +98,7 @@ type ProjectState struct {
 	DisabledMcpjsonServers   []string
 	ExternalIncludesApproved bool
 	Last                     LastSession
-	Unknown                  agentcli.Unknown
+	Unknown                  agentio.Unknown
 }
 
 // LastSession is the `last*` group of a project entry: totals of the last
@@ -124,8 +124,8 @@ type TokenCounts struct{ Input, Output, CacheCreation, CacheRead, WebSearch int6
 
 // Neutral maps onto the shared counts: cache reads are cached input, cache
 // creation is a cache write; Claude reports no separate reasoning tokens.
-func (t TokenCounts) Neutral() agentcli.TokenCounts {
-	return agentcli.TokenCounts{Input: t.Input, CachedInput: t.CacheRead, CacheWrite: t.CacheCreation, Output: t.Output}
+func (t TokenCounts) Neutral() agentio.TokenCounts {
+	return agentio.TokenCounts{Input: t.Input, CachedInput: t.CacheRead, CacheWrite: t.CacheCreation, Output: t.Output}
 }
 
 // ModelUsage is one model's totals (~/.claude.json lastModelUsage, stats-cache modelUsage).
@@ -140,8 +140,8 @@ type ModelUsage struct {
 // /api/oauth/usage body with its fetch time. Parse Body with ParseUsage.
 type CachedUsage struct {
 	FetchedAt   time.Time
-	AccountUUID agentcli.Personal
-	Body        agentcli.Raw
+	AccountUUID agentio.Personal
+	Body        agentio.Raw
 }
 
 // wireGlobalConfig is the subset of ~/.claude.json the library types.
@@ -158,9 +158,9 @@ type wireGlobalConfig struct {
 	EditorMode                    string                     `json:"editorMode"`
 	Verbose                       *bool                      `json:"verbose"`
 	AutoConnectIDE                *bool                      `json:"autoConnectIde"`
-	UserID                        agentcli.Personal          `json:"userID"`
-	AnonymousID                   agentcli.Personal          `json:"anonymousId"`
-	MachineID                     agentcli.Personal          `json:"machineID"`
+	UserID                        agentio.Personal           `json:"userID"`
+	AnonymousID                   agentio.Personal           `json:"anonymousId"`
+	MachineID                     agentio.Personal           `json:"machineID"`
 	OAuthAccount                  json.RawMessage            `json:"oauthAccount"`
 	MCPServers                    map[string]json.RawMessage `json:"mcpServers"`
 	Projects                      map[string]json.RawMessage `json:"projects"`
@@ -168,32 +168,32 @@ type wireGlobalConfig struct {
 }
 
 type wireCachedUsage struct {
-	FetchedAtMs millis            `json:"fetchedAtMs"`
-	AccountUUID agentcli.Personal `json:"accountUuid"`
-	Utilization json.RawMessage   `json:"utilization"`
+	FetchedAtMs millis           `json:"fetchedAtMs"`
+	AccountUUID agentio.Personal `json:"accountUuid"`
+	Utilization json.RawMessage  `json:"utilization"`
 }
 
 type wireOAuthAccount struct {
-	AccountUUID               agentcli.Personal `json:"accountUuid"`
-	EmailAddress              agentcli.Personal `json:"emailAddress"`
-	OrganizationUUID          agentcli.Personal `json:"organizationUuid"`
-	OrganizationName          agentcli.Personal `json:"organizationName"`
-	OrganizationType          OrgType           `json:"organizationType"`
-	OrganizationRole          *string           `json:"organizationRole"`
-	WorkspaceRole             *string           `json:"workspaceRole"`
-	OrganizationRateLimitTier *string           `json:"organizationRateLimitTier"`
-	UserRateLimitTier         *string           `json:"userRateLimitTier"`
-	BillingType               BillingType       `json:"billingType"`
-	PlanDisplayName           *string           `json:"planDisplayName"`
-	SeatTier                  *string           `json:"seatTier"`
-	HasExtraUsageEnabled      bool              `json:"hasExtraUsageEnabled"`
-	DisplayName               agentcli.Personal `json:"displayName"`
-	FullName                  agentcli.Personal `json:"fullName"`
-	AccountCreatedAt          *time.Time        `json:"accountCreatedAt"`
-	SubscriptionCreatedAt     *time.Time        `json:"subscriptionCreatedAt"`
-	ProfileFetchedAt          millis            `json:"profileFetchedAt"`
-	TrialEndsAt               *time.Time        `json:"claudeCodeTrialEndsAt"`
-	TrialDurationDays         *int              `json:"claudeCodeTrialDurationDays"`
+	AccountUUID               agentio.Personal `json:"accountUuid"`
+	EmailAddress              agentio.Personal `json:"emailAddress"`
+	OrganizationUUID          agentio.Personal `json:"organizationUuid"`
+	OrganizationName          agentio.Personal `json:"organizationName"`
+	OrganizationType          OrgType          `json:"organizationType"`
+	OrganizationRole          *string          `json:"organizationRole"`
+	WorkspaceRole             *string          `json:"workspaceRole"`
+	OrganizationRateLimitTier *string          `json:"organizationRateLimitTier"`
+	UserRateLimitTier         *string          `json:"userRateLimitTier"`
+	BillingType               BillingType      `json:"billingType"`
+	PlanDisplayName           *string          `json:"planDisplayName"`
+	SeatTier                  *string          `json:"seatTier"`
+	HasExtraUsageEnabled      bool             `json:"hasExtraUsageEnabled"`
+	DisplayName               agentio.Personal `json:"displayName"`
+	FullName                  agentio.Personal `json:"fullName"`
+	AccountCreatedAt          *time.Time       `json:"accountCreatedAt"`
+	SubscriptionCreatedAt     *time.Time       `json:"subscriptionCreatedAt"`
+	ProfileFetchedAt          millis           `json:"profileFetchedAt"`
+	TrialEndsAt               *time.Time       `json:"claudeCodeTrialEndsAt"`
+	TrialDurationDays         *int             `json:"claudeCodeTrialDurationDays"`
 }
 
 type wireProjectState struct {
@@ -267,7 +267,7 @@ func ParseGlobalConfig(data []byte) (GlobalConfig, error) {
 		Unknown: unknown, Warnings: warns,
 	}
 	if acct, err := parseOAuthAccount(w.OAuthAccount); err != nil {
-		g.Warnings = append(g.Warnings, agentcli.Warning{Kind: agentcli.WarnTypeChanged, File: globalConfigFile, Key: "oauthAccount", Detail: err.Error()})
+		g.Warnings = append(g.Warnings, agentio.Warning{Kind: agentio.WarnTypeChanged, File: globalConfigFile, Key: "oauthAccount", Detail: err.Error()})
 	} else {
 		g.OAuthAccount = acct
 	}
@@ -278,7 +278,7 @@ func ParseGlobalConfig(data []byte) (GlobalConfig, error) {
 			ps, pw, err := parseProjectState(dir, raw)
 			g.Warnings = append(g.Warnings, pw...)
 			if err != nil {
-				g.Warnings = append(g.Warnings, agentcli.Warning{Kind: agentcli.WarnTypeChanged, File: globalConfigFile, Key: "projects", Detail: "one project entry did not decode"})
+				g.Warnings = append(g.Warnings, agentio.Warning{Kind: agentio.WarnTypeChanged, File: globalConfigFile, Key: "projects", Detail: "one project entry did not decode"})
 				continue
 			}
 			g.Projects[dir] = ps
@@ -317,7 +317,7 @@ func parseOAuthAccount(raw json.RawMessage) (*OAuthAccount, error) {
 // msDuration converts the float millisecond durations of project state.
 func msDuration(ms float64) time.Duration { return time.Duration(ms * float64(time.Millisecond)) }
 
-func parseProjectState(dir string, raw json.RawMessage) (ProjectState, agentcli.Warnings, error) {
+func parseProjectState(dir string, raw json.RawMessage) (ProjectState, agentio.Warnings, error) {
 	var w wireProjectState
 	unknown, warns, err := decodeLenient(globalConfigFile+" projects", raw, reflect.TypeFor[wireProjectState](), func(b []byte) error { return json.Unmarshal(b, &w) })
 	if err != nil {

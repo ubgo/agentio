@@ -3,7 +3,7 @@
 // plugins, hooks, identity, usage, conversations, prompt history, live
 // sessions, local stats, the launch builder and the stream decoder.
 //
-// Everything reads through an agentcli.Host, so a test can point the agent at
+// Everything reads through an agentio.Host, so a test can point the agent at
 // a fixture home. Nothing here refreshes, writes or prints a login: refreshing
 // rotates the refresh token and logs the owning Claude Code install out.
 // Reads that run the claude binary sit behind Runner, quota calls behind
@@ -193,7 +193,7 @@ const (
 	messagesPath        = "/v1/messages"
 	oauthBetaHeader     = "anthropic-beta"
 	oauthBetaValue      = "oauth-2025-04-20"
-	userAgent           = "agentcli"
+	userAgent           = "agentio"
 	maxResponseBytes    = 1 << 20
 	snippetMax          = 200
 	headerAuthorization = "Authorization"
@@ -210,7 +210,7 @@ const (
 // measured on this server), and a reused pid starts minutes or days later.
 const liveTolerance = 2 * time.Minute
 
-// Spec template placeholders; they must equal the root's (agentcli spec.go),
+// Spec template placeholders; they must equal the root's (agentio spec.go),
 // which keeps them unexported.
 const (
 	placeholderArgs   = "{args}"

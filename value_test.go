@@ -1,4 +1,4 @@
-package agentcli
+package agentio
 
 import (
 	"encoding/json"

@@ -1,4 +1,4 @@
-package agentcli
+package agentio
 
 import (
 	"context"
@@ -179,7 +179,7 @@ func (c *Core) Homes() ([]Home, error) {
 	if c.spec.ExtraHomes != "" {
 		matches, err := filepath.Glob(filepath.Join(c.host.UserHome, c.spec.ExtraHomes))
 		if err != nil {
-			return nil, fmt.Errorf("agentcli: %s homes: %w", c.spec.ID, err)
+			return nil, fmt.Errorf("agentio: %s homes: %w", c.spec.ID, err)
 		}
 		slices.Sort(matches)
 		for _, m := range matches {
@@ -205,7 +205,7 @@ func (c *Core) IsHome(dir string) (bool, error) {
 		return false, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("agentcli: %s home %s: %w", c.spec.ID, dir, err)
+		return false, fmt.Errorf("agentio: %s home %s: %w", c.spec.ID, dir, err)
 	}
 	if !fi.IsDir() {
 		return false, nil
@@ -361,7 +361,7 @@ func (c *Core) Runner() Runner { return Runner{core: c} }
 // Run runs cmd through Host.Exec. Process · Read; may touch the login.
 func (r Runner) Run(ctx context.Context, cmd Command, stdin io.Reader) (ProcessResult, error) {
 	if r.core == nil || r.core.host.Exec == nil {
-		return ProcessResult{}, fmt.Errorf("agentcli: no process runner in host")
+		return ProcessResult{}, fmt.Errorf("agentio: no process runner in host")
 	}
 	return r.core.host.Exec.Run(ctx, cmd, stdin)
 }
@@ -379,17 +379,17 @@ func (r Runner) Version(ctx context.Context) (Version, error) {
 	}
 	res, err := r.Run(ctx, cmd, nil)
 	if err != nil {
-		return Version{}, fmt.Errorf("agentcli: %s version: %w", c.spec.ID, err)
+		return Version{}, fmt.Errorf("agentio: %s version: %w", c.spec.ID, err)
 	}
 	if res.ExitCode != 0 {
-		return Version{}, fmt.Errorf("agentcli: %s version: exit %d", c.spec.ID, res.ExitCode)
+		return Version{}, fmt.Errorf("agentio: %s version: exit %d", c.spec.ID, res.ExitCode)
 	}
 	for _, out := range [][]byte{res.Stdout, res.Stderr} {
 		if v, ok := ParseVersion(string(out)); ok {
 			return v, nil
 		}
 	}
-	return Version{}, fmt.Errorf("agentcli: %s version: no version in output", c.spec.ID)
+	return Version{}, fmt.Errorf("agentio: %s version: no version in output", c.spec.ID)
 }
 
 // id is the core's ID or "" for a zero Runner.

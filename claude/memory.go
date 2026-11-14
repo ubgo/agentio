@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/khanakia/agentcli/frontmatter"
+	"github.com/ubgo/agentio/frontmatter"
 )
 
 // MemoryKind is the kind of a memory (instruction) file.

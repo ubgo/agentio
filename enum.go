@@ -1,4 +1,4 @@
-package agentcli
+package agentio
 
 import "fmt"
 
@@ -35,7 +35,7 @@ func enumParse[E enum8](s string, names []string) (E, bool) {
 func enumUnmarshal[E enum8](dst *E, text []byte, kind string, names []string) error {
 	v, ok := enumParse[E](string(text), names)
 	if !ok {
-		return fmt.Errorf("agentcli: unknown %s %q", kind, text)
+		return fmt.Errorf("agentio: unknown %s %q", kind, text)
 	}
 	*dst = v
 	return nil

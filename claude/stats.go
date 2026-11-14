@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // statsVersion is the only stats-cache.json format version with a sample.
@@ -52,8 +52,8 @@ type Stats struct {
 	ModelUsage    map[string]ModelUsage
 	Longest       *LongestSession
 	HourCounts    [hoursPerDay]int64
-	Raw           agentcli.Raw
-	Unknown       agentcli.Unknown
+	Raw           agentio.Raw
+	Unknown       agentio.Unknown
 }
 
 type wireStats struct {
@@ -85,7 +85,7 @@ func ParseStats(data []byte) (Stats, error) {
 		return Stats{}, fmt.Errorf("claude: decode %s: %w", statsCacheFile, err)
 	}
 	if head.Version != statsVersion {
-		return Stats{Version: head.Version, Raw: agentcli.Raw(data)}, fmt.Errorf("%w: %s version %d", agentcli.ErrUnknownVersion, statsCacheFile, head.Version)
+		return Stats{Version: head.Version, Raw: agentio.Raw(data)}, fmt.Errorf("%w: %s version %d", agentio.ErrUnknownVersion, statsCacheFile, head.Version)
 	}
 	var w wireStats
 	unknown, _, err := decodeLenient(statsCacheFile, data, reflect.TypeFor[wireStats](), func(b []byte) error { w = wireStats{}; return json.Unmarshal(b, &w) })

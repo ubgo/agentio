@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // TitleSource names where a conversation title came from.
@@ -30,7 +30,7 @@ const (
 // Conversation is one resumable conversation: the neutral fields plus
 // Claude extras read from the transcript head and tail.
 type Conversation struct {
-	agentcli.Conversation
+	agentio.Conversation
 	TitleSource TitleSource
 	Size        int64
 	// Version is the Claude Code version that wrote the first record.
@@ -42,7 +42,7 @@ type Conversation struct {
 }
 
 // Neutral returns the shared conversation. cost: Pure.
-func (c Conversation) Neutral() agentcli.Conversation { return c.Conversation }
+func (c Conversation) Neutral() agentio.Conversation { return c.Conversation }
 
 // headInfo is what the transcript head yields.
 type headInfo struct {
@@ -156,7 +156,7 @@ func (a *Agent) readConversation(h Home, path string, info os.FileInfo) (Convers
 		return Conversation{}, false
 	}
 	return Conversation{
-		Conversation: agentcli.Conversation{
+		Conversation: agentio.Conversation{
 			Agent: ID, Home: h.Neutral(), ID: strings.TrimSuffix(filepath.Base(path), transcriptExt),
 			Title: ti.title, Dir: hi.cwd, Path: path, Created: hi.created, Updated: info.ModTime(),
 		},
@@ -201,7 +201,7 @@ func transcriptCandidates(dirs []string, since time.Time) []candidate {
 // transcripts is stale after a history move (invariant 4). Each transcript
 // is read at its head (cwd) and last 256 KiB (title) only (invariant 5); an
 // unreadable transcript is skipped. cost: Disk · Read.
-func (a *Agent) Conversations(ctx context.Context, h Home, q agentcli.ConversationQuery) ([]Conversation, error) {
+func (a *Agent) Conversations(ctx context.Context, h Home, q agentio.ConversationQuery) ([]Conversation, error) {
 	var dirs []string
 	if q.Dir != "" {
 		dirs = []string{a.HistoryDir(h, q.Dir)}
@@ -253,7 +253,7 @@ func (a *Agent) Conversation(h Home, id string) (Conversation, error) {
 	}
 	c, ok := a.readConversation(h, p, info)
 	if !ok {
-		return Conversation{}, fmt.Errorf("%w: conversation %s has no turn yet", agentcli.ErrNotFound, id)
+		return Conversation{}, fmt.Errorf("%w: conversation %s has no turn yet", agentio.ErrNotFound, id)
 	}
 	return c, nil
 }
@@ -275,7 +275,7 @@ func (a *Agent) HasHistory(h Home, dir string) (bool, error) {
 // the last complete line, calling fn per turn, and returns the new offset.
 // Tool-result user lines and assistant lines without text or usage are
 // skipped (they are not turns a person typed or read). cost: Disk · Read.
-func (a *Agent) Turns(h Home, id string, from agentcli.Offset, fn func(agentcli.Turn) error) (agentcli.Offset, error) {
+func (a *Agent) Turns(h Home, id string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {
 	p, err := a.findTranscript(h, id)
 	if err != nil {
 		return from, err
@@ -284,7 +284,7 @@ func (a *Agent) Turns(h Home, id string, from agentcli.Offset, fn func(agentcli.
 }
 
 // TurnsFile is Turns over a transcript path (G4). cost: Disk · Read.
-func TurnsFile(path string, from agentcli.Offset, fn func(agentcli.Turn) error) (agentcli.Offset, error) {
+func TurnsFile(path string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {
 	r, err := openTranscriptFile(path, from)
 	if err != nil {
 		return from, err
@@ -310,8 +310,8 @@ func TurnsFile(path string, from agentcli.Offset, fn func(agentcli.Turn) error) 
 }
 
 // turnOf normalizes a user or assistant record.
-func turnOf(rec Record) (agentcli.Turn, bool) {
-	t := agentcli.Turn{ConversationID: rec.SessionID, Dir: rec.Cwd, AgentVersion: rec.Version, Raw: rec.Raw}
+func turnOf(rec Record) (agentio.Turn, bool) {
+	t := agentio.Turn{ConversationID: rec.SessionID, Dir: rec.Cwd, AgentVersion: rec.Version, Raw: rec.Raw}
 	if rec.Timestamp != nil {
 		t.Time = *rec.Timestamp
 	}
@@ -321,14 +321,14 @@ func turnOf(rec Record) (agentcli.Turn, bool) {
 		if err != nil || u.IsToolResult || !u.Content.HasText() {
 			return t, false
 		}
-		t.Role, t.Text = agentcli.RoleUser, u.Content.Text()
+		t.Role, t.Text = agentio.RoleUser, u.Content.Text()
 		return t, true
 	case RecordAssistant:
 		ar, err := rec.AsAssistant()
 		if err != nil || (!ar.Content.HasText() && ar.Usage == nil) {
 			return t, false
 		}
-		t.Role, t.Text, t.Model, t.StopReason = agentcli.RoleAssistant, ar.Content.Text(), ar.Model, ar.StopReason
+		t.Role, t.Text, t.Model, t.StopReason = agentio.RoleAssistant, ar.Content.Text(), ar.Model, ar.StopReason
 		if ar.Usage != nil {
 			n := ar.Usage.Neutral()
 			t.Tokens = &n
@@ -371,16 +371,16 @@ func matchID(ids []string, want string) (string, int) {
 // It changes nothing. Blockers: a live Claude session in the folder (either
 // home) or a target that already exists. Unknown entries are listed in
 // Left. cost: Disk · Read.
-func (a *Agent) PlanMove(r agentcli.MoveRequest) (agentcli.MovePlan, error) {
+func (a *Agent) PlanMove(r agentio.MoveRequest) (agentio.MovePlan, error) {
 	from, err := a.HomeOf(r.From)
 	if err != nil {
-		return agentcli.MovePlan{}, err
+		return agentio.MovePlan{}, err
 	}
 	to, err := a.HomeOf(r.To)
 	if err != nil {
-		return agentcli.MovePlan{}, err
+		return agentio.MovePlan{}, err
 	}
-	plan := agentcli.MovePlan{Agent: ID, From: r.From, To: r.To, Dir: filepath.Clean(r.Dir)}
+	plan := agentio.MovePlan{Agent: ID, From: r.From, To: r.To, Dir: filepath.Clean(r.Dir)}
 	src, dst := a.HistoryDir(from, plan.Dir), a.HistoryDir(to, plan.Dir)
 	entries, err := os.ReadDir(src)
 	if isNotExist(err) {
@@ -402,7 +402,7 @@ func (a *Agent) PlanMove(r agentcli.MoveRequest) (agentcli.MovePlan, error) {
 			id, n := matchID(ids, want)
 			switch {
 			case n == 0:
-				return plan, fmt.Errorf("%w: conversation %q for %s", agentcli.ErrNotFound, want, plan.Dir)
+				return plan, fmt.Errorf("%w: conversation %q for %s", agentio.ErrNotFound, want, plan.Dir)
 			case n > 1:
 				return plan, fmt.Errorf("%w %q matches %d conversations", ErrAmbiguousID, want, n)
 			}
@@ -419,7 +419,7 @@ func (a *Agent) PlanMove(r agentcli.MoveRequest) (agentcli.MovePlan, error) {
 		if fileExists(t) {
 			plan.Blockers = append(plan.Blockers, t+" already exists in the target home")
 		}
-		plan.Items = append(plan.Items, agentcli.MoveItem{From: f, To: t})
+		plan.Items = append(plan.Items, agentio.MoveItem{From: f, To: t})
 		moving[f] = true
 	}
 	for _, id := range ids {

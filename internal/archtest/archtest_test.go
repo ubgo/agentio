@@ -18,7 +18,7 @@ import (
 )
 
 // modulePrefix is the import path of the root module; vendor modules extend it.
-const modulePrefix = "github.com/khanakia/agentcli"
+const modulePrefix = "github.com/ubgo/agentio"
 
 // Vendor module import paths (SPEC §3).
 const (
@@ -457,7 +457,7 @@ func TestCapabilityTable(t *testing.T) {
 	var caps []*ast.Ident
 	uses := map[string]int{}
 	for _, f := range files {
-		if f.module != modulePrefix || f.test || f.ast.Name.Name != "agentcli" {
+		if f.module != modulePrefix || f.test || f.ast.Name.Name != "agentio" {
 			continue
 		}
 		for _, decl := range f.ast.Decls {

@@ -5,7 +5,7 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // StatusLineModel is the model block of the status-line input.
@@ -46,7 +46,7 @@ type StatusLineInput struct {
 	Workspace      StatusLineWorkspace   `json:"workspace"`
 	OutputStyle    StatusLineOutputStyle `json:"output_style"`
 	Cost           *StatusLineCost       `json:"cost,omitempty"`
-	Unknown        agentcli.Unknown      `json:"-"`
+	Unknown        agentio.Unknown       `json:"-"`
 }
 
 // DecodeStatusLineInput decodes a status-line command's stdin. cost: Pure.

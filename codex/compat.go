@@ -3,7 +3,7 @@ package codex
 import (
 	"fmt"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 //go:generate go run ./internal/featuregen/gen
@@ -16,8 +16,8 @@ const (
 )
 
 // Compat is the tested range as versions; a test proves both parse. Pure.
-func Compat() agentcli.Compat {
-	return agentcli.Compat{Min: agentcli.MustVersion(TestedMin), Max: agentcli.MustVersion(TestedMax)}
+func Compat() agentio.Compat {
+	return agentio.Compat{Min: agentio.MustVersion(TestedMin), Max: agentio.MustVersion(TestedMax)}
 }
 
 // Feature is a Codex flag, subcommand or file whose availability depends
@@ -29,11 +29,11 @@ type Feature uint16
 func (f Feature) MarshalText() ([]byte, error) { return []byte(f.String()), nil }
 
 // FeatureUnavailableError says the installed Codex provably lacks a
-// feature; it matches errors.Is(err, agentcli.ErrFeatureUnavailable).
+// feature; it matches errors.Is(err, agentio.ErrFeatureUnavailable).
 type FeatureUnavailableError struct {
 	Feature      Feature
-	Installed    agentcli.Version
-	Since, Until agentcli.Version
+	Installed    agentio.Version
+	Since, Until agentio.Version
 }
 
 // Error names the feature, the installed version and the bound. Pure.
@@ -47,9 +47,9 @@ func (e *FeatureUnavailableError) Error() string {
 	return fmt.Sprintf("codex %s: %s is unavailable", e.Installed, e.Feature)
 }
 
-// Is matches agentcli.ErrFeatureUnavailable. Pure.
+// Is matches agentio.ErrFeatureUnavailable. Pure.
 func (e *FeatureUnavailableError) Is(target error) bool {
-	return target == agentcli.ErrFeatureUnavailable
+	return target == agentio.ErrFeatureUnavailable
 }
 
 // FeatureSource names the release note behind f's bounds ("" when the
@@ -58,7 +58,7 @@ func FeatureSource(f Feature) string { return featureSource(f) }
 
 // checkFeature returns a FeatureUnavailableError when t.Version provably
 // lacks f; unknown versions pass (the builder adds a warning once).
-func checkFeature(t agentcli.Target, f Feature) error {
+func checkFeature(t agentio.Target, f Feature) error {
 	span := FeatureInfo(f)
 	if span.In(t.Version) {
 		return nil

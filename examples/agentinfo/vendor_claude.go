@@ -5,12 +5,12 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/khanakia/agentcli"
-	"github.com/khanakia/agentcli/claude"
+	"github.com/ubgo/agentio"
+	"github.com/ubgo/agentio/claude"
 )
 
 // claudeCompat compares the on-disk Claude Code version with claude.Compat(). Disk · Read.
-func claudeCompat(inst *agentcli.Install) *CompatReport {
+func claudeCompat(inst *agentio.Install) *CompatReport {
 	c := claude.Compat()
 	r := &CompatReport{TestedMin: claude.TestedMin, TestedMax: claude.TestedMax}
 	if inst != nil {
@@ -24,7 +24,7 @@ func claudeCompat(inst *agentcli.Install) *CompatReport {
 // value-free settings summary (file list, key counts, unknown key names, the
 // effective model and permission mode). Settings env values are never printed.
 // Disk · Read.
-func claudeHome(hr *HomeReport, c *claude.Agent, n agentcli.Home, dir string) {
+func claudeHome(hr *HomeReport, c *claude.Agent, n agentio.Home, dir string) {
 	h, err := c.HomeOf(n)
 	if err != nil {
 		hr.Errors = addErr(hr.Errors, "home", err)

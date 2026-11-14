@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/khanakia/agentcli/agenttest"
+	"github.com/ubgo/agentio/agenttest"
 )
 
 // newReadersAgent copies the fixture into a temp user home and returns the

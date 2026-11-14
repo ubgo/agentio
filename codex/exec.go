@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // ExecEventType is a `codex exec --json` line's `type`
@@ -95,30 +95,30 @@ type FileChangeItem struct {
 // MCPToolCallItem is mcp_tool_call; arguments and results stay raw
 // (vendor-defined schemas).
 type MCPToolCallItem struct {
-	Server    string       `json:"server"`
-	Tool      string       `json:"tool"`
-	Arguments agentcli.Raw `json:"arguments,omitempty"`
-	Result    agentcli.Raw `json:"result,omitempty"`
-	Error     *ExecError   `json:"error,omitempty"`
-	Status    string       `json:"status"`
+	Server    string      `json:"server"`
+	Tool      string      `json:"tool"`
+	Arguments agentio.Raw `json:"arguments,omitempty"`
+	Result    agentio.Raw `json:"result,omitempty"`
+	Error     *ExecError  `json:"error,omitempty"`
+	Status    string      `json:"status"`
 }
 
 // CollabItem is collab_tool_call.
 type CollabItem struct {
-	Tool              string       `json:"tool"` // spawn_agent | send_input | wait | close_agent
-	SenderThreadID    string       `json:"sender_thread_id"`
-	ReceiverThreadIDs []string     `json:"receiver_thread_ids"`
-	Prompt            string       `json:"prompt,omitempty"`
-	AgentsStates      agentcli.Raw `json:"agents_states,omitempty"`
-	Status            string       `json:"status"`
+	Tool              string      `json:"tool"` // spawn_agent | send_input | wait | close_agent
+	SenderThreadID    string      `json:"sender_thread_id"`
+	ReceiverThreadIDs []string    `json:"receiver_thread_ids"`
+	Prompt            string      `json:"prompt,omitempty"`
+	AgentsStates      agentio.Raw `json:"agents_states,omitempty"`
+	Status            string      `json:"status"`
 }
 
 // WebSearchItem is web_search.
 type WebSearchItem struct {
-	ID      string       `json:"id"`
-	Query   string       `json:"query"`
-	Action  agentcli.Raw `json:"action,omitempty"`
-	Results agentcli.Raw `json:"results,omitempty"`
+	ID      string      `json:"id"`
+	Query   string      `json:"query"`
+	Action  agentio.Raw `json:"action,omitempty"`
+	Results agentio.Raw `json:"results,omitempty"`
 }
 
 // TodoItem is one todo_list entry.
@@ -155,7 +155,7 @@ type ExecEvent struct {
 	Usage    *TokenCounts // turn.completed
 	Error    *ExecError   // turn.failed, error
 	Item     *ExecItem    // item.*
-	Raw      agentcli.Raw // always the full line
+	Raw      agentio.Raw  // always the full line
 }
 
 type execEventWire struct {
@@ -179,7 +179,7 @@ func ParseExecEvent(line []byte) (ExecEvent, error) {
 	if err := json.Unmarshal(line, &w); err != nil {
 		return ExecEvent{}, fmt.Errorf("codex: exec event: %w", err)
 	}
-	ev := ExecEvent{Type: w.Type, ThreadID: w.ThreadID, Usage: w.Usage, Error: w.Error, Raw: append(agentcli.Raw(nil), line...)}
+	ev := ExecEvent{Type: w.Type, ThreadID: w.ThreadID, Usage: w.Usage, Error: w.Error, Raw: append(agentio.Raw(nil), line...)}
 	if w.Type == ExecErrorEvent && ev.Error == nil && w.Message != "" {
 		ev.Error = &ExecError{Message: w.Message}
 	}
@@ -257,34 +257,34 @@ func (d *ExecDecoder) Next() (ExecEvent, error) {
 
 // ExecEventVersion is the upstream version the decoder was written
 // against. Pure.
-func (a *Agent) ExecEventVersion() agentcli.Version { return agentcli.MustVersion(TestedMax) }
+func (a *Agent) ExecEventVersion() agentio.Version { return agentio.MustVersion(TestedMax) }
 
 // runDecoder is the neutral view over ExecDecoder (L2 RunEvents).
 type runDecoder struct{ d *ExecDecoder }
 
 // NewRunDecoder returns the neutral decoder over r. Pure.
-func (a *Agent) NewRunDecoder(r io.Reader) agentcli.RunDecoder {
+func (a *Agent) NewRunDecoder(r io.Reader) agentio.RunDecoder {
 	return runDecoder{d: NewExecDecoder(r)}
 }
 
-// Next maps one exec event onto agentcli.RunEvent. Pure.
-func (r runDecoder) Next() (agentcli.RunEvent, error) {
+// Next maps one exec event onto agentio.RunEvent. Pure.
+func (r runDecoder) Next() (agentio.RunEvent, error) {
 	ev, err := r.d.Next()
 	if err != nil {
-		return agentcli.RunEvent{}, err
+		return agentio.RunEvent{}, err
 	}
-	out := agentcli.RunEvent{Type: agentcli.RunEventOther, ConversationID: ev.ThreadID, Raw: ev.Raw}
+	out := agentio.RunEvent{Type: agentio.RunEventOther, ConversationID: ev.ThreadID, Raw: ev.Raw}
 	switch ev.Type {
 	case ExecThreadStarted:
-		out.Type = agentcli.RunEventStarted
+		out.Type = agentio.RunEventStarted
 	case ExecTurnCompleted:
-		out.Type = agentcli.RunEventDone
+		out.Type = agentio.RunEventDone
 		if ev.Usage != nil {
 			n := ev.Usage.Neutral()
 			out.Tokens = &n
 		}
 	case ExecTurnFailed, ExecErrorEvent:
-		out.Type = agentcli.RunEventError
+		out.Type = agentio.RunEventError
 		if ev.Error != nil {
 			out.Text = ev.Error.Message
 		}
@@ -294,11 +294,11 @@ func (r runDecoder) Next() (agentcli.RunEvent, error) {
 		}
 		switch {
 		case ev.Item.AgentMessage != nil:
-			out.Type, out.Text = agentcli.RunEventMessage, ev.Item.AgentMessage.Text
+			out.Type, out.Text = agentio.RunEventMessage, ev.Item.AgentMessage.Text
 		case ev.Item.Command != nil || ev.Item.MCPToolCall != nil || ev.Item.FileChange != nil || ev.Item.WebSearch != nil || ev.Item.CollabToolCall != nil:
-			out.Type = agentcli.RunEventTool
+			out.Type = agentio.RunEventTool
 		case ev.Item.Error != nil:
-			out.Type, out.Text = agentcli.RunEventError, ev.Item.Error.Message
+			out.Type, out.Text = agentio.RunEventError, ev.Item.Error.Message
 		}
 	}
 	return out, nil

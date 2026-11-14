@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // RecordType is a transcript record type (open set; unknown types decode).
@@ -81,18 +81,18 @@ var ErrWrongRecordType = errors.New("claude: wrong transcript record type")
 // Record is the envelope of one transcript line; the payload stays in Raw
 // and typed accessors decode it.
 type Record struct {
-	Type        RecordType   `json:"type"`
-	Subtype     string       `json:"subtype,omitempty"`
-	UUID        string       `json:"uuid,omitempty"`
-	ParentUUID  string       `json:"parentUuid,omitempty"`
-	SessionID   string       `json:"sessionId,omitempty"`
-	Timestamp   *time.Time   `json:"timestamp,omitempty"`
-	Cwd         string       `json:"cwd,omitempty"`
-	GitBranch   string       `json:"gitBranch,omitempty"`
-	Version     string       `json:"version,omitempty"`
-	Entrypoint  string       `json:"entrypoint,omitempty"`
-	IsSidechain bool         `json:"isSidechain,omitempty"`
-	Raw         agentcli.Raw `json:"-"`
+	Type        RecordType  `json:"type"`
+	Subtype     string      `json:"subtype,omitempty"`
+	UUID        string      `json:"uuid,omitempty"`
+	ParentUUID  string      `json:"parentUuid,omitempty"`
+	SessionID   string      `json:"sessionId,omitempty"`
+	Timestamp   *time.Time  `json:"timestamp,omitempty"`
+	Cwd         string      `json:"cwd,omitempty"`
+	GitBranch   string      `json:"gitBranch,omitempty"`
+	Version     string      `json:"version,omitempty"`
+	Entrypoint  string      `json:"entrypoint,omitempty"`
+	IsSidechain bool        `json:"isSidechain,omitempty"`
+	Raw         agentio.Raw `json:"-"`
 }
 
 // ParseRecord decodes one transcript line; any valid JSON object decodes,
@@ -102,7 +102,7 @@ func ParseRecord(line []byte) (Record, error) {
 	if err := json.Unmarshal(line, &r); err != nil {
 		return Record{}, fmt.Errorf("claude: transcript line: %w", err)
 	}
-	r.Raw = agentcli.Raw(bytes.Clone(line))
+	r.Raw = agentio.Raw(bytes.Clone(line))
 	return r, nil
 }
 
@@ -143,9 +143,9 @@ type ContentBlock struct {
 	Text      string
 	ToolUseID string
 	ToolName  string
-	Input     agentcli.Raw
+	Input     agentio.Raw
 	IsError   bool
-	Unknown   agentcli.Unknown
+	Unknown   agentio.Unknown
 }
 
 type wireBlock struct {
@@ -214,12 +214,12 @@ func (c Content) HasText() bool { return c.Text() != "" }
 
 // MessageUsage is an assistant message's usage block.
 type MessageUsage struct {
-	Input         int64            `json:"input_tokens"`
-	Output        int64            `json:"output_tokens"`
-	CacheRead     int64            `json:"cache_read_input_tokens"`
-	CacheCreation int64            `json:"cache_creation_input_tokens"`
-	ServiceTier   string           `json:"service_tier"`
-	Unknown       agentcli.Unknown `json:"-"`
+	Input         int64           `json:"input_tokens"`
+	Output        int64           `json:"output_tokens"`
+	CacheRead     int64           `json:"cache_read_input_tokens"`
+	CacheCreation int64           `json:"cache_creation_input_tokens"`
+	ServiceTier   string          `json:"service_tier"`
+	Unknown       agentio.Unknown `json:"-"`
 }
 
 // usageFile names a usage block in decode warnings.
@@ -241,8 +241,8 @@ func (u *MessageUsage) UnmarshalJSON(data []byte) error {
 }
 
 // Neutral maps onto the shared counts. cost: Pure.
-func (u MessageUsage) Neutral() agentcli.TokenCounts {
-	return agentcli.TokenCounts{Input: u.Input, CachedInput: u.CacheRead, CacheWrite: u.CacheCreation, Output: u.Output}
+func (u MessageUsage) Neutral() agentio.TokenCounts {
+	return agentio.TokenCounts{Input: u.Input, CachedInput: u.CacheRead, CacheWrite: u.CacheCreation, Output: u.Output}
 }
 
 // AssistantRecord is a decoded assistant line.
@@ -411,8 +411,8 @@ func (r Record) AsPRLink() (PRLink, error) {
 
 // SessionOwner is a session-owner record (account ids are Personal).
 type SessionOwner struct {
-	AccountUUID      agentcli.Personal `json:"accountUuid"`
-	OrganizationUUID agentcli.Personal `json:"organizationUuid"`
+	AccountUUID      agentio.Personal `json:"accountUuid"`
+	OrganizationUUID agentio.Personal `json:"organizationUuid"`
 }
 
 // AsSessionOwner decodes session-owner. cost: Pure.
@@ -455,11 +455,11 @@ func (r Record) AsPermissionMode() (PermissionMode, error) {
 type TranscriptReader struct {
 	f      *os.File
 	r      *bufio.Reader
-	offset agentcli.Offset
+	offset agentio.Offset
 }
 
 // openTranscriptFile opens path at from.
-func openTranscriptFile(path string, from agentcli.Offset) (*TranscriptReader, error) {
+func openTranscriptFile(path string, from agentio.Offset) (*TranscriptReader, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("claude: open transcript: %w", err)
@@ -504,7 +504,7 @@ func (t *TranscriptReader) readLine() ([]byte, error) {
 		}
 		switch {
 		case err == nil:
-			t.offset += agentcli.Offset(len(buf))
+			t.offset += agentio.Offset(len(buf))
 			return buf, nil
 		case errors.Is(err, bufio.ErrBufferFull):
 			continue
@@ -518,14 +518,14 @@ func (t *TranscriptReader) readLine() ([]byte, error) {
 }
 
 // Offset is the byte offset just after the last complete line read. cost: Pure.
-func (t *TranscriptReader) Offset() agentcli.Offset { return t.offset }
+func (t *TranscriptReader) Offset() agentio.Offset { return t.offset }
 
 // Close releases the file. cost: Pure.
 func (t *TranscriptReader) Close() error { return t.f.Close() }
 
 // OpenTranscriptFile opens a transcript by path at an offset (ailog live
 // capture holds a path from the hook input). cost: Disk · Read.
-func (a *Agent) OpenTranscriptFile(path string, from agentcli.Offset) (*TranscriptReader, error) {
+func (a *Agent) OpenTranscriptFile(path string, from agentio.Offset) (*TranscriptReader, error) {
 	return openTranscriptFile(path, from)
 }
 
@@ -535,11 +535,11 @@ func (a *Agent) OpenTranscriptFile(path string, from agentcli.Offset) (*Transcri
 func (a *Agent) TranscriptAt(path string) (Home, string, error) {
 	clean := filepath.Clean(path)
 	if filepath.Ext(clean) != transcriptExt {
-		return Home{}, "", fmt.Errorf("%w: %s is not a transcript", agentcli.ErrForeignHome, path)
+		return Home{}, "", fmt.Errorf("%w: %s is not a transcript", agentio.ErrForeignHome, path)
 	}
 	projDir := filepath.Dir(filepath.Dir(clean))
 	if filepath.Base(projDir) != projectsDir {
-		return Home{}, "", fmt.Errorf("%w: %s is not under a Claude projects dir", agentcli.ErrForeignHome, path)
+		return Home{}, "", fmt.Errorf("%w: %s is not under a Claude projects dir", agentio.ErrForeignHome, path)
 	}
 	return a.HomeAt(filepath.Dir(projDir)), strings.TrimSuffix(filepath.Base(clean), transcriptExt), nil
 }
@@ -547,14 +547,14 @@ func (a *Agent) TranscriptAt(path string) (Home, string, error) {
 // findTranscript locates <id>.jsonl in any project dir of h.
 func (a *Agent) findTranscript(h Home, id string) (string, error) {
 	if id == "" || strings.ContainsAny(id, `/\`) {
-		return "", fmt.Errorf("%w: conversation %q", agentcli.ErrNotFound, id)
+		return "", fmt.Errorf("%w: conversation %q", agentio.ErrNotFound, id)
 	}
 	matches, err := filepath.Glob(filepath.Join(h.Dir(), projectsDir, "*", id+transcriptExt))
 	if err != nil {
 		return "", err
 	}
 	if len(matches) == 0 {
-		return "", fmt.Errorf("%w: conversation %s in %s", agentcli.ErrNotFound, id, h.Dir())
+		return "", fmt.Errorf("%w: conversation %s in %s", agentio.ErrNotFound, id, h.Dir())
 	}
 	return matches[0], nil
 }
@@ -653,12 +653,12 @@ func (a *Agent) PRLinks(h Home, id string) ([]PRLink, error) {
 // InternalRecords returns api-request, api-request-blob and atis-latch
 // lines from the tail as raw bytes, never decoded: they may carry system
 // prompts (OD-8). cost: Disk · Read (tail).
-func (a *Agent) InternalRecords(h Home, id string) ([]agentcli.Raw, error) {
+func (a *Agent) InternalRecords(h Home, id string) ([]agentio.Raw, error) {
 	recs, err := a.TranscriptTail(h, id, tailScanBytes)
 	if err != nil {
 		return nil, err
 	}
-	var out []agentcli.Raw
+	var out []agentio.Raw
 	for _, r := range recs {
 		if r.Type.isInternal() {
 			out = append(out, r.Raw)

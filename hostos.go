@@ -1,4 +1,4 @@
-package agentcli
+package agentio
 
 // hostos.go is the ONLY file that touches the real machine: os.Getenv,
 // os.Environ, os.UserHomeDir, exec.Command and time.Now appear here and
@@ -36,7 +36,7 @@ const (
 func HostFromOS() (Host, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return Host{}, fmt.Errorf("agentcli: user home: %w", err)
+		return Host{}, fmt.Errorf("agentio: user home: %w", err)
 	}
 	return Host{
 		UserHome:  home,
@@ -74,7 +74,7 @@ func (osRunner) Run(ctx context.Context, c Command, stdin io.Reader) (ProcessRes
 		return res, nil
 	}
 	if err != nil {
-		return res, fmt.Errorf("agentcli: run %s: %w", filepath.Base(c.Path), err)
+		return res, fmt.Errorf("agentio: run %s: %w", filepath.Base(c.Path), err)
 	}
 	return res, nil
 }
@@ -128,10 +128,10 @@ func (osSecrets) Get(ctx context.Context, service, account string) (Token, bool,
 	case errors.As(err, &exitErr) && exitErr.ExitCode() == securityNotFoundExit:
 		return Token{}, false, nil
 	case ctx.Err() != nil:
-		return Token{}, false, fmt.Errorf("agentcli: keychain lookup timed out after %s (unanswered prompt?): %w", keychainTimeout, ctx.Err())
+		return Token{}, false, fmt.Errorf("agentio: keychain lookup timed out after %s (unanswered prompt?): %w", keychainTimeout, ctx.Err())
 	}
 	// The error text of `security` never holds the secret (it is on stdout).
-	return Token{}, false, fmt.Errorf("agentcli: keychain lookup %s: %w", service, err)
+	return Token{}, false, fmt.Errorf("agentio: keychain lookup %s: %w", service, err)
 }
 
 // osAccount returns the OS user name (Claude Code's keychain account):
@@ -193,7 +193,7 @@ func linuxProcesses() ([]Process, error) {
 	}
 	entries, err := os.ReadDir(procRoot)
 	if err != nil {
-		return nil, fmt.Errorf("agentcli: read %s: %w", procRoot, err)
+		return nil, fmt.Errorf("agentio: read %s: %w", procRoot, err)
 	}
 	var out []Process
 	for _, e := range entries {
@@ -237,7 +237,7 @@ func linuxProcesses() ([]Process, error) {
 func linuxBootTime() (time.Time, error) {
 	f, err := os.Open(filepath.Join(procRoot, "stat"))
 	if err != nil {
-		return time.Time{}, fmt.Errorf("agentcli: boot time: %w", err)
+		return time.Time{}, fmt.Errorf("agentio: boot time: %w", err)
 	}
 	defer func() { _ = f.Close() }()
 	sc := bufio.NewScanner(f)
@@ -245,12 +245,12 @@ func linuxBootTime() (time.Time, error) {
 		if v, ok := strings.CutPrefix(sc.Text(), procBtime); ok {
 			secs, err := strconv.ParseInt(strings.TrimSpace(v), 10, 64)
 			if err != nil {
-				return time.Time{}, fmt.Errorf("agentcli: boot time: %w", err)
+				return time.Time{}, fmt.Errorf("agentio: boot time: %w", err)
 			}
 			return time.Unix(secs, 0), nil
 		}
 	}
-	return time.Time{}, fmt.Errorf("agentcli: boot time: no btime in %s/stat", procRoot)
+	return time.Time{}, fmt.Errorf("agentio: boot time: no btime in %s/stat", procRoot)
 }
 
 // darwin `ps` constants. lstart is printed as five fields in the C locale
@@ -270,7 +270,7 @@ func darwinProcesses(ctx context.Context) ([]Process, error) {
 	cmd.Env = []string{envLocaleC}
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("agentcli: ps: %w", err)
+		return nil, fmt.Errorf("agentio: ps: %w", err)
 	}
 	var procs []Process
 	for _, line := range strings.Split(string(out), "\n") {
@@ -298,7 +298,7 @@ func darwinCwd(ctx context.Context, pid int) (string, error) {
 	cmd := exec.CommandContext(ctx, lsofBin, "-a", "-d", "cwd", "-p", strconv.Itoa(pid), "-Fn")
 	out, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("agentcli: lsof cwd %d: %w", pid, err)
+		return "", fmt.Errorf("agentio: lsof cwd %d: %w", pid, err)
 	}
 	for _, line := range strings.Split(string(out), "\n") {
 		if p, ok := strings.CutPrefix(line, lsofNamePrefix); ok && p != "" {

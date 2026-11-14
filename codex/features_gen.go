@@ -2,7 +2,7 @@
 
 package codex
 
-import "github.com/khanakia/agentcli"
+import "github.com/ubgo/agentio"
 
 // Feature values, one per features.tsv row.
 const (
@@ -219,28 +219,28 @@ func FeatureValues() []Feature {
 }
 
 // FeatureInfo is the verified Since/Until span of f; zero bounds are unknown. Pure.
-func FeatureInfo(f Feature) agentcli.FeatureSpan {
+func FeatureInfo(f Feature) agentio.FeatureSpan {
 	switch f {
 	case FeatureFlagIgnoreUserConfig: // release notes 0.122.0 #18646
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("0.122.0"), Until: agentcli.Version{}}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.122.0"), Until: agentio.Version{}}
 	case FeatureFlagIgnoreRules: // release notes 0.122.0 #18646
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("0.122.0"), Until: agentcli.Version{}}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.122.0"), Until: agentio.Version{}}
 	case FeatureExecJSONReasoningTokens: // release notes 0.125.0 #19308
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("0.125.0"), Until: agentcli.Version{}}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.125.0"), Until: agentio.Version{}}
 	case FeatureProfileV2Files: // release notes rust-v0.131.0 #17141 (feat: add layered --profile-v2 config files)
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("0.131.0"), Until: agentcli.Version{}}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.131.0"), Until: agentio.Version{}}
 	case FeatureLegacyProfileRejected: // release notes rust-v0.131.0 #22647 (Reject legacy [profiles] when using profile-v2); refusal at config/src/loader/mod.rs:303-320 rust-v0.162.1
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("0.131.0"), Until: agentcli.Version{}}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.131.0"), Until: agentio.Version{}}
 	case FeatureExecResumeOutputSchema: // release notes 0.132.0 #23123
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("0.132.0"), Until: agentcli.Version{}}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.132.0"), Until: agentio.Version{}}
 	case FeatureFlagApproveForMe: // release notes 0.147.0 #36373
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("0.147.0"), Until: agentcli.Version{}}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.147.0"), Until: agentio.Version{}}
 	case FeatureFlagWorktree: // release notes 0.154.0 #42652
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("0.154.0"), Until: agentcli.Version{}}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.154.0"), Until: agentio.Version{}}
 	case FeatureFlagNoDaemon: // release notes 0.156.0 #46088
-		return agentcli.FeatureSpan{Since: agentcli.MustVersion("0.156.0"), Until: agentcli.Version{}}
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.156.0"), Until: agentio.Version{}}
 	}
-	return agentcli.FeatureSpan{}
+	return agentio.FeatureSpan{}
 }
 
 // featureSource names the release note of f's bounds; "" when unknown. Pure.

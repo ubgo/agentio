@@ -16,7 +16,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Wire kinds of /api/oauth/usage limits[].kind.
@@ -59,19 +59,19 @@ var ErrProbeHeaders = errors.New("claude: probe response has no usable rate-limi
 // Usage is the rich usage result: the neutral usage plus the decoded
 // extra_usage object and the wire rows.
 type Usage struct {
-	agentcli.Usage
+	agentio.Usage
 	Extra  ExtraUsage
 	Limits []Limit
 }
 
 // Neutral returns the embedded neutral usage. cost: Pure.
-func (u Usage) Neutral() agentcli.Usage { return u.Usage }
+func (u Usage) Neutral() agentio.Usage { return u.Usage }
 
 // ExtraUsage is pay-as-you-go overage beyond the plan.
 type ExtraUsage struct {
-	IsEnabled   bool             `json:"is_enabled"`
-	Utilization *float64         `json:"utilization"`
-	Unknown     agentcli.Unknown `json:"-"`
+	IsEnabled   bool            `json:"is_enabled"`
+	Utilization *float64        `json:"utilization"`
+	Unknown     agentio.Unknown `json:"-"`
 }
 
 // Limit is one row of limits[] in /api/oauth/usage, in the wire shape.
@@ -138,8 +138,8 @@ func (l Limit) length() time.Duration {
 	return 0
 }
 
-func (l Limit) window() agentcli.Window {
-	return agentcli.Window{Length: l.length(), Scope: l.scopeName(), Label: l.Label(), Percent: l.Percent, ResetsAt: l.ResetsAt, VendorKind: l.Kind}
+func (l Limit) window() agentio.Window {
+	return agentio.Window{Length: l.length(), Scope: l.scopeName(), Label: l.Label(), Percent: l.Percent, ResetsAt: l.ResetsAt, VendorKind: l.Kind}
 }
 
 // wireUsage is the subset of /api/oauth/usage read: the current limits
@@ -173,7 +173,7 @@ func ParseUsage(body []byte) (Usage, error) {
 	if len(limits) == 0 {
 		return Usage{}, ErrNoLimits
 	}
-	u := Usage{Usage: agentcli.Usage{Agent: ID, Billing: agentcli.BillingSubscription, Raw: agentcli.Raw(bytes.Clone(body))}, Limits: limits}
+	u := Usage{Usage: agentio.Usage{Agent: ID, Billing: agentio.BillingSubscription, Raw: agentio.Raw(bytes.Clone(body))}, Limits: limits}
 	for _, l := range limits {
 		u.Windows = append(u.Windows, l.window())
 	}
@@ -184,7 +184,7 @@ func ParseUsage(body []byte) (Usage, error) {
 		}
 		u.Extra = extra
 		if extra.IsEnabled && extra.Utilization != nil {
-			u.Windows = append(u.Windows, agentcli.Window{Label: labelExtraUsage, Percent: *extra.Utilization, VendorKind: vendorKindExtra})
+			u.Windows = append(u.Windows, agentio.Window{Label: labelExtraUsage, Percent: *extra.Utilization, VendorKind: vendorKindExtra})
 		}
 	}
 	return u, nil
@@ -204,7 +204,7 @@ func parseExtra(b []byte) (ExtraUsage, error) {
 
 // ExtraUsageOf decodes the extra_usage object from a neutral usage's Raw
 // body. cost: Pure.
-func ExtraUsageOf(u agentcli.Usage) (ExtraUsage, error) {
+func ExtraUsageOf(u agentio.Usage) (ExtraUsage, error) {
 	var w wireUsage
 	if err := json.Unmarshal(u.Raw, &w); err != nil {
 		return ExtraUsage{}, fmt.Errorf("claude: decode usage: %w", err)
@@ -267,16 +267,16 @@ type wireProfile struct {
 
 // ParseProfile decodes /api/oauth/profile into a Subscription; personal
 // fields are not decoded. cost: Pure.
-func ParseProfile(body []byte) (agentcli.Subscription, error) {
+func ParseProfile(body []byte) (agentio.Subscription, error) {
 	var w wireProfile
 	if err := json.Unmarshal(body, &w); err != nil {
-		return agentcli.Subscription{}, fmt.Errorf("claude: decode profile: %w", err)
+		return agentio.Subscription{}, fmt.Errorf("claude: decode profile: %w", err)
 	}
 	if w.Organization == nil {
-		return agentcli.Subscription{}, ErrNoOrganization
+		return agentio.Subscription{}, ErrNoOrganization
 	}
 	o := w.Organization
-	return agentcli.Subscription{
+	return agentio.Subscription{
 		Plan: PlanLabel(o.OrganizationType, o.RateLimitTier), Status: o.SubscriptionStatus,
 		BillingType: o.BillingType, StartedAt: o.SubscriptionCreatedAt,
 	}, nil
@@ -301,9 +301,9 @@ const (
 // usage windows. A window whose utilization and reset are both absent is
 // one the account does not have and is omitted; half a pair or a malformed
 // value is an error naming the header. cost: Pure.
-func ParseProbeHeaders(h http.Header) (agentcli.Usage, error) {
+func ParseProbeHeaders(h http.Header) (agentio.Usage, error) {
 	claim := h.Get(hdrRepresentative)
-	u := agentcli.Usage{Agent: ID, Billing: agentcli.BillingSubscription, Source: agentcli.UsageProbe}
+	u := agentio.Usage{Agent: ID, Billing: agentio.BillingSubscription, Source: agentio.UsageProbe}
 	var absent []string
 	for _, pw := range []struct{ infix, kind, group, claim string }{
 		{probeInfix5h, kindSession, groupSession, claim5h},
@@ -316,22 +316,22 @@ func ParseProbeHeaders(h http.Header) (agentcli.Usage, error) {
 			continue
 		}
 		if utilRaw == "" || resetRaw == "" {
-			return agentcli.Usage{}, fmt.Errorf("%w: %s pair incomplete", ErrProbeHeaders, base)
+			return agentio.Usage{}, fmt.Errorf("%w: %s pair incomplete", ErrProbeHeaders, base)
 		}
 		util, err := strconv.ParseFloat(utilRaw, 64)
 		if err != nil || util < 0 || math.IsNaN(util) || math.IsInf(util, 0) {
-			return agentcli.Usage{}, fmt.Errorf("%w: %s is not a fraction", ErrProbeHeaders, base+hdrUtilization)
+			return agentio.Usage{}, fmt.Errorf("%w: %s is not a fraction", ErrProbeHeaders, base+hdrUtilization)
 		}
 		secs, err := strconv.ParseInt(resetRaw, 10, 64)
 		if err != nil || secs <= 0 {
-			return agentcli.Usage{}, fmt.Errorf("%w: %s is not a unix time", ErrProbeHeaders, base+hdrReset)
+			return agentio.Usage{}, fmt.Errorf("%w: %s is not a unix time", ErrProbeHeaders, base+hdrReset)
 		}
 		reset := time.Unix(secs, 0).UTC()
 		l := Limit{Kind: pw.kind, Group: pw.group, Percent: util * percentPerFraction, Severity: h.Get(base + hdrStatus), ResetsAt: &reset, IsActive: claim == pw.claim}
 		u.Windows = append(u.Windows, l.window())
 	}
 	if len(u.Windows) == 0 {
-		return agentcli.Usage{}, fmt.Errorf("%w: %s missing", ErrProbeHeaders, strings.Join(absent, ", "))
+		return agentio.Usage{}, fmt.Errorf("%w: %s missing", ErrProbeHeaders, strings.Join(absent, ", "))
 	}
 	return u, nil
 }
@@ -378,7 +378,7 @@ func redactIn(s, token string) string {
 // sentinels: 401/403 → ErrUnauthorized, scope 403 → ErrScopeLimited,
 // 429 → ErrRateLimited. No retry (invariant 7). The token never appears in
 // an error.
-func (a *Agent) get(ctx context.Context, path string, tok agentcli.Token) ([]byte, error) {
+func (a *Agent) get(ctx context.Context, path string, tok agentio.Token) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, a.baseURL+path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("claude: build request: %w", err)
@@ -399,11 +399,11 @@ func (a *Agent) get(ctx context.Context, path string, tok agentcli.Token) ([]byt
 	}
 	switch {
 	case resp.StatusCode == http.StatusForbidden && scopeInsufficient(body):
-		return nil, fmt.Errorf("%w: use a home login, not a `claude setup-token` token, for account reads", agentcli.ErrScopeLimited)
+		return nil, fmt.Errorf("%w: use a home login, not a `claude setup-token` token, for account reads", agentio.ErrScopeLimited)
 	case resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden:
-		return nil, fmt.Errorf("%w (HTTP %d%s)", agentcli.ErrUnauthorized, resp.StatusCode, apiMessage(body, tok.Reveal()))
+		return nil, fmt.Errorf("%w (HTTP %d%s)", agentio.ErrUnauthorized, resp.StatusCode, apiMessage(body, tok.Reveal()))
 	case resp.StatusCode == http.StatusTooManyRequests:
-		return nil, agentcli.RateLimitError(resp.Header, a.now())
+		return nil, agentio.RateLimitError(resp.Header, a.now())
 	case resp.StatusCode != http.StatusOK:
 		return nil, fmt.Errorf("claude: unexpected HTTP %d: %s", resp.StatusCode, snippet([]byte(redactIn(string(body), tok.Reveal()))))
 	}
@@ -449,7 +449,7 @@ func (a *Agent) usableCredential(ctx context.Context, h Home) (Credential, error
 		return Credential{}, err
 	}
 	if c.Expired(a.now()) {
-		return Credential{}, fmt.Errorf("%w at %s: run claude once in this home to refresh it", agentcli.ErrExpired, c.ExpiresAt.Format(time.RFC3339))
+		return Credential{}, fmt.Errorf("%w at %s: run claude once in this home to refresh it", agentio.ErrExpired, c.ExpiresAt.Format(time.RFC3339))
 	}
 	return c, nil
 }
@@ -469,24 +469,24 @@ func (a *Agent) Usage(ctx context.Context, h Home) (Usage, error) {
 	if err != nil {
 		return Usage{}, err
 	}
-	u.Source, u.ObservedAt = agentcli.UsageServer, a.now()
+	u.Source, u.ObservedAt = agentio.UsageServer, a.now()
 	return u, nil
 }
 
 // Subscription fetches /api/oauth/profile for h's login once.
 // cost: Network · Read.
-func (a *Agent) Subscription(ctx context.Context, h Home) (agentcli.Subscription, error) {
+func (a *Agent) Subscription(ctx context.Context, h Home) (agentio.Subscription, error) {
 	c, err := a.usableCredential(ctx, h)
 	if err != nil {
-		return agentcli.Subscription{}, err
+		return agentio.Subscription{}, err
 	}
 	body, err := a.get(ctx, profilePath, c.AccessToken)
 	if err != nil {
-		return agentcli.Subscription{}, err
+		return agentio.Subscription{}, err
 	}
 	s, err := ParseProfile(body)
 	if err == nil {
-		s.Raw = agentcli.Raw(body)
+		s.Raw = agentio.Raw(body)
 	}
 	return s, err
 }
@@ -503,6 +503,6 @@ func (a *Agent) CachedUsage(h Home) (Usage, bool, error) {
 	if err != nil {
 		return Usage{}, true, err
 	}
-	u.Source, u.ObservedAt = agentcli.UsageCache, c.FetchedAt
+	u.Source, u.ObservedAt = agentio.UsageCache, c.FetchedAt
 	return u, true, nil
 }

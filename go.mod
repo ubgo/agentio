@@ -1,3 +1,3 @@
-module github.com/khanakia/agentcli
+module github.com/ubgo/agentio
 
 go 1.26.4

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Hook and notify payloads have NO recorded sample (CODEX_API.md §4.3,
@@ -18,7 +18,7 @@ const maxHookPayload = 16 << 20
 // HookInput is a hook's stdin payload.
 type HookInput struct {
 	Event HookEvent
-	Raw   agentcli.Raw
+	Raw   agentio.Raw
 }
 
 // hookEventKeys are the candidate event-name keys; which one Codex uses is
@@ -35,7 +35,7 @@ func DecodeHookInput(r io.Reader) (HookInput, error) {
 	if err := json.Unmarshal(b, &obj); err != nil {
 		return HookInput{}, fmt.Errorf("codex: decode hook input: %w", err)
 	}
-	in := HookInput{Raw: agentcli.Raw(b)}
+	in := HookInput{Raw: agentio.Raw(b)}
 	for _, k := range hookEventKeys() {
 		var s string
 		if v, ok := obj[k]; ok && json.Unmarshal(v, &s) == nil && s != "" {
@@ -49,7 +49,7 @@ func DecodeHookInput(r io.Reader) (HookInput, error) {
 // NotifyPayload is the JSON `notify` appends as its last argv element.
 type NotifyPayload struct {
 	Type string
-	Raw  agentcli.Raw
+	Raw  agentio.Raw
 }
 
 // DecodeNotify decodes a notify argument. Pure.
@@ -60,5 +60,5 @@ func DecodeNotify(arg string) (NotifyPayload, error) {
 	if err := json.Unmarshal([]byte(arg), &w); err != nil {
 		return NotifyPayload{}, fmt.Errorf("codex: decode notify payload: %w", err)
 	}
-	return NotifyPayload{Type: w.Type, Raw: agentcli.Raw(arg)}, nil
+	return NotifyPayload{Type: w.Type, Raw: agentio.Raw(arg)}, nil
 }

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // CredentialSource is where a login was read from.
@@ -23,12 +23,12 @@ type CredentialSource string
 func (s CredentialSource) IsKnown() bool { return s == SourceKeychain || s == SourceFile }
 
 // Credential is the OAuth login Claude Code stored for one home. It never
-// holds the refresh token; the access token is an agentcli.Token revealed
+// holds the refresh token; the access token is an agentio.Token revealed
 // only to this module's usage client.
 type Credential struct {
 	Source           CredentialSource
 	Location         string // keychain service name or file path
-	AccessToken      agentcli.Token
+	AccessToken      agentio.Token
 	ExpiresAt        *time.Time
 	Scopes           []string
 	SubscriptionType string
@@ -77,7 +77,7 @@ func parseCredential(raw []byte, src CredentialSource, loc string) (Credential, 
 	}
 	o := w.ClaudeAIOAuth
 	return Credential{
-		Source: src, Location: loc, AccessToken: agentcli.NewToken(o.AccessToken), ExpiresAt: o.ExpiresAt.timePtr(),
+		Source: src, Location: loc, AccessToken: agentio.NewToken(o.AccessToken), ExpiresAt: o.ExpiresAt.timePtr(),
 		Scopes: o.Scopes, SubscriptionType: o.SubscriptionType, RateLimitTier: o.RateLimitTier,
 	}, nil
 }
@@ -91,22 +91,22 @@ func (a *Agent) keychainAccount() string { return a.host.User }
 // account ("unknown", empty token) exist (invariant 3). A store that cannot
 // look on this OS (ErrUnsupported, e.g. HostFromOS on linux) reads as no
 // entry: Claude's file store is the primary there.
-func (a *Agent) keychainGet(ctx context.Context, service string) (agentcli.Token, bool, error) {
+func (a *Agent) keychainGet(ctx context.Context, service string) (agentio.Token, bool, error) {
 	if a.host.Secrets == nil {
-		return agentcli.Token{}, false, nil
+		return agentio.Token{}, false, nil
 	}
 	if acct := a.keychainAccount(); acct != "" {
 		t, ok, err := a.host.Secrets.Get(ctx, service, acct)
-		if errors.Is(err, agentcli.ErrUnsupported) {
-			return agentcli.Token{}, false, nil
+		if errors.Is(err, agentio.ErrUnsupported) {
+			return agentio.Token{}, false, nil
 		}
 		if err != nil || ok {
 			return t, ok, err
 		}
 	}
 	t, ok, err := a.host.Secrets.Get(ctx, service, "")
-	if errors.Is(err, agentcli.ErrUnsupported) {
-		return agentcli.Token{}, false, nil
+	if errors.Is(err, agentio.ErrUnsupported) {
+		return agentio.Token{}, false, nil
 	}
 	return t, ok, err
 }
@@ -156,7 +156,7 @@ func (a *Agent) CredentialContext(ctx context.Context, h Home) (Credential, erro
 		}
 	}
 	if !found {
-		return Credential{}, errors.Join(append([]error{agentcli.ErrNotLoggedIn}, reasons...)...)
+		return Credential{}, errors.Join(append([]error{agentio.ErrNotLoggedIn}, reasons...)...)
 	}
 	return best, nil
 }
@@ -175,7 +175,7 @@ func expiresAfter(c, best Credential) bool {
 // Identity is who is logged into h, from .claude.json oauthAccount plus the
 // credential's expiry and plan. Never a network call, never runs claude.
 type Identity struct {
-	agentcli.Identity
+	agentio.Identity
 	Account    *OAuthAccount
 	Credential *CredentialSummary
 }
@@ -191,7 +191,7 @@ type CredentialSummary struct {
 }
 
 // Neutral returns the shared identity. cost: Pure.
-func (i Identity) Neutral() agentcli.Identity { return i.Identity }
+func (i Identity) Neutral() agentio.Identity { return i.Identity }
 
 // Identity reads h's account and login. LoggedIn needs a credential; a home
 // with only an account record is reported logged out. cost: Disk · Read +
@@ -201,7 +201,7 @@ func (a *Agent) Identity(h Home) (Identity, error) {
 	if err != nil {
 		return Identity{}, err
 	}
-	id := Identity{Account: g.OAuthAccount, Identity: agentcli.Identity{Billing: agentcli.BillingUnknown}}
+	id := Identity{Account: g.OAuthAccount, Identity: agentio.Identity{Billing: agentio.BillingUnknown}}
 	if acct := g.OAuthAccount; acct != nil {
 		id.Email, id.Org = acct.EmailAddress, acct.OrganizationName
 		tier := ""
@@ -209,25 +209,25 @@ func (a *Agent) Identity(h Home) (Identity, error) {
 			tier = *acct.OrganizationRateLimitTier
 		}
 		id.PlanLabel = PlanLabel(string(acct.OrganizationType), tier)
-		id.Billing = agentcli.BillingSubscription
+		id.Billing = agentio.BillingSubscription
 	}
 	c, cerr := a.Credential(h)
 	if cerr != nil {
-		if errors.Is(cerr, agentcli.ErrNotLoggedIn) {
+		if errors.Is(cerr, agentio.ErrNotLoggedIn) {
 			return id, nil
 		}
 		return id, cerr
 	}
 	id.LoggedIn, id.ExpiresAt = true, c.ExpiresAt
-	id.Identity.Credential = agentcli.CredentialFile
+	id.Identity.Credential = agentio.CredentialFile
 	if c.Source == SourceKeychain {
-		id.Identity.Credential = agentcli.CredentialKeychain
+		id.Identity.Credential = agentio.CredentialKeychain
 	}
 	if id.PlanLabel == "" {
 		id.PlanLabel = PlanLabel(c.SubscriptionType, c.RateLimitTier)
 	}
 	if c.SubscriptionType != "" {
-		id.Billing = agentcli.BillingSubscription
+		id.Billing = agentio.BillingSubscription
 	}
 	id.Credential = &CredentialSummary{Source: c.Source, Location: c.Location, ExpiresAt: c.ExpiresAt, Scopes: c.Scopes, SubscriptionType: c.SubscriptionType, RateLimitTier: c.RateLimitTier}
 	return id, nil
@@ -251,44 +251,44 @@ const SetupTokenLifetime = 365 * 24 * time.Hour
 
 // TokenKinds lists the token logins Claude supports, OAuth token first so a
 // plain login spends plan quota rather than an API key. cost: Pure.
-func (a *Agent) TokenKinds() []agentcli.TokenKind {
-	return []agentcli.TokenKind{agentcli.TokenOAuthToken, agentcli.TokenAPIKey}
+func (a *Agent) TokenKinds() []agentio.TokenKind {
+	return []agentio.TokenKind{agentio.TokenOAuthToken, agentio.TokenAPIKey}
 }
 
 // DetectTokenKind classifies a token by prefix; false for no known prefix.
 // Refresh tokens and Admin keys are refused with ErrUnusableToken. cost: Pure.
-func (a *Agent) DetectTokenKind(t agentcli.Token) (agentcli.TokenKind, bool, error) {
+func (a *Agent) DetectTokenKind(t agentio.Token) (agentio.TokenKind, bool, error) {
 	v := strings.TrimSpace(t.Reveal())
 	switch {
 	case strings.HasPrefix(v, oauthAccessPrefix):
-		return agentcli.TokenOAuthToken, true, nil
+		return agentio.TokenOAuthToken, true, nil
 	case strings.HasPrefix(v, apiKeyPrefix):
-		return agentcli.TokenAPIKey, true, nil
+		return agentio.TokenAPIKey, true, nil
 	case strings.HasPrefix(v, oauthRefreshPrefix):
-		return agentcli.TokenKindUnknown, true, fmt.Errorf("%w: it is an OAuth refresh token; use the token `claude setup-token` prints", ErrUnusableToken)
+		return agentio.TokenKindUnknown, true, fmt.Errorf("%w: it is an OAuth refresh token; use the token `claude setup-token` prints", ErrUnusableToken)
 	case strings.HasPrefix(v, adminKeyPrefix):
-		return agentcli.TokenKindUnknown, true, fmt.Errorf("%w: it is an Admin API key", ErrUnusableToken)
+		return agentio.TokenKindUnknown, true, fmt.Errorf("%w: it is an Admin API key", ErrUnusableToken)
 	}
-	return agentcli.TokenKindUnknown, false, nil
+	return agentio.TokenKindUnknown, false, nil
 }
 
 // TokenEnv maps a token login onto Claude's variables: the token's own
 // variable set as a secret; the other credential variables are scrubbed by
 // the core (invariant 9). cost: Pure.
-func (a *Agent) TokenEnv(c agentcli.TokenCredential) ([]agentcli.EnvChange, error) {
+func (a *Agent) TokenEnv(c agentio.TokenCredential) ([]agentio.EnvChange, error) {
 	switch c.Kind {
-	case agentcli.TokenOAuthToken:
-		return []agentcli.EnvChange{agentcli.EnvSetSecret(OAuthTokenEnv, c.Token)}, nil
-	case agentcli.TokenAPIKey:
-		return []agentcli.EnvChange{agentcli.EnvSetSecret(APIKeyEnv, c.Token)}, nil
+	case agentio.TokenOAuthToken:
+		return []agentio.EnvChange{agentio.EnvSetSecret(OAuthTokenEnv, c.Token)}, nil
+	case agentio.TokenAPIKey:
+		return []agentio.EnvChange{agentio.EnvSetSecret(APIKeyEnv, c.Token)}, nil
 	}
-	return nil, agentcli.UnsupportedError(ID, "token kind "+c.Kind.String(), "Claude takes an OAuth token or an API key")
+	return nil, agentio.UnsupportedError(ID, "token kind "+c.Kind.String(), "Claude takes an OAuth token or an API key")
 }
 
 // TokenLifetime is how long a token kind stays valid; 0 = until revoked.
 // cost: Pure.
-func (a *Agent) TokenLifetime(k agentcli.TokenKind) time.Duration {
-	if k == agentcli.TokenOAuthToken {
+func (a *Agent) TokenLifetime(k agentio.TokenKind) time.Duration {
+	if k == agentio.TokenOAuthToken {
 		return SetupTokenLifetime
 	}
 	return 0
@@ -331,9 +331,9 @@ func (a *Agent) Prober() *Prober { return &Prober{a: a} }
 // probed (ErrBilledPerToken). A 429 carrying the unified headers is parsed
 // as usage at its limit (invariant 7). cost: Quota · Read: spends a few
 // tokens; never loop.
-func (p *Prober) TokenUsage(ctx context.Context, c agentcli.TokenCredential) (Usage, error) {
-	if c.Kind != agentcli.TokenOAuthToken {
-		return Usage{Usage: agentcli.Usage{Agent: ID, Billing: agentcli.BillingPerToken}}, agentcli.ErrBilledPerToken
+func (p *Prober) TokenUsage(ctx context.Context, c agentio.TokenCredential) (Usage, error) {
+	if c.Kind != agentio.TokenOAuthToken {
+		return Usage{Usage: agentio.Usage{Agent: ID, Billing: agentio.BillingPerToken}}, agentio.ErrBilledPerToken
 	}
 	body, err := json.Marshal(probeBody{Model: probeModel, MaxTokens: probeMaxTokens, System: probeSystem, Messages: []probeMessage{{Role: probeRole, Content: probeUserText}}})
 	if err != nil {
@@ -365,12 +365,12 @@ func (p *Prober) TokenUsage(ctx context.Context, c agentcli.TokenCredential) (Us
 	}
 	switch {
 	case resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden:
-		return Usage{}, fmt.Errorf("%w (HTTP %d%s)", agentcli.ErrUnauthorized, resp.StatusCode, apiMessage(rb, tok))
+		return Usage{}, fmt.Errorf("%w (HTTP %d%s)", agentio.ErrUnauthorized, resp.StatusCode, apiMessage(rb, tok))
 	case resp.StatusCode == http.StatusTooManyRequests:
 		if u, perr := ParseProbeHeaders(resp.Header); perr == nil {
 			return p.a.probed(u), nil
 		}
-		return Usage{}, agentcli.RateLimitError(resp.Header, p.a.now())
+		return Usage{}, agentio.RateLimitError(resp.Header, p.a.now())
 	case resp.StatusCode != http.StatusOK:
 		return Usage{}, fmt.Errorf("claude: probe: unexpected HTTP %d: %s", resp.StatusCode, snippet([]byte(redactIn(string(rb), tok))))
 	}
@@ -381,7 +381,7 @@ func (p *Prober) TokenUsage(ctx context.Context, c agentcli.TokenCredential) (Us
 	return p.a.probed(u), nil
 }
 
-func (a *Agent) probed(u agentcli.Usage) Usage {
+func (a *Agent) probed(u agentio.Usage) Usage {
 	u.ObservedAt = a.now()
 	return Usage{Usage: u}
 }

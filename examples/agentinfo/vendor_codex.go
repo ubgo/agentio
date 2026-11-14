@@ -5,12 +5,12 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/khanakia/agentcli"
-	"github.com/khanakia/agentcli/codex"
+	"github.com/ubgo/agentio"
+	"github.com/ubgo/agentio/codex"
 )
 
 // codexCompat compares the on-disk Codex version with codex.Compat(). Disk · Read.
-func codexCompat(_ *codex.Agent, inst *agentcli.Install) *CompatReport {
+func codexCompat(_ *codex.Agent, inst *agentio.Install) *CompatReport {
 	c := codex.Compat()
 	r := &CompatReport{TestedMin: codex.TestedMin, TestedMax: codex.TestedMax}
 	if inst != nil {
@@ -22,7 +22,7 @@ func codexCompat(_ *codex.Agent, inst *agentcli.Install) *CompatReport {
 
 // codexHome fills the Codex L3 parts of a home report: named paths and a
 // value-free config.toml summary. Disk · Read.
-func codexHome(hr *HomeReport, x *codex.Agent, n agentcli.Home) {
+func codexHome(hr *HomeReport, x *codex.Agent, n agentio.Home) {
 	h, err := x.HomeOf(n)
 	if err != nil {
 		hr.Errors = addErr(hr.Errors, "home", err)

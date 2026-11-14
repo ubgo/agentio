@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Rollout file naming: sessions/YYYY/MM/DD/rollout-<ts>-<uuid>.jsonl.
@@ -35,7 +35,7 @@ type Conversation struct {
 	Title         string // session_index thread_name (last wins), else the first user message (head read, truncated)
 	Created       time.Time
 	Updated       time.Time // file mtime
-	CLIVersion    agentcli.Version
+	CLIVersion    agentio.Version
 	Source        SessionSource
 	Originator    string // "codex-tui" | "Codex Desktop" | "codex_exec" …
 	ModelProvider string
@@ -43,9 +43,9 @@ type Conversation struct {
 	Archived      bool // under archived_sessions/
 }
 
-// Neutral projects onto agentcli.Conversation. Pure.
-func (c Conversation) Neutral() agentcli.Conversation {
-	return agentcli.Conversation{Agent: ID, Home: c.Home.Neutral(), ID: c.ID, Title: c.Title, Dir: c.Dir, Path: c.Path, Created: c.Created, Updated: c.Updated}
+// Neutral projects onto agentio.Conversation. Pure.
+func (c Conversation) Neutral() agentio.Conversation {
+	return agentio.Conversation{Agent: ID, Home: c.Home.Neutral(), ID: c.ID, Title: c.Title, Dir: c.Dir, Path: c.Path, Created: c.Created, Updated: c.Updated}
 }
 
 // ConversationQuery filters Conversations. Zero values do not filter.
@@ -339,7 +339,7 @@ func (a *Agent) CachedUsage(h Home) (Usage, bool, error) {
 func usageFromSnapshot(r Record) Usage {
 	rl := r.Event.RateLimits
 	u := Usage{
-		ObservedAt: r.Time, Source: agentcli.UsageTranscript,
+		ObservedAt: r.Time, Source: agentio.UsageTranscript,
 		Credits: rl.Credits, IndividualLimit: rl.IndividualLimit, SpendControlReached: rl.SpendControlReached,
 		LimitReached: rl.RateLimitReachedType != "",
 	}
@@ -350,7 +350,7 @@ func usageFromSnapshot(r Record) Usage {
 		Payload json.RawMessage `json:"payload"`
 	}
 	if json.Unmarshal(r.Raw, &payload) == nil {
-		u.Raw = agentcli.Raw(payload.Payload)
+		u.Raw = agentio.Raw(payload.Payload)
 	}
 	for _, pair := range []struct {
 		w      *RateLimitWindow
@@ -374,7 +374,7 @@ func usageFromSnapshot(r Record) Usage {
 // (G4, G6). Both the 0.15x+ item_completed items and the older
 // user_message / agent_message events are read; when a file has both,
 // item_completed wins so a message is not reported twice. Disk · Read.
-func (a *Agent) Turns(h Home, id string, from agentcli.Offset, fn func(agentcli.Turn) error) (agentcli.Offset, error) {
+func (a *Agent) Turns(h Home, id string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {
 	c, err := a.Conversation(h, id)
 	if err != nil {
 		return from, err
@@ -382,7 +382,7 @@ func (a *Agent) Turns(h Home, id string, from agentcli.Offset, fn func(agentcli.
 	return turnsFromPath(c.Path, id, from, fn)
 }
 
-func turnsFromPath(path, id string, from agentcli.Offset, fn func(agentcli.Turn) error) (agentcli.Offset, error) {
+func turnsFromPath(path, id string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {
 	r, err := openRolloutAt(path, from)
 	if err != nil {
 		return from, err
@@ -391,7 +391,7 @@ func turnsFromPath(path, id string, from agentcli.Offset, fn func(agentcli.Turn)
 	defer func() { _ = r.Close() }()
 	var (
 		dir, model, version string
-		pending             *agentcli.Turn
+		pending             *agentio.Turn
 		sawItems            bool
 	)
 	flush := func() error {
@@ -420,7 +420,7 @@ func turnsFromPath(path, id string, from agentcli.Offset, fn func(agentcli.Turn)
 			}
 		case rec.Event != nil:
 			ev := rec.Event
-			base := agentcli.Turn{Time: rec.Time, ConversationID: id, Dir: dir, Model: model, AgentVersion: version, Raw: rec.Raw}
+			base := agentio.Turn{Time: rec.Time, ConversationID: id, Dir: dir, Model: model, AgentVersion: version, Raw: rec.Raw}
 			switch {
 			case ev.Type == EventItemCompleted && ev.Item != nil:
 				role, ok := itemRole(ev.Item.Type)
@@ -437,15 +437,15 @@ func turnsFromPath(path, id string, from agentcli.Offset, fn func(agentcli.Turn)
 				if err := flush(); err != nil {
 					return r.Offset(), err
 				}
-				base.Role = agentcli.RoleUser
+				base.Role = agentio.RoleUser
 				if ev.Type == EventAgentMessage {
-					base.Role = agentcli.RoleAssistant
+					base.Role = agentio.RoleAssistant
 				}
 				base.Text = ev.Message
 				pending = &base
 			case ev.Type == EventTokenCount && ev.Info != nil && ev.Info.LastTokenUsage != nil:
 				// token counts follow the assistant message of the same turn
-				if pending != nil && pending.Role == agentcli.RoleAssistant && pending.Tokens == nil {
+				if pending != nil && pending.Role == agentio.RoleAssistant && pending.Tokens == nil {
 					n := ev.Info.LastTokenUsage.Neutral()
 					pending.Tokens = &n
 				}
@@ -458,12 +458,12 @@ func turnsFromPath(path, id string, from agentcli.Offset, fn func(agentcli.Turn)
 	return r.Offset(), nil
 }
 
-func itemRole(t ItemType) (agentcli.Role, bool) {
+func itemRole(t ItemType) (agentio.Role, bool) {
 	switch t {
 	case ItemUserMessage:
-		return agentcli.RoleUser, true
+		return agentio.RoleUser, true
 	case ItemAgentMessage:
-		return agentcli.RoleAssistant, true
+		return agentio.RoleAssistant, true
 	}
 	return 0, false
 }

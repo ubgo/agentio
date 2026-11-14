@@ -1,6 +1,6 @@
 // Closed sets owned by the library (SPEC §5.5): uint8 values with String, MarshalText, UnmarshalText, a Values list and a Parse function each.
 
-package agentcli
+package agentio
 
 // CostClass orders what a call may spend (SPEC §4). Library-owned closed set; a capability's cost is the worst case of its methods.
 type CostClass uint8

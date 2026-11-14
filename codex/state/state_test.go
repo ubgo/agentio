@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/khanakia/agentcli/codex"
+	"github.com/ubgo/agentio/codex"
 )
 
 // migrationDirs maps each store to its upstream migrations, copied

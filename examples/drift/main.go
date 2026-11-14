@@ -1,7 +1,7 @@
 // Command drift is the release-routine drift check (SPEC §10): it reads the
 // real Claude Code and Codex homes of this machine through HostFromOS,
 // decodes every modelled file with the library's own readers, and lists what
-// the library does not know yet: unknown keys (every agentcli.Unknown field
+// the library does not know yet: unknown keys (every agentio.Unknown field
 // reached in the decoded values), unknown enum values (open string types
 // whose IsKnown is false), unknown transcript record types, decode warnings,
 // unknown format versions, and the installed version against Compat().
@@ -28,9 +28,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/khanakia/agentcli"
-	"github.com/khanakia/agentcli/claude"
-	"github.com/khanakia/agentcli/codex"
+	"github.com/ubgo/agentio"
+	"github.com/ubgo/agentio/claude"
+	"github.com/ubgo/agentio/codex"
 )
 
 // Limits keep one run quick on homes with thousands of transcripts: the
@@ -161,18 +161,18 @@ func (w walker) walk(v reflect.Value, path string) {
 		return
 	}
 	switch v.Type() {
-	case reflect.TypeFor[agentcli.Unknown]():
+	case reflect.TypeFor[agentio.Unknown]():
 		for _, k := range v.MapKeys() {
 			w.add(kindUnknownKey, strings.TrimPrefix(path+"."+k.String(), "."))
 		}
 		return
-	case reflect.TypeFor[agentcli.Warnings]():
+	case reflect.TypeFor[agentio.Warnings]():
 		for i := range v.Len() {
-			wn := v.Index(i).Interface().(agentcli.Warning)
+			wn := v.Index(i).Interface().(agentio.Warning)
 			w.add(kindWarning, fmt.Sprintf("%s %s %s: %s", wn.Kind, wn.File, wn.Key, wn.Detail))
 		}
 		return
-	case reflect.TypeFor[agentcli.Raw]():
+	case reflect.TypeFor[agentio.Raw]():
 		return
 	}
 	switch v.Kind() {
@@ -215,9 +215,9 @@ func (w walker) walk(v reflect.Value, path string) {
 func (w walker) read(source string, val reflect.Value, err error) {
 	w.source = source
 	switch {
-	case errors.Is(err, agentcli.ErrUnknownVersion):
+	case errors.Is(err, agentio.ErrUnknownVersion):
 		w.add(kindFormatVersion, err.Error())
-	case errors.Is(err, agentcli.ErrNotFound), errors.Is(err, agentcli.ErrUnsupported):
+	case errors.Is(err, agentio.ErrNotFound), errors.Is(err, agentio.ErrUnsupported):
 	case err != nil:
 		w.add(kindReadError, err.Error())
 	}
@@ -235,7 +235,7 @@ func main() {
 }
 
 func run(ctx context.Context, helpPath, basePath string, out io.Writer) error {
-	host, err := agentcli.HostFromOS()
+	host, err := agentio.HostFromOS()
 	if err != nil {
 		return err
 	}
@@ -263,7 +263,7 @@ func run(ctx context.Context, helpPath, basePath string, out io.Writer) error {
 }
 
 // versionLine prints the installed version against the tested range.
-func versionLine(out io.Writer, vendor string, inst agentcli.Install, err error, c agentcli.Compat) {
+func versionLine(out io.Writer, vendor string, inst agentio.Install, err error, c agentio.Compat) {
 	if err != nil {
 		fmt.Fprintf(out, "%s: install not found (%v)\n", vendor, err)
 		return
@@ -335,14 +335,14 @@ func claudeDrift(ctx context.Context, c *claude.Agent, r *report, out io.Writer)
 // transcriptDrift reads the tails of the newest transcripts: unknown record
 // types, and unknown keys / enum values inside assistant and user records.
 func transcriptDrift(ctx context.Context, c *claude.Agent, h claude.Home, w walker, out io.Writer) {
-	convs, err := c.Conversations(ctx, h, agentcli.ConversationQuery{Limit: transcriptSample})
+	convs, err := c.Conversations(ctx, h, agentio.ConversationQuery{Limit: transcriptSample})
 	w.read("conversations", reflect.ValueOf(convs), err)
 	versions := map[string]int{}
 	// firstSeen[type][key] is the oldest Claude Code version that wrote the
 	// key on a record of that type. Record has no Unknown (its typed views
 	// pick fields per type), so new top-level keys are found by version:
 	// a key first written after TestedMin is drift the fixtures predate.
-	firstSeen := map[claude.RecordType]map[string]agentcli.Version{}
+	firstSeen := map[claude.RecordType]map[string]agentio.Version{}
 	for _, conv := range convs {
 		recs, err := c.TranscriptTail(h, conv.ID, transcriptTail)
 		if err != nil {
@@ -367,7 +367,7 @@ func transcriptDrift(ctx context.Context, c *claude.Agent, h claude.Home, w walk
 			}
 		}
 	}
-	min := agentcli.MustVersion(claude.TestedMin)
+	min := agentio.MustVersion(claude.TestedMin)
 	w.source = "transcript"
 	for typ, keys := range firstSeen {
 		for k, v := range keys {
@@ -385,8 +385,8 @@ func transcriptDrift(ctx context.Context, c *claude.Agent, h claude.Home, w walk
 }
 
 // noteKeys records the top-level key names of rec against its version.
-func noteKeys(firstSeen map[claude.RecordType]map[string]agentcli.Version, rec claude.Record) {
-	v, ok := agentcli.ParseVersion(rec.Version)
+func noteKeys(firstSeen map[claude.RecordType]map[string]agentio.Version, rec claude.Record) {
+	v, ok := agentio.ParseVersion(rec.Version)
 	if !ok {
 		return
 	}
@@ -396,7 +396,7 @@ func noteKeys(firstSeen map[claude.RecordType]map[string]agentcli.Version, rec c
 	}
 	m := firstSeen[rec.Type]
 	if m == nil {
-		m = map[string]agentcli.Version{}
+		m = map[string]agentio.Version{}
 		firstSeen[rec.Type] = m
 	}
 	for k := range top {

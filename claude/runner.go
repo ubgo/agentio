@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Runner is the Process door: reads that run the claude binary through
@@ -34,7 +34,7 @@ const (
 // is an error carrying a stderr snippet.
 func (r *Runner) run(ctx context.Context, h Home, args ...string) ([]byte, error) {
 	if r.a.host.Exec == nil {
-		return nil, agentcli.UnsupportedError(ID, "run claude", "the host has no process runner")
+		return nil, agentio.UnsupportedError(ID, "run claude", "the host has no process runner")
 	}
 	cmd := r.a.command(h, args...)
 	res, err := r.a.host.Exec.Run(ctx, cmd, nil)
@@ -49,10 +49,10 @@ func (r *Runner) run(ctx context.Context, h Home, args ...string) ([]byte, error
 
 // BinaryVersion runs `claude --version` for the default home.
 // cost: Process · Read; login-safe only after the fixture test (SPEC §4).
-func (r *Runner) BinaryVersion(ctx context.Context) (agentcli.Version, error) {
+func (r *Runner) BinaryVersion(ctx context.Context) (agentio.Version, error) {
 	out, err := r.run(ctx, r.a.DefaultHome(), flagVersion)
 	if err != nil {
-		return agentcli.Version{}, err
+		return agentio.Version{}, err
 	}
 	return ParseVersion(string(out))
 }
@@ -65,20 +65,20 @@ type APIProvider string
 
 // AuthStatus is `claude auth status --json`.
 type AuthStatus struct {
-	LoggedIn            bool              `json:"loggedIn"`
-	AuthMethod          AuthMethod        `json:"authMethod"`
-	APIProvider         APIProvider       `json:"apiProvider"`
-	AnalyticsDisabled   bool              `json:"analyticsDisabled"`
-	ProjectsDirectory   string            `json:"projectsDirectory"`
-	ConfigDirectory     string            `json:"configDirectory"`
-	LoginExpiresAt      *time.Time        `json:"loginExpiresAt"`
-	Email               agentcli.Personal `json:"email"`
-	OrgID               agentcli.Personal `json:"orgId"`
-	OrgName             agentcli.Personal `json:"orgName"`
-	SubscriptionType    string            `json:"subscriptionType"`
-	PlanTier            string            `json:"planTier"`
-	StoredClaudeAILogin bool              `json:"storedClaudeAiLogin"`
-	Unknown             agentcli.Unknown  `json:"-"`
+	LoggedIn            bool             `json:"loggedIn"`
+	AuthMethod          AuthMethod       `json:"authMethod"`
+	APIProvider         APIProvider      `json:"apiProvider"`
+	AnalyticsDisabled   bool             `json:"analyticsDisabled"`
+	ProjectsDirectory   string           `json:"projectsDirectory"`
+	ConfigDirectory     string           `json:"configDirectory"`
+	LoginExpiresAt      *time.Time       `json:"loginExpiresAt"`
+	Email               agentio.Personal `json:"email"`
+	OrgID               agentio.Personal `json:"orgId"`
+	OrgName             agentio.Personal `json:"orgName"`
+	SubscriptionType    string           `json:"subscriptionType"`
+	PlanTier            string           `json:"planTier"`
+	StoredClaudeAILogin bool             `json:"storedClaudeAiLogin"`
+	Unknown             agentio.Unknown  `json:"-"`
 }
 
 // ParseAuthStatus decodes auth status JSON. cost: Pure.
@@ -168,16 +168,16 @@ func (r *Runner) Marketplaces(ctx context.Context, h Home) ([]RunnerMarketplace,
 
 // BackgroundAgent is one row of `claude agents --json`.
 type BackgroundAgent struct {
-	ID        string           `json:"id"`
-	PID       int              `json:"pid"`
-	SessionID string           `json:"sessionId"`
-	Name      string           `json:"name"`
-	Cwd       string           `json:"cwd"`
-	Kind      string           `json:"kind"`
-	State     string           `json:"state"`
-	Status    string           `json:"status"`
-	StartedAt millis           `json:"startedAt"`
-	Unknown   agentcli.Unknown `json:"-"`
+	ID        string          `json:"id"`
+	PID       int             `json:"pid"`
+	SessionID string          `json:"sessionId"`
+	Name      string          `json:"name"`
+	Cwd       string          `json:"cwd"`
+	Kind      string          `json:"kind"`
+	State     string          `json:"state"`
+	Status    string          `json:"status"`
+	StartedAt millis          `json:"startedAt"`
+	Unknown   agentio.Unknown `json:"-"`
 }
 
 // BackgroundAgents runs `claude agents --json [--all]`. cost: Process ·
@@ -200,16 +200,16 @@ func (r *Runner) BackgroundAgents(ctx context.Context, h Home, all bool) ([]Back
 
 // AutoModeConfig runs `claude auto-mode config`; Raw until a sample is
 // recorded. cost: Process · Read · may touch login.
-func (r *Runner) AutoModeConfig(ctx context.Context, h Home) (agentcli.Raw, error) {
+func (r *Runner) AutoModeConfig(ctx context.Context, h Home) (agentio.Raw, error) {
 	out, err := r.run(ctx, h, subAutoMode, subConfig)
-	return agentcli.Raw(out), err
+	return agentio.Raw(out), err
 }
 
 // AutoModeDefaults runs `claude auto-mode defaults`; Raw until sampled.
 // cost: Process · Read · may touch login.
-func (r *Runner) AutoModeDefaults(ctx context.Context, h Home) (agentcli.Raw, error) {
+func (r *Runner) AutoModeDefaults(ctx context.Context, h Home) (agentio.Raw, error) {
 	out, err := r.run(ctx, h, subAutoMode, subDefaults)
-	return agentcli.Raw(out), err
+	return agentio.Raw(out), err
 }
 
 // ManagedPlist converts the macOS managed preferences plist to JSON with
@@ -220,9 +220,9 @@ func (r *Runner) ManagedPlist(ctx context.Context) (*SettingsLayer, error) {
 		return nil, nil
 	}
 	if r.a.host.Exec == nil {
-		return nil, agentcli.UnsupportedError(ID, "managed plist", "the host has no process runner")
+		return nil, agentio.UnsupportedError(ID, "managed plist", "the host has no process runner")
 	}
-	cmd := agentcli.NewCommand(plutilBin, []string{plutilConvert, plutilJSONFormat, plutilOutput, plutilStdout, managedPlistPath}, r.a.host.Env, "")
+	cmd := agentio.NewCommand(plutilBin, []string{plutilConvert, plutilJSONFormat, plutilOutput, plutilStdout, managedPlistPath}, r.a.host.Env, "")
 	res, err := r.a.host.Exec.Run(ctx, cmd, nil)
 	if err != nil {
 		return nil, fmt.Errorf("claude: plutil: %w", err)

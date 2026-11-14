@@ -24,8 +24,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/khanakia/agentcli"
-	"github.com/khanakia/agentcli/codex"
+	"github.com/ubgo/agentio"
+	"github.com/ubgo/agentio/codex"
 
 	// Registers the pure-Go "sqlite" driver.
 	_ "modernc.org/sqlite"
@@ -105,7 +105,7 @@ var ErrSchemaTooNew = errors.New("codex/state: database schema is newer than thi
 
 // ErrNotFound means a requested thread does not exist. It is the root
 // sentinel, so callers branch on one value across modules.
-var ErrNotFound = agentcli.ErrNotFound
+var ErrNotFound = agentio.ErrNotFound
 
 // SchemaTooNewError reports a store whose _sqlx_migrations version is past
 // MaxKnownMigration. It matches errors.Is(err, ErrSchemaTooNew).

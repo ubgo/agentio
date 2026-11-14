@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Install method values derived from the binary's real path. "native" and
@@ -17,8 +17,8 @@ import (
 // ~/.local/share/claude/versions/2.1.323; the owner's Mac: Homebrew npm
 // package); "homebrew-cask" is from docs.
 const (
-	InstallNPMGlobal    agentcli.InstallMethod = "npm-global"
-	InstallHomebrewCask agentcli.InstallMethod = "homebrew-cask"
+	InstallNPMGlobal    agentio.InstallMethod = "npm-global"
+	InstallHomebrewCask agentio.InstallMethod = "homebrew-cask"
 )
 
 // Real-path shapes that tell the install method.
@@ -33,7 +33,7 @@ const (
 // native versions dir name or the npm package.json), never from running
 // the binary.
 type Install struct {
-	agentcli.Install
+	agentio.Install
 	// RawMethod is ~/.claude.json installMethod verbatim ("native", "global").
 	RawMethod          string
 	Channel            UpdateChannel
@@ -43,7 +43,7 @@ type Install struct {
 }
 
 // Neutral returns the shared install facts. cost: Pure.
-func (i Install) Neutral() agentcli.Install { return i.Install }
+func (i Install) Neutral() agentio.Install { return i.Install }
 
 // UpdateResult is .last-update-result.json.
 type UpdateResult struct {
@@ -51,9 +51,9 @@ type UpdateResult struct {
 	Path      string
 	Outcome   string
 	Status    string
-	From, To  agentcli.Version
+	From, To  agentio.Version
 	ErrorCode *string
-	Unknown   agentcli.Unknown
+	Unknown   agentio.Unknown
 }
 
 type wireUpdateResult struct {
@@ -80,49 +80,49 @@ func (a *Agent) LastUpdate(h Home) (*UpdateResult, error) {
 		return nil, err
 	}
 	return &UpdateResult{At: w.Timestamp, Path: w.Path, Outcome: w.Outcome, Status: w.Status,
-		From: agentcli.MustVersion(w.VersionFrom), To: agentcli.MustVersion(w.VersionTo), ErrorCode: w.ErrorCode, Unknown: unknown}, nil
+		From: agentio.MustVersion(w.VersionFrom), To: agentio.MustVersion(w.VersionTo), ErrorCode: w.ErrorCode, Unknown: unknown}, nil
 }
 
 // ParseVersion parses "2.1.323 (Claude Code)". cost: Pure.
-func ParseVersion(s string) (agentcli.Version, error) {
-	v, ok := agentcli.ParseVersion(s)
+func ParseVersion(s string) (agentio.Version, error) {
+	v, ok := agentio.ParseVersion(s)
 	if !ok {
-		return agentcli.Version{}, fmt.Errorf("claude: no version in %q", s)
+		return agentio.Version{}, fmt.Errorf("claude: no version in %q", s)
 	}
 	return v, nil
 }
 
 // methodAndVersion derives the install method and on-disk version from the
 // resolved binary path.
-func methodAndVersion(real string) (agentcli.InstallMethod, agentcli.Version) {
+func methodAndVersion(real string) (agentio.InstallMethod, agentio.Version) {
 	slash := filepath.ToSlash(real)
 	switch {
 	case strings.Contains(slash, nativeVersionsDir):
-		v, _ := agentcli.ParseVersion(filepath.Base(real))
-		return agentcli.InstallNative, v
+		v, _ := agentio.ParseVersion(filepath.Base(real))
+		return agentio.InstallNative, v
 	case strings.Contains(slash, npmPackageDir):
 		i := strings.Index(slash, npmPackageDir)
 		pkg := filepath.FromSlash(slash[:i+len(npmPackageDir)])
 		return InstallNPMGlobal, packageVersion(filepath.Join(pkg, packageJSONFile))
 	case strings.Contains(slash, caskroomDir):
-		return InstallHomebrewCask, agentcli.Version{}
+		return InstallHomebrewCask, agentio.Version{}
 	}
-	return agentcli.InstallUnknown, agentcli.Version{}
+	return agentio.InstallUnknown, agentio.Version{}
 }
 
 // packageVersion reads "version" from an npm package.json; zero when absent.
-func packageVersion(path string) agentcli.Version {
+func packageVersion(path string) agentio.Version {
 	data, found, err := readFileBounded(path, maxResponseBytes)
 	if err != nil || !found {
-		return agentcli.Version{}
+		return agentio.Version{}
 	}
 	var w struct {
 		Version string `json:"version"`
 	}
 	if json.Unmarshal(data, &w) != nil {
-		return agentcli.Version{}
+		return agentio.Version{}
 	}
-	return agentcli.MustVersion(w.Version)
+	return agentio.MustVersion(w.Version)
 }
 
 // Install reports the PATH hit, its real path, method, on-disk version,
@@ -134,13 +134,13 @@ func (a *Agent) Install() (Install, error) {
 	if err != nil {
 		return Install{}, err
 	}
-	inst := Install{Install: agentcli.Install{Path: path, RealPath: path}}
+	inst := Install{Install: agentio.Install{Path: path, RealPath: path}}
 	if real, err := filepath.EvalSymlinks(path); err == nil {
 		inst.RealPath = real
 	}
 	inst.Method, inst.Version = methodAndVersion(inst.RealPath)
 	pathList, _ := a.host.Getenv(pathEnv)
-	for _, p := range agentcli.LookPathAll(pathList, Binary) {
+	for _, p := range agentio.LookPathAll(pathList, Binary) {
 		if p != path {
 			inst.Shadowed = append(inst.Shadowed, p)
 		}

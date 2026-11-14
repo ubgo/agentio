@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // PluginID is "<plugin>@<marketplace>".
@@ -48,7 +48,7 @@ type MarketplaceSource struct {
 	Repo    string                `json:"repo,omitempty"`
 	URL     string                `json:"url,omitempty"`
 	Path    string                `json:"path,omitempty"`
-	Unknown agentcli.Unknown      `json:"-"`
+	Unknown agentio.Unknown       `json:"-"`
 }
 
 // UnmarshalJSON keeps unknown keys. cost: Pure.
@@ -75,7 +75,7 @@ type InstalledPlugin struct {
 	// ProjectEnabled: a project or local layer enables it.
 	ProjectEnabled bool
 	DataDir        string
-	Unknown        agentcli.Unknown
+	Unknown        agentio.Unknown
 }
 
 // installedPluginsVersion is the only installed_plugins.json format recorded.
@@ -117,7 +117,7 @@ func (a *Agent) Plugins(h Home, p *Project) ([]InstalledPlugin, error) {
 		return nil, fmt.Errorf("claude: decode %s: %w", pp.Installed, err)
 	}
 	if w.Version != installedPluginsVersion {
-		return nil, fmt.Errorf("%w: %s version %d", agentcli.ErrUnknownVersion, pp.Installed, w.Version)
+		return nil, fmt.Errorf("%w: %s version %d", agentio.ErrUnknownVersion, pp.Installed, w.Version)
 	}
 	enabled := map[PluginID]bool{}
 	projectEnabled := map[PluginID]bool{}
@@ -205,8 +205,8 @@ func (a *Agent) Marketplaces(h Home) ([]Marketplace, error) {
 // Blocklist is plugins/blocklist.json.
 type Blocklist struct {
 	FetchedAt *time.Time
-	Plugins   agentcli.Raw // entry shape not sampled; kept raw
-	Unknown   agentcli.Unknown
+	Plugins   agentio.Raw // entry shape not sampled; kept raw
+	Unknown   agentio.Unknown
 }
 
 type wireBlocklist struct {
@@ -237,7 +237,7 @@ type PluginManifest struct {
 	Skills, Agents, Commands   []string
 	Hooks, MCPServers          []string
 	OutputStyles               []string
-	Unknown                    agentcli.Unknown
+	Unknown                    agentio.Unknown
 }
 
 // stringList decodes a JSON string or string array; anything else is nil.
@@ -280,7 +280,7 @@ func (a *Agent) PluginManifest(installPath string) (PluginManifest, error) {
 		return PluginManifest{}, err
 	}
 	if !found {
-		return PluginManifest{}, fmt.Errorf("%w: %s", agentcli.ErrNotFound, p)
+		return PluginManifest{}, fmt.Errorf("%w: %s", agentio.ErrNotFound, p)
 	}
 	var w wireManifest
 	unknown, _, err := decodeLenient(pluginManifestFile, data, reflect.TypeFor[wireManifest](), func(b []byte) error { return json.Unmarshal(b, &w) })

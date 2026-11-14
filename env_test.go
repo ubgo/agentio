@@ -1,4 +1,4 @@
-package agentcli
+package agentio
 
 import (
 	"encoding/json"
@@ -111,7 +111,7 @@ func TestApplyEnv_Matrix(t *testing.T) {
 // TestRedaction proves invariant 8 for every redacting type and Command.
 func TestRedaction(t *testing.T) {
 	t.Parallel()
-	const secret = "sk-ant-oat01-SECRETVALUE"
+	const secret = "sk-ant-oat01.SECRETVALUE"
 	tok := NewToken(secret)
 	var logBuf strings.Builder
 	slog.New(slog.NewTextHandler(&logBuf, nil)).Info("x", "tok", tok, "p", NewPersonal(secret), "e", NewEnvValue(secret))

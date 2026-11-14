@@ -1,4 +1,4 @@
-package agentcli_test
+package agentio_test
 
 import (
 	"context"
@@ -10,13 +10,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/khanakia/agentcli"
-	"github.com/khanakia/agentcli/agenttest"
+	"github.com/ubgo/agentio"
+	"github.com/ubgo/agentio/agenttest"
 )
 
 // sampleSpec is a config-only agent shaped like a real CLI.
-func sampleSpec() agentcli.Spec {
-	return agentcli.Spec{
+func sampleSpec() agentio.Spec {
+	return agentio.Spec{
 		ID: "toy", Name: "Toy Agent", Binary: "toy",
 		HomeEnv: "TOY_HOME", DefaultHome: ".toy", ExtraHomes: ".toy-*",
 		HomeMarkers: []string{"config.json"},
@@ -26,19 +26,19 @@ func sampleSpec() agentcli.Spec {
 		VersionArgs: []string{"--version"}, LoginArgs: []string{"login"}, LogoutArgs: []string{"logout"},
 		SharedHomeFiles: []string{"AGENTS.md", "settings.json"},
 		CredentialEnv:   []string{"TOY_API_KEY", "TOY_TOKEN"}, APIBillingEnv: []string{"TOY_API_KEY"},
-		Process: agentcli.ProcessMatch{Basenames: []string{"toy"}, ArgvContains: []string{"@toy/cli"}, Exclude: []string{"Toy.app"}},
+		Process: agentio.ProcessMatch{Basenames: []string{"toy"}, ArgvContains: []string{"@toy/cli"}, Exclude: []string{"Toy.app"}},
 	}
 }
 
 // newToy builds the sample agent on a fixture host with a default and a
 // work home on disk.
-func newToy(t *testing.T, opts ...agenttest.HostOption) (agentcli.Agent, agentcli.Host) {
+func newToy(t *testing.T, opts ...agenttest.HostOption) (agentio.Agent, agentio.Host) {
 	t.Helper()
 	host := agenttest.NewHost(t, opts...)
 	agenttest.WriteFile(t, host.UserHome, ".toy/config.json", "{}")
 	agenttest.WriteFile(t, host.UserHome, ".toy-work/config.json", "{}")
 	agenttest.WriteFile(t, host.UserHome, ".toy-empty/other", "")
-	a, err := agentcli.FromSpec(sampleSpec(), host)
+	a, err := agentio.FromSpec(sampleSpec(), host)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,25 +47,25 @@ func newToy(t *testing.T, opts ...agenttest.HostOption) (agentcli.Agent, agentcl
 
 func TestFromSpec_Conformance(t *testing.T) {
 	a, host := newToy(t)
-	agenttest.Conformance(t, a, agentcli.NewHome("toy", filepath.Join(host.UserHome, ".toy-work"), false, "work"))
+	agenttest.Conformance(t, a, agentio.NewHome("toy", filepath.Join(host.UserHome, ".toy-work"), false, "work"))
 }
 
 func TestFromSpec_Validation(t *testing.T) {
 	t.Parallel()
 	host := agenttest.NewHost(t)
-	for name, mut := range map[string]func(*agentcli.Spec){
-		"bad id":           func(s *agentcli.Spec) { s.ID = "Toy" },
-		"no binary":        func(s *agentcli.Spec) { s.Binary = "" },
-		"env without home": func(s *agentcli.Spec) { s.DefaultHome = "" },
-		"absolute home":    func(s *agentcli.Spec) { s.DefaultHome = "/etc/toy" },
-		"escaping home":    func(s *agentcli.Spec) { s.DefaultHome = "../toy" },
-		"resume no id":     func(s *agentcli.Spec) { s.ResumeArgs = []string{"--resume"} },
-		"model no slot":    func(s *agentcli.Spec) { s.ModelArgs = []string{"--model"} },
-		"bad glob":         func(s *agentcli.Spec) { s.ExtraHomes = "[" },
+	for name, mut := range map[string]func(*agentio.Spec){
+		"bad id":           func(s *agentio.Spec) { s.ID = "Toy" },
+		"no binary":        func(s *agentio.Spec) { s.Binary = "" },
+		"env without home": func(s *agentio.Spec) { s.DefaultHome = "" },
+		"absolute home":    func(s *agentio.Spec) { s.DefaultHome = "/etc/toy" },
+		"escaping home":    func(s *agentio.Spec) { s.DefaultHome = "../toy" },
+		"resume no id":     func(s *agentio.Spec) { s.ResumeArgs = []string{"--resume"} },
+		"model no slot":    func(s *agentio.Spec) { s.ModelArgs = []string{"--model"} },
+		"bad glob":         func(s *agentio.Spec) { s.ExtraHomes = "[" },
 	} {
 		s := sampleSpec()
 		mut(&s)
-		if _, err := agentcli.FromSpec(s, host); !errors.Is(err, agentcli.ErrInvalidSpec) {
+		if _, err := agentio.FromSpec(s, host); !errors.Is(err, agentio.ErrInvalidSpec) {
 			t.Errorf("%s: err = %v, want ErrInvalidSpec", name, err)
 		}
 	}
@@ -75,10 +75,10 @@ func TestSpecLaunch_Matrix(t *testing.T) {
 	t.Parallel()
 	a, host := newToy(t)
 	def := a.DefaultHome()
-	work := agentcli.NewHome("toy", filepath.Join(host.UserHome, ".toy-work"), false, "work")
+	work := agentio.NewHome("toy", filepath.Join(host.UserHome, ".toy-work"), false, "work")
 	tgt := work.Target()
 	tgt.ExtraArgs = []string{"--profile-arg"}
-	cmd, err := a.Launch(tgt, agentcli.LaunchRequest{Dir: "/p", ResumeID: "abc", Model: "m1", AddDirs: []string{"/a", "/b"}, Prompt: "hi there", Args: []string{"--last"}})
+	cmd, err := a.Launch(tgt, agentio.LaunchRequest{Dir: "/p", ResumeID: "abc", Model: "m1", AddDirs: []string{"/a", "/b"}, Prompt: "hi there", Args: []string{"--last"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,16 +87,16 @@ func TestSpecLaunch_Matrix(t *testing.T) {
 		t.Errorf("cmd = %s %v dir %s, want %v", cmd.Path, cmd.Args, cmd.Dir, want)
 	}
 	for name, tc := range map[string]struct {
-		t   agentcli.Target
-		r   agentcli.LaunchRequest
+		t   agentio.Target
+		r   agentio.LaunchRequest
 		err error
 	}{
-		"full without allow": {def.Target(), agentcli.LaunchRequest{Autonomy: agentcli.AutonomyFull}, agentcli.ErrDangerousNotAllowed},
-		"full with allow":    {agentcli.Target{Home: def, AllowDangerous: true}, agentcli.LaunchRequest{Autonomy: agentcli.AutonomyFull}, agentcli.ErrUnsupported},
-		"read-only":          {def.Target(), agentcli.LaunchRequest{Autonomy: agentcli.AutonomyReadOnly}, agentcli.ErrUnsupported},
-		"headless":           {def.Target(), agentcli.LaunchRequest{Headless: true}, agentcli.ErrUnsupported},
-		"token":              {def.Target(), agentcli.LaunchRequest{Credential: &agentcli.TokenCredential{}}, agentcli.ErrUnsupported},
-		"foreign home":       {agentcli.NewHome("other", "/x", false, "x").Target(), agentcli.LaunchRequest{}, agentcli.ErrForeignHome},
+		"full without allow": {def.Target(), agentio.LaunchRequest{Autonomy: agentio.AutonomyFull}, agentio.ErrDangerousNotAllowed},
+		"full with allow":    {agentio.Target{Home: def, AllowDangerous: true}, agentio.LaunchRequest{Autonomy: agentio.AutonomyFull}, agentio.ErrUnsupported},
+		"read-only":          {def.Target(), agentio.LaunchRequest{Autonomy: agentio.AutonomyReadOnly}, agentio.ErrUnsupported},
+		"headless":           {def.Target(), agentio.LaunchRequest{Headless: true}, agentio.ErrUnsupported},
+		"token":              {def.Target(), agentio.LaunchRequest{Credential: &agentio.TokenCredential{}}, agentio.ErrUnsupported},
+		"foreign home":       {agentio.NewHome("other", "/x", false, "x").Target(), agentio.LaunchRequest{}, agentio.ErrForeignHome},
 	} {
 		if _, err := a.Launch(tc.t, tc.r); !errors.Is(err, tc.err) {
 			t.Errorf("%s: err = %v, want %v", name, err, tc.err)
@@ -104,12 +104,12 @@ func TestSpecLaunch_Matrix(t *testing.T) {
 	}
 	bare := sampleSpec()
 	bare.ID, bare.ModelArgs, bare.PromptArgs, bare.ResumeArgs = "bare", nil, nil, nil
-	b, err := agentcli.FromSpec(bare, host)
+	b, err := agentio.FromSpec(bare, host)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for name, r := range map[string]agentcli.LaunchRequest{"model": {Model: "x"}, "prompt": {Prompt: "x"}, "resume": {ResumeID: "x"}} {
-		if _, err := b.Launch(b.DefaultHome().Target(), r); !errors.Is(err, agentcli.ErrUnsupported) {
+	for name, r := range map[string]agentio.LaunchRequest{"model": {Model: "x"}, "prompt": {Prompt: "x"}, "resume": {ResumeID: "x"}} {
+		if _, err := b.Launch(b.DefaultHome().Target(), r); !errors.Is(err, agentio.ErrUnsupported) {
 			t.Errorf("bare %s: err = %v, want ErrUnsupported", name, err)
 		}
 	}
@@ -120,14 +120,14 @@ func TestSpecLaunch_Matrix(t *testing.T) {
 func TestCoreEnvChanges_TokenScrubAndHomeRuleWin(t *testing.T) {
 	t.Parallel()
 	host := agenttest.NewHost(t, agenttest.WithEnv("PATH=/bin", "TOY_TOKEN=inherited", "TOY_HOME=/stale"))
-	core, err := agentcli.NewCore(sampleSpec(), host)
+	core, err := agentio.NewCore(sampleSpec(), host)
 	if err != nil {
 		t.Fatal(err)
 	}
 	tgt := core.DefaultHome().Target()
-	tgt.ExtraEnv = []agentcli.EnvChange{agentcli.EnvSet("TOY_HOME", "/override"), agentcli.EnvSet("TOY_API_KEY", "profile-key"), agentcli.EnvSet("KEEP", "1")}
-	tok := agentcli.NewToken("tok-1")
-	cmd, err := core.Command(tgt, "", nil, []agentcli.EnvChange{agentcli.EnvSetSecret("TOY_TOKEN", tok)})
+	tgt.ExtraEnv = []agentio.EnvChange{agentio.EnvSet("TOY_HOME", "/override"), agentio.EnvSet("TOY_API_KEY", "profile-key"), agentio.EnvSet("KEEP", "1")}
+	tok := agentio.NewToken("tok-1")
+	cmd, err := core.Command(tgt, "", nil, []agentio.EnvChange{agentio.EnvSetSecret("TOY_TOKEN", tok)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,30 +184,30 @@ func TestHomesDiscovery(t *testing.T) {
 func TestSupportedAndGates(t *testing.T) {
 	t.Parallel()
 	a, _ := newToy(t)
-	got := agentcli.Supported(a)
-	want := []agentcli.Capability{agentcli.CapBinaryVersion, agentcli.CapLoginCommander, agentcli.CapProcessClassifier, agentcli.CapHomeLinker, agentcli.CapDoctor}
+	got := agentio.Supported(a)
+	want := []agentio.Capability{agentio.CapBinaryVersion, agentio.CapLoginCommander, agentio.CapProcessClassifier, agentio.CapHomeLinker, agentio.CapDoctor}
 	if !slices.Equal(got, want) {
 		t.Errorf("Supported = %v, want %v", got, want)
 	}
-	if r, ok := agentcli.Unsupported(a, agentcli.CapUsage); !ok || r == "" {
+	if r, ok := agentio.Unsupported(a, agentio.CapUsage); !ok || r == "" {
 		t.Error("config-only agent must declare why usage is missing")
 	}
 	s := sampleSpec()
-	s.ID, s.LoginArgs, s.SharedHomeFiles, s.VersionArgs, s.Process = "min", nil, nil, nil, agentcli.ProcessMatch{}
-	m, err := agentcli.FromSpec(s, agenttest.NewHost(t))
+	s.ID, s.LoginArgs, s.SharedHomeFiles, s.VersionArgs, s.Process = "min", nil, nil, nil, agentio.ProcessMatch{}
+	m, err := agentio.FromSpec(s, agenttest.NewHost(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := agentcli.Supported(m); !slices.Equal(got, []agentcli.Capability{agentcli.CapDoctor}) {
+	if got := agentio.Supported(m); !slices.Equal(got, []agentio.Capability{agentio.CapDoctor}) {
 		t.Errorf("minimal Supported = %v", got)
 	}
 	// Every capability has a non-zero cost row except the pure ones.
-	for _, c := range agentcli.CapabilityValues() {
-		if c.Cost().Class == agentcli.CostPure && c != agentcli.CapTokenLogin && c != agentcli.CapLoginCommander && c != agentcli.CapProcessClassifier && c != agentcli.CapRunEvents {
+	for _, c := range agentio.CapabilityValues() {
+		if c.Cost().Class == agentio.CostPure && c != agentio.CapTokenLogin && c != agentio.CapLoginCommander && c != agentio.CapProcessClassifier && c != agentio.CapRunEvents {
 			t.Errorf("%s: missing cost row", c)
 		}
 	}
-	if !agentcli.CapBinaryVersion.Cost().MayTouchLogin || agentcli.CapHistoryMover.Cost().Access != agentcli.Write {
+	if !agentio.CapBinaryVersion.Cost().MayTouchLogin || agentio.CapHistoryMover.Cost().Access != agentio.Write {
 		t.Error("cost table")
 	}
 }
@@ -215,20 +215,20 @@ func TestSupportedAndGates(t *testing.T) {
 func TestClassifyProcess(t *testing.T) {
 	t.Parallel()
 	a, _ := newToy(t)
-	agents := []agentcli.Agent{a}
+	agents := []agentio.Agent{a}
 	for name, tc := range map[string]struct {
-		p  agentcli.Process
+		p  agentio.Process
 		ok bool
 	}{
-		"argv0":          {agentcli.Process{Argv: []string{"/usr/local/bin/toy", "--x"}}, true},
-		"exe":            {agentcli.Process{Exe: "/opt/toy"}, true},
-		"npm launcher":   {agentcli.Process{Argv: []string{"node", "/lib/node_modules/@toy/cli/bin.js"}}, true},
-		"excluded app":   {agentcli.Process{Exe: "/Applications/Toy.app/Contents/MacOS/toy"}, false},
-		"other":          {agentcli.Process{Argv: []string{"vim", "toy.txt"}}, false},
-		"prefix not hit": {agentcli.Process{Argv: []string{"toybox"}}, false},
+		"argv0":          {agentio.Process{Argv: []string{"/usr/local/bin/toy", "--x"}}, true},
+		"exe":            {agentio.Process{Exe: "/opt/toy"}, true},
+		"npm launcher":   {agentio.Process{Argv: []string{"node", "/lib/node_modules/@toy/cli/bin.js"}}, true},
+		"excluded app":   {agentio.Process{Exe: "/Applications/Toy.app/Contents/MacOS/toy"}, false},
+		"other":          {agentio.Process{Argv: []string{"vim", "toy.txt"}}, false},
+		"prefix not hit": {agentio.Process{Argv: []string{"toybox"}}, false},
 	} {
-		info, ok := agentcli.ClassifyProcess(agents, tc.p)
-		if ok != tc.ok || (ok && (info.Agent != "toy" || info.Kind != agentcli.ProcessCLI)) {
+		info, ok := agentio.ClassifyProcess(agents, tc.p)
+		if ok != tc.ok || (ok && (info.Agent != "toy" || info.Kind != agentio.ProcessCLI)) {
 			t.Errorf("%s: %+v,%v want ok=%v", name, info, ok, tc.ok)
 		}
 	}
@@ -236,30 +236,30 @@ func TestClassifyProcess(t *testing.T) {
 
 // liveAgent is a minimal agent with live sessions, for FindLiveSession.
 type liveAgent struct {
-	*agentcli.Core
-	sessions map[string][]agentcli.LiveSession
+	*agentio.Core
+	sessions map[string][]agentio.LiveSession
 }
 
-func (l liveAgent) LiveSessions(h agentcli.Home) ([]agentcli.LiveSession, error) {
+func (l liveAgent) LiveSessions(h agentio.Home) ([]agentio.LiveSession, error) {
 	return l.sessions[h.Dir()], nil
 }
 
-func (l liveAgent) IsLive(agentcli.Home, string) (bool, error) { return false, nil }
+func (l liveAgent) IsLive(agentio.Home, string) (bool, error) { return false, nil }
 
 func TestFindLiveSession(t *testing.T) {
 	t.Parallel()
 	_, host := newToy(t)
-	core, err := agentcli.NewCore(sampleSpec(), host)
+	core, err := agentio.NewCore(sampleSpec(), host)
 	if err != nil {
 		t.Fatal(err)
 	}
 	work := filepath.Join(host.UserHome, ".toy-work")
-	la := liveAgent{Core: core, sessions: map[string][]agentcli.LiveSession{work: {{PID: 42, ConversationID: "c1"}}}}
-	a, s, ok, err := agentcli.FindLiveSession([]agentcli.Agent{la}, 42)
+	la := liveAgent{Core: core, sessions: map[string][]agentio.LiveSession{work: {{PID: 42, ConversationID: "c1"}}}}
+	a, s, ok, err := agentio.FindLiveSession([]agentio.Agent{la}, 42)
 	if err != nil || !ok || s.ConversationID != "c1" || a.ID() != "toy" {
 		t.Errorf("FindLiveSession = %v %+v %v %v", a, s, ok, err)
 	}
-	if _, _, ok, _ := agentcli.FindLiveSession([]agentcli.Agent{la}, 7); ok {
+	if _, _, ok, _ := agentio.FindLiveSession([]agentio.Agent{la}, 7); ok {
 		t.Error("unknown pid found")
 	}
 }
@@ -270,11 +270,11 @@ func TestHomeLinks(t *testing.T) {
 	agenttest.WriteFile(t, host.UserHome, ".toy/AGENTS.md", "rules")
 	agenttest.WriteFile(t, host.UserHome, ".toy/settings.json", "{}")
 	agenttest.WriteFile(t, host.UserHome, ".toy-new/settings.json", "mine")
-	linker, ok := agentcli.HomeLinkerOf(a)
+	linker, ok := agentio.HomeLinkerOf(a)
 	if !ok {
 		t.Fatal("no home linker")
 	}
-	h := agentcli.NewHome("toy", filepath.Join(host.UserHome, ".toy-new"), false, "new")
+	h := agentio.NewHome("toy", filepath.Join(host.UserHome, ".toy-new"), false, "new")
 	links, err := linker.PlanHomeLinks(a.DefaultHome(), h)
 	if err != nil {
 		t.Fatal(err)
@@ -291,16 +291,16 @@ func TestHomeLinks(t *testing.T) {
 	if b, _ := os.ReadFile(h.Path("settings.json")); string(b) != "mine" {
 		t.Error("existing file overwritten")
 	}
-	if _, err := linker.PlanHomeLinks(a.DefaultHome(), agentcli.NewHome("x", "/x", false, "")); !errors.Is(err, agentcli.ErrForeignHome) {
+	if _, err := linker.PlanHomeLinks(a.DefaultHome(), agentio.NewHome("x", "/x", false, "")); !errors.Is(err, agentio.ErrForeignHome) {
 		t.Errorf("foreign: %v", err)
 	}
 }
 
 func TestRunnerVersion(t *testing.T) {
 	t.Parallel()
-	fx := &agenttest.FakeExec{Results: map[string]agentcli.ProcessResult{"toy --version": {Stdout: []byte("toy-cli 1.4.2\n")}}}
+	fx := &agenttest.FakeExec{Results: map[string]agentio.ProcessResult{"toy --version": {Stdout: []byte("toy-cli 1.4.2\n")}}}
 	a, _ := newToy(t, agenttest.WithExec(fx))
-	bv, ok := agentcli.BinaryVersionOf(a)
+	bv, ok := agentio.BinaryVersionOf(a)
 	if !ok {
 		t.Fatal("no binary version")
 	}
@@ -326,11 +326,11 @@ func TestLookPath(t *testing.T) {
 		t.Fatal(err)
 	}
 	list := strings.Join([]string{"", "relative", dir1, dir2}, string(os.PathListSeparator))
-	all := agentcli.LookPathAll(list, "toy")
+	all := agentio.LookPathAll(list, "toy")
 	if len(all) != 2 || all[0] != filepath.Join(dir1, "toy") {
 		t.Errorf("LookPathAll = %v", all)
 	}
-	if _, err := agentcli.LookPath(list, "noexec"); !errors.Is(err, agentcli.ErrNotInstalled) {
+	if _, err := agentio.LookPath(list, "noexec"); !errors.Is(err, agentio.ErrNotInstalled) {
 		t.Errorf("non-executable: %v", err)
 	}
 	a, _ := newToy(t, agenttest.WithEnv("PATH="+list))
@@ -342,18 +342,18 @@ func TestLookPath(t *testing.T) {
 func TestDoctorL1(t *testing.T) {
 	t.Parallel()
 	a, _ := newToy(t, agenttest.WithEnv("PATH=/none", "TOY_API_KEY=x", "TOY_HOME=/y"))
-	d, _ := agentcli.DoctorOf(a)
-	got := map[agentcli.CheckID]agentcli.CheckStatus{}
+	d, _ := agentio.DoctorOf(a)
+	got := map[agentio.CheckID]agentio.CheckStatus{}
 	for _, c := range d.Checks(context.Background(), a.DefaultHome()) {
 		got[c.ID] = c.Status
 		if strings.Contains(c.Message, "=x") {
 			t.Errorf("check leaks a value: %s", c.Message)
 		}
 	}
-	if got[agentcli.CheckBinary] != agentcli.CheckFail || got[agentcli.CheckHome] != agentcli.CheckOK || got[agentcli.CheckHomeEnv] != agentcli.CheckInfo || got[agentcli.CheckAPIBillingEnv] != agentcli.CheckWarn {
+	if got[agentio.CheckBinary] != agentio.CheckFail || got[agentio.CheckHome] != agentio.CheckOK || got[agentio.CheckHomeEnv] != agentio.CheckInfo || got[agentio.CheckAPIBillingEnv] != agentio.CheckWarn {
 		t.Errorf("checks = %v", got)
 	}
-	if c := agentcli.VersionCheck(agentcli.Compat{Min: agentcli.MustVersion("1.0.0"), Max: agentcli.MustVersion("1.0.0")}, agentcli.MustVersion("1.1.0")); c.Status != agentcli.CheckWarn {
+	if c := agentio.VersionCheck(agentio.Compat{Min: agentio.MustVersion("1.0.0"), Max: agentio.MustVersion("1.0.0")}, agentio.MustVersion("1.1.0")); c.Status != agentio.CheckWarn {
 		t.Errorf("VersionCheck newer = %v", c)
 	}
 }
@@ -364,7 +364,7 @@ func TestHostFromOS_ReadsProcessTable(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("linux /proc reader")
 	}
-	h, err := agentcli.HostFromOS()
+	h, err := agentio.HostFromOS()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -373,7 +373,7 @@ func TestHostFromOS_ReadsProcessTable(t *testing.T) {
 		t.Fatal(err)
 	}
 	self := os.Getpid()
-	i := slices.IndexFunc(procs, func(p agentcli.Process) bool { return p.PID == self })
+	i := slices.IndexFunc(procs, func(p agentio.Process) bool { return p.PID == self })
 	if i < 0 || procs[i].Start.IsZero() || procs[i].PPID == 0 || len(procs[i].Argv) == 0 {
 		t.Fatalf("self row = %+v (found %v)", procs, i >= 0)
 	}
@@ -382,33 +382,33 @@ func TestHostFromOS_ReadsProcessTable(t *testing.T) {
 		t.Errorf("Cwd = %s, %v", got, err)
 	}
 	// No keychain reader off darwin: "cannot look" must not read as "no entry".
-	if _, found, err := h.Secrets.Get(context.Background(), "agentcli-test-none", ""); found || !errors.Is(err, agentcli.ErrUnsupported) {
+	if _, found, err := h.Secrets.Get(context.Background(), "agentio-test-none", ""); found || !errors.Is(err, agentio.ErrUnsupported) {
 		t.Errorf("linux secrets: %v %v", found, err)
 	}
 }
 
 // tokenAgent is a spec agent with a token login, so the conformance
 // suite's token-redaction branch runs on the root alone.
-type tokenAgent struct{ *agentcli.Core }
+type tokenAgent struct{ *agentio.Core }
 
-func (tokenAgent) TokenKinds() []agentcli.TokenKind {
-	return []agentcli.TokenKind{agentcli.TokenAPIKey}
+func (tokenAgent) TokenKinds() []agentio.TokenKind {
+	return []agentio.TokenKind{agentio.TokenAPIKey}
 }
 
-func (tokenAgent) DetectTokenKind(agentcli.Token) (agentcli.TokenKind, bool) {
-	return agentcli.TokenAPIKey, true
+func (tokenAgent) DetectTokenKind(agentio.Token) (agentio.TokenKind, bool) {
+	return agentio.TokenAPIKey, true
 }
 
-func (tokenAgent) TokenEnv(c agentcli.TokenCredential) ([]agentcli.EnvChange, error) {
-	return []agentcli.EnvChange{agentcli.EnvSetSecret("TOY_API_KEY", c.Token)}, nil
+func (tokenAgent) TokenEnv(c agentio.TokenCredential) ([]agentio.EnvChange, error) {
+	return []agentio.EnvChange{agentio.EnvSetSecret("TOY_API_KEY", c.Token)}, nil
 }
 
-func (tokenAgent) TokenSetupCommand(agentcli.Home) (agentcli.Command, bool) {
-	return agentcli.Command{}, false
+func (tokenAgent) TokenSetupCommand(agentio.Home) (agentio.Command, bool) {
+	return agentio.Command{}, false
 }
 
 // Launch builds argv from the spec but routes a credential through TokenEnv.
-func (a tokenAgent) Launch(t agentcli.Target, r agentcli.LaunchRequest) (agentcli.Command, error) {
+func (a tokenAgent) Launch(t agentio.Target, r agentio.LaunchRequest) (agentio.Command, error) {
 	cred := r.Credential
 	r.Credential = nil
 	cmd, err := a.Core.Launch(t, r)
@@ -417,19 +417,19 @@ func (a tokenAgent) Launch(t agentcli.Target, r agentcli.LaunchRequest) (agentcl
 	}
 	env, err := a.TokenEnv(*cred)
 	if err != nil {
-		return agentcli.Command{}, err
+		return agentio.Command{}, err
 	}
 	return a.Command(t, cmd.Dir, cmd.Args, env)
 }
 
 func TestConformance_TokenAgent(t *testing.T) {
 	_, host := newToy(t)
-	core, err := agentcli.NewCore(sampleSpec(), host)
+	core, err := agentio.NewCore(sampleSpec(), host)
 	if err != nil {
 		t.Fatal(err)
 	}
 	a := tokenAgent{Core: core}
-	if _, ok := agentcli.TokenLoginOf(a); !ok {
+	if _, ok := agentio.TokenLoginOf(a); !ok {
 		t.Fatal("token login not detected")
 	}
 	agenttest.Conformance(t, a, a.DefaultHome())

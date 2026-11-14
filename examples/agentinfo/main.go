@@ -1,4 +1,4 @@
-// Command agentinfo prints everything agentcli can read about every built-in
+// Command agentinfo prints everything agentio can read about every built-in
 // coding agent on this machine: install, compat, homes, paths, settings, MCP
 // servers, instruction files, skills, plugins, identity (personal values
 // redacted), cached usage, recent conversations, live sessions and running
@@ -18,8 +18,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/khanakia/agentcli"
-	"github.com/khanakia/agentcli/builtin"
+	"github.com/ubgo/agentio"
+	"github.com/ubgo/agentio/builtin"
 )
 
 // recentConversations is how many conversations per home are listed.
@@ -47,7 +47,7 @@ func main() {
 }
 
 func run(ctx context.Context, o options, w io.Writer) error {
-	host, err := agentcli.HostFromOS()
+	host, err := agentio.HostFromOS()
 	if err != nil {
 		return err
 	}
@@ -77,12 +77,12 @@ func run(ctx context.Context, o options, w io.Writer) error {
 
 // inspect gathers one agent's report. Each section records its own error so
 // one unreadable file never hides the rest.
-func inspect(ctx context.Context, host agentcli.Host, a agentcli.Agent, all builtin.Agents, procs []agentcli.Process, o options) AgentReport {
-	r := AgentReport{ID: a.ID(), Name: a.Name(), Supported: agentcli.Supported(a)}
+func inspect(ctx context.Context, host agentio.Host, a agentio.Agent, all builtin.Agents, procs []agentio.Process, o options) AgentReport {
+	r := AgentReport{ID: a.ID(), Name: a.Name(), Supported: agentio.Supported(a)}
 	if p, err := a.LookPath(); err == nil {
 		r.Binary = p
 	}
-	if in, ok := agentcli.InstallerOf(a); ok {
+	if in, ok := agentio.InstallerOf(a); ok {
 		inst, err := in.Install()
 		r.Install, r.InstallError = &inst, errText(err)
 		if err != nil {
@@ -91,7 +91,7 @@ func inspect(ctx context.Context, host agentcli.Host, a agentcli.Agent, all buil
 	}
 	vendorReport(&r, all, o)
 	if o.runner {
-		if bv, ok := agentcli.BinaryVersionOf(a); ok {
+		if bv, ok := agentio.BinaryVersionOf(a); ok {
 			v, err := bv.BinaryVersion(ctx)
 			r.BinaryVersion, r.BinaryVersionError = v.String(), errText(err)
 		}
@@ -101,7 +101,7 @@ func inspect(ctx context.Context, host agentcli.Host, a agentcli.Agent, all buil
 	for _, h := range homes {
 		r.Homes = append(r.Homes, inspectHome(ctx, host, a, all, h, o))
 	}
-	if pc, ok := agentcli.ProcessClassifierOf(a); ok {
+	if pc, ok := agentio.ProcessClassifierOf(a); ok {
 		for _, p := range procs {
 			if info, ok := pc.ClassifyProcess(p); ok {
 				r.Processes = append(r.Processes, ProcessRow{PID: p.PID, PPID: p.PPID, Start: p.Start, Exe: p.Exe, Kind: info.Kind, Session: info.Session})
@@ -111,10 +111,10 @@ func inspect(ctx context.Context, host agentcli.Host, a agentcli.Agent, all buil
 	return r
 }
 
-func inspectHome(ctx context.Context, host agentcli.Host, a agentcli.Agent, all builtin.Agents, h agentcli.Home, o options) HomeReport {
+func inspectHome(ctx context.Context, host agentio.Host, a agentio.Agent, all builtin.Agents, h agentio.Home, o options) HomeReport {
 	hr := HomeReport{Dir: h.Dir(), Name: h.Name(), Default: h.IsDefault()}
 	vendorHomeReport(&hr, all, a.ID(), h, o.dir)
-	if c, ok := agentcli.ConfigOf(a); ok {
+	if c, ok := agentio.ConfigOf(a); ok {
 		layers, err := c.ConfigLayers(h, o.dir)
 		hr.ConfigLayers, hr.Errors = layers, addErr(hr.Errors, "config-layers", err)
 		trust, err := c.ProjectTrust(h, o.dir)
@@ -122,23 +122,23 @@ func inspectHome(ctx context.Context, host agentcli.Host, a agentcli.Agent, all 
 		def, err := c.Defaults(h, o.dir)
 		hr.Defaults, hr.Errors = &def, addErr(hr.Errors, "defaults", err)
 	}
-	if m, ok := agentcli.MCPServersOf(a); ok {
+	if m, ok := agentio.MCPServersOf(a); ok {
 		v, err := m.MCPServers(h, o.dir)
 		hr.MCPServers, hr.Errors = v, addErr(hr.Errors, "mcp", err)
 	}
-	if in, ok := agentcli.InstructionFilesOf(a); ok {
+	if in, ok := agentio.InstructionFilesOf(a); ok {
 		v, err := in.InstructionFiles(h, o.dir)
 		hr.InstructionFiles, hr.Errors = v, addErr(hr.Errors, "instructions", err)
 	}
-	if s, ok := agentcli.SkillsOf(a); ok {
+	if s, ok := agentio.SkillsOf(a); ok {
 		v, err := s.Skills(h, o.dir)
 		hr.Skills, hr.Errors = v, addErr(hr.Errors, "skills", err)
 	}
-	if p, ok := agentcli.PluginsOf(a); ok {
+	if p, ok := agentio.PluginsOf(a); ok {
 		v, err := p.Plugins(h, o.dir)
 		hr.Plugins, hr.Errors = v, addErr(hr.Errors, "plugins", err)
 	}
-	if id, ok := agentcli.IdentityOf(a); ok {
+	if id, ok := agentio.IdentityOf(a); ok {
 		v, err := id.Identity(h)
 		if err == nil {
 			hr.Identity = &v
@@ -146,7 +146,7 @@ func inspectHome(ctx context.Context, host agentcli.Host, a agentcli.Agent, all 
 		}
 		hr.Errors = addErr(hr.Errors, "identity", err)
 	}
-	if cu, ok := agentcli.CachedUsageOf(a); ok {
+	if cu, ok := agentio.CachedUsageOf(a); ok {
 		u, found, err := cu.CachedUsage(h)
 		if found && err == nil {
 			hr.CachedUsage = &u
@@ -159,7 +159,7 @@ func inspectHome(ctx context.Context, host agentcli.Host, a agentcli.Agent, all 
 		hr.Errors = addErr(hr.Errors, "cached-usage", err)
 	}
 	if o.network {
-		if ur, ok := agentcli.UsageOf(a); ok {
+		if ur, ok := agentio.UsageOf(a); ok {
 			u, err := ur.Usage(ctx, h)
 			if err == nil {
 				hr.LiveUsage = &u
@@ -167,15 +167,15 @@ func inspectHome(ctx context.Context, host agentcli.Host, a agentcli.Agent, all 
 			hr.Errors = addErr(hr.Errors, "usage", err)
 		}
 	}
-	if cl, ok := agentcli.ConversationsOf(a); ok {
-		v, err := cl.Conversations(ctx, h, agentcli.ConversationQuery{Limit: recentConversations})
+	if cl, ok := agentio.ConversationsOf(a); ok {
+		v, err := cl.Conversations(ctx, h, agentio.ConversationQuery{Limit: recentConversations})
 		hr.Conversations, hr.Errors = v, addErr(hr.Errors, "conversations", err)
 	}
-	if ls, ok := agentcli.LiveSessionsOf(a); ok {
+	if ls, ok := agentio.LiveSessionsOf(a); ok {
 		v, err := ls.LiveSessions(h)
 		hr.LiveSessions, hr.Errors = v, addErr(hr.Errors, "live-sessions", err)
 	}
-	if d, ok := agentcli.DoctorOf(a); ok {
+	if d, ok := agentio.DoctorOf(a); ok {
 		hr.Checks = d.Checks(ctx, h)
 	}
 	return hr

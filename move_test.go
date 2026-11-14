@@ -1,4 +1,4 @@
-package agentcli
+package agentio
 
 import (
 	"errors"
@@ -47,7 +47,7 @@ func TestBackupFile_NeverOverwrites(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want1 := p + ".agentcli-bak-20261113T120000Z"
+	want1 := p + ".agentio-bak-20261113T120000Z"
 	if b1.Entries[0].Copy != want1 || b2.Entries[0].Copy != want1+"-2" {
 		t.Errorf("copies = %s, %s", b1.Entries[0].Copy, b2.Entries[0].Copy)
 	}

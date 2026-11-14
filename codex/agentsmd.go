@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // AGENTS.md discovery constants (core/src/agents_md.rs at rust-v0.162.1).
@@ -19,17 +19,17 @@ const (
 // InstructionFile is one instruction file Codex would load, in load order.
 type InstructionFile struct {
 	Path  string
-	Scope agentcli.InstructionScope // User | Project
-	Kind  string                    // "AGENTS.override.md" | "AGENTS.md" | a fallback name
+	Scope agentio.InstructionScope // User | Project
+	Kind  string                   // "AGENTS.override.md" | "AGENTS.md" | a fallback name
 	Bytes int64
 	// Truncated: the project_doc_max_bytes budget ends inside this file
 	// (or it is skipped entirely when Bytes == 0 budget remained).
 	Truncated bool
 }
 
-// Neutral maps onto agentcli.InstructionFile. Pure.
-func (f InstructionFile) Neutral() agentcli.InstructionFile {
-	return agentcli.InstructionFile{Path: f.Path, Scope: f.Scope, Kind: f.Kind, Bytes: f.Bytes}
+// Neutral maps onto agentio.InstructionFile. Pure.
+func (f InstructionFile) Neutral() agentio.InstructionFile {
+	return agentio.InstructionFile{Path: f.Path, Scope: f.Scope, Kind: f.Kind, Bytes: f.Bytes}
 }
 
 // projectRoot walks up from dir to the nearest ancestor containing any
@@ -104,7 +104,7 @@ func (a *Agent) InstructionFiles(h Home, dir string) ([]InstructionFile, error) 
 	}
 	var out []InstructionFile
 	if st, err := os.Stat(p.AgentsMD); err == nil && st.Mode().IsRegular() {
-		out = append(out, InstructionFile{Path: p.AgentsMD, Scope: agentcli.InstructionUser, Kind: fileAgentsMD, Bytes: st.Size()})
+		out = append(out, InstructionFile{Path: p.AgentsMD, Scope: agentio.InstructionUser, Kind: fileAgentsMD, Bytes: st.Size()})
 	}
 	if dir == "" {
 		return out, nil
@@ -131,7 +131,7 @@ func (a *Agent) InstructionFiles(h Home, dir string) ([]InstructionFile, error) 
 			if err != nil || !st.Mode().IsRegular() {
 				continue
 			}
-			f := InstructionFile{Path: path, Scope: agentcli.InstructionProject, Kind: n, Bytes: st.Size()}
+			f := InstructionFile{Path: path, Scope: agentio.InstructionProject, Kind: n, Bytes: st.Size()}
 			if st.Size() > budget {
 				f.Truncated = true
 			}

@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/khanakia/agentcli"
-	"github.com/khanakia/agentcli/agenttest"
+	"github.com/ubgo/agentio"
+	"github.com/ubgo/agentio/agenttest"
 )
 
 // sessionsAgent copies the fixture into a temp user home and returns an
 // agent over it with the given process table.
-func sessionsAgent(t *testing.T, fixture string, procs []agentcli.Process) (*Agent, Home) {
+func sessionsAgent(t *testing.T, fixture string, procs []agentio.Process) (*Agent, Home) {
 	t.Helper()
 	host := agenttest.NewHost(t, agenttest.WithProcesses(&agenttest.FakeProcesses{List: procs, Cwds: map[int]string{4242: "/work/proj4"}}))
 	agenttest.CopyFixture(t, fixture, host.UserHome)
@@ -27,7 +27,7 @@ func fixtureStartedAt() time.Time { return millis(1794597025793).Time() }
 
 func TestLiveSessionsAliveAndPidReuse(t *testing.T) {
 	forEachFixture(t, func(t *testing.T, fixture string) {
-		procs := []agentcli.Process{
+		procs := []agentio.Process{
 			{PID: 4242, Start: fixtureStartedAt().Add(-3 * time.Second), Exe: "/home/user/.local/share/claude/versions/2.1.323", Argv: []string{"claude"}},
 			{PID: 4243, Start: fixtureStartedAt().Add(48 * time.Hour), Argv: []string{"claude"}},
 		}
@@ -40,14 +40,14 @@ func TestLiveSessionsAliveAndPidReuse(t *testing.T) {
 			t.Fatalf("got %d sessions, want 2", len(ss))
 		}
 		s := ss[0]
-		if s.PID != 4242 || !s.Alive || s.Status != StatusBusy || s.Cwd != "/work/proj4" || s.Kind != agentcli.SessionInteractive || s.StatusUpdatedAt.IsZero() {
+		if s.PID != 4242 || !s.Alive || s.Status != StatusBusy || s.Cwd != "/work/proj4" || s.Kind != agentio.SessionInteractive || s.StatusUpdatedAt.IsZero() {
 			t.Fatalf("session 4242 = %+v", s)
 		}
 		if ss[1].Alive {
 			t.Fatalf("pid 4243 started 48h after startedAt must not be alive (pid reuse)")
 		}
 		n := s.Neutral(h)
-		if n.Status != agentcli.SessionBusy || n.StatusSince != s.StatusUpdatedAt || n.ConversationID != s.SessionID {
+		if n.Status != agentio.SessionBusy || n.StatusSince != s.StatusUpdatedAt || n.ConversationID != s.SessionID {
 			t.Fatalf("neutral = %+v", n)
 		}
 		live, err := a.IsLive(h, s.SessionID)
@@ -75,7 +75,7 @@ func TestLiveSessionsNoProcessLister(t *testing.T) {
 }
 
 func TestSessionStatusNeutral(t *testing.T) {
-	cases := map[SessionStatus]agentcli.SessionStatus{StatusIdle: agentcli.SessionIdle, StatusBusy: agentcli.SessionBusy, StatusShell: agentcli.SessionBusy, "new": agentcli.SessionStatusUnknown}
+	cases := map[SessionStatus]agentio.SessionStatus{StatusIdle: agentio.SessionIdle, StatusBusy: agentio.SessionBusy, StatusShell: agentio.SessionBusy, "new": agentio.SessionStatusUnknown}
 	for in, want := range cases {
 		if got := in.Neutral(); got != want {
 			t.Errorf("%s → %v, want %v", in, got, want)
@@ -85,7 +85,7 @@ func TestSessionStatusNeutral(t *testing.T) {
 
 func TestProcessesAndClassify(t *testing.T) {
 	forEachFixture(t, func(t *testing.T, fixture string) {
-		procs := []agentcli.Process{
+		procs := []agentio.Process{
 			{PID: 4242, Argv: []string{"claude", "--resume", "x"}},
 			{PID: 7, Argv: []string{"/Applications/Claude.app/Contents/MacOS/Claude"}},
 			{PID: 8, Argv: []string{"claude", "mcp", "serve"}},
@@ -96,10 +96,10 @@ func TestProcessesAndClassify(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(ps) != 2 || ps[0].PID != 4242 || ps[0].Kind != agentcli.ProcessCLI || !ps[0].Session || ps[0].Cwd != "/work/proj4" {
+		if len(ps) != 2 || ps[0].PID != 4242 || ps[0].Kind != agentio.ProcessCLI || !ps[0].Session || ps[0].Cwd != "/work/proj4" {
 			t.Fatalf("processes = %+v", ps)
 		}
-		if ps[1].Kind != agentcli.ProcessMCPServer || ps[1].Session {
+		if ps[1].Kind != agentio.ProcessMCPServer || ps[1].Session {
 			t.Fatalf("mcp serve = %+v", ps[1])
 		}
 		if _, ok := ClassifyProcess(procs[1]); ok {
@@ -110,7 +110,7 @@ func TestProcessesAndClassify(t *testing.T) {
 
 func TestJobsDaemonTeamsTasks(t *testing.T) {
 	forEachFixture(t, func(t *testing.T, fixture string) {
-		a, h := sessionsAgent(t, fixture, []agentcli.Process{{PID: 99, Start: millis(1794000000000).Time()}})
+		a, h := sessionsAgent(t, fixture, []agentio.Process{{PID: 99, Start: millis(1794000000000).Time()}})
 		d := h.Dir()
 		agenttest.WriteFile(t, d, "jobs/ab12/state.json", `{"state":"blocked","tokens":230135,"respawnFlags":["--model","opus"],"children":[{"id":"1","href":"<url>","kind":"pr"}],"createdAt":"2026-11-01T10:00:00Z","futureKey":1}`)
 		agenttest.WriteFile(t, d, "jobs/ab12/timeline.jsonl", `{"at":"2026-11-01T10:00:00Z","state":"running","detail":"d","text":"t"}`+"\n"+`{"at":"2026-11-01T10:01:00Z","state":"blocked"}`+"\n")
@@ -127,7 +127,7 @@ func TestJobsDaemonTeamsTasks(t *testing.T) {
 		if err != nil || len(tl) != 2 || tl[1].State != "blocked" {
 			t.Fatalf("timeline = %+v, %v", tl, err)
 		}
-		if _, err := a.JobTimeline(h, "../x"); !errors.Is(err, agentcli.ErrNotFound) {
+		if _, err := a.JobTimeline(h, "../x"); !errors.Is(err, agentio.ErrNotFound) {
 			t.Fatalf("traversal id: %v", err)
 		}
 		dm, err := a.Daemon(h)
@@ -156,7 +156,7 @@ func TestStatsFixtureAndUnknownVersion(t *testing.T) {
 			t.Fatalf("stats = %+v", s)
 		}
 		bad, err := ParseStats([]byte(`{"version":6,"x":1}`))
-		if !errors.Is(err, agentcli.ErrUnknownVersion) || bad.Version != 6 || len(bad.Raw) == 0 {
+		if !errors.Is(err, agentio.ErrUnknownVersion) || bad.Version != 6 || len(bad.Raw) == 0 {
 			t.Fatalf("v6: %+v %v", bad, err)
 		}
 	})
@@ -266,7 +266,7 @@ func TestStreamDecoder(t *testing.T) {
 	if len(msgs) != 6 {
 		t.Fatalf("got %d messages", len(msgs))
 	}
-	want := []agentcli.RunEventType{agentcli.RunEventStarted, agentcli.RunEventMessage, agentcli.RunEventTool, agentcli.RunEventOther, agentcli.RunEventOther, agentcli.RunEventDone}
+	want := []agentio.RunEventType{agentio.RunEventStarted, agentio.RunEventMessage, agentio.RunEventTool, agentio.RunEventOther, agentio.RunEventOther, agentio.RunEventDone}
 	for i, m := range msgs {
 		if got := m.Neutral().Type; got != want[i] {
 			t.Errorf("msg %d (%s/%s) → %v, want %v", i, m.Type, m.Subtype, got, want[i])
@@ -290,7 +290,7 @@ func TestStreamDecoder(t *testing.T) {
 		t.Fatalf("wrong type: %v", err)
 	}
 	rd := newRunDecoder(strings.NewReader(docsStream))
-	if ev, err := rd.Next(); err != nil || ev.Type != agentcli.RunEventStarted {
+	if ev, err := rd.Next(); err != nil || ev.Type != agentio.RunEventStarted {
 		t.Fatalf("run decoder: %+v %v", ev, err)
 	}
 	res, err := DecodeJSONResult(strings.NewReader(` {"type":"result"} `))

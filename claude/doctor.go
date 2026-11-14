@@ -8,25 +8,25 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Claude check ids (CLAUDE_API §27); the shared ones come from the root.
 const (
-	CheckBinaryShadowed    agentcli.CheckID = "binary-shadowed"
-	CheckShellFunction     agentcli.CheckID = "shell-function"
-	CheckVersionMin        agentcli.CheckID = "version-min"
-	CheckHomeEnvDefault    agentcli.CheckID = "home-env-default"
-	CheckLoginExpired      agentcli.CheckID = "login-expired"
-	CheckSettingsParse     agentcli.CheckID = "settings-parse"
-	CheckGlobalConfigParse agentcli.CheckID = "global-config-parse"
-	CheckGlobalConfigSize  agentcli.CheckID = "global-config-size"
-	CheckMCPProjectPending agentcli.CheckID = "mcp-project-pending"
-	CheckPluginsMissing    agentcli.CheckID = "plugins-missing"
-	CheckStaleLiveSessions agentcli.CheckID = "stale-live-sessions"
-	CheckRetention         agentcli.CheckID = "retention"
-	CheckHistorySize       agentcli.CheckID = "history-size"
-	CheckAuthStatus        agentcli.CheckID = "auth-status"
+	CheckBinaryShadowed    agentio.CheckID = "binary-shadowed"
+	CheckShellFunction     agentio.CheckID = "shell-function"
+	CheckVersionMin        agentio.CheckID = "version-min"
+	CheckHomeEnvDefault    agentio.CheckID = "home-env-default"
+	CheckLoginExpired      agentio.CheckID = "login-expired"
+	CheckSettingsParse     agentio.CheckID = "settings-parse"
+	CheckGlobalConfigParse agentio.CheckID = "global-config-parse"
+	CheckGlobalConfigSize  agentio.CheckID = "global-config-size"
+	CheckMCPProjectPending agentio.CheckID = "mcp-project-pending"
+	CheckPluginsMissing    agentio.CheckID = "plugins-missing"
+	CheckStaleLiveSessions agentio.CheckID = "stale-live-sessions"
+	CheckRetention         agentio.CheckID = "retention"
+	CheckHistorySize       agentio.CheckID = "history-size"
+	CheckAuthStatus        agentio.CheckID = "auth-status"
 )
 
 // Doctor thresholds.
@@ -54,38 +54,38 @@ type DoctorOptions struct{ Runner *Runner }
 // opts.Runner it also runs `auth status` (Process, may touch login).
 // Messages carry names and counts only, never values. cost: Disk · Read
 // (Process only through opts.Runner).
-func (a *Agent) Doctor(ctx context.Context, h Home, p *Project, opts DoctorOptions) []agentcli.Check {
+func (a *Agent) Doctor(ctx context.Context, h Home, p *Project, opts DoctorOptions) []agentio.Check {
 	out := a.core.Checks(ctx, h.Neutral())
-	add := func(id agentcli.CheckID, st agentcli.CheckStatus, msg string) {
-		out = append(out, agentcli.Check{ID: id, Status: st, Message: msg})
+	add := func(id agentio.CheckID, st agentio.CheckStatus, msg string) {
+		out = append(out, agentio.Check{ID: id, Status: st, Message: msg})
 	}
 	inst, ierr := a.Install()
-	out = append(out, agentcli.VersionCheck(Compat(), inst.Version))
+	out = append(out, agentio.VersionCheck(Compat(), inst.Version))
 	if ierr == nil && len(inst.Shadowed) > 0 {
-		add(CheckBinaryShadowed, agentcli.CheckWarn, fmt.Sprintf("%d other claude on PATH: %s", len(inst.Shadowed), strings.Join(inst.Shadowed, ", ")))
+		add(CheckBinaryShadowed, agentio.CheckWarn, fmt.Sprintf("%d other claude on PATH: %s", len(inst.Shadowed), strings.Join(inst.Shadowed, ", ")))
 	}
 	if a.shellFunctionDefined(h) {
-		add(CheckShellFunction, agentcli.CheckInfo, "claude is also a shell function in a shell snapshot; the library uses the PATH binary")
+		add(CheckShellFunction, agentio.CheckInfo, "claude is also a shell function in a shell snapshot; the library uses the PATH binary")
 	}
 	eff, _ := a.Settings(h, p, nil)
 	for _, l := range eff.Layers {
 		switch {
 		case l.Err != nil:
-			add(CheckSettingsParse, agentcli.CheckFail, l.Source.Path+" does not parse")
+			add(CheckSettingsParse, agentio.CheckFail, l.Source.Path+" does not parse")
 		case len(l.Settings.Warnings) > 0:
-			add(CheckSettingsParse, agentcli.CheckWarn, fmt.Sprintf("%s: %d keys changed type", l.Source.Path, len(l.Settings.Warnings)))
+			add(CheckSettingsParse, agentio.CheckWarn, fmt.Sprintf("%s: %d keys changed type", l.Source.Path, len(l.Settings.Warnings)))
 		}
 		for ev := range l.Settings.Hooks {
 			if !ev.IsKnown() {
-				add(CheckSettingsParse, agentcli.CheckWarn, l.Source.Path+": unknown hook event "+string(ev))
+				add(CheckSettingsParse, agentio.CheckWarn, l.Source.Path+": unknown hook event "+string(ev))
 			}
 		}
 	}
-	if minV := eff.Merged.MinimumVersion; minV != "" && !inst.Version.IsZero() && inst.Version.Compare(agentcli.MustVersion(minV)) < 0 {
-		add(CheckVersionMin, agentcli.CheckFail, "installed "+inst.Version.String()+" is below minimumVersion "+minV)
+	if minV := eff.Merged.MinimumVersion; minV != "" && !inst.Version.IsZero() && inst.Version.Compare(agentio.MustVersion(minV)) < 0 {
+		add(CheckVersionMin, agentio.CheckFail, "installed "+inst.Version.String()+" is below minimumVersion "+minV)
 	}
 	if v, ok := a.host.Getenv(ConfigDirEnv); ok && filepath.Clean(v) == a.DefaultHome().Dir() {
-		add(CheckHomeEnvDefault, agentcli.CheckWarn, ConfigDirEnv+" names the default home; Claude Code then uses a hashed keychain name and looks logged out")
+		add(CheckHomeEnvDefault, agentio.CheckWarn, ConfigDirEnv+" names the default home; Claude Code then uses a hashed keychain name and looks logged out")
 	}
 	a.loginChecks(h, add)
 	a.globalConfigChecks(h, add)
@@ -98,7 +98,7 @@ func (a *Agent) Doctor(ctx context.Context, h Home, p *Project, opts DoctorOptio
 				}
 			}
 			if len(pending) > 0 {
-				add(CheckMCPProjectPending, agentcli.CheckInfo, ".mcp.json servers not approved yet: "+strings.Join(pending, ", "))
+				add(CheckMCPProjectPending, agentio.CheckInfo, ".mcp.json servers not approved yet: "+strings.Join(pending, ", "))
 			}
 		}
 	}
@@ -111,54 +111,54 @@ func (a *Agent) Doctor(ctx context.Context, h Home, p *Project, opts DoctorOptio
 			}
 		}
 		if stale > 0 {
-			add(CheckStaleLiveSessions, agentcli.CheckInfo, fmt.Sprintf("%d sessions/*.json entries whose process is gone", stale))
+			add(CheckStaleLiveSessions, agentio.CheckInfo, fmt.Sprintf("%d sessions/*.json entries whose process is gone", stale))
 		}
 	}
 	a.retentionCheck(h, eff.Merged, add)
 	a.historySizeCheck(h, add)
 	if opts.Runner != nil {
 		if st, err := opts.Runner.AuthStatus(ctx, h); err != nil {
-			add(CheckAuthStatus, agentcli.CheckWarn, "auth status failed: "+err.Error())
+			add(CheckAuthStatus, agentio.CheckWarn, "auth status failed: "+err.Error())
 		} else if !st.LoggedIn {
-			add(CheckAuthStatus, agentcli.CheckWarn, "auth status: not logged in")
+			add(CheckAuthStatus, agentio.CheckWarn, "auth status: not logged in")
 		} else {
-			add(CheckAuthStatus, agentcli.CheckOK, "auth status: logged in ("+string(st.AuthMethod)+")")
+			add(CheckAuthStatus, agentio.CheckOK, "auth status: logged in ("+string(st.AuthMethod)+")")
 		}
 	}
 	return out
 }
 
-func (a *Agent) loginChecks(h Home, add func(agentcli.CheckID, agentcli.CheckStatus, string)) {
+func (a *Agent) loginChecks(h Home, add func(agentio.CheckID, agentio.CheckStatus, string)) {
 	c, err := a.Credential(h)
 	if err != nil {
-		add(agentcli.CheckLogin, agentcli.CheckWarn, "no login found in the credentials file or keychain")
+		add(agentio.CheckLogin, agentio.CheckWarn, "no login found in the credentials file or keychain")
 		return
 	}
-	add(agentcli.CheckLogin, agentcli.CheckOK, "login in "+string(c.Source))
+	add(agentio.CheckLogin, agentio.CheckOK, "login in "+string(c.Source))
 	if c.Expired(a.now()) {
-		add(CheckLoginExpired, agentcli.CheckWarn, "login expired at "+c.ExpiresAt.Format(time.RFC3339)+"; run claude in this home to refresh it")
+		add(CheckLoginExpired, agentio.CheckWarn, "login expired at "+c.ExpiresAt.Format(time.RFC3339)+"; run claude in this home to refresh it")
 	}
 }
 
-func (a *Agent) globalConfigChecks(h Home, add func(agentcli.CheckID, agentcli.CheckStatus, string)) {
+func (a *Agent) globalConfigChecks(h Home, add func(agentio.CheckID, agentio.CheckStatus, string)) {
 	p := a.globalConfigPath(h)
 	info, err := os.Stat(p)
 	if err != nil {
 		return
 	}
 	if info.Size() > globalConfigWarnBytes {
-		add(CheckGlobalConfigSize, agentcli.CheckWarn, fmt.Sprintf("%s is %d MiB", p, info.Size()/mib))
+		add(CheckGlobalConfigSize, agentio.CheckWarn, fmt.Sprintf("%s is %d MiB", p, info.Size()/mib))
 	}
 	g, err := a.GlobalConfig(h)
 	switch {
 	case err != nil:
-		add(CheckGlobalConfigParse, agentcli.CheckFail, p+" does not parse")
+		add(CheckGlobalConfigParse, agentio.CheckFail, p+" does not parse")
 	case len(g.Warnings) > 0:
-		add(CheckGlobalConfigParse, agentcli.CheckWarn, fmt.Sprintf("%s: %d keys changed type", p, len(g.Warnings)))
+		add(CheckGlobalConfigParse, agentio.CheckWarn, fmt.Sprintf("%s: %d keys changed type", p, len(g.Warnings)))
 	}
 }
 
-func (a *Agent) pluginChecks(h Home, p *Project, s Settings, add func(agentcli.CheckID, agentcli.CheckStatus, string)) {
+func (a *Agent) pluginChecks(h Home, p *Project, s Settings, add func(agentio.CheckID, agentio.CheckStatus, string)) {
 	installed, err := a.Plugins(h, p)
 	if err != nil {
 		return
@@ -174,11 +174,11 @@ func (a *Agent) pluginChecks(h Home, p *Project, s Settings, add func(agentcli.C
 		}
 	}
 	if len(missing) > 0 {
-		add(CheckPluginsMissing, agentcli.CheckWarn, "enabled but not installed: "+strings.Join(missing, ", "))
+		add(CheckPluginsMissing, agentio.CheckWarn, "enabled but not installed: "+strings.Join(missing, ", "))
 	}
 }
 
-func (a *Agent) retentionCheck(h Home, s Settings, add func(agentcli.CheckID, agentcli.CheckStatus, string)) {
+func (a *Agent) retentionCheck(h Home, s Settings, add func(agentio.CheckID, agentio.CheckStatus, string)) {
 	days := defaultCleanupDays
 	if s.CleanupPeriodDays != nil {
 		days = *s.CleanupPeriodDays
@@ -187,20 +187,20 @@ func (a *Agent) retentionCheck(h Home, s Settings, add func(agentcli.CheckID, ag
 	if last, err := a.LastCleanup(h); err == nil && last != nil && !a.now().IsZero() {
 		msg += fmt.Sprintf("; last cleanup %d h ago", int(a.now().Sub(*last).Hours()))
 		if a.now().Sub(*last) > time.Duration(days)*hoursPerDay*time.Hour {
-			add(CheckRetention, agentcli.CheckWarn, msg)
+			add(CheckRetention, agentio.CheckWarn, msg)
 			return
 		}
 	}
-	add(CheckRetention, agentcli.CheckInfo, msg)
+	add(CheckRetention, agentio.CheckInfo, msg)
 }
 
-func (a *Agent) historySizeCheck(h Home, add func(agentcli.CheckID, agentcli.CheckStatus, string)) {
+func (a *Agent) historySizeCheck(h Home, add func(agentio.CheckID, agentio.CheckStatus, string)) {
 	info, err := os.Stat(filepath.Join(h.Dir(), historyFile))
 	if err != nil {
 		return
 	}
 	entries, _ := os.ReadDir(filepath.Join(h.Dir(), projectsDir))
-	add(CheckHistorySize, agentcli.CheckInfo, fmt.Sprintf("history.jsonl %d MiB; %d project history dirs", info.Size()/mib, len(entries)))
+	add(CheckHistorySize, agentio.CheckInfo, fmt.Sprintf("history.jsonl %d MiB; %d project history dirs", info.Size()/mib, len(entries)))
 }
 
 // shellFunctionDefined scans the newest shell snapshot for a claude

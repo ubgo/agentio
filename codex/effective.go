@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // LayerKind names a config layer (config/src/config_layer_source.rs).
@@ -70,7 +70,7 @@ type EffectiveConfig struct {
 	Origins      map[string]LayerKind // dotted key → winning layer
 	Layers       []Layer              // low → high
 	NotEvaluated []LayerKind          // mdm, cloud: present upstream, not readable here
-	Warnings     agentcli.Warnings
+	Warnings     agentio.Warnings
 }
 
 // projectDeniedRoots are keys Codex refuses in project layers
@@ -123,7 +123,7 @@ func readLayer(kind LayerKind, path string) (layerEntries, error) {
 }
 
 // layers resolves the ordered layer list for q (files read once).
-func (a *Agent) layers(h Home, q EffectiveQuery) ([]layerEntries, agentcli.Warnings, error) {
+func (a *Agent) layers(h Home, q EffectiveQuery) ([]layerEntries, agentio.Warnings, error) {
 	p := a.Paths(h)
 	var out []layerEntries
 	if q.IncludeSystem {
@@ -209,7 +209,7 @@ func (a *Agent) layers(h Home, q EffectiveQuery) ([]layerEntries, agentcli.Warni
 	return out, warns, nil
 }
 
-func decodeEntries(entries []tomlEntry, file string) (Config, agentcli.Warnings, error) {
+func decodeEntries(entries []tomlEntry, file string) (Config, agentio.Warnings, error) {
 	c, warns := decodeEntriesInto(entries, file)
 	return c, warns, nil
 }
@@ -293,9 +293,9 @@ type MCPServerEntry struct {
 	MCPServer
 }
 
-// Neutral maps onto agentcli.MCPServer (env names only). Pure.
-func (s MCPServerEntry) Neutral() agentcli.MCPServer {
-	out := agentcli.MCPServer{
+// Neutral maps onto agentio.MCPServer (env names only). Pure.
+func (s MCPServerEntry) Neutral() agentio.MCPServer {
+	out := agentio.MCPServer{
 		Name: s.Name, Transport: s.Transport(), Scope: layerScope(s.Layer),
 		Command: s.Command.V, Args: s.Args, URL: s.URL.V, EnvNames: s.EnvKeys, Source: s.Source,
 	}
@@ -309,20 +309,20 @@ func (s MCPServerEntry) Neutral() agentcli.MCPServer {
 	return out
 }
 
-func layerScope(k LayerKind) agentcli.ConfigScope {
+func layerScope(k LayerKind) agentio.ConfigScope {
 	switch k {
 	case LayerSystem, LayerMDM, LayerCloud, LayerLegacyManaged:
-		return agentcli.ConfigManaged
+		return agentio.ConfigManaged
 	case LayerUser:
-		return agentcli.ConfigUser
+		return agentio.ConfigUser
 	case LayerUserProfile, LayerLegacyProfile:
-		return agentcli.ConfigProfile
+		return agentio.ConfigProfile
 	case LayerProject:
-		return agentcli.ConfigProject
+		return agentio.ConfigProject
 	case LayerSession:
-		return agentcli.ConfigCLI
+		return agentio.ConfigCLI
 	}
-	return agentcli.ConfigScopeUnknown
+	return agentio.ConfigScopeUnknown
 }
 
 // MCPServers lists the effective [mcp_servers] for dir (user config plus
@@ -361,19 +361,19 @@ var ErrNoEnvValue = errors.New("codex: mcp server env key not found")
 // MCPServerEnvValue reads one mcp_servers.<server>.env.<key> value from
 // <home>/config.toml as a redacting EnvValue (never logged or printed).
 // Disk · Read.
-func (a *Agent) MCPServerEnvValue(h Home, server, key string) (agentcli.EnvValue, error) {
+func (a *Agent) MCPServerEnvValue(h Home, server, key string) (agentio.EnvValue, error) {
 	b, err := os.ReadFile(a.Paths(h).Config)
 	if err != nil {
-		return agentcli.EnvValue{}, fmt.Errorf("codex: read %s: %w", fileConfig, err)
+		return agentio.EnvValue{}, fmt.Errorf("codex: read %s: %w", fileConfig, err)
 	}
 	entries, err := parseTOML(b)
 	if err != nil {
-		return agentcli.EnvValue{}, err
+		return agentio.EnvValue{}, err
 	}
 	for _, e := range entries {
 		if len(e.path) == 4 && e.path[0] == keyMCPServers && e.path[1] == server && e.path[2] == "env" && e.path[3] == key && e.val.kind == tomlString {
-			return agentcli.NewEnvValue(e.val.str), nil
+			return agentio.NewEnvValue(e.val.str), nil
 		}
 	}
-	return agentcli.EnvValue{}, fmt.Errorf("%w: %s.%s", ErrNoEnvValue, server, key)
+	return agentio.EnvValue{}, fmt.Errorf("%w: %s.%s", ErrNoEnvValue, server, key)
 }

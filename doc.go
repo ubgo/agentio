@@ -1,4 +1,4 @@
-// Package agentcli is the vendor-neutral core of a typed library for
+// Package agentio is the vendor-neutral core of a typed library for
 // coding-agent CLIs (Claude Code, Codex, and agents described by data).
 //
 // It holds three things:
@@ -16,4 +16,4 @@
 // Invariants (SPEC §9): this module imports only the standard library and no
 // vendor module; nothing reads the real machine except HostFromOS; tokens
 // never appear in argv, errors, String(), JSON or logs.
-package agentcli
+package agentio

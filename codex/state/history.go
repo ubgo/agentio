@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Tables of thread_history_1.sqlite (upstream state/thread_history_migrations).
@@ -44,9 +44,9 @@ type Turn struct {
 	TurnID            string
 	RootTurnID        *string // 0008+
 	Status            TurnStatus
-	Error             agentcli.Raw // error_json, shape vendor-defined
-	Started           time.Time    // started_at (seconds)
-	Completed         time.Time    // completed_at (seconds)
+	Error             agentio.Raw // error_json, shape vendor-defined
+	Started           time.Time   // started_at (seconds)
+	Completed         time.Time   // completed_at (seconds)
 	Duration          time.Duration
 	FirstUserItemID   *string
 	FinalAgentItemID  *string
@@ -96,7 +96,7 @@ func (d *DB) Turns(ctx context.Context, threadID string) ([]Turn, error) {
 		t.RootTurnID = strPtr(root)
 		t.Status = TurnStatus(status.String)
 		if errJSON.String != "" {
-			t.Error = agentcli.Raw(errJSON.String)
+			t.Error = agentio.Raw(errJSON.String)
 		}
 		t.Started, t.Completed = fromSeconds(started), fromSeconds(completed)
 		t.Duration = time.Duration(durMs.Int64) * time.Millisecond
@@ -144,7 +144,7 @@ type Item struct {
 	Created        time.Time
 	Started        *time.Time // 0007+
 	Completed      *time.Time // 0007+
-	JSON           agentcli.Raw
+	JSON           agentio.Raw
 }
 
 // itemTypeKey is the JSON key holding the item type, used when the
@@ -191,7 +191,7 @@ func (d *DB) Items(ctx context.Context, threadID string, after int64, limit int)
 		}
 		it.Created = fromMillis(created)
 		it.Started, it.Completed = timePtr(fromMillis(started)), timePtr(fromMillis(completed))
-		it.JSON = agentcli.Raw(body.String)
+		it.JSON = agentio.Raw(body.String)
 		out = append(out, it)
 	}
 	return out, rows.Err()

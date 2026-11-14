@@ -84,6 +84,6 @@ tasks:
     desc: Build and vet every module outside go.work (GOWORK=off), using the pseudo-versions in each go.mod
     env:
       GOWORK: 'off'
-      GOPRIVATE: github.com/khanakia/*
+      GOPRIVATE: github.com/ubgo/*
     cmds:
       - for m in {{.MODULES}}; do (cd $m && go build -o /dev/null ./... && go vet ./...) || { echo "FAIL $m"; exit 1; }; echo "ok $m"; done

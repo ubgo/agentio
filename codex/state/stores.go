@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Tables of the four small stores (upstream goals_migrations,
@@ -89,7 +89,7 @@ type QueuedItem struct {
 	ID       string
 	ThreadID string
 	Order    int64
-	Payload  agentcli.Raw // payload_json, vendor-defined
+	Payload  agentio.Raw // payload_json, vendor-defined
 	Created  time.Time
 	Updated  time.Time
 }
@@ -115,7 +115,7 @@ func (d *DB) Queue(ctx context.Context, threadID string) ([]QueuedItem, error) {
 		if err := rows.Scan(&q.ID, &q.ThreadID, &q.Order, &payload, &created, &updated); err != nil {
 			return nil, fmt.Errorf("codex/state: queue: %w", err)
 		}
-		q.Payload = agentcli.Raw(payload)
+		q.Payload = agentio.Raw(payload)
 		q.Created, q.Updated = fromMillis(created), fromMillis(updated)
 		out = append(out, q)
 	}

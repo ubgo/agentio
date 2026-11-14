@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // SessionStatus is sessions/<pid>.json `status` (open set).
@@ -34,14 +34,14 @@ func (s SessionStatus) IsKnown() bool {
 
 // Neutral maps onto the shared status. shell counts as Busy: the session is
 // running a command and is not waiting for input. cost: Pure.
-func (s SessionStatus) Neutral() agentcli.SessionStatus {
+func (s SessionStatus) Neutral() agentio.SessionStatus {
 	switch s {
 	case StatusIdle:
-		return agentcli.SessionIdle
+		return agentio.SessionIdle
 	case StatusBusy, StatusShell:
-		return agentcli.SessionBusy
+		return agentio.SessionBusy
 	}
-	return agentcli.SessionStatusUnknown
+	return agentio.SessionStatusUnknown
 }
 
 // ProcStart is the start stamp Claude Code records next to a pid to detect
@@ -58,7 +58,7 @@ type LiveSession struct {
 	Name            string
 	NameSource      string
 	Version         string
-	Kind            agentcli.SessionKind
+	Kind            agentio.SessionKind
 	Entrypoint      string
 	Status          SessionStatus
 	StartedAt       time.Time
@@ -75,30 +75,30 @@ type LiveSession struct {
 	// liveTolerance of StartedAt (pid-reuse guard).
 	Alive   bool
 	Path    string
-	Unknown agentcli.Unknown
+	Unknown agentio.Unknown
 }
 
 type wireLiveSession struct {
-	PID             json.Number          `json:"pid"`
-	SessionID       string               `json:"sessionId"`
-	Cwd             string               `json:"cwd"`
-	StartedAt       millis               `json:"startedAt"`
-	ProcStart       ProcStart            `json:"procStart"`
-	Version         string               `json:"version"`
-	PeerProtocol    int                  `json:"peerProtocol"`
-	PeerFeatures    []string             `json:"peerFeatures"`
-	Kind            agentcli.SessionKind `json:"kind"`
-	Entrypoint      string               `json:"entrypoint"`
-	PIDDomain       string               `json:"pidDomain"`
-	Tmux            string               `json:"tmux"`
-	MessagingSocket string               `json:"messagingSocketPath"`
-	Name            string               `json:"name"`
-	NameSource      string               `json:"nameSource"`
-	Status          SessionStatus        `json:"status"`
-	UpdatedAt       millis               `json:"updatedAt"`
-	StatusUpdatedAt millis               `json:"statusUpdatedAt"`
-	BridgeSessionID string               `json:"bridgeSessionId"`
-	JobID           string               `json:"jobId"`
+	PID             json.Number         `json:"pid"`
+	SessionID       string              `json:"sessionId"`
+	Cwd             string              `json:"cwd"`
+	StartedAt       millis              `json:"startedAt"`
+	ProcStart       ProcStart           `json:"procStart"`
+	Version         string              `json:"version"`
+	PeerProtocol    int                 `json:"peerProtocol"`
+	PeerFeatures    []string            `json:"peerFeatures"`
+	Kind            agentio.SessionKind `json:"kind"`
+	Entrypoint      string              `json:"entrypoint"`
+	PIDDomain       string              `json:"pidDomain"`
+	Tmux            string              `json:"tmux"`
+	MessagingSocket string              `json:"messagingSocketPath"`
+	Name            string              `json:"name"`
+	NameSource      string              `json:"nameSource"`
+	Status          SessionStatus       `json:"status"`
+	UpdatedAt       millis              `json:"updatedAt"`
+	StatusUpdatedAt millis              `json:"statusUpdatedAt"`
+	BridgeSessionID string              `json:"bridgeSessionId"`
+	JobID           string              `json:"jobId"`
 }
 
 // parseLiveSession decodes one registry file body.
@@ -123,7 +123,7 @@ func parseLiveSession(path string, data []byte) (LiveSession, error) {
 
 // processTable reads Host.Processes once; nil when the host has none or
 // the read fails (Alive then stays false).
-func (a *Agent) processTable(ctx context.Context) map[int]agentcli.Process {
+func (a *Agent) processTable(ctx context.Context) map[int]agentio.Process {
 	if a.host.Processes == nil {
 		return nil
 	}
@@ -131,7 +131,7 @@ func (a *Agent) processTable(ctx context.Context) map[int]agentcli.Process {
 	if err != nil {
 		return nil
 	}
-	m := make(map[int]agentcli.Process, len(list))
+	m := make(map[int]agentio.Process, len(list))
 	for _, p := range list {
 		m[p.PID] = p
 	}
@@ -140,7 +140,7 @@ func (a *Agent) processTable(ctx context.Context) map[int]agentcli.Process {
 
 // alive applies the pid-reuse guard. A row with no start time is trusted
 // on pid presence alone.
-func alive(table map[int]agentcli.Process, pid int, startedAt time.Time) bool {
+func alive(table map[int]agentio.Process, pid int, startedAt time.Time) bool {
 	p, ok := table[pid]
 	if !ok {
 		return false
@@ -221,8 +221,8 @@ func (a *Agent) IsLive(h Home, conversationID string) (bool, error) {
 }
 
 // Neutral projects onto the shared live session. cost: Pure.
-func (l LiveSession) Neutral(h Home) agentcli.LiveSession {
-	return agentcli.LiveSession{
+func (l LiveSession) Neutral(h Home) agentio.LiveSession {
+	return agentio.LiveSession{
 		PID: l.PID, ConversationID: l.SessionID, Dir: l.Cwd, Home: h.Neutral(), Kind: l.Kind,
 		Status: l.Status.Neutral(), StatusSince: l.StatusUpdatedAt, StartedAt: l.StartedAt, Alive: l.Alive,
 	}
@@ -231,7 +231,7 @@ func (l LiveSession) Neutral(h Home) agentcli.LiveSession {
 // LiveProcess is one process-table row recognised as Claude Code.
 type LiveProcess struct {
 	PID, PPID int
-	Kind      agentcli.ProcessKind
+	Kind      agentio.ProcessKind
 	Session   bool
 	Exe       string
 	Argv      []string
@@ -247,18 +247,18 @@ const argMCPServe = "serve"
 // ClassifyProcess says whether p is Claude Code, from Spec().Process
 // (agentop's production rules). `claude mcp serve` is an MCP server, not a
 // session; every other match is a CLI conversation. cost: Pure.
-func ClassifyProcess(p agentcli.Process) (agentcli.ProcessInfo, bool) {
+func ClassifyProcess(p agentio.Process) (agentio.ProcessInfo, bool) {
 	if !Spec().Process.Match(p) {
-		return agentcli.ProcessInfo{}, false
+		return agentio.ProcessInfo{}, false
 	}
 	if i := slices.Index(p.Argv, subMCP); i >= 0 && i+1 < len(p.Argv) && p.Argv[i+1] == argMCPServe {
-		return agentcli.ProcessInfo{Agent: ID, Kind: agentcli.ProcessMCPServer}, true
+		return agentio.ProcessInfo{Agent: ID, Kind: agentio.ProcessMCPServer}, true
 	}
-	return agentcli.ProcessInfo{Agent: ID, Kind: agentcli.ProcessCLI, Session: true}, true
+	return agentio.ProcessInfo{Agent: ID, Kind: agentio.ProcessCLI, Session: true}, true
 }
 
 // ClassifyProcess is the package function on the agent. cost: Pure.
-func (a *Agent) ClassifyProcess(p agentcli.Process) (agentcli.ProcessInfo, bool) {
+func (a *Agent) ClassifyProcess(p agentio.Process) (agentio.ProcessInfo, bool) {
 	return ClassifyProcess(p)
 }
 
@@ -267,7 +267,7 @@ func (a *Agent) ClassifyProcess(p agentcli.Process) (agentcli.ProcessInfo, bool)
 // table + cwd lookups), MayTouchLogin false.
 func (a *Agent) Processes(ctx context.Context) ([]LiveProcess, error) {
 	if a.host.Processes == nil {
-		return nil, agentcli.UnsupportedError(ID, "processes", "the host has no process lister")
+		return nil, agentio.UnsupportedError(ID, "processes", "the host has no process lister")
 	}
 	list, err := a.host.Processes.Processes(ctx)
 	if err != nil {
@@ -304,7 +304,7 @@ type Job struct {
 	RespawnFlags, ProviderEnv                                                 []string
 	Children                                                                  []JobChild
 	CreatedAt, UpdatedAt                                                      time.Time
-	Unknown                                                                   agentcli.Unknown
+	Unknown                                                                   agentio.Unknown
 }
 
 type wireJob struct {
@@ -374,11 +374,11 @@ type JobEvent struct {
 // cost: Disk · Read (bounded tail).
 func (a *Agent) JobTimeline(h Home, id string) ([]JobEvent, error) {
 	if id == "" || strings.ContainsAny(id, `/\`) {
-		return nil, fmt.Errorf("%w: job %q", agentcli.ErrNotFound, id)
+		return nil, fmt.Errorf("%w: job %q", agentio.ErrNotFound, id)
 	}
 	buf, err := readTail(filepath.Join(h.Dir(), jobsDir, id, jobTimelineFile), tailScanBytes)
 	if isNotExist(err) {
-		return nil, fmt.Errorf("%w: job %s", agentcli.ErrNotFound, id)
+		return nil, fmt.Errorf("%w: job %s", agentio.ErrNotFound, id)
 	}
 	if err != nil {
 		return nil, err
@@ -496,7 +496,7 @@ type Team struct {
 	LeadSessionID string
 	LeadProcess   *TeamLead
 	Members       []TeamMember
-	Unknown       agentcli.Unknown
+	Unknown       agentio.Unknown
 }
 
 type wireTeam struct {
@@ -542,7 +542,7 @@ func (a *Agent) Teams(h Home) ([]Team, error) {
 // body stays raw.
 type TaskItem struct {
 	Name string
-	Raw  agentcli.Raw
+	Raw  agentio.Raw
 }
 
 // TaskList is one tasks/<list>/ dir.
@@ -575,7 +575,7 @@ func (a *Agent) TaskLists(h Home) ([]TaskList, error) {
 			}
 			ti := TaskItem{Name: it.Name()}
 			if data, found, err := readFileBounded(filepath.Join(dir, e.Name(), it.Name()), maxResponseBytes); err == nil && found {
-				ti.Raw = agentcli.Raw(data)
+				ti.Raw = agentio.Raw(data)
 			}
 			tl.Items = append(tl.Items, ti)
 		}

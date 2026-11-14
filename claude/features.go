@@ -3,7 +3,7 @@ package claude
 import (
 	"fmt"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 //go:generate go run ./internal/featuregen
@@ -51,17 +51,17 @@ const (
 )
 
 // Compat parses the tested range. cost: Pure.
-func Compat() agentcli.Compat {
-	return agentcli.Compat{Min: agentcli.MustVersion(TestedMin), Max: agentcli.MustVersion(TestedMax)}
+func Compat() agentio.Compat {
+	return agentio.Compat{Min: agentio.MustVersion(TestedMin), Max: agentio.MustVersion(TestedMax)}
 }
 
 // FeatureUnavailableError reports that the installed version provably
-// lacks a feature; it matches agentcli.ErrFeatureUnavailable.
+// lacks a feature; it matches agentio.ErrFeatureUnavailable.
 type FeatureUnavailableError struct {
 	Feature   Feature
-	Installed agentcli.Version
-	Since     agentcli.Version
-	Until     agentcli.Version
+	Installed agentio.Version
+	Since     agentio.Version
+	Until     agentio.Version
 }
 
 // Error names the feature and the versions. cost: Pure.
@@ -75,13 +75,13 @@ func (e *FeatureUnavailableError) Error() string {
 	return fmt.Sprintf("claude: %s is unavailable in Claude Code %s", e.Feature, e.Installed)
 }
 
-// Is matches agentcli.ErrFeatureUnavailable. cost: Pure.
+// Is matches agentio.ErrFeatureUnavailable. cost: Pure.
 func (e *FeatureUnavailableError) Is(target error) bool {
-	return target == agentcli.ErrFeatureUnavailable
+	return target == agentio.ErrFeatureUnavailable
 }
 
 // checkFeature returns a FeatureUnavailableError when v provably lacks f.
-func checkFeature(f Feature, v agentcli.Version) error {
+func checkFeature(f Feature, v agentio.Version) error {
 	span := FeatureInfo(f)
 	if span.In(v) {
 		return nil

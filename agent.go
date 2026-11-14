@@ -1,4 +1,4 @@
-package agentcli
+package agentio
 
 // Agent is the L1 core every agent has, including a config-only agent
 // described by a Spec (SPEC §5.3). Vendor agents (*claude.Agent,

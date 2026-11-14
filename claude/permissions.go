@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // PermissionMode is a permission mode (open set). OD-13: "manual" and
@@ -77,16 +77,16 @@ func ParseRule(s string) (Rule, error) {
 
 // Permissions is the permissions setting.
 type Permissions struct {
-	Allow                                []string         `json:"allow,omitempty"`
-	Ask                                  []string         `json:"ask,omitempty"`
-	Deny                                 []string         `json:"deny,omitempty"`
-	AdditionalDirectories                []string         `json:"additionalDirectories,omitempty"`
-	DefaultMode                          PermissionMode   `json:"defaultMode,omitempty"`
-	DisableBypassPermissionsMode         string           `json:"disableBypassPermissionsMode,omitempty"`
-	BlockReadsOutsideWorkingDirectories  *bool            `json:"blockReadsOutsideWorkingDirectories,omitempty"`
-	BlockWritesOutsideWorkingDirectories *bool            `json:"blockWritesOutsideWorkingDirectories,omitempty"`
-	DenyInsteadOfPrompting               *bool            `json:"denyInsteadOfPrompting,omitempty"`
-	Unknown                              agentcli.Unknown `json:"-"`
+	Allow                                []string        `json:"allow,omitempty"`
+	Ask                                  []string        `json:"ask,omitempty"`
+	Deny                                 []string        `json:"deny,omitempty"`
+	AdditionalDirectories                []string        `json:"additionalDirectories,omitempty"`
+	DefaultMode                          PermissionMode  `json:"defaultMode,omitempty"`
+	DisableBypassPermissionsMode         string          `json:"disableBypassPermissionsMode,omitempty"`
+	BlockReadsOutsideWorkingDirectories  *bool           `json:"blockReadsOutsideWorkingDirectories,omitempty"`
+	BlockWritesOutsideWorkingDirectories *bool           `json:"blockWritesOutsideWorkingDirectories,omitempty"`
+	DenyInsteadOfPrompting               *bool           `json:"denyInsteadOfPrompting,omitempty"`
+	Unknown                              agentio.Unknown `json:"-"`
 }
 
 // RuleKind is which list a rule came from.

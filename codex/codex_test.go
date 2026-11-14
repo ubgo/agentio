@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/khanakia/agentcli"
-	"github.com/khanakia/agentcli/agenttest"
-	"github.com/khanakia/agentcli/codex/internal/featuregen"
+	"github.com/ubgo/agentio"
+	"github.com/ubgo/agentio/agenttest"
+	"github.com/ubgo/agentio/codex/internal/featuregen"
 )
 
 // fixture ids (redacted sample home, testdata/homes/0.162.1).
@@ -129,7 +129,7 @@ func TestConfigFile(t *testing.T) {
 		t.Fatal("an MCP env value leaked into Config")
 	}
 	cu := c.MCPServers["computer-use"]
-	if cu.Enabled.V || !cu.Enabled.Set || cu.Transport() != agentcli.MCPStdio {
+	if cu.Enabled.V || !cu.Enabled.Set || cu.Transport() != agentio.MCPStdio {
 		t.Fatalf("computer-use %+v", cu)
 	}
 	if !c.Plugins["github@openai-curated"].Enabled.V {
@@ -172,7 +172,7 @@ func TestConfigTypeChangeDegradesOneKey(t *testing.T) {
 	if c.Model.Set || c.ModelProvider.V != "openai" {
 		t.Fatalf("model %+v", c)
 	}
-	if !warns.Has(agentcli.WarnTypeChanged) || len(warns) != 2 {
+	if !warns.Has(agentio.WarnTypeChanged) || len(warns) != 2 {
 		t.Fatalf("warnings %v", warns)
 	}
 	if c.Unknown["model"] != "5" || c.MCPServers["x"].Unknown["command"] != `["a"]` {
@@ -244,7 +244,7 @@ func TestIdentity(t *testing.T) {
 		t.Fatal("personal value printed")
 	}
 	n := id.Neutral()
-	if n.PlanLabel != "Plus" || n.Billing != agentcli.BillingSubscription || n.Credential != agentcli.CredentialFile {
+	if n.PlanLabel != "Plus" || n.Billing != agentio.BillingSubscription || n.Credential != agentio.CredentialFile {
 		t.Fatalf("neutral %+v", n)
 	}
 	if ParsePlan("hc") != PlanEnterprise || PlanPro.DisplayName() != "Pro (More)" || !PlanTeam.IsWorkspace() || Plan("zzz").IsKnown() {
@@ -339,7 +339,7 @@ func TestIdentityKeyring(t *testing.T) {
 	if !slices.Equal(secrets.Calls, []agenttest.SecretKey{want}) || id.Keyring.Account != want.Account {
 		t.Fatalf("lookups %v (named account only, never service-only)", secrets.Calls)
 	}
-	if n := id.Neutral(); n.Credential != agentcli.CredentialKeyring || !n.LoggedIn {
+	if n := id.Neutral(); n.Credential != agentio.CredentialKeyring || !n.LoggedIn {
 		t.Fatalf("neutral %+v", n)
 	}
 	assertNoSecret(t, fmt.Sprintf("%+v %v %#v", id, id.Neutral(), id), raw)
@@ -355,16 +355,16 @@ func TestIdentityKeyringIgnoresFile(t *testing.T) {
 	if err != nil || id.LoggedIn || id.CredentialStore != StoreKeyring || id.Keyring.Service != KeyringService {
 		t.Fatalf("keyring miss %+v %v", id, err)
 	}
-	var login agentcli.Check
+	var login agentio.Check
 	for _, c := range a.Checks(context.Background(), h) {
-		if c.ID == agentcli.CheckLogin {
+		if c.ID == agentio.CheckLogin {
 			login = c
 		}
 	}
-	if login.Status != agentcli.CheckWarn || !strings.Contains(login.Message, id.Keyring.Account) || login.Fix == nil {
+	if login.Status != agentio.CheckWarn || !strings.Contains(login.Message, id.Keyring.Account) || login.Fix == nil {
 		t.Fatalf("login check %+v", login)
 	}
-	if _, err := a.Usage(context.Background(), h); !errors.Is(err, agentcli.ErrNotLoggedIn) {
+	if _, err := a.Usage(context.Background(), h); !errors.Is(err, agentio.ErrNotLoggedIn) {
 		t.Fatalf("usage without a keyring login: %v", err)
 	}
 }
@@ -399,13 +399,13 @@ func TestIdentityAutoFallback(t *testing.T) {
 		if !errors.Is(err, cause) || !errors.As(err, &kerr) || kerr.Entry.Account != KeyringAccount(h.Dir()) || id.CredentialStore != StoreAuto {
 			t.Fatalf("%+v %v", id, err)
 		}
-		var keyring agentcli.Check
+		var keyring agentio.Check
 		for _, c := range a.Checks(context.Background(), h) {
 			if c.ID == CheckKeyring {
 				keyring = c
 			}
 		}
-		if keyring.Status != agentcli.CheckWarn {
+		if keyring.Status != agentio.CheckWarn {
 			t.Fatalf("doctor %+v", keyring)
 		}
 	})
@@ -422,9 +422,9 @@ func TestIdentityAutoFallback(t *testing.T) {
 // a logged-out identity.
 func TestIdentityKeyringStoreUnsupported(t *testing.T) {
 	a, h, secrets, _ := keyringSetup(t, StoreKeyring, false, false)
-	secrets.Err = agentcli.UnsupportedError("", "keychain", "no keychain reader for test")
+	secrets.Err = agentio.UnsupportedError("", "keychain", "no keychain reader for test")
 	id, err := a.Identity(h)
-	if !errors.Is(err, agentcli.ErrUnsupported) || id.LoggedIn {
+	if !errors.Is(err, agentio.ErrUnsupported) || id.LoggedIn {
 		t.Fatalf("unsupported store: %+v %v", id, err)
 	}
 }
@@ -449,7 +449,7 @@ func TestIdentityKeyringBadValueAndEphemeral(t *testing.T) {
 	}
 
 	eph, eh, esecrets, _ := keyringSetup(t, StoreEphemeral, false, true)
-	if _, err := eph.Identity(eh); !errors.Is(err, agentcli.ErrUnsupported) || len(esecrets.Calls) != 0 {
+	if _, err := eph.Identity(eh); !errors.Is(err, agentio.ErrUnsupported) || len(esecrets.Calls) != 0 {
 		t.Fatalf("ephemeral: %v", err)
 	}
 }
@@ -478,7 +478,7 @@ func TestUsageHTTP(t *testing.T) {
 		t.Fatal("request headers")
 	}
 	n := u.Neutral()
-	if len(n.Windows) != 2 || n.Windows[0].Class() != agentcli.WindowShort || n.Windows[1].Class() != agentcli.WindowWeek || n.Windows[0].Percent != 42.5 {
+	if len(n.Windows) != 2 || n.Windows[0].Class() != agentio.WindowShort || n.Windows[1].Class() != agentio.WindowWeek || n.Windows[0].Percent != 42.5 {
 		t.Fatalf("windows %+v", n.Windows)
 	}
 	if n.Windows[0].Label != "5h" || n.Windows[1].ResetsAt != nil {
@@ -487,7 +487,7 @@ func TestUsageHTTP(t *testing.T) {
 
 	after := func() time.Time { return time.Unix(1790000001, 0) }
 	a2, h2 := setup(t, agenttest.WithHTTP(agenttest.FailingHTTP(t)), agenttest.WithNow(after))
-	if _, err := a2.usageAt(context.Background(), h2, srv.URL); !errors.Is(err, agentcli.ErrExpired) {
+	if _, err := a2.usageAt(context.Background(), h2, srv.URL); !errors.Is(err, agentio.ErrExpired) {
 		t.Fatalf("expired: %v", err)
 	}
 
@@ -497,7 +497,7 @@ func TestUsageHTTP(t *testing.T) {
 	}))
 	defer limited.Close()
 	a3, h3 := setup(t, agenttest.WithHTTP(limited.Client()), agenttest.WithNow(before))
-	if _, err := a3.usageAt(context.Background(), h3, limited.URL); !errors.Is(err, agentcli.ErrRateLimited) {
+	if _, err := a3.usageAt(context.Background(), h3, limited.URL); !errors.Is(err, agentio.ErrRateLimited) {
 		t.Fatalf("429: %v", err)
 	}
 	if _, err := ParseUsage([]byte(`{"rate_limit":{}}`)); !errors.Is(err, ErrNoWindows) {
@@ -511,14 +511,14 @@ func TestCachedUsageAndSubscription(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("cached %v %v", ok, err)
 	}
-	if len(u.Windows) != 1 || u.Windows[0].Length != 7*24*time.Hour || u.Windows[0].Percent != 12 || u.Source != agentcli.UsageTranscript {
+	if len(u.Windows) != 1 || u.Windows[0].Length != 7*24*time.Hour || u.Windows[0].Percent != 12 || u.Source != agentio.UsageTranscript {
 		t.Fatalf("cached %+v", u)
 	}
 	if u.ObservedAt.IsZero() || u.Plan != PlanPlus {
 		t.Fatal("observed at / plan")
 	}
 	s, err := a.Subscription(context.Background(), h)
-	if err != nil || s.Plan != PlanPlus || s.Source != agentcli.UsageCache || s.ActiveStart == nil {
+	if err != nil || s.Plan != PlanPlus || s.Source != agentio.UsageCache || s.ActiveStart == nil {
 		t.Fatalf("subscription from claims %+v %v", s, err)
 	}
 }
@@ -550,23 +550,23 @@ func TestConversationsAndTurns(t *testing.T) {
 		t.Fatal("no history")
 	}
 
-	var turns []agentcli.Turn
-	off, err := a.Turns(h, convNew, 0, func(tn agentcli.Turn) error { turns = append(turns, tn); return nil })
+	var turns []agentio.Turn
+	off, err := a.Turns(h, convNew, 0, func(tn agentio.Turn) error { turns = append(turns, tn); return nil })
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(turns) != 2 || turns[0].Role != agentcli.RoleUser || turns[0].Text != "list the files" || turns[1].Role != agentcli.RoleAssistant {
+	if len(turns) != 2 || turns[0].Role != agentio.RoleUser || turns[0].Text != "list the files" || turns[1].Role != agentio.RoleAssistant {
 		t.Fatalf("turns %+v", turns)
 	}
 	if turns[1].Tokens == nil || turns[1].Tokens.Reasoning != 20 || turns[1].Model != "gpt-5.5" {
 		t.Fatalf("assistant turn %+v", turns[1])
 	}
-	again, err := a.Turns(h, convNew, off, func(agentcli.Turn) error { t.Fatal("no new turns expected"); return nil })
+	again, err := a.Turns(h, convNew, off, func(agentio.Turn) error { t.Fatal("no new turns expected"); return nil })
 	if err != nil || again != off {
 		t.Fatalf("resume at offset: %v %v", again, err)
 	}
-	var old []agentcli.Turn
-	if _, err := a.Turns(h, convOld, 0, func(tn agentcli.Turn) error { old = append(old, tn); return nil }); err != nil {
+	var old []agentio.Turn
+	if _, err := a.Turns(h, convOld, 0, func(tn agentio.Turn) error { old = append(old, tn); return nil }); err != nil {
 		t.Fatal(err)
 	}
 	if len(old) != 2 || old[1].Text != "hi there" {
@@ -628,18 +628,18 @@ func TestRolloutReader(t *testing.T) {
 	if _, err := pr.Next(); err == nil {
 		t.Fatal("partial line must not decode")
 	}
-	if pr.Offset() != agentcli.Offset(len(`{"type":"compacted","payload":{"message":"m"}}`)+1) {
+	if pr.Offset() != agentio.Offset(len(`{"type":"compacted","payload":{"message":"m"}}`)+1) {
 		t.Fatalf("offset %d", pr.Offset())
 	}
 }
 
 func TestPromptHistory(t *testing.T) {
 	a, h := setup(t)
-	es, err := a.PromptHistory(h, agentcli.PromptQuery{Limit: 2})
+	es, err := a.PromptHistory(h, agentio.PromptQuery{Limit: 2})
 	if err != nil || len(es) != 2 || es[0].Text != "and the sizes" {
 		t.Fatalf("history %+v %v", es, err)
 	}
-	es, _ = a.PromptHistory(h, agentcli.PromptQuery{ConversationID: convOld})
+	es, _ = a.PromptHistory(h, agentio.PromptQuery{ConversationID: convOld})
 	if len(es) != 1 || es[0].Text != "hello" {
 		t.Fatalf("by session %+v", es)
 	}
@@ -665,13 +665,13 @@ func TestCatalogSkillsPluginsRules(t *testing.T) {
 	for _, s := range skills {
 		byName[s.Name] = s
 	}
-	if byName["squad"].Scope != agentcli.SkillUser || byName["squad"].Extra["squad-version"] != "0.7.6" {
+	if byName["squad"].Scope != agentio.SkillUser || byName["squad"].Extra["squad-version"] != "0.7.6" {
 		t.Fatalf("user skill %+v", byName["squad"])
 	}
-	if byName["imagegen"].Scope != agentcli.SkillSystem || byName["imagegen"].Description != "Generate images from prompts." {
+	if byName["imagegen"].Scope != agentio.SkillSystem || byName["imagegen"].Description != "Generate images from prompts." {
 		t.Fatalf("system skill %+v", byName["imagegen"])
 	}
-	if byName["pr-review"].Plugin != "github" || byName["pr-review"].Scope != agentcli.SkillPlugin {
+	if byName["pr-review"].Plugin != "github" || byName["pr-review"].Scope != agentio.SkillPlugin {
 		t.Fatal("plugin skill")
 	}
 	plugins, err := a.Plugins(h)
@@ -705,7 +705,7 @@ func TestInstructionFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(files) != 3 || files[0].Scope != agentcli.InstructionUser || files[1].Kind != fileAgentsMD || files[2].Kind != fileAgentsOverride {
+	if len(files) != 3 || files[0].Scope != agentio.InstructionUser || files[1].Kind != fileAgentsMD || files[2].Kind != fileAgentsOverride {
 		t.Fatalf("files %+v", files)
 	}
 	root, ok, err := a.ProjectRoot(h, filepath.Join(proj, "sub"))
@@ -717,7 +717,7 @@ func TestInstructionFiles(t *testing.T) {
 func TestLaunch(t *testing.T) {
 	a, h := setup(t, agenttest.WithEnv("PATH=/usr/bin", EnvHome+"=/elsewhere"))
 	n := a.Neutral()
-	cmd, err := n.Launch(h.Target(), agentcli.LaunchRequest{Prompt: "hi", Model: "o3", AddDirs: []string{"/x"}, Autonomy: agentcli.AutonomyAsk})
+	cmd, err := n.Launch(h.Target(), agentio.LaunchRequest{Prompt: "hi", Model: "o3", AddDirs: []string{"/x"}, Autonomy: agentio.AutonomyAsk})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -725,28 +725,28 @@ func TestLaunch(t *testing.T) {
 	if !slices.Equal(cmd.Args, want) {
 		t.Fatalf("args %v", cmd.Args)
 	}
-	if _, ok := agentcli.EnvLookup(cmd.Env, EnvHome); ok {
+	if _, ok := agentio.EnvLookup(cmd.Env, EnvHome); ok {
 		t.Fatal("CODEX_HOME must be absent for the default home")
 	}
 	other := a.core.HomeAt(filepath.Join(t.TempDir(), "other"))
-	cmd, _ = n.Launch(other.Target(), agentcli.LaunchRequest{ResumeID: convNew, Headless: true, Autonomy: agentcli.AutonomyAsk})
+	cmd, _ = n.Launch(other.Target(), agentio.LaunchRequest{ResumeID: convNew, Headless: true, Autonomy: agentio.AutonomyAsk})
 	if !slices.Equal(cmd.Args[:2], []string{"exec", "resume"}) || !slices.Contains(cmd.Args, "--json") || slices.Contains(cmd.Args, "-a") || cmd.Args[len(cmd.Args)-1] != convNew {
 		t.Fatalf("exec resume %v", cmd.Args)
 	}
-	if v, _ := agentcli.EnvLookup(cmd.Env, EnvHome); v != other.Dir() {
+	if v, _ := agentio.EnvLookup(cmd.Env, EnvHome); v != other.Dir() {
 		t.Fatal("CODEX_HOME set for a non-default home")
 	}
-	if _, err := n.Launch(h.Target(), agentcli.LaunchRequest{Autonomy: agentcli.AutonomyAcceptEdits}); !errors.Is(err, agentcli.ErrUnsupported) {
+	if _, err := n.Launch(h.Target(), agentio.LaunchRequest{Autonomy: agentio.AutonomyAcceptEdits}); !errors.Is(err, agentio.ErrUnsupported) {
 		t.Fatalf("accept-edits: %v", err)
 	}
-	if _, err := n.Launch(h.Target(), agentcli.LaunchRequest{Autonomy: agentcli.AutonomyFull}); !errors.Is(err, agentcli.ErrDangerousNotAllowed) {
+	if _, err := n.Launch(h.Target(), agentio.LaunchRequest{Autonomy: agentio.AutonomyFull}); !errors.Is(err, agentio.ErrDangerousNotAllowed) {
 		t.Fatalf("full without allow: %v", err)
 	}
 	old := h.Target()
-	old.Version = agentcli.MustVersion("0.150.0")
+	old.Version = agentio.MustVersion("0.150.0")
 	_, err = a.New(old, LaunchOptions{NoDaemon: true})
 	var fe *FeatureUnavailableError
-	if !errors.As(err, &fe) || !errors.Is(err, agentcli.ErrFeatureUnavailable) || fe.Feature != FeatureFlagNoDaemon {
+	if !errors.As(err, &fe) || !errors.Is(err, agentio.ErrFeatureUnavailable) || fe.Feature != FeatureFlagNoDaemon {
 		t.Fatalf("feature gate: %v", err)
 	}
 	cfg, _ := a.ConfigFile(h)
@@ -754,19 +754,19 @@ func TestLaunch(t *testing.T) {
 		t.Fatalf("profile conflict: %v", err)
 	}
 	cur := h.Target()
-	cur.Version = agentcli.MustVersion(fixtureVersion)
+	cur.Version = agentio.MustVersion(fixtureVersion)
 	cmd, err = a.Exec(cur, ExecOptions{LaunchOptions: LaunchOptions{PromptFromStdin: true, Approval: ApprovalNever}, JSON: true})
 	if err != nil || !slices.Equal(cmd.Args, []string{"exec", "-c", `approval_policy="never"`, "--json", "-"}) || len(cmd.Warnings) != 0 {
 		t.Fatalf("exec %v %v %v", cmd.Args, cmd.Warnings, err)
 	}
 	cmd, _ = a.New(h.Target(), LaunchOptions{})
-	if !cmd.Warnings.Has(agentcli.WarnVersionUnknown) {
+	if !cmd.Warnings.Has(agentio.WarnVersionUnknown) {
 		t.Fatal("unknown version warns")
 	}
-	if _, err := a.MCPAddCommand(h, "x", MCPAddSpec{Command: "srv", Env: map[string]agentcli.EnvValue{"K": agentcli.NewEnvValue("v")}}); !errors.Is(err, agentcli.ErrUnsupported) {
+	if _, err := a.MCPAddCommand(h, "x", MCPAddSpec{Command: "srv", Env: map[string]agentio.EnvValue{"K": agentio.NewEnvValue("v")}}); !errors.Is(err, agentio.ErrUnsupported) {
 		t.Fatal("mcp add with env values must be refused")
 	}
-	lc, err := a.LoginCommand(h, agentcli.LoginAPIKeyStdin)
+	lc, err := a.LoginCommand(h, agentio.LoginAPIKeyStdin)
 	if err != nil || !slices.Equal(lc.Args, []string{"login", "--with-api-key"}) {
 		t.Fatalf("login %v", lc.Args)
 	}
@@ -784,8 +784,8 @@ warning: not json
 func TestExecDecoder(t *testing.T) {
 	a := New(agenttest.NewHost(t))
 	d := a.NewRunDecoder(strings.NewReader(execStream))
-	var types []agentcli.RunEventType
-	var last agentcli.RunEvent
+	var types []agentio.RunEventType
+	var last agentio.RunEvent
 	for {
 		ev, err := d.Next()
 		if err != nil {
@@ -793,11 +793,11 @@ func TestExecDecoder(t *testing.T) {
 		}
 		types = append(types, ev.Type)
 		last = ev
-		if ev.Type == agentcli.RunEventDone && (ev.Tokens == nil || ev.Tokens.Reasoning != 1) {
+		if ev.Type == agentio.RunEventDone && (ev.Tokens == nil || ev.Tokens.Reasoning != 1) {
 			t.Fatal("usage tokens")
 		}
 	}
-	want := []agentcli.RunEventType{agentcli.RunEventStarted, agentcli.RunEventOther, agentcli.RunEventMessage, agentcli.RunEventTool, agentcli.RunEventDone, agentcli.RunEventOther}
+	want := []agentio.RunEventType{agentio.RunEventStarted, agentio.RunEventOther, agentio.RunEventMessage, agentio.RunEventTool, agentio.RunEventDone, agentio.RunEventOther}
 	if !slices.Equal(types, want) || !strings.Contains(string(last.Raw), "future.event") {
 		t.Fatalf("types %v", types)
 	}
@@ -808,7 +808,7 @@ func TestExecDecoder(t *testing.T) {
 }
 
 func TestClassifyAndProcesses(t *testing.T) {
-	procs := &agenttest.FakeProcesses{List: []agentcli.Process{
+	procs := &agenttest.FakeProcesses{List: []agentio.Process{
 		{PID: 1, Exe: "/opt/x/codex", Argv: []string{"codex"}},
 		{PID: 2, Exe: "/opt/x/codex", Argv: []string{"codex", "exec", "--json"}},
 		{PID: 3, Exe: "/usr/bin/node", Argv: []string{"node", "/lib/node_modules/@openai/codex/bin/codex.js"}},
@@ -820,8 +820,8 @@ func TestClassifyAndProcesses(t *testing.T) {
 	if err != nil || len(ps) != 4 {
 		t.Fatalf("processes %v %v", ps, err)
 	}
-	kinds := []agentcli.ProcessKind{ps[0].Kind, ps[1].Kind, ps[2].Kind, ps[3].Kind}
-	if !slices.Equal(kinds, []agentcli.ProcessKind{agentcli.ProcessCLI, agentcli.ProcessExec, agentcli.ProcessLauncher, agentcli.ProcessAppServer}) || ps[0].Cwd != "/work/proj" {
+	kinds := []agentio.ProcessKind{ps[0].Kind, ps[1].Kind, ps[2].Kind, ps[3].Kind}
+	if !slices.Equal(kinds, []agentio.ProcessKind{agentio.ProcessCLI, agentio.ProcessExec, agentio.ProcessLauncher, agentio.ProcessAppServer}) || ps[0].Cwd != "/work/proj" {
 		t.Fatalf("kinds %v", kinds)
 	}
 	if info, _ := a.ClassifyProcess(procs.List[3]); info.Session {
@@ -871,7 +871,7 @@ func TestLiveSessionsFromThreadLocks(t *testing.T) {
 	}
 
 	// No Codex process: the lock is a crash leftover.
-	procs.List = []agentcli.Process{{PID: 9, Exe: "/usr/bin/vim", Argv: []string{"vim"}, Start: lockTime.Add(-time.Hour)}}
+	procs.List = []agentio.Process{{PID: 9, Exe: "/usr/bin/vim", Argv: []string{"vim"}, Start: lockTime.Add(-time.Hour)}}
 	ls, err := a.LiveSessions(h)
 	if err != nil || len(ls) != 1 || ls[0].Alive || ls[0].ConversationID != liveThread || ls[0].PID != 0 || !ls[0].StartedAt.Equal(lockTime) || ls[0].Home != h.Neutral() {
 		t.Fatalf("stale %+v %v", ls, err)
@@ -884,7 +884,7 @@ func TestLiveSessionsFromThreadLocks(t *testing.T) {
 	}
 
 	// Only the npm launcher, or a codex that started after the lock: still stale.
-	procs.List = []agentcli.Process{
+	procs.List = []agentio.Process{
 		{PID: 10, Exe: "/usr/bin/node", Argv: []string{"node", "/lib/node_modules/@openai/codex/bin/codex.js"}, Start: lockTime.Add(-time.Minute)},
 		{PID: 11, Exe: "/opt/x/codex", Argv: []string{"codex", "exec", "hi"}, Start: lockTime.Add(time.Minute)},
 	}
@@ -893,7 +893,7 @@ func TestLiveSessionsFromThreadLocks(t *testing.T) {
 	}
 
 	// A codex exec that started before the lock: alive.
-	procs.List = append(procs.List, agentcli.Process{PID: 12, Exe: "/opt/x/codex", Argv: []string{"codex", "exec", "hi"}, Start: lockTime.Add(-time.Second)})
+	procs.List = append(procs.List, agentio.Process{PID: 12, Exe: "/opt/x/codex", Argv: []string{"codex", "exec", "hi"}, Start: lockTime.Add(-time.Second)})
 	if live, err := a.IsLive(h, liveThread); err != nil || !live {
 		t.Fatalf("alive %v %v", live, err)
 	}
@@ -916,12 +916,12 @@ func TestLiveSessionsFromThreadLocks(t *testing.T) {
 
 	// The neutral lister answers the same; FindLiveSession cannot match a pid.
 	n := a.Neutral()
-	if lister, ok := agentcli.LiveSessionsOf(n); !ok {
+	if lister, ok := agentio.LiveSessionsOf(n); !ok {
 		t.Fatal("lister")
 	} else if got, err := lister.LiveSessions(h.Neutral()); err != nil || len(got) != 2 {
 		t.Fatalf("neutral %v %v", got, err)
 	}
-	if _, _, found, _ := agentcli.FindLiveSession([]agentcli.Agent{n}, 12); found {
+	if _, _, found, _ := agentio.FindLiveSession([]agentio.Agent{n}, 12); found {
 		t.Fatal("lock files name no pid")
 	}
 }
@@ -929,11 +929,11 @@ func TestLiveSessionsFromThreadLocks(t *testing.T) {
 func TestDoctorInventory(t *testing.T) {
 	a, h := setup(t)
 	checks := a.Checks(context.Background(), h)
-	ids := map[agentcli.CheckID]agentcli.CheckStatus{}
+	ids := map[agentio.CheckID]agentio.CheckStatus{}
 	for _, c := range checks {
 		ids[c.ID] = c.Status
 	}
-	if ids[agentcli.CheckVersionTested] != agentcli.CheckWarn || ids[CheckConfigParse] != agentcli.CheckOK || ids[agentcli.CheckHome] != agentcli.CheckOK {
+	if ids[agentio.CheckVersionTested] != agentio.CheckWarn || ids[CheckConfigParse] != agentio.CheckOK || ids[agentio.CheckHome] != agentio.CheckOK {
 		t.Fatalf("checks %+v", checks)
 	}
 	inv, err := a.Inventory(h)
@@ -949,21 +949,21 @@ func TestNeutral(t *testing.T) {
 	a, h := setup(t)
 	n := a.Neutral()
 	agenttest.Conformance(t, n, h.Neutral())
-	if r, ok := agentcli.Unsupported(n, agentcli.CapConversationMover); !ok || !strings.Contains(r, "SQLite") {
+	if r, ok := agentio.Unsupported(n, agentio.CapConversationMover); !ok || !strings.Contains(r, "SQLite") {
 		t.Fatal("mover reason")
 	}
-	if _, ok := agentcli.HistoryMoverOf(n); ok {
+	if _, ok := agentio.HistoryMoverOf(n); ok {
 		t.Fatal("no history mover")
 	}
 	if found, err := a.LiveSessions(h); err != nil || found != nil {
 		t.Fatal("the fixture holds only .coordination.lock: no live sessions")
 	}
-	claudeHome := agentcli.NewHome("claude", h.Dir(), true, "default")
-	if _, err := agentcli.IdentityOf(n); !err {
+	claudeHome := agentio.NewHome("claude", h.Dir(), true, "default")
+	if _, err := agentio.IdentityOf(n); !err {
 		t.Fatal("identity capability")
 	}
-	idr, _ := agentcli.IdentityOf(n)
-	if _, err := idr.Identity(claudeHome); !errors.Is(err, agentcli.ErrForeignHome) {
+	idr, _ := agentio.IdentityOf(n)
+	if _, err := idr.Identity(claudeHome); !errors.Is(err, agentio.ErrForeignHome) {
 		t.Fatal("foreign home")
 	}
 }
@@ -1088,7 +1088,7 @@ func TestProfilesAndConflictCheck(t *testing.T) {
 	var found bool
 	for _, c := range a.Checks(context.Background(), h) {
 		if c.ID == CheckProfileConflict {
-			found = c.Status == agentcli.CheckWarn && strings.Contains(c.Message, "ollama-launch") && strings.Contains(c.Message, "codex -p NAME") && strings.Contains(c.Message, "0.131.0")
+			found = c.Status == agentio.CheckWarn && strings.Contains(c.Message, "ollama-launch") && strings.Contains(c.Message, "codex -p NAME") && strings.Contains(c.Message, "0.131.0")
 		}
 	}
 	if !found {

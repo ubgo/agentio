@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Restriction is one policy restriction.
@@ -19,30 +19,30 @@ type Restriction struct {
 type PolicyStamp struct {
 	V           int
 	Kind        string
-	Identity    agentcli.Personal
+	Identity    agentio.Personal
 	SHA         string
 	ConfirmedAt time.Time
 	HIPAASeen   bool
 }
 
 type wireStamp struct {
-	V           int               `json:"v"`
-	Kind        string            `json:"kind"`
-	Identity    agentcli.Personal `json:"identity"`
-	SHA         string            `json:"sha"`
-	ConfirmedAt time.Time         `json:"confirmed_at"`
-	HIPAASeen   bool              `json:"hipaa_seen"`
+	V           int              `json:"v"`
+	Kind        string           `json:"kind"`
+	Identity    agentio.Personal `json:"identity"`
+	SHA         string           `json:"sha"`
+	ConfirmedAt time.Time        `json:"confirmed_at"`
+	HIPAASeen   bool             `json:"hipaa_seen"`
 }
 
 // PolicyLimits is policy-limits.json. Signatures are not verified (no key);
 // compliance_taints and monitoring_notice stay raw (no non-empty sample).
 type PolicyLimits struct {
 	Restrictions     map[string]Restriction
-	ComplianceTaints []agentcli.Raw
-	MonitoringNotice agentcli.Raw
-	Defaults         map[string]agentcli.Raw
+	ComplianceTaints []agentio.Raw
+	MonitoringNotice agentio.Raw
+	Defaults         map[string]agentio.Raw
 	Stamp            *PolicyStamp
-	Unknown          agentcli.Unknown
+	Unknown          agentio.Unknown
 }
 
 type wirePolicy struct {
@@ -67,12 +67,12 @@ func (a *Agent) PolicyLimits(h Home) (*PolicyLimits, error) {
 	}
 	pl := &PolicyLimits{Restrictions: w.Restrictions, MonitoringNotice: rawOrNil(w.MonitoringNotice), Unknown: unknown}
 	for _, t := range w.ComplianceTaints {
-		pl.ComplianceTaints = append(pl.ComplianceTaints, agentcli.Raw(t))
+		pl.ComplianceTaints = append(pl.ComplianceTaints, agentio.Raw(t))
 	}
 	if w.Defaults != nil {
-		pl.Defaults = make(map[string]agentcli.Raw, len(w.Defaults))
+		pl.Defaults = make(map[string]agentio.Raw, len(w.Defaults))
 		for k, v := range w.Defaults {
-			pl.Defaults[k] = agentcli.Raw(v)
+			pl.Defaults[k] = agentio.Raw(v)
 		}
 	}
 	var st wireStamp

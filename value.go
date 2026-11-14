@@ -1,4 +1,4 @@
-package agentcli
+package agentio
 
 import (
 	"encoding/json"
@@ -98,7 +98,7 @@ const (
 func ExtractUnknown(data []byte, known []string) (Unknown, error) {
 	var all map[string]json.RawMessage
 	if err := json.Unmarshal(data, &all); err != nil {
-		return nil, fmt.Errorf("agentcli: unknown keys: %w", err)
+		return nil, fmt.Errorf("agentio: unknown keys: %w", err)
 	}
 	for _, k := range known {
 		delete(all, k)

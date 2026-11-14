@@ -3,11 +3,11 @@ package main
 import (
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // Report is the full typed output of agentinfo (--json prints it as is).
-// Personal values (email, org) are agentcli.Personal and marshal redacted;
+// Personal values (email, org) are agentio.Personal and marshal redacted;
 // tokens never reach this type.
 type Report struct {
 	Generated    time.Time
@@ -18,15 +18,15 @@ type Report struct {
 
 // AgentReport is everything known about one agent.
 type AgentReport struct {
-	ID                 agentcli.ID
+	ID                 agentio.ID
 	Name               string
 	Binary             string `json:",omitempty"`
-	Supported          []agentcli.Capability
-	Install            *agentcli.Install `json:",omitempty"`
-	InstallError       string            `json:",omitempty"`
-	Compat             *CompatReport     `json:",omitempty"`
-	BinaryVersion      string            `json:",omitempty"`
-	BinaryVersionError string            `json:",omitempty"`
+	Supported          []agentio.Capability
+	Install            *agentio.Install `json:",omitempty"`
+	InstallError       string           `json:",omitempty"`
+	Compat             *CompatReport    `json:",omitempty"`
+	BinaryVersion      string           `json:",omitempty"`
+	BinaryVersionError string           `json:",omitempty"`
 	Homes              []HomeReport
 	HomesError         string `json:",omitempty"`
 	Processes          []ProcessRow
@@ -37,7 +37,7 @@ type AgentReport struct {
 type CompatReport struct {
 	TestedMin, TestedMax string
 	Installed            string
-	Status               agentcli.CompatStatus
+	Status               agentio.CompatStatus
 }
 
 // HomeReport is everything known about one home of one agent.
@@ -50,21 +50,21 @@ type HomeReport struct {
 	Profiles         []ProfileRow  `json:",omitempty"`
 	ModelProviders   []ProviderRow `json:",omitempty"`
 	Hooks            []HookRow     `json:",omitempty"`
-	ConfigLayers     []agentcli.ConfigLayer
-	ProjectTrust     agentcli.Trust
-	Defaults         *agentcli.Defaults `json:",omitempty"`
-	MCPServers       []agentcli.MCPServer
-	InstructionFiles []agentcli.InstructionFile
-	Skills           []agentcli.Skill
-	Plugins          []agentcli.Plugin
-	Identity         *agentcli.Identity `json:",omitempty"`
+	ConfigLayers     []agentio.ConfigLayer
+	ProjectTrust     agentio.Trust
+	Defaults         *agentio.Defaults `json:",omitempty"`
+	MCPServers       []agentio.MCPServer
+	InstructionFiles []agentio.InstructionFile
+	Skills           []agentio.Skill
+	Plugins          []agentio.Plugin
+	Identity         *agentio.Identity `json:",omitempty"`
 	Expired          bool
-	CachedUsage      *agentcli.Usage `json:",omitempty"`
-	CachedUsageAge   time.Duration   `json:",omitempty"` // now minus CachedUsage.ObservedAt
-	LiveUsage        *agentcli.Usage `json:",omitempty"`
-	Conversations    []agentcli.Conversation
-	LiveSessions     []agentcli.LiveSession
-	Checks           []agentcli.Check
+	CachedUsage      *agentio.Usage `json:",omitempty"`
+	CachedUsageAge   time.Duration  `json:",omitempty"` // now minus CachedUsage.ObservedAt
+	LiveUsage        *agentio.Usage `json:",omitempty"`
+	Conversations    []agentio.Conversation
+	LiveSessions     []agentio.LiveSession
+	Checks           []agentio.Check
 	Errors           []SectionError `json:",omitempty"`
 }
 
@@ -96,7 +96,7 @@ type ProcessRow struct {
 	PID, PPID int
 	Start     time.Time
 	Exe       string
-	Kind      agentcli.ProcessKind
+	Kind      agentio.ProcessKind
 	Session   bool
 }
 

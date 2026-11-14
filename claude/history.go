@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khanakia/agentcli"
+	"github.com/ubgo/agentio"
 )
 
 // historyChunk is how much of history.jsonl one reverse step reads; the
@@ -144,19 +144,19 @@ func (a *Agent) PromptHistory(h Home, q HistoryQuery) ([]HistoryEntry, error) {
 // PastedContent reads paste-cache/<hash>.txt (bounded). cost: Disk · Read.
 func (a *Agent) PastedContent(h Home, hash string) (string, error) {
 	if hash == "" || strings.ContainsAny(hash, `/\.`) {
-		return "", fmt.Errorf("%w: paste %q", agentcli.ErrNotFound, hash)
+		return "", fmt.Errorf("%w: paste %q", agentio.ErrNotFound, hash)
 	}
 	data, found, err := readFileBounded(filepath.Join(h.Dir(), pasteCacheDir, hash+pasteExt), maxJSONFileBytes)
 	if err != nil {
 		return "", err
 	}
 	if !found {
-		return "", fmt.Errorf("%w: paste %s", agentcli.ErrNotFound, hash)
+		return "", fmt.Errorf("%w: paste %s", agentio.ErrNotFound, hash)
 	}
 	return string(data), nil
 }
 
 // neutral converts a history entry.
-func (e HistoryEntry) neutral() agentcli.PromptEntry {
-	return agentcli.PromptEntry{Time: e.Time, Text: e.Display, Dir: e.Project, ConversationID: e.SessionID}
+func (e HistoryEntry) neutral() agentio.PromptEntry {
+	return agentio.PromptEntry{Time: e.Time, Text: e.Display, Dir: e.Project, ConversationID: e.SessionID}
 }
