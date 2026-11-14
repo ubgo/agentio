@@ -28,6 +28,12 @@ tasks:
     cmds:
       - go run ./agentinfo -dir "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
+  drift:
+    desc: Drift check against this machine's real Claude/Codex homes (disk reads only; no vendor binary, no network). Flags after --, e.g. -- -claude-help help.txt -baseline last.tsv
+    dir: examples
+    cmds:
+      - go run ./drift {{.CLI_ARGS}}
+
   example:darwin:
     desc: Cross-compile examples/agentinfo to dist/agentinfo-darwin-arm64
     cmds:
