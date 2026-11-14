@@ -624,6 +624,15 @@ type Doctor interface {
 	Checks(ctx context.Context, h Home) []Check
 }
 
+// TokenProviderLister is an optional extension of TokenLogin for agents
+// whose token variable depends on the model provider (pi: anthropic ->
+// ANTHROPIC_API_KEY): the providers a login of kind k can name in
+// TokenCredential.Provider. An agent without it needs no provider.
+type TokenProviderLister interface {
+	// TokenProviders is Pure; the first is a sensible default.
+	TokenProviders(k TokenKind) []string
+}
+
 // LiveCredentialPlan is what a launch adds so the running agent fetches
 // its credential again, every Refresh, by running a command the caller
 // owns. The caller can then switch a running session's login by changing

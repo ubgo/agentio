@@ -2,12 +2,15 @@ package builtin
 
 import (
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/ubgo/agentio"
 	"github.com/ubgo/agentio/agenttest"
 	"github.com/ubgo/agentio/claude"
 	"github.com/ubgo/agentio/codex"
+	"github.com/ubgo/agentio/gemini"
+	"github.com/ubgo/agentio/pi"
 )
 
 // sampleSpec is a minimal config-only agent used to prove custom specs load.
@@ -26,8 +29,8 @@ func TestNewOrderAndLookup(t *testing.T) {
 		t.Fatal(err)
 	}
 	all := a.All()
-	if len(all) != 3 || all[0].ID() != claude.ID || all[1].ID() != codex.ID || all[2].ID() != "sample" {
-		t.Fatalf("order = %v", ids(all))
+	if want := []agentio.ID{claude.ID, codex.ID, gemini.ID, pi.ID, "sample"}; !slices.Equal(ids(all), want) {
+		t.Fatalf("order = %v, want %v", ids(all), want)
 	}
 	if _, ok := a.ByID("sample"); !ok {
 		t.Fatal("ByID(sample) not found")
@@ -39,8 +42,10 @@ func TestNewOrderAndLookup(t *testing.T) {
 
 func TestNewRejectsBuiltinAndDuplicateIDs(t *testing.T) {
 	h := agenttest.NewHost(t)
-	if _, err := New(h, sampleSpec(claude.ID)); !errors.Is(err, agentio.ErrInvalidSpec) {
-		t.Fatalf("built-in id: err = %v", err)
+	for _, id := range []agentio.ID{claude.ID, codex.ID, gemini.ID, pi.ID} {
+		if _, err := New(h, sampleSpec(id)); !errors.Is(err, agentio.ErrInvalidSpec) {
+			t.Fatalf("built-in id %s: err = %v", id, err)
+		}
 	}
 	if _, err := New(h, sampleSpec("x"), sampleSpec("x")); !errors.Is(err, agentio.ErrInvalidSpec) {
 		t.Fatalf("duplicate id: err = %v", err)

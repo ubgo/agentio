@@ -84,8 +84,27 @@ func (n neutral) UnsupportedReason(c agentio.Capability) (string, bool) {
 		return reasonModels, true
 	case agentio.CapRunEvents:
 		return reasonRunEvents, true
+	case agentio.CapLiveCredential:
+		return reasonLiveCredential, true
 	}
 	return "", false
+}
+
+// reasonLiveCredential is why pi has no live credential: an auth.json key
+// may be a "!command" pi runs, but when pi re-runs it is not documented
+// or recorded, so a switch mid-session cannot be promised.
+const reasonLiveCredential = "pi can read a key from a !command in auth.json, but when it re-runs that command is not documented or recorded"
+
+// TokenProviders lists the providers an api-key login can name; pi's
+// variable depends on the provider (TokenEnv). Pure.
+func (n neutral) TokenProviders(k agentio.TokenKind) []string {
+	var out []string
+	for _, e := range tokenEnv() {
+		if e.Kind == k {
+			out = append(out, e.Provider)
+		}
+	}
+	return out
 }
 
 // Launch maps the neutral request onto LaunchOptions. Pure.

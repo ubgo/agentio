@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -64,14 +65,24 @@ func conformHomeEnv(t *testing.T, a agentio.Agent, fixture agentio.Home) {
 	}
 	other := fixture
 	if other.IsDefault() {
-		other = agentio.NewHome(a.ID(), def.Dir()+"-agenttest", false, "agenttest")
+		dir := def.Dir() + "-agenttest"
+		if spec.HomeEnvNamesParent {
+			// The variable names the folder that contains the home, so a
+			// selectable home is <parent>/<DefaultHome>.
+			dir = filepath.Join(dir, spec.DefaultHome)
+		}
+		other = agentio.NewHome(a.ID(), dir, false, "agenttest")
 	}
 	cmd, err = a.Launch(other.Target(), agentio.LaunchRequest{})
 	if err != nil {
 		t.Fatalf("Launch(non-default): %v", err)
 	}
-	if vals := envValues(cmd.Env, spec.HomeEnv); len(vals) != 1 || vals[0] != other.Dir() {
-		t.Errorf("non-default home: %s = %v, want [%s]", spec.HomeEnv, vals, other.Dir())
+	want := other.Dir()
+	if spec.HomeEnvNamesParent {
+		want = filepath.Dir(other.Dir())
+	}
+	if vals := envValues(cmd.Env, spec.HomeEnv); len(vals) != 1 || vals[0] != want {
+		t.Errorf("non-default home: %s = %v, want [%s]", spec.HomeEnv, vals, want)
 	}
 	foreign := agentio.NewHome("agenttest-foreign", "/x", false, "x")
 	if _, err := a.Launch(foreign.Target(), agentio.LaunchRequest{}); err == nil {
@@ -226,6 +237,11 @@ func conformToken(t *testing.T, a agentio.Agent) {
 		t.Fatal("TokenKinds() is empty")
 	}
 	cred := &agentio.TokenCredential{Kind: kinds[0], Token: agentio.NewToken(conformanceSecret)}
+	if pl, ok := a.(agentio.TokenProviderLister); ok {
+		if ps := pl.TokenProviders(kinds[0]); len(ps) > 0 {
+			cred.Provider = ps[0]
+		}
+	}
 	cmd, err := a.Launch(a.DefaultHome().Target(), agentio.LaunchRequest{Credential: cred})
 	if err != nil {
 		if strings.Contains(err.Error(), conformanceSecret) {

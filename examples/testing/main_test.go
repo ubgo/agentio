@@ -15,6 +15,8 @@ import (
 	"github.com/ubgo/agentio/agenttest"
 	"github.com/ubgo/agentio/claude"
 	"github.com/ubgo/agentio/codex"
+	"github.com/ubgo/agentio/gemini"
+	"github.com/ubgo/agentio/pi"
 )
 
 // repoRoot is the repository root seen from this package's directory (go
@@ -55,7 +57,9 @@ func TestCollect(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := "claude homes=[personal work] conversations=3 capabilities=26\n" +
-		"codex homes=[personal] conversations=2 capabilities=22\n"
+		"codex homes=[personal] conversations=2 capabilities=22\n" +
+		"gemini homes=[] conversations=0 capabilities=14\n" +
+		"pi homes=[] conversations=0 capabilities=13\n"
 	if b.String() != want {
 		t.Fatalf("got\n%s\nwant\n%s", b.String(), want)
 	}
@@ -288,10 +292,10 @@ func TestLoopOverAgents(t *testing.T) {
 	for _, r := range rows {
 		ids = append(ids, r.ID)
 	}
-	if !slices.Equal(ids, []agentio.ID{claude.ID, codex.ID, "toy"}) {
+	if !slices.Equal(ids, []agentio.ID{claude.ID, codex.ID, gemini.ID, pi.ID, "toy"}) {
 		t.Fatalf("ids %v", ids)
 	}
-	toy := rows[2]
+	toy := rows[len(rows)-1]
 	if len(toy.Homes) != 1 || toy.Conversations != 0 {
 		t.Fatalf("toy row %+v", toy)
 	}

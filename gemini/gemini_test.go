@@ -555,3 +555,11 @@ func TestNeutralCapabilities(t *testing.T) {
 		t.Fatalf("links %v %v", links, err)
 	}
 }
+
+// TestSharedConformance runs the shared agenttest checks; the home
+// variable check builds a <parent>/.gemini home because GEMINI_CLI_HOME
+// names the parent.
+func TestSharedConformance(t *testing.T) {
+	f := setup(t)
+	agenttest.Conformance(t, f.a.Neutral(), f.home.Neutral())
+}

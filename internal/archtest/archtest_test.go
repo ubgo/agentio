@@ -25,6 +25,8 @@ const (
 	modClaude  = modulePrefix + "/claude"
 	modCodex   = modulePrefix + "/codex"
 	modState   = modulePrefix + "/codex/state"
+	modPi      = modulePrefix + "/pi"
+	modGemini  = modulePrefix + "/gemini"
 	modBuiltin = modulePrefix + "/builtin"
 	modExample = modulePrefix + "/examples"
 )
@@ -171,7 +173,7 @@ func isStdlib(path string) bool {
 
 // vendorOf reports which vendor module an import path belongs to ("" = none).
 func vendorOf(path string) string {
-	for _, m := range []string{modState, modClaude, modCodex, modBuiltin, modExample} {
+	for _, m := range []string{modState, modClaude, modCodex, modPi, modGemini, modBuiltin, modExample} {
 		if path == m || strings.HasPrefix(path, m+"/") {
 			return m
 		}
@@ -207,9 +209,11 @@ func TestRootImportsStdlibOnly(t *testing.T) {
 // builtin never imports codex/state.
 func TestVendorIsolation(t *testing.T) {
 	forbidden := map[string][]string{
-		modClaude:  {modCodex, modState, modBuiltin},
-		modCodex:   {modClaude, modState, modBuiltin},
-		modState:   {modClaude, modBuiltin},
+		modClaude:  {modCodex, modState, modPi, modGemini, modBuiltin},
+		modCodex:   {modClaude, modState, modPi, modGemini, modBuiltin},
+		modState:   {modClaude, modPi, modGemini, modBuiltin},
+		modPi:      {modClaude, modCodex, modState, modGemini, modBuiltin},
+		modGemini:  {modClaude, modCodex, modState, modPi, modBuiltin},
 		modBuiltin: {modState},
 	}
 	for _, f := range loadFiles(t) {
@@ -232,6 +236,8 @@ func TestGoModRequires(t *testing.T) {
 		"claude":      {},
 		"codex":       {"github.com/pelletier/go-toml/v2"},
 		"codex/state": {"modernc.org/sqlite"},
+		"pi":          {},
+		"gemini":      {},
 		"builtin":     {},
 		"examples":    {},
 	}

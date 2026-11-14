@@ -85,9 +85,8 @@ func TestFeaturesDrift(t *testing.T) {
 	}
 }
 
-// TestConformance runs the shared checks that apply to pi. The shared
-// token check is replaced by TestTokenLogin: pi needs a provider on the
-// credential, which the shared check does not set.
+// TestConformance checks pi's own capability declarations; the shared
+// agenttest suite runs in TestSharedConformance.
 func TestConformance(t *testing.T) {
 	a, _ := newAgent(t)
 	n := a.Neutral()
@@ -564,4 +563,11 @@ func TestInstallAndProcess(t *testing.T) {
 	if _, ok := n.ClassifyProcess(agentio.Process{PID: 2, Exe: "/usr/bin/node", Argv: []string{"node", "server.js"}}); ok {
 		t.Error("plain node matched")
 	}
+}
+
+// TestSharedConformance runs the shared agenttest checks, token login
+// included: TokenProviders names the provider the credential needs.
+func TestSharedConformance(t *testing.T) {
+	a, _ := newAgent(t)
+	agenttest.Conformance(t, a.Neutral(), a.DefaultHome().Neutral())
 }
