@@ -397,6 +397,11 @@ const (
 	reasonNoProbe      = "Codex has no quota probe: no token login to probe"
 )
 
+// reasonNoLiveCredential is why Codex has no live credential: it reads
+// auth.json or its keyring entry and refreshes the token itself; there is
+// no setting that makes it ask a caller's command for a key.
+const reasonNoLiveCredential = "Codex reads its login from auth.json or the keyring and refreshes it itself; it has no credential-helper setting"
+
 // UnsupportedReason declares why Codex lacks a capability. Pure.
 func (n neutral) UnsupportedReason(c agentio.Capability) (string, bool) {
 	switch c {
@@ -406,6 +411,8 @@ func (n neutral) UnsupportedReason(c agentio.Capability) (string, bool) {
 		return reasonNoTokenLogin, true
 	case agentio.CapTokenProber:
 		return reasonNoProbe, true
+	case agentio.CapLiveCredential:
+		return reasonNoLiveCredential, true
 	}
 	return "", false
 }

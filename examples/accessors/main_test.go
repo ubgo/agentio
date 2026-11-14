@@ -25,7 +25,7 @@ func TestRun(t *testing.T) {
 	for _, want := range []string{
 		"claude personal ~/.claude (cached usage 6%)",
 		"codex personal ~/.codex (cached usage 12%)",
-		"claude: 25 capabilities",
+		"claude: 26 capabilities",
 		"codex: 22 capabilities",
 		"claude lacks models: Claude Code keeps no model catalog",
 		"codex lacks history-mover: Codex indexes conversations in its own SQLite database",

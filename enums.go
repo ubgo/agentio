@@ -821,6 +821,8 @@ const (
 	CapRunEvents
 	// CapDoctor: Doctor · DoctorOf.
 	CapDoctor
+	// CapLiveCredential: LiveCredentialer · LiveCredentialOf.
+	CapLiveCredential
 )
 
 // capabilityKind labels Capability in errors.
@@ -828,7 +830,7 @@ const capabilityKind = "capability"
 
 // capabilityNames is the wire spelling of each Capability, indexed by value. Pure.
 func capabilityNames() []string {
-	return []string{"installer", "binary-version", "identity", "usage", "cached-usage", "subscription", "token-login", "token-prober", "login-commander", "conversations", "history-checker", "history-mover", "conversation-mover", "prompt-history", "live-sessions", "process-classifier", "turns", "home-linker", "instruction-files", "mcp-servers", "skills", "plugins", "config", "models", "run-events", "doctor"}
+	return []string{"installer", "binary-version", "identity", "usage", "cached-usage", "subscription", "token-login", "token-prober", "login-commander", "conversations", "history-checker", "history-mover", "conversation-mover", "prompt-history", "live-sessions", "process-classifier", "turns", "home-linker", "instruction-files", "mcp-servers", "skills", "plugins", "config", "models", "run-events", "doctor", "live-credential"}
 }
 
 // String returns the wire spelling. Pure.

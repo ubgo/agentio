@@ -5,6 +5,7 @@ import (
 	"io"
 	"path/filepath"
 	"sort"
+	"time"
 
 	"github.com/ubgo/agentio"
 )
@@ -45,6 +46,7 @@ var (
 	_ agentio.ConfigReader        = neutral{}
 	_ agentio.RunEvents           = neutral{}
 	_ agentio.Doctor              = neutral{}
+	_ agentio.LiveCredentialer    = neutral{}
 	_ agentio.UnsupportedReasoner = neutral{}
 )
 
@@ -532,4 +534,9 @@ func (n neutral) Checks(ctx context.Context, h agentio.Home) []agentio.Check {
 		return []agentio.Check{{ID: agentio.CheckHome, Status: agentio.CheckFail, Message: err.Error()}}
 	}
 	return n.a.Doctor(ctx, ch, nil, DoctorOptions{})
+}
+
+// LiveCredential is Pure.
+func (n neutral) LiveCredential(command string, refresh time.Duration) (agentio.LiveCredentialPlan, error) {
+	return n.a.LiveCredential(command, refresh)
 }

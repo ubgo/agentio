@@ -111,7 +111,7 @@ func conformSupported(t *testing.T, a agentio.Agent) {
 		}
 	}
 	for _, c := range sup {
-		if c != agentio.CapProcessClassifier && c != agentio.CapTokenLogin && c != agentio.CapLoginCommander && c != agentio.CapRunEvents && c.Cost() == (agentio.Cost{}) {
+		if c != agentio.CapProcessClassifier && c != agentio.CapTokenLogin && c != agentio.CapLoginCommander && c != agentio.CapRunEvents && c != agentio.CapLiveCredential && c.Cost() == (agentio.Cost{}) {
 			t.Errorf("%s: no cost row", c)
 		}
 	}

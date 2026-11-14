@@ -256,7 +256,7 @@ const SetupTokenLifetime = 365 * 24 * time.Hour
 // TokenKinds lists the token logins Claude supports, OAuth token first so a
 // plain login spends plan quota rather than an API key. cost: Pure.
 func (a *Agent) TokenKinds() []agentio.TokenKind {
-	return []agentio.TokenKind{agentio.TokenOAuthToken, agentio.TokenAPIKey}
+	return []agentio.TokenKind{agentio.TokenOAuthToken, agentio.TokenAPIKey, agentio.TokenAPIKeyHelper}
 }
 
 // DetectTokenKind classifies a token by prefix; false for no known prefix.
@@ -285,6 +285,11 @@ func (a *Agent) TokenEnv(c agentio.TokenCredential) ([]agentio.EnvChange, error)
 		return []agentio.EnvChange{agentio.EnvSetSecret(OAuthTokenEnv, c.Token)}, nil
 	case agentio.TokenAPIKey:
 		return []agentio.EnvChange{agentio.EnvSetSecret(APIKeyEnv, c.Token)}, nil
+	case agentio.TokenAPIKeyHelper:
+		// The helper reaches Claude through settings apiKeyHelper
+		// (HelperSettings), not the env: no variable to set, but a token
+		// login all the same, so every outranking variable is scrubbed.
+		return []agentio.EnvChange{}, nil
 	}
 	return nil, agentio.UnsupportedError(ID, "token kind "+c.Kind.String(), "Claude takes an OAuth token or an API key")
 }
@@ -388,4 +393,15 @@ func (p *Prober) TokenUsage(ctx context.Context, c agentio.TokenCredential) (Usa
 func (a *Agent) probed(u agentio.Usage) Usage {
 	u.ObservedAt = a.now()
 	return Usage{Usage: u}
+}
+
+// HelperSettings is the settings JSON for an api-key-helper login:
+// {"apiKeyHelper": "<command>"}, where the command is the credential's
+// token. Claude runs the command itself, so the key never passes through
+// the caller. Other kinds are refused. cost: Pure.
+func HelperSettings(c agentio.TokenCredential) (agentio.Raw, error) {
+	if c.Kind != agentio.TokenAPIKeyHelper {
+		return nil, fmt.Errorf("claude: %s is not an api-key-helper login", c.Kind)
+	}
+	return helperSettingsJSON(c.Token.Reveal())
 }

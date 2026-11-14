@@ -233,7 +233,7 @@ func TestSupportedAndGates(t *testing.T) {
 	}
 	// Every capability has a non-zero cost row except the pure ones.
 	for _, c := range agentio.CapabilityValues() {
-		if c.Cost().Class == agentio.CostPure && c != agentio.CapTokenLogin && c != agentio.CapLoginCommander && c != agentio.CapProcessClassifier && c != agentio.CapRunEvents {
+		if c.Cost().Class == agentio.CostPure && c != agentio.CapTokenLogin && c != agentio.CapLoginCommander && c != agentio.CapProcessClassifier && c != agentio.CapRunEvents && c != agentio.CapLiveCredential {
 			t.Errorf("%s: missing cost row", c)
 		}
 	}

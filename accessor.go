@@ -127,6 +127,13 @@ func RunEventsOf(a Agent) (RunEvents, bool) { return capabilityOf[RunEvents](a, 
 // DoctorOf returns the Doctor (Disk · Read). Pure.
 func DoctorOf(a Agent) (Doctor, bool) { return capabilityOf[Doctor](a, CapDoctor) }
 
+// LiveCredentialOf returns the live-credential planner (Pure): an agent
+// whose running session re-reads its credential from a caller's command.
+// Pure.
+func LiveCredentialOf(a Agent) (LiveCredentialer, bool) {
+	return capabilityOf[LiveCredentialer](a, CapLiveCredential)
+}
+
 // capabilityRow binds a Capability to its accessor and cost.
 type capabilityRow struct {
 	cap  Capability
@@ -175,6 +182,7 @@ func capabilityTable() []capabilityRow {
 		{CapModels, present(ModelsOf), diskR},
 		{CapRunEvents, present(RunEventsOf), pure},
 		{CapDoctor, present(DoctorOf), diskR},
+		{CapLiveCredential, present(LiveCredentialOf), pure},
 	}
 }
 

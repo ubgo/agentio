@@ -623,3 +623,34 @@ type Doctor interface {
 	// Checks is Disk · Read.
 	Checks(ctx context.Context, h Home) []Check
 }
+
+// LiveCredentialPlan is what a launch adds so the running agent fetches
+// its credential again, every Refresh, by running a command the caller
+// owns. The caller can then switch a running session's login by changing
+// what the command prints, without restarting the agent. The plan names
+// no secret: the command prints it to the agent alone.
+type LiveCredentialPlan struct {
+	// Settings is a JSON object to merge into the launch's settings
+	// (Claude: {"apiKeyHelper": "<command>"}); empty when the agent takes
+	// the command elsewhere.
+	Settings Raw
+	// Env are process env changes the plan needs (Claude: the helper's
+	// refresh interval, CLAUDE_CODE_API_KEY_HELPER_TTL_MS).
+	Env []EnvChange
+	// Scrub are the variables that would outrank the command; the launch
+	// must remove them, or the command is never asked (Claude:
+	// ANTHROPIC_AUTH_TOKEN and ANTHROPIC_API_KEY, plus
+	// CLAUDE_CODE_OAUTH_TOKEN so only one login is in play).
+	Scrub []string
+	// Refresh is the interval the agent re-runs the command at.
+	Refresh time.Duration
+}
+
+// LiveCredentialer plans a launch whose credential comes from a command
+// the agent re-runs (an agent without one has a typed unsupported reason
+// instead). The agent runs command itself; nothing here runs it.
+type LiveCredentialer interface {
+	// LiveCredential is Pure: command is the argv-free shell string the
+	// agent runs; refresh 0 = the plan's default interval.
+	LiveCredential(command string, refresh time.Duration) (LiveCredentialPlan, error)
+}

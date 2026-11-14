@@ -132,70 +132,76 @@ const (
 // LaunchOptions are Claude's launch flags (CLAUDE_API §25). Zero values
 // emit nothing. Flags not modelled (rare / cloud) go through ExtraArgs.
 type LaunchOptions struct {
-	Prompt                 string
-	Print                  bool
-	OutputFormat           OutputFormat
-	InputFormat            InputFormat
-	IncludePartialMessages bool
-	IncludeHookEvents      bool
-	ReplayUserMessages     bool
-	ForwardSubagentText    bool
-	Verbose                bool
-	JSONSchema             agentio.Raw
-	MaxBudgetUSD           *float64
-	NoSessionPersistence   bool
+	Prompt                 string       `json:"prompt,omitempty"`
+	Print                  bool         `json:"print,omitempty"`
+	OutputFormat           OutputFormat `json:"output_format,omitempty"`
+	InputFormat            InputFormat  `json:"input_format,omitempty"`
+	IncludePartialMessages bool         `json:"include_partial_messages,omitempty"`
+	IncludeHookEvents      bool         `json:"include_hook_events,omitempty"`
+	ReplayUserMessages     bool         `json:"replay_user_messages,omitempty"`
+	ForwardSubagentText    bool         `json:"forward_subagent_text,omitempty"`
+	Verbose                bool         `json:"verbose,omitempty"`
+	JSONSchema             agentio.Raw  `json:"json_schema,omitempty"`
+	MaxBudgetUSD           *float64     `json:"max_budget_usd,omitempty"`
+	NoSessionPersistence   bool         `json:"no_session_persistence,omitempty"`
 
-	Model          string
-	FallbackModels []string
-	Effort         Effort
-	Agent          string
-	Agents         map[string]SubagentDef
+	Model          string                 `json:"model,omitempty"`
+	FallbackModels []string               `json:"fallback_models,omitempty"`
+	Effort         Effort                 `json:"effort,omitempty"`
+	Agent          string                 `json:"agent,omitempty"`
+	Agents         map[string]SubagentDef `json:"agents,omitempty"`
 
-	PermissionMode                  PermissionMode
-	PermissionPrompts               string
-	DangerouslySkipPermissions      bool
-	AllowDangerouslySkipPermissions bool
-	AllowedTools, DisallowedTools   []string
+	PermissionMode                  PermissionMode `json:"permission_mode,omitempty"`
+	PermissionPrompts               string         `json:"permission_prompts,omitempty"`
+	DangerouslySkipPermissions      bool           `json:"dangerously_skip_permissions,omitempty"`
+	AllowDangerouslySkipPermissions bool           `json:"allow_dangerously_skip_permissions,omitempty"`
+	AllowedTools                    []string       `json:"allowed_tools,omitempty"`
+	DisallowedTools                 []string       `json:"disallowed_tools,omitempty"`
 	// Tools: nil = default; &[]string{} = "" (no tools).
-	Tools *[]string
+	Tools *[]string `json:"tools,omitempty"`
 
-	AddDirs         []string
-	MCPConfigs      []string
-	StrictMCPConfig bool
-	Settings        string
-	SettingSources  []SettingsScope
+	AddDirs         []string        `json:"add_dirs,omitempty"`
+	MCPConfigs      []string        `json:"mcp_configs,omitempty"`
+	StrictMCPConfig bool            `json:"strict_mcp_config,omitempty"`
+	Settings        string          `json:"settings,omitempty"`
+	SettingSources  []SettingsScope `json:"setting_sources,omitempty"`
 
-	SystemPrompt, AppendSystemPrompt         string
-	SystemPromptFile, AppendSystemPromptFile string
-	SystemPromptSnapshot                     string
-	ExcludeDynamicSystemPromptSections       bool
-	PluginDirs, PluginURLs                   []string
-	Bare, SafeMode, Restricted               bool
-	DisableSlashCommands                     bool
+	SystemPrompt                       string   `json:"system_prompt,omitempty"`
+	AppendSystemPrompt                 string   `json:"append_system_prompt,omitempty"`
+	SystemPromptFile                   string   `json:"system_prompt_file,omitempty"`
+	AppendSystemPromptFile             string   `json:"append_system_prompt_file,omitempty"`
+	SystemPromptSnapshot               string   `json:"system_prompt_snapshot,omitempty"`
+	ExcludeDynamicSystemPromptSections bool     `json:"exclude_dynamic_system_prompt_sections,omitempty"`
+	PluginDirs                         []string `json:"plugin_dirs,omitempty"`
+	PluginURLs                         []string `json:"plugin_urls,omitempty"`
+	Bare                               bool     `json:"bare,omitempty"`
+	SafeMode                           bool     `json:"safe_mode,omitempty"`
+	Restricted                         bool     `json:"restricted,omitempty"`
+	DisableSlashCommands               bool     `json:"disable_slash_commands,omitempty"`
 
 	// Resume is an id, a name or a transcript path.
-	Resume      string
-	Continue    bool
-	ForkSession bool
-	SessionID   string
-	Name        string
-	FromPR      string
+	Resume      string `json:"resume,omitempty"`
+	Continue    bool   `json:"continue,omitempty"`
+	ForkSession bool   `json:"fork_session,omitempty"`
+	SessionID   string `json:"session_id,omitempty"`
+	Name        string `json:"name,omitempty"`
+	FromPR      string `json:"from_pr,omitempty"`
 	// Worktree: nil = no flag; &"" = --worktree with no name.
-	Worktree      *string
-	Tmux          string
-	Background    bool
-	Debug         string
-	DebugFile     string
-	IDE           bool
-	Chrome        bool
-	NoChrome      bool
-	Brief         bool
-	Autocompact   string
-	RemoteControl *string
-	Betas         []string
-	Files         []string
+	Worktree      *string  `json:"worktree,omitempty"`
+	Tmux          string   `json:"tmux,omitempty"`
+	Background    bool     `json:"background,omitempty"`
+	Debug         string   `json:"debug,omitempty"`
+	DebugFile     string   `json:"debug_file,omitempty"`
+	IDE           bool     `json:"ide,omitempty"`
+	Chrome        bool     `json:"chrome,omitempty"`
+	NoChrome      bool     `json:"no_chrome,omitempty"`
+	Brief         bool     `json:"brief,omitempty"`
+	Autocompact   string   `json:"autocompact,omitempty"`
+	RemoteControl *string  `json:"remote_control,omitempty"`
+	Betas         []string `json:"betas,omitempty"`
+	Files         []string `json:"files,omitempty"`
 	// ExtraArgs are appended last, verbatim.
-	ExtraArgs []string
+	ExtraArgs []string `json:"extra_args,omitempty"`
 }
 
 // ErrInvalidLaunch means a LaunchOptions combination Claude Code rejects.
@@ -486,6 +492,16 @@ func (a *Agent) launchRequest(t agentio.Target, r agentio.LaunchRequest) (agenti
 	if r.Credential != nil {
 		if tokenEnv, err = a.TokenEnv(*r.Credential); err != nil {
 			return agentio.Command{}, err
+		}
+		if r.Credential.Kind == agentio.TokenAPIKeyHelper {
+			// The neutral request has no settings of its own, so the
+			// helper goes inline; a launcher that merges more settings
+			// uses LaunchSettings and the rich Launch instead.
+			js, err := HelperSettings(*r.Credential)
+			if err != nil {
+				return agentio.Command{}, err
+			}
+			o.Settings = string(js)
 		}
 	}
 	cmd, err := a.launch(t, o, tokenEnv)
