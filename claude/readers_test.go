@@ -1,6 +1,7 @@
 package claude
 
 import (
+	"encoding/json"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -102,7 +103,7 @@ func TestReadersPluginSkills(t *testing.T) {
 		plug := t.TempDir()
 		agenttest.WriteFile(t, plug, "skills/plug-skill/SKILL.md", "---\nname: plug-skill\ndescription: from a plugin\n---\n")
 		agenttest.WriteFile(t, h.Dir(), "plugins/installed_plugins.json",
-			`{"version":2,"plugins":{"p@m":[{"scope":"user","installPath":"`+plug+`","version":"1"}]}}`)
+			`{"version":2,"plugins":{"p@m":[{"scope":"user","installPath":`+jsonString(t, plug)+`,"version":"1"}]}}`)
 		ss, err := a.Skills(h, nil)
 		if err != nil {
 			t.Fatal(err)
@@ -239,4 +240,16 @@ func TestReadersEnv(t *testing.T) {
 			t.Fatal("env value not redacted")
 		}
 	})
+}
+
+// jsonString encodes s as a JSON string literal. A fixture that puts a
+// path into JSON must encode it: a Windows path (C:\Users\...) pasted raw
+// is an invalid escape sequence and the file fails to decode.
+func jsonString(t *testing.T, s string) string {
+	t.Helper()
+	b, err := json.Marshal(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
 }

@@ -11,6 +11,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -129,7 +130,7 @@ func seed(a *claude.Agent, proj claude.Project) error {
 	files := map[string]string{
 		// The fixture's installed_plugins.json names a path on another
 		// machine; point it at a plugin dir inside this temp home.
-		filepath.Join(home, "plugins", "installed_plugins.json"):                                    `{"version": 2, "plugins": {"` + string(pluginID) + `": [{"scope": "user", "installPath": "` + plugin + `", "version": "1.0.0", "installedAt": "2026-11-01T10:00:00.000Z", "lastUpdated": "2026-11-02T10:00:00.000Z"}]}}`,
+		filepath.Join(home, "plugins", "installed_plugins.json"):                                    `{"version": 2, "plugins": {"` + string(pluginID) + `": [{"scope": "user", "installPath": ` + jsonString(plugin) + `, "version": "1.0.0", "installedAt": "2026-11-01T10:00:00.000Z", "lastUpdated": "2026-11-02T10:00:00.000Z"}]}}`,
 		filepath.Join(plugin, ".claude-plugin", "plugin.json"):                                      `{"name": "demo-plugin", "version": "1.0.0", "description": "A demo plugin", "skills": "./skills", "agents": ["./agents/helper.md"], "homepage": "https://example.com"}`,
 		filepath.Join(plugin, "skills", "plug-skill", "SKILL.md"):                                   "---\nname: plug-skill\ndescription: Skill shipped by a plugin\n---\n",
 		filepath.Join(plugin, "commands", "deploy.md"):                                              "---\ndescription: Deploy the app\n---\nDeploy.\n",
@@ -659,3 +660,12 @@ func showDataUsage(p printer, a *claude.Agent, _ claude.Project) error {
 }
 
 // snippet:end datausage
+
+// jsonString encodes s as a JSON string literal. A path written into JSON
+// must be encoded: a Windows path (C:\Users\...) pasted raw is an invalid
+// escape sequence and Claude Code (and this library) cannot decode the file.
+// json.Marshal of a string cannot fail.
+func jsonString(s string) string {
+	b, _ := json.Marshal(s)
+	return string(b)
+}

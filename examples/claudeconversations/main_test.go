@@ -27,7 +27,9 @@ func TestRun(t *testing.T) {
 		"  history for /work/never-used: false",
 		"turns: 1 user, 11 assistant, offset 47179",
 		"  turns after offset 47179: 0",
-		"move plan personal -> work for /work/proj13: 1 conversations, 1 items, 0 blockers, 0 left",
+		// The plan cleans the project dir with the host's filepath (a host
+		// path): \work\proj13 on Windows.
+		"move plan personal -> work for " + filepath.FromSlash(projectDir) + ": 1 conversations, 1 items, 0 blockers, 0 left",
 		`  prefix 3f47: claude: ambiguous conversation prefix "3f47" matches 2 conversations`,
 		"  internal record: claude: internal transcript record is never decoded",
 		`tail: 54 records, title "Fixture title 166" (ai-title), last prompt "fixture last prompt"`,

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -12,6 +13,13 @@ import (
 const testUserHome = "../../claude/testdata/homes/2.1.325/userhome"
 
 func TestRun(t *testing.T) {
+	// HomeAt makes a rooted dir absolute the way the OS does: unchanged on
+	// POSIX; on Windows on the user home's drive (D:\srv\agents\...).
+	abs, err := filepath.Abs(testUserHome)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ciDir := filepath.VolumeName(abs) + filepath.FromSlash(ciHomeDir)
 	var out bytes.Buffer
 	if err := run(&out, testUserHome); err != nil {
 		t.Fatal(err)
@@ -26,7 +34,7 @@ func TestRun(t *testing.T) {
 		"from env: ok=true name=work dir=~/.claude-work\n",
 		"is home: project=false\n",
 		"is home: missing=false\n",
-		"home at /srv/agents/.claude-ci: name=ci default=false dir=/srv/agents/.claude-ci\n",
+		"home at " + ciHomeDir + ": name=ci default=false dir=" + ciDir + "\n",
 		"home at .claude: name=personal default=true dir=~/.claude\n",
 		"core home at .toy-staging: toy:~/.toy-staging name=staging\n",
 		"check owner: foreign=true err=agentio: home belongs to another agent: codex home passed to claude\n",

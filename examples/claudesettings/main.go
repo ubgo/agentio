@@ -66,7 +66,13 @@ func run(w io.Writer, fixture string) error {
 		return err
 	}
 	defer func() { _ = os.RemoveAll(tmp) }() // temp copy; nothing to keep
-	userHome := filepath.Join(tmp, "home")   // CopyTree refuses an existing dst
+	// Resolve symlinks (macOS /var -> /private/var) so the install's
+	// RealPath, which the library resolves, still starts with the home and
+	// prints as ~.
+	if tmp, err = filepath.EvalSymlinks(tmp); err != nil {
+		return err
+	}
+	userHome := filepath.Join(tmp, "home") // CopyTree refuses an existing dst
 	if err := agentio.CopyTree(fixture, userHome); err != nil {
 		return err
 	}

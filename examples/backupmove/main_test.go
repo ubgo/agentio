@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -22,7 +23,10 @@ func TestRun(t *testing.T) {
 		"backup: ~/.claude/settings.json -> ~/.claude/settings.json.agentio-bak-20261114T120000Z\n",
 		"backup: ~/.claude/settings.json -> ~/.claude/settings.json.agentio-bak-20261114T120000Z-2\n",
 		"backup of a missing file: empty=true\n",
-		"plan: agent=claude dir=/work/proj12 conversations=[f85efbdb-fc2f-1e8e-7748-9f915edc8e2d]\n",
+		// The project dir is a host path: the plan cleans it with the host's
+		// filepath, so on Windows it prints as \work\proj12. The Claude
+		// history key (-work-proj12) is the same on every OS.
+		"plan: agent=claude dir=" + filepath.FromSlash(movedDir) + " conversations=[f85efbdb-fc2f-1e8e-7748-9f915edc8e2d]\n",
 		"plan: blockers=0 left=0 cleanup=2\n",
 		"apply: backed up ~/.claude/projects/-work-proj12/f85efbdb-fc2f-1e8e-7748-9f915edc8e2d.jsonl -> ~/.claude.agentio-bak-20261114T120000Z/projects/-work-proj12/f85efbdb-fc2f-1e8e-7748-9f915edc8e2d.jsonl\n",
 		"apply: ~/.claude-work/projects/-work-proj12/f85efbdb-fc2f-1e8e-7748-9f915edc8e2d.jsonl present=true\n",

@@ -137,6 +137,12 @@ func setup(tmp string) (agentio.Host, error) {
 	if err != nil {
 		return agentio.Host{}, err
 	}
+	// Resolve symlinks (macOS /var -> /private/var) so the install's
+	// RealPath, which the library resolves, still starts with the fake
+	// prefix and the home, and prints as /opt/fake and ~.
+	if tmp, err = filepath.EvalSymlinks(tmp); err != nil {
+		return agentio.Host{}, err
+	}
 	home := filepath.Join(tmp, userHomeDir)
 	if err := copyTree(filepath.Join(root, claudeFixture), home); err != nil {
 		return agentio.Host{}, err
