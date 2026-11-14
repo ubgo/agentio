@@ -1,4 +1,4 @@
-# docsync ledger format=2 extract=1 repo=agentio commit=9d81e93 scanned_at=2026-11-14T09:58:43Z
+# docsync ledger format=2 extract=1 repo=agentio commit=8c1b5b2 scanned_at=2026-11-14T10:18:06Z
 id	repo	kind	file	symbol	lines	hash	owner	stability	env	args
 accessnames-aun8gmkk	agentio	func	enums.go	symbol:accessNames	62-64	32c8ca12b7631664f08dcc4014b739ca5d92c5b733f6d6ee1d85d89f38caca41	@khanakia	stable		file=enums.go id=accessnames-aun8gmkk owner=@khanakia pick=symbol:accessNames
 agent-476xnza7	agentio	type	agent.go	symbol:Agent	9-29	78c3e896aac2b3d535fc7c8925f1f563df51de9ee341521b83b152df09f70af4	@khanakia	stable		file=agent.go id=agent-476xnza7 owner=@khanakia pick=symbol:Agent
@@ -434,6 +434,14 @@ parseversion-7jguuyeq	agentio	func	version.go	symbol:ParseVersion	36-52	56fa2f5b
 parseversionat-wdv3pw7u	agentio	func	version.go	symbol:parseVersionAt	78-114	bd469608329b940d772e687af30d8faac2798fbd831f69eb18bca9819e8d66e9	@khanakia	stable		file=version.go id=parseversionat-wdv3pw7u owner=@khanakia pick=symbol:parseVersionAt
 personal-reveal-pjvj854b	agentio	func	secret.go	symbol:Personal.Reveal	132	5990ff4fe2ae7b98b9b1b1afe5093e03ed9e125f34dd4b07acf76b8955b4f44b	@khanakia	stable		file=secret.go id=personal-reveal-pjvj854b owner=@khanakia pick=symbol:Personal.Reveal
 personal-yfzy8bms	agentio	type	secret.go	symbol:Personal	123	a3f2c16c550c0c573a6329abf097e03021774ac4780446f4069ade453b50e3cf	@khanakia	stable		file=secret.go id=personal-yfzy8bms owner=@khanakia pick=symbol:Personal
+pick-best-8t8m6qaj	agentio	func	pick/pick.go	symbol:Best	165-206	2c4b716d58a1abe66c77b774a2c1ad7562a76e5e5148268be7b0001a31f4d817	@khanakia	stable		file=pick/pick.go id=pick-best-8t8m6qaj owner=@khanakia pick=symbol:Best
+pick-candidate-373dhag3	agentio	type	pick/pick.go	symbol:Candidate	29-46	10de49366930c503dbe862387ee9cd52568c141193660a5bc3ff21b61966b5d6	@khanakia	stable		file=pick/pick.go id=pick-candidate-373dhag3 owner=@khanakia pick=symbol:Candidate
+pick-maxpercent-score-vrqt3y7v	agentio	func	pick/pick.go	symbol:MaxPercent.Score	71	e5261150d8d2917a9d02c507469c877cd2902edf176b5d1588f781d2ed133c96	@khanakia	stable		file=pick/pick.go id=pick-maxpercent-score-vrqt3y7v owner=@khanakia pick=symbol:MaxPercent.Score
+pick-policy-g29b2nb5	agentio	type	pick/pick.go	symbol:Policy	52-57	64e07339ea37847c399a3b64474f0af4b5d22be4f59221d8c7ca9eb912c3378f	@khanakia	stable		file=pick/pick.go id=pick-policy-g29b2nb5 owner=@khanakia pick=symbol:Policy
+pick-result-explain-8z8jycgs	agentio	func	pick/pick.go	symbol:Result.Explain	213-228	ca512cf9d09156d93c286302a83fa87623d5fe559ef374e2c623e88362b1c32c	@khanakia	stable		file=pick/pick.go id=pick-result-explain-8z8jycgs owner=@khanakia pick=symbol:Result.Explain
+pick-skip-6g3huthr	agentio	type	pick/pick.go	symbol:Skip	100-106	d4cff0fc28a048e6aeb84d5a4dc11b78d872e1e1283a2fb618c91319e85f5b04	@khanakia	stable		file=pick/pick.go id=pick-skip-6g3huthr owner=@khanakia pick=symbol:Skip
+pick-withnow-n9dnp45x	agentio	func	pick/pick.go	symbol:WithNow	158	ec0de5980065a19bf6d28ab9d1dff9a7da4ec595fdfe5c7de12e82ebc2058631	@khanakia	stable		file=pick/pick.go id=pick-withnow-n9dnp45x owner=@khanakia pick=symbol:WithNow
+pick-withpolicy-vgrumqb5	agentio	func	pick/pick.go	symbol:WithPolicy	154	2cde9634b5c2fff513c81db645066406a272398bfa6368b69f162eb2c30e769a	@khanakia	stable		file=pick/pick.go id=pick-withpolicy-vgrumqb5 owner=@khanakia pick=symbol:WithPolicy
 planhomelinks-yg65h8jg	agentio	func	link.go	symbol:PlanHomeLinks	17-33	41a417be00bec78e03d3669263d39a7d33836a779da3516d3f295a3d0ae46556	@khanakia	stable		file=link.go id=planhomelinks-yg65h8jg owner=@khanakia pick=symbol:PlanHomeLinks
 processkindvalues-vjn5j6xg	agentio	func	capability.go	symbol:ProcessKindValues	369-371	6e96812f97dcde061f82034be05260ae31f49a7f37c5d5896994ad500e65f0d5	@khanakia	stable		file=capability.go id=processkindvalues-vjn5j6xg owner=@khanakia pick=symbol:ProcessKindValues
 processmatch-match-6phmdfg3	agentio	func	spec.go	symbol:ProcessMatch.Match	74-106	e66720ac517485551775835002790a428c6ad8bab42e2857c3df3414c2ddf5f4	@khanakia	stable		file=spec.go id=processmatch-match-6phmdfg3 owner=@khanakia pick=symbol:ProcessMatch.Match

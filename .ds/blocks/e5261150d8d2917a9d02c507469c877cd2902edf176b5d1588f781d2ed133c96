@@ -1,0 +1,1 @@
+func (MaxPercent) Score(c Candidate) (float64, bool, string) { return c.Usage.MaxPercent(), true, "" }

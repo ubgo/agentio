@@ -1,0 +1,7 @@
+type Skip struct {
+	Home   agentio.Home
+	Reason SkipReason
+	// Err is the cause: Candidate.Err, agentio.ErrBilledPerToken, or for
+	// SkipPolicy an error matching ErrPolicySkip that carries the reason.
+	Err error
+}

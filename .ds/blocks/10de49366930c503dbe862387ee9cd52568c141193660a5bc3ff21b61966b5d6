@@ -1,0 +1,18 @@
+type Candidate struct {
+	// Home is the home the usage belongs to; the chosen one is what to
+	// launch with (Home.Target()).
+	Home agentio.Home
+	// Usage is the reading (agentio.UsageOf or CachedUsageOf). Its Source
+	// and ObservedAt are kept on the result, so Explain can say "cached
+	// 4m ago".
+	Usage agentio.Usage
+	// Err is the usage read error; a non-nil Err skips the candidate with
+	// SkipUsageError (agentio.ErrBilledPerToken included: an API-key login
+	// has no windows to compare).
+	Err error
+	// Billing is what the caller knows about how the home is paid for
+	// (a profile setting, Target.Billing, the identity's billing). It, or
+	// Usage.Billing, being agentio.BillingPerToken skips the candidate with
+	// SkipPerToken: per-token billing has no headroom to compare.
+	Billing agentio.Billing
+}

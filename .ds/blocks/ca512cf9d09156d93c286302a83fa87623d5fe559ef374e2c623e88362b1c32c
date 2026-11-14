@@ -1,0 +1,16 @@
+func (r Result) Explain() string {
+	var b strings.Builder
+	b.WriteString("auto")
+	if r.Policy != policyMaxName {
+		b.WriteString(" [" + r.Policy + "]")
+	}
+	b.WriteString(" → " + r.describe(r.Chosen))
+	if len(r.Others) > 0 {
+		parts := make([]string, 0, len(r.Others))
+		for _, o := range r.Others {
+			parts = append(parts, r.describe(o))
+		}
+		b.WriteString(" over " + strings.Join(parts, ", "))
+	}
+	return b.String()
+}

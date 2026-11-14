@@ -1,0 +1,1 @@
+func WithPolicy(p Policy) Option { return func(o *options) { o.policy = p } }

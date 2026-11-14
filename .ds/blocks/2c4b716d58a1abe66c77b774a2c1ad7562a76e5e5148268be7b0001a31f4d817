@@ -1,0 +1,42 @@
+func Best(cands []Candidate, opts ...Option) (Result, error) {
+	o := options{policy: MaxPercent{}}
+	for _, opt := range opts {
+		opt(&o)
+	}
+	res := Result{Policy: o.policy.Name(), now: o.now, qualify: spansAgents(cands)}
+	var eligible []Scored
+	for _, c := range cands {
+		switch {
+		case c.Err != nil:
+			res.Skipped = append(res.Skipped, Skip{Home: c.Home, Reason: SkipUsageError, Err: c.Err})
+		case c.Billing == agentio.BillingPerToken || c.Usage.Billing == agentio.BillingPerToken:
+			res.Skipped = append(res.Skipped, Skip{Home: c.Home, Reason: SkipPerToken, Err: agentio.ErrBilledPerToken})
+		default:
+			score, ok, reason := o.policy.Score(c)
+			if !ok {
+				res.Skipped = append(res.Skipped, Skip{Home: c.Home, Reason: SkipPolicy, Err: fmt.Errorf("%w: %s", ErrPolicySkip, reason)})
+				continue
+			}
+			eligible = append(eligible, Scored{Home: c.Home, Score: score, Usage: c.Usage})
+		}
+	}
+	if len(eligible) == 0 {
+		return res, fmt.Errorf("%w: %s", ErrNoCandidate, res.reasons())
+	}
+	// Stable selection: only a strictly lower score replaces the best, so
+	// equal scores keep input order.
+	best := 0
+	for i := 1; i < len(eligible); i++ {
+		if eligible[i].Score < eligible[best].Score {
+			best = i
+		}
+	}
+	res.Chosen = eligible[best]
+	for i, e := range eligible {
+		if i != best {
+			res.Others = append(res.Others, e)
+		}
+	}
+	sortScored(res.Others)
+	return res, nil
+}

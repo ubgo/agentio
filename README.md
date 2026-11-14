@@ -190,6 +190,7 @@ A Claude-only program skips `builtin` and uses `claude.New(host)` directly; [`c.
 | MCP servers, skills, plugins | ✅ | ✅ |
 | Account identity and subscription | ✅ (personal values redacted) | ✅ (personal values redacted) |
 | Plan usage: cached on disk or live from the vendor | ✅ | ✅ |
+| Pick the home with the most headroom (`agentio/pick`, across both vendors) | ✅ | ✅ |
 | Conversations, prompt history, turns | ✅ transcripts, read with bounded head and tail | ✅ rollouts, SQLite threads via `codex/state` |
 | Live sessions and process classification | ✅ | ✅ |
 | Launch, resume, headless commands | ✅ typed `LaunchOptions`, stream-json decoder | ✅ typed options, exec event decoder |
@@ -768,6 +769,14 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), whi
 <!-- ds:def id=host-lookpath-4k46e3ag file=osrules.go pick=symbol:Host.LookPath owner=@khanakia -->
 <!-- ds:def id=host-newcommand-pu5aa4ej file=osrules.go pick=symbol:Host.NewCommand owner=@khanakia -->
 <!-- ds:def id=shimtarget-ubxq8m56 file=shim.go pick=symbol:ShimTarget owner=@khanakia -->
+<!-- ds:def id=pick-candidate-373dhag3 file=pick/pick.go pick=symbol:Candidate owner=@khanakia -->
+<!-- ds:def id=pick-best-8t8m6qaj file=pick/pick.go pick=symbol:Best owner=@khanakia -->
+<!-- ds:def id=pick-maxpercent-score-vrqt3y7v file=pick/pick.go pick=symbol:MaxPercent.Score owner=@khanakia -->
+<!-- ds:def id=pick-skip-6g3huthr file=pick/pick.go pick=symbol:Skip owner=@khanakia -->
+<!-- ds:def id=pick-result-explain-8z8jycgs file=pick/pick.go pick=symbol:Result.Explain owner=@khanakia -->
+<!-- ds:def id=pick-withnow-n9dnp45x file=pick/pick.go pick=symbol:WithNow owner=@khanakia -->
+<!-- ds:def id=pick-policy-g29b2nb5 file=pick/pick.go pick=symbol:Policy owner=@khanakia -->
+<!-- ds:def id=pick-withpolicy-vgrumqb5 file=pick/pick.go pick=symbol:WithPolicy owner=@khanakia -->
 
 ## License
 

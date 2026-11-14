@@ -1,0 +1,1 @@
+func WithNow(now time.Time) Option { return func(o *options) { o.now = now } }

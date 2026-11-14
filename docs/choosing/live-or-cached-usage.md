@@ -64,6 +64,7 @@ On the Claude fixture home the cached reading is older than a day and the stored
 
 ## Pitfalls
 
+- **Choosing an account from usage is `agentio/pick`.** Build a `pick.Candidate` per home from either kind of reading and call `pick.Best`; with cached readings pass `pick.WithNow` so the explanation shows their age ([Pick the home with the most headroom](../capabilities/pick.md)).
 - **Cached readings can be very old.** [`ObservedAt`](ds:block?id=claude-agent-cachedusage-h2vr9pps) is when the CLI fetched or recorded it, not when you read it. Show the age.
 - **Window labels are vendor text.** Group windows by [`Class()`](ds:block?id=window-class-sgsfcuv5) or `Length`, not by `Label`.
 - **Codex's cached reading comes from a rollout.** A home with no recent conversation [has no snapshot](ds:block?id=codex-agent-cachedusage-8nmze7z6), and the windows are named [`primary`](ds:block?id=codex-vendorprimaryl-pjy6hvnt) / `secondary` rather than the server's `primary_window` / `secondary_window`.

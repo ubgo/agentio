@@ -1,0 +1,6 @@
+type Policy interface {
+	// Name labels the policy in Explain when it is not the default.
+	Name() string
+	// Score is the candidate's score, or ok=false with a reason.
+	Score(c Candidate) (score float64, ok bool, reason string)
+}
