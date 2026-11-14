@@ -88,18 +88,27 @@ func (a *Agent) keychainAccount() string { return a.host.User }
 
 // keychainGet looks one service up naming the account first and only then
 // any entry with the service: stale same-service entries with another
-// account ("unknown", empty token) exist (invariant 3).
+// account ("unknown", empty token) exist (invariant 3). A store that cannot
+// look on this OS (ErrUnsupported, e.g. HostFromOS on linux) reads as no
+// entry: Claude's file store is the primary there.
 func (a *Agent) keychainGet(ctx context.Context, service string) (agentcli.Token, bool, error) {
 	if a.host.Secrets == nil {
 		return agentcli.Token{}, false, nil
 	}
 	if acct := a.keychainAccount(); acct != "" {
 		t, ok, err := a.host.Secrets.Get(ctx, service, acct)
+		if errors.Is(err, agentcli.ErrUnsupported) {
+			return agentcli.Token{}, false, nil
+		}
 		if err != nil || ok {
 			return t, ok, err
 		}
 	}
-	return a.host.Secrets.Get(ctx, service, "")
+	t, ok, err := a.host.Secrets.Get(ctx, service, "")
+	if errors.Is(err, agentcli.ErrUnsupported) {
+		return agentcli.Token{}, false, nil
+	}
+	return t, ok, err
 }
 
 // Credential finds the freshest login for h across .credentials.json and

@@ -381,7 +381,8 @@ func TestHostFromOS_ReadsProcessTable(t *testing.T) {
 	if got, err := h.Processes.Cwd(context.Background(), self); err != nil || got != cwd {
 		t.Errorf("Cwd = %s, %v", got, err)
 	}
-	if _, found, err := h.Secrets.Get(context.Background(), "agentcli-test-none", ""); found || err != nil {
+	// No keychain reader off darwin: "cannot look" must not read as "no entry".
+	if _, found, err := h.Secrets.Get(context.Background(), "agentcli-test-none", ""); found || !errors.Is(err, agentcli.ErrUnsupported) {
 		t.Errorf("linux secrets: %v %v", found, err)
 	}
 }

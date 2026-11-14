@@ -98,11 +98,15 @@ const (
 )
 
 // Get runs `security find-generic-password -s <service> [-a <account>] -w`
-// on darwin; elsewhere it reports not found so callers fall back to the
-// credentials file. Process · Read.
+// on darwin. Elsewhere it returns ErrUnsupported naming the OS: there is no
+// Secret Service (linux) or Credential Manager (windows) reader yet, and a
+// caller must be able to tell "no entry" from "cannot look" (a Codex
+// keyring login on linux is not a logout). Callers that only use the
+// keychain as a second store (Claude) treat ErrUnsupported as no entry.
+// Process · Read.
 func (osSecrets) Get(ctx context.Context, service, account string) (Token, bool, error) {
 	if runtime.GOOS != goosDarwin {
-		return Token{}, false, nil
+		return Token{}, false, UnsupportedError("", "keychain", "no keychain reader for "+runtime.GOOS)
 	}
 	ctx, cancel := context.WithTimeout(ctx, keychainTimeout)
 	defer cancel()
