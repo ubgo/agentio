@@ -2,12 +2,16 @@ package codex
 
 import (
 	"bytes"
+	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -148,9 +152,12 @@ type Identity struct {
 	AccessExpiresAt  time.Time // access_token exp; zero when not a JWT
 	IDTokenExpiresAt time.Time
 	LastRefresh      time.Time
-	CredentialStore  CredentialStore // file (auth.json) | keyring
-	Source           string          // auth.json path
-	HasAPIKey        bool            // OPENAI_API_KEY present (value never loaded)
+	// CredentialStore is where the login was found (file or keyring), or
+	// the configured store (auto, keyring, ephemeral) when none was found.
+	CredentialStore CredentialStore
+	Source          string       // auth.json path when read from the file; "" for a keyring login
+	Keyring         KeyringEntry // the keyring entry consulted (keyring and auto stores); zero for file
+	HasAPIKey       bool         // OPENAI_API_KEY present (value never loaded)
 
 	Unknown agentcli.Unknown
 }
@@ -314,29 +321,211 @@ func applyIDClaims(id *Identity, c jwtClaims) {
 	}
 }
 
-// Identity reads <home>/auth.json and decodes its claims locally: never
-// verified, never refreshed, never a network call. A home with no
-// auth.json whose config stores credentials in the OS keyring returns
-// ErrUnsupported (OD-12: keyring service names are not modelled yet);
-// otherwise a missing file is a logged-out Identity. Disk · Read.
-func (a *Agent) Identity(h Home) (Identity, error) {
-	p := a.Paths(h)
-	b, err := os.ReadFile(p.Auth)
-	if errors.Is(err, fs.ErrNotExist) {
-		c, _, cerr := readConfigPath(p.Config)
-		if cerr == nil && c.CLIAuthCredentialsStore.Set {
-			switch c.CLIAuthCredentialsStore.V {
-			case StoreKeyring, StoreAuto:
-				return Identity{CredentialStore: c.CLIAuthCredentialsStore.V},
-					agentcli.UnsupportedError(ID, "keyring identity", "Codex stores this login in the OS keyring; the keyring service names are not modelled yet (OD-12)")
-			}
+// KeyringService is the OS keyring service Codex saves CLI logins under
+// when cli_auth_credentials_store is keyring or auto (upstream
+// login/src/auth/storage.rs:243, KEYRING_SERVICE).
+const KeyringService = "Codex Auth"
+
+// Keyring account derivation (storage.rs:246-257 compute_store_key): the
+// first 16 hex digits of sha256(canonical CODEX_HOME path), prefixed.
+const (
+	keyringAccountPrefix = "cli|"
+	keyringAccountHexLen = 16
+)
+
+// KeyringEntry names one keyring item (service and account), never its
+// value. The account is a truncated hash of the home path, not personal.
+type KeyringEntry struct {
+	Service string
+	Account string
+}
+
+// String is "<service>/<account>" for messages. Pure.
+func (e KeyringEntry) String() string { return e.Service + "/" + e.Account }
+
+// KeyringAccount is the keyring account Codex derives for a home dir:
+// "cli|" + the first 16 hex digits of sha256 of the canonical path. Like
+// upstream (Path::canonicalize, falling back to the path as given when it
+// cannot be resolved) symlinks are resolved first, so /var and
+// /private/var name the same account. Disk · Read (symlink resolution).
+func KeyringAccount(dir string) string {
+	canonical := dir
+	if real, err := filepath.EvalSymlinks(dir); err == nil && filepath.IsAbs(real) {
+		canonical = real
+	}
+	sum := sha256.Sum256([]byte(canonical))
+	return keyringAccountPrefix + hex.EncodeToString(sum[:])[:keyringAccountHexLen]
+}
+
+// KeyringEntry is the keyring item Codex would read for h. Disk · Read.
+func (a *Agent) KeyringEntry(h Home) KeyringEntry {
+	return KeyringEntry{Service: KeyringService, Account: KeyringAccount(h.Dir())}
+}
+
+// ErrKeyringValue means the keyring item exists but its value is not the
+// auth.json JSON Codex stores there. The value itself is never quoted.
+var ErrKeyringValue = errors.New("value is not Codex auth JSON")
+
+// KeyringError is a failed keyring read for one entry (lookup failure,
+// timeout, or ErrKeyringValue). It names the entry, never the value.
+type KeyringError struct {
+	Entry KeyringEntry
+	Err   error
+}
+
+// Error names the entry and the cause. Pure.
+func (e *KeyringError) Error() string {
+	return fmt.Sprintf("codex: keyring %s: %v", e.Entry, e.Err)
+}
+
+// Unwrap returns the cause. Pure.
+func (e *KeyringError) Unwrap() error { return e.Err }
+
+// storedAuth is one login as Codex stores it: auth.json bytes or the
+// keyring value (the same JSON, storage.rs:315-319). raw holds secrets and
+// never leaves this file except through ParseAuth / decodeAccess.
+type storedAuth struct {
+	raw   []byte
+	found bool
+	// store is where the login was found, or the configured store when
+	// it was found nowhere.
+	store   CredentialStore
+	source  string       // auth.json path when read from the file
+	keyring KeyringEntry // the entry consulted (keyring and auto stores)
+}
+
+// credentialStore is cli_auth_credentials_store from config.toml; absent
+// or unreadable config means file, upstream's default (config/src/types.rs:136-146).
+func (a *Agent) credentialStore(h Home) CredentialStore {
+	c, _, err := readConfigPath(a.Paths(h).Config)
+	if err != nil || !c.CLIAuthCredentialsStore.Set || !c.CLIAuthCredentialsStore.V.IsKnown() {
+		return StoreFile
+	}
+	return c.CLIAuthCredentialsStore.V
+}
+
+// loadAuth reads the login the way upstream create_auth_storage
+// (storage.rs:586-614) picks a backend: file → auth.json only; keyring →
+// the keyring only (DirectKeyringAuthStorage, storage.rs:309-313); auto →
+// the keyring, then auth.json when the keyring has no entry or fails
+// (AutoAuthStorage::load, storage.rs:478-505); ephemeral → process memory
+// of the running codex, unreadable from outside (ErrUnsupported).
+// Disk · Read, plus Process · Read via Host.Secrets for keyring and auto.
+func (a *Agent) loadAuth(ctx context.Context, h Home) (storedAuth, error) {
+	mode := a.credentialStore(h)
+	switch mode {
+	case StoreKeyring:
+		return a.loadKeyring(ctx, h)
+	case StoreAuto:
+		k, kerr := a.loadKeyring(ctx, h)
+		if kerr == nil && k.found {
+			return k, nil
 		}
-		return Identity{Source: p.Auth, CredentialStore: StoreFile}, nil
+		f, ferr := a.loadFile(h)
+		if ferr != nil {
+			return f, ferr
+		}
+		f.keyring = k.keyring
+		if !f.found {
+			// Upstream only warns about a failed keyring read before using
+			// the file; with no file either the failure is the answer, so
+			// a keychain prompt that timed out is not reported as logged out.
+			f.store = StoreAuto
+			return f, kerr
+		}
+		return f, nil
+	case StoreEphemeral:
+		return storedAuth{store: StoreEphemeral},
+			agentcli.UnsupportedError(ID, "ephemeral login", "cli_auth_credentials_store = \"ephemeral\" keeps the login in the running codex process's memory only (storage.rs:543-584)")
+	}
+	return a.loadFile(h)
+}
+
+// loadFile reads <home>/auth.json. Disk · Read.
+func (a *Agent) loadFile(h Home) (storedAuth, error) {
+	p := a.Paths(h).Auth
+	out := storedAuth{store: StoreFile, source: p}
+	b, err := os.ReadFile(p)
+	if errors.Is(err, fs.ErrNotExist) {
+		return out, nil
 	}
 	if err != nil {
-		return Identity{}, fmt.Errorf("codex: read %s: %w", p.Auth, err)
+		return out, fmt.Errorf("codex: read %s: %w", p, err)
 	}
-	return ParseAuth(b, p.Auth)
+	out.raw, out.found = b, true
+	return out, nil
+}
+
+// loadKeyring reads the home's keyring item through Host.Secrets with the
+// exact account Codex uses (never a service-only lookup: every home has
+// its own account under the same service). A nil Secrets store reads as
+// no entry, like Claude's keychain lookup. Process · Read via Host.Secrets.
+func (a *Agent) loadKeyring(ctx context.Context, h Home) (storedAuth, error) {
+	e := a.KeyringEntry(h)
+	out := storedAuth{store: StoreKeyring, keyring: e}
+	if a.host.Secrets == nil {
+		return out, nil
+	}
+	tok, ok, err := a.host.Secrets.Get(ctx, e.Service, e.Account)
+	if err != nil {
+		return out, &KeyringError{Entry: e, Err: err}
+	}
+	if !ok || tok.IsZero() {
+		return out, nil
+	}
+	raw := keyringBytes(tok.Reveal())
+	if !json.Valid(raw) {
+		return out, &KeyringError{Entry: e, Err: ErrKeyringValue}
+	}
+	out.raw, out.found = raw, true
+	return out, nil
+}
+
+// keyringBytes undoes `security find-generic-password -w`'s hex output:
+// macOS prints a password as bare hex when it holds bytes it will not
+// print as text, so a value that is not JSON but decodes as hex is
+// decoded. Pure.
+func keyringBytes(v string) []byte {
+	if strings.HasPrefix(v, "{") {
+		return []byte(v)
+	}
+	if b, err := hex.DecodeString(v); err == nil {
+		return b
+	}
+	return []byte(v)
+}
+
+// Identity reads h's login from where cli_auth_credentials_store says
+// Codex keeps it (auth.json, the OS keyring, or both for auto) and decodes
+// its claims locally: never verified, never refreshed, never a network
+// call. No stored login is a logged-out Identity with a nil error; an
+// ephemeral store returns ErrUnsupported; a failed keyring read returns a
+// *KeyringError. Disk · Read, plus Process · Read via Host.Secrets
+// (MayTouchLogin false) for keyring and auto homes.
+func (a *Agent) Identity(h Home) (Identity, error) {
+	return a.IdentityContext(context.Background(), h)
+}
+
+// IdentityContext is Identity with a context for the keyring lookup.
+// Disk · Read / Process · Read via Host.Secrets.
+func (a *Agent) IdentityContext(ctx context.Context, h Home) (Identity, error) {
+	s, err := a.loadAuth(ctx, h)
+	if err != nil {
+		return Identity{CredentialStore: s.store, Source: s.source, Keyring: s.keyring}, err
+	}
+	if !s.found {
+		return Identity{CredentialStore: s.store, Source: s.source, Keyring: s.keyring}, nil
+	}
+	id, err := ParseAuth(s.raw, s.source)
+	if err != nil && s.store == StoreKeyring {
+		// The decode error may quote bytes of the value; replace it.
+		return Identity{CredentialStore: s.store, Keyring: s.keyring}, &KeyringError{Entry: s.keyring, Err: ErrKeyringValue}
+	}
+	if err != nil {
+		return Identity{}, err
+	}
+	id.CredentialStore, id.Keyring = s.store, s.keyring
+	return id, nil
 }
 
 // Neutral projects onto agentcli.Identity: plan display name, PerToken for
@@ -368,19 +557,24 @@ func (i Identity) Neutral() agentcli.Identity {
 	return out
 }
 
-// accessToken returns the bearer and account id for a usage request.
-// Package-private: the token never leaves this package except on the
-// request header of a GET the caller asked for.
-func readAccess(path string) (agentcli.Token, string, AuthMode, bool, error) {
-	b, err := os.ReadFile(path)
-	if errors.Is(err, fs.ErrNotExist) {
+// readAccess returns the bearer and account id for a usage request from
+// wherever the home keeps its login (loadAuth). Package-private: the token
+// never leaves this package except on the request header of a GET the
+// caller asked for. No stored login is ErrNotLoggedIn. Disk · Read /
+// Process · Read via Host.Secrets.
+func (a *Agent) readAccess(ctx context.Context, h Home) (agentcli.Token, string, AuthMode, bool, error) {
+	s, err := a.loadAuth(ctx, h)
+	if err != nil {
+		return agentcli.Token{}, "", AuthNone, false, err
+	}
+	if !s.found {
 		return agentcli.Token{}, "", AuthNone, false, agentcli.ErrNotLoggedIn
 	}
-	if err != nil {
-		return agentcli.Token{}, "", AuthNone, false, fmt.Errorf("codex: read %s: %w", path, err)
-	}
 	var w authFileWire
-	if err := json.Unmarshal(b, &w); err != nil {
+	if err := json.Unmarshal(s.raw, &w); err != nil {
+		if s.store == StoreKeyring {
+			return agentcli.Token{}, "", AuthNone, false, &KeyringError{Entry: s.keyring, Err: ErrKeyringValue}
+		}
 		return agentcli.Token{}, "", AuthNone, false, fmt.Errorf("codex: decode %s: %w", fileAuth, err)
 	}
 	apiKey := w.OpenAIAPIKey != nil && *w.OpenAIAPIKey != ""

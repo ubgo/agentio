@@ -3,6 +3,8 @@ package codex
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -250,14 +252,205 @@ func TestIdentity(t *testing.T) {
 	}
 }
 
-func TestIdentityKeyringUnsupported(t *testing.T) {
-	a, h := setup(t)
-	if err := os.Remove(a.Paths(h).Auth); err != nil {
+// upstreamKeyringVector is login/src/auth/storage_tests.rs:481-487: a path
+// that cannot be canonicalized hashes as given.
+const (
+	upstreamKeyringPath    = "~/.codex"
+	upstreamKeyringAccount = "cli|940db7b1d0e4eb40"
+	fakeRefreshToken       = "rt_fake_refresh"
+)
+
+// keyringSetup is setup with cli_auth_credentials_store = store, the
+// fixture auth.json moved into the fake keyring when inKeyring, and
+// auth.json removed when !keepFile.
+func keyringSetup(t *testing.T, store CredentialStore, inKeyring, keepFile bool) (*Agent, Home, *agenttest.FakeSecrets, []byte) {
+	t.Helper()
+	secrets := agenttest.NewFakeSecrets()
+	a, h := setup(t, agenttest.WithSecrets(secrets))
+	raw, err := os.ReadFile(a.Paths(h).Auth)
+	if err != nil {
 		t.Fatal(err)
 	}
-	agenttest.WriteFile(t, h.Dir(), fileConfig, "cli_auth_credentials_store = \"keyring\"\n")
-	if _, err := a.Identity(h); !errors.Is(err, agentcli.ErrUnsupported) {
-		t.Fatalf("keyring home: %v", err)
+	if inKeyring {
+		secrets.Put(KeyringService, KeyringAccount(h.Dir()), string(raw))
+	}
+	if !keepFile {
+		if err := os.Remove(a.Paths(h).Auth); err != nil {
+			t.Fatal(err)
+		}
+	}
+	agenttest.WriteFile(t, h.Dir(), fileConfig, "cli_auth_credentials_store = \""+string(store)+"\"\n")
+	return a, h, secrets, raw
+}
+
+// assertNoSecret fails when any token of the fixture login shows up in out.
+func assertNoSecret(t *testing.T, out string, raw []byte) {
+	t.Helper()
+	var w struct {
+		Tokens struct {
+			IDToken      string `json:"id_token"`
+			AccessToken  string `json:"access_token"`
+			RefreshToken string `json:"refresh_token"`
+		} `json:"tokens"`
+	}
+	if err := json.Unmarshal(raw, &w); err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range []string{w.Tokens.IDToken, w.Tokens.AccessToken, w.Tokens.RefreshToken, fakeRefreshToken, "user@example.test"} {
+		if v != "" && strings.Contains(out, v) {
+			t.Fatalf("secret or personal value printed: %q…", v[:min(8, len(v))])
+		}
+	}
+}
+
+func TestKeyringAccount(t *testing.T) {
+	if got := KeyringAccount(upstreamKeyringPath); got != upstreamKeyringAccount {
+		t.Fatalf("upstream vector: %s", got)
+	}
+	a, h := setup(t)
+	if got := a.KeyringEntry(h); got.Service != "Codex Auth" || !strings.HasPrefix(got.Account, "cli|") || len(got.Account) != len(upstreamKeyringAccount) {
+		t.Fatalf("default home entry %+v", got)
+	}
+	other := filepath.Join(t.TempDir(), "work-codex")
+	agenttest.WriteFile(t, other, fileConfig, "")
+	oh, err := a.HomeAt(other)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if KeyringAccount(oh.Dir()) == KeyringAccount(h.Dir()) {
+		t.Fatal("non-default home must have its own account")
+	}
+	link := filepath.Join(t.TempDir(), "link")
+	if err := os.Symlink(other, link); err != nil {
+		t.Fatal(err)
+	}
+	if KeyringAccount(link) != KeyringAccount(other) {
+		t.Fatal("a symlinked home path must hash like its target (canonicalize)")
+	}
+}
+
+func TestIdentityKeyring(t *testing.T) {
+	a, h, secrets, raw := keyringSetup(t, StoreKeyring, true, false)
+	id, err := a.Identity(h)
+	if err != nil || !id.LoggedIn || id.CredentialStore != StoreKeyring || id.Plan != PlanPlus || id.Source != "" {
+		t.Fatalf("keyring identity %+v %v", id, err)
+	}
+	want := agenttest.SecretKey{Service: KeyringService, Account: KeyringAccount(h.Dir())}
+	if !slices.Equal(secrets.Calls, []agenttest.SecretKey{want}) || id.Keyring.Account != want.Account {
+		t.Fatalf("lookups %v (named account only, never service-only)", secrets.Calls)
+	}
+	if n := id.Neutral(); n.Credential != agentcli.CredentialKeyring || !n.LoggedIn {
+		t.Fatalf("neutral %+v", n)
+	}
+	assertNoSecret(t, fmt.Sprintf("%+v %v %#v", id, id.Neutral(), id), raw)
+	checks := a.Checks(context.Background(), h)
+	assertNoSecret(t, fmt.Sprintf("%+v", checks), raw)
+}
+
+func TestIdentityKeyringIgnoresFile(t *testing.T) {
+	// keyring mode reads only the keyring (storage.rs:309-313): a leftover
+	// auth.json does not make the home logged in.
+	a, h, _, _ := keyringSetup(t, StoreKeyring, false, true)
+	id, err := a.Identity(h)
+	if err != nil || id.LoggedIn || id.CredentialStore != StoreKeyring || id.Keyring.Service != KeyringService {
+		t.Fatalf("keyring miss %+v %v", id, err)
+	}
+	var login agentcli.Check
+	for _, c := range a.Checks(context.Background(), h) {
+		if c.ID == agentcli.CheckLogin {
+			login = c
+		}
+	}
+	if login.Status != agentcli.CheckWarn || !strings.Contains(login.Message, id.Keyring.Account) || login.Fix == nil {
+		t.Fatalf("login check %+v", login)
+	}
+	if _, err := a.Usage(context.Background(), h); !errors.Is(err, agentcli.ErrNotLoggedIn) {
+		t.Fatalf("usage without a keyring login: %v", err)
+	}
+}
+
+func TestIdentityAutoFallback(t *testing.T) {
+	t.Run("keyring hit", func(t *testing.T) {
+		a, h, _, _ := keyringSetup(t, StoreAuto, true, false)
+		if id, err := a.Identity(h); err != nil || !id.LoggedIn || id.CredentialStore != StoreKeyring {
+			t.Fatalf("%+v %v", id, err)
+		}
+	})
+	t.Run("no entry falls back to auth.json", func(t *testing.T) {
+		a, h, secrets, _ := keyringSetup(t, StoreAuto, false, true)
+		id, err := a.Identity(h)
+		if err != nil || !id.LoggedIn || id.CredentialStore != StoreFile || id.Source != a.Paths(h).Auth || len(secrets.Calls) != 1 {
+			t.Fatalf("%+v %v", id, err)
+		}
+	})
+	t.Run("keyring error falls back to auth.json", func(t *testing.T) {
+		a, h, secrets, _ := keyringSetup(t, StoreAuto, false, true)
+		secrets.Err = errors.New("keychain locked")
+		if id, err := a.Identity(h); err != nil || !id.LoggedIn || id.CredentialStore != StoreFile {
+			t.Fatalf("%+v %v", id, err)
+		}
+	})
+	t.Run("keyring error and no file", func(t *testing.T) {
+		a, h, secrets, _ := keyringSetup(t, StoreAuto, false, false)
+		cause := errors.New("keychain locked")
+		secrets.Err = cause
+		id, err := a.Identity(h)
+		var kerr *KeyringError
+		if !errors.Is(err, cause) || !errors.As(err, &kerr) || kerr.Entry.Account != KeyringAccount(h.Dir()) || id.CredentialStore != StoreAuto {
+			t.Fatalf("%+v %v", id, err)
+		}
+		var keyring agentcli.Check
+		for _, c := range a.Checks(context.Background(), h) {
+			if c.ID == CheckKeyring {
+				keyring = c
+			}
+		}
+		if keyring.Status != agentcli.CheckWarn {
+			t.Fatalf("doctor %+v", keyring)
+		}
+	})
+	t.Run("found nowhere", func(t *testing.T) {
+		a, h, _, _ := keyringSetup(t, StoreAuto, false, false)
+		if id, err := a.Identity(h); err != nil || id.LoggedIn || id.CredentialStore != StoreAuto {
+			t.Fatalf("%+v %v", id, err)
+		}
+	})
+}
+
+// TestIdentityKeyringStoreUnsupported: a Host whose keychain cannot look on
+// this OS (HostFromOS off darwin) makes a keyring home ErrUnsupported, never
+// a logged-out identity.
+func TestIdentityKeyringStoreUnsupported(t *testing.T) {
+	a, h, secrets, _ := keyringSetup(t, StoreKeyring, false, false)
+	secrets.Err = agentcli.UnsupportedError("", "keychain", "no keychain reader for test")
+	id, err := a.Identity(h)
+	if !errors.Is(err, agentcli.ErrUnsupported) || id.LoggedIn {
+		t.Fatalf("unsupported store: %+v %v", id, err)
+	}
+}
+
+func TestIdentityKeyringBadValueAndEphemeral(t *testing.T) {
+	a, h, secrets, raw := keyringSetup(t, StoreKeyring, false, false)
+	bad := "not-json " + fakeRefreshToken
+	secrets.Put(KeyringService, KeyringAccount(h.Dir()), bad)
+	_, err := a.Identity(h)
+	if !errors.Is(err, ErrKeyringValue) || strings.Contains(err.Error(), fakeRefreshToken) {
+		t.Fatalf("bad value: %v", err)
+	}
+	_, uerr := a.Usage(context.Background(), h)
+	if !errors.Is(uerr, ErrKeyringValue) {
+		t.Fatalf("usage bad value: %v", uerr)
+	}
+	assertNoSecret(t, err.Error()+uerr.Error(), raw)
+	// `security -w` prints a value with unprintable bytes as hex.
+	secrets.Put(KeyringService, KeyringAccount(h.Dir()), hex.EncodeToString(raw))
+	if id, err := a.Identity(h); err != nil || !id.LoggedIn {
+		t.Fatalf("hex value %+v %v", id, err)
+	}
+
+	eph, eh, esecrets, _ := keyringSetup(t, StoreEphemeral, false, true)
+	if _, err := eph.Identity(eh); !errors.Is(err, agentcli.ErrUnsupported) || len(esecrets.Calls) != 0 {
+		t.Fatalf("ephemeral: %v", err)
 	}
 }
 
@@ -636,6 +829,103 @@ func TestClassifyAndProcesses(t *testing.T) {
 	}
 }
 
+// liveThread is the thread id of the capture (CODEX_API.md §15).
+const liveThread = "01a1d83a-e1cb-70d1-bee7-7aebab05bc2b"
+
+func TestParseThreadLockName(t *testing.T) {
+	if id, ok := ParseThreadLockName(liveThread + ".lock"); !ok || id != liveThread {
+		t.Fatalf("thread lock %q %v", id, ok)
+	}
+	for _, n := range []string{
+		".coordination.lock", liveThread, liveThread + ".lock.tmp", strings.ToUpper(liveThread) + ".lock",
+		"01a1d83ae1cb70d1bee77aebab05bc2b.lock", "{" + liveThread + "}.lock", "01a1d83a-e1cb-70d1-bee7-7aebab05bc2g.lock",
+		"01a1d83a+e1cb-70d1-bee7-7aebab05bc2b.lock", "junk.lock", "",
+	} {
+		if _, ok := ParseThreadLockName(n); ok {
+			t.Errorf("%q accepted", n)
+		}
+	}
+}
+
+func TestLiveSessionsFromThreadLocks(t *testing.T) {
+	lockTime := time.Date(2026, 11, 14, 4, 5, 1, 0, time.UTC)
+	procs := &agenttest.FakeProcesses{}
+	a, h := setup(t, agenttest.WithProcesses(procs))
+	locks := a.Paths(h).ThreadWriterLocks
+	// The fixture carries the permanent empty .coordination.lock; add a
+	// thread lock (the captured empty file), a junk name and a directory.
+	sample, err := os.ReadFile(filepath.Join("testdata", "homes", fixtureVersion, dirThreadWriterLocks, coordinationLockFile))
+	if err != nil || len(sample) != 0 {
+		t.Fatalf("fixture coordination lock %v", err)
+	}
+	agenttest.WriteFile(t, locks, liveThread+threadLockSuffix, "")
+	agenttest.WriteFile(t, locks, "notes.lock", "")
+	if err := os.Mkdir(filepath.Join(locks, convNew+threadLockSuffix), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	mustChtimes(t, filepath.Join(locks, liveThread+threadLockSuffix), lockTime)
+
+	tl, err := a.ThreadLocks(h)
+	if err != nil || len(tl) != 1 || tl[0].ThreadID != liveThread || !tl[0].ModTime.Equal(lockTime) {
+		t.Fatalf("thread locks %+v %v", tl, err)
+	}
+
+	// No Codex process: the lock is a crash leftover.
+	procs.List = []agentcli.Process{{PID: 9, Exe: "/usr/bin/vim", Argv: []string{"vim"}, Start: lockTime.Add(-time.Hour)}}
+	ls, err := a.LiveSessions(h)
+	if err != nil || len(ls) != 1 || ls[0].Alive || ls[0].ConversationID != liveThread || ls[0].PID != 0 || !ls[0].StartedAt.Equal(lockTime) || ls[0].Home != h.Neutral() {
+		t.Fatalf("stale %+v %v", ls, err)
+	}
+	if live, err := a.IsLive(h, liveThread); err != nil || live {
+		t.Fatalf("stale IsLive %v %v", live, err)
+	}
+	if exists, err := a.LiveConversation(h, liveThread); err != nil || !exists {
+		t.Fatalf("LiveConversation is the unchecked file test: %v %v", exists, err)
+	}
+
+	// Only the npm launcher, or a codex that started after the lock: still stale.
+	procs.List = []agentcli.Process{
+		{PID: 10, Exe: "/usr/bin/node", Argv: []string{"node", "/lib/node_modules/@openai/codex/bin/codex.js"}, Start: lockTime.Add(-time.Minute)},
+		{PID: 11, Exe: "/opt/x/codex", Argv: []string{"codex", "exec", "hi"}, Start: lockTime.Add(time.Minute)},
+	}
+	if live, _ := a.IsLive(h, liveThread); live {
+		t.Fatal("launcher or later codex must not keep the lock alive")
+	}
+
+	// A codex exec that started before the lock: alive.
+	procs.List = append(procs.List, agentcli.Process{PID: 12, Exe: "/opt/x/codex", Argv: []string{"codex", "exec", "hi"}, Start: lockTime.Add(-time.Second)})
+	if live, err := a.IsLive(h, liveThread); err != nil || !live {
+		t.Fatalf("alive %v %v", live, err)
+	}
+	for _, id := range []string{convNew, "", "notes", "../" + liveThread} {
+		if live, _ := a.IsLive(h, id); live {
+			t.Errorf("IsLive(%q)", id)
+		}
+		if exists, _ := a.LiveConversation(h, id); exists {
+			t.Errorf("LiveConversation(%q)", id)
+		}
+	}
+
+	// A lock for a thread whose rollout exists fills Dir from session_meta.
+	agenttest.WriteFile(t, locks, convNew+"x", "")
+	agenttest.WriteFile(t, locks, convOld+threadLockSuffix, "")
+	ls, _ = a.LiveSessions(h)
+	if len(ls) != 2 || ls[0].ConversationID != convOld || ls[0].Dir == "" || ls[1].Dir != "" {
+		t.Fatalf("dir from rollout %+v", ls)
+	}
+
+	// The neutral lister answers the same; FindLiveSession cannot match a pid.
+	n := a.Neutral()
+	if lister, ok := agentcli.LiveSessionsOf(n); !ok {
+		t.Fatal("lister")
+	} else if got, err := lister.LiveSessions(h.Neutral()); err != nil || len(got) != 2 {
+		t.Fatalf("neutral %v %v", got, err)
+	}
+	if _, _, found, _ := agentcli.FindLiveSession([]agentcli.Agent{n}, 12); found {
+		t.Fatal("lock files name no pid")
+	}
+}
+
 func TestDoctorInventory(t *testing.T) {
 	a, h := setup(t)
 	checks := a.Checks(context.Background(), h)
@@ -666,7 +956,7 @@ func TestNeutral(t *testing.T) {
 		t.Fatal("no history mover")
 	}
 	if found, err := a.LiveSessions(h); err != nil || found != nil {
-		t.Fatal("no live sessions until a lock sample exists")
+		t.Fatal("the fixture holds only .coordination.lock: no live sessions")
 	}
 	claudeHome := agentcli.NewHome("claude", h.Dir(), true, "default")
 	if _, err := agentcli.IdentityOf(n); !err {

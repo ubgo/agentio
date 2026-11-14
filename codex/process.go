@@ -95,35 +95,185 @@ func (a *Agent) Processes(ctx context.Context) ([]LiveProcess, error) {
 	return out, nil
 }
 
-// LiveSessions answers from thread-writer locks; their format has no
-// recorded sample (CODEX_API.md §15), so it returns none until one is
-// recorded (FindLiveSession then reports found=false). Disk · Read.
+// Thread writer locks (upstream rollout/src/writer_lock.rs:17-18, 51):
+// <home>/thread-writer-locks/<thread-id>.lock per thread being written,
+// beside the permanent .coordination.lock. The files are empty: no pid,
+// no owner, no time inside (codex-cli 0.162.1 capture, CODEX_API.md §15).
+const (
+	threadLockSuffix     = ".lock"
+	coordinationLockFile = ".coordination.lock"
+	// threadIDLen is the hyphenated UUID text upstream writes with
+	// format!("{thread_id}") (protocol/src/thread_id.rs Display).
+	threadIDLen = 36
+	// lockStartTolerance absorbs the whole-second process start times of
+	// darwin `ps` when comparing a process start with a lock's mtime.
+	lockStartTolerance = 2 * time.Second
+)
+
+// threadIDHyphens are the byte offsets of the '-' in a hyphenated UUID.
+func threadIDHyphens() []int { return []int{8, 13, 18, 23} }
+
+// ParseThreadLockName returns the thread id of a thread-writer-locks/
+// entry name: exactly a lowercase hyphenated UUID followed by ".lock",
+// the only form Codex writes. .coordination.lock and every other name
+// are rejected. Pure.
+func ParseThreadLockName(name string) (string, bool) {
+	id, ok := strings.CutSuffix(name, threadLockSuffix)
+	if !ok || len(id) != threadIDLen {
+		return "", false
+	}
+	hyphens := threadIDHyphens()
+	for i := 0; i < len(id); i++ {
+		c := id[i]
+		if slices.Contains(hyphens, i) {
+			if c != '-' {
+				return "", false
+			}
+			continue
+		}
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+			return "", false
+		}
+	}
+	return id, true
+}
+
+// ThreadLock is one <home>/thread-writer-locks/<thread-id>.lock file.
+// Codex holds an exclusive advisory lock (std File::try_lock, flock on
+// unix) on it while a process writes the thread and deletes it when the
+// writer finishes (writer_lock.rs:43-86, 174-196). A writer that crashes
+// leaves the file behind unlocked until the next writer in the home
+// sweeps it (writer_lock.rs:45-49, 124-171), so a file alone does not
+// prove a live writer.
+type ThreadLock struct {
+	ThreadID string // conversation id: same UUIDv7 as the rollout file and the threads row
+	Path     string
+	// ModTime is the file's mtime. The file is created at acquire and never
+	// written (opened without truncate, empty), so this is when the writer
+	// took the thread.
+	ModTime time.Time
+}
+
+// ThreadLocks lists the thread lock files of h, skipping
+// .coordination.lock, directories and names that are not
+// <uuid>.lock. Contents are never read (they are empty). Disk · Read.
+func (a *Agent) ThreadLocks(h Home) ([]ThreadLock, error) {
+	dir := a.Paths(h).ThreadWriterLocks
+	entries, err := os.ReadDir(dir)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("codex: read %s: %w", dirThreadWriterLocks, err)
+	}
+	var out []ThreadLock
+	for _, e := range entries {
+		if e.IsDir() || e.Name() == coordinationLockFile {
+			continue
+		}
+		id, ok := ParseThreadLockName(e.Name())
+		if !ok {
+			continue
+		}
+		info, err := e.Info()
+		if err != nil {
+			continue // removed between ReadDir and Info: the writer finished
+		}
+		out = append(out, ThreadLock{ThreadID: id, Path: filepath.Join(dir, e.Name()), ModTime: info.ModTime()})
+	}
+	return out, nil
+}
+
+// writerCandidate reports whether a process could own a thread lock taken
+// at lockTime: a Codex process other than the npm launcher (exec, the
+// interactive CLI, the app-server daemon the TUI attaches to, mcp-server
+// all write threads) that started no later than the lock. Pure.
+func (a *Agent) writerCandidate(p agentcli.Process, lockTime time.Time) bool {
+	info, ok := a.ClassifyProcess(p)
+	if !ok || info.Kind == agentcli.ProcessLauncher {
+		return false
+	}
+	if p.Start.IsZero() || lockTime.IsZero() {
+		return true
+	}
+	return !p.Start.After(lockTime.Add(lockStartTolerance))
+}
+
+// LiveSessions lists h's thread writer locks as live sessions. Upstream
+// decides liveness by trying the lock's flock (writer_lock.rs:149-161);
+// this library stays read-only and does not take it, because even a
+// brief non-blocking probe would make a writer starting at that instant
+// fail with "already has an active writer" (writer_lock.rs:65-72). So:
+// ConversationID is the file's thread id, StartedAt its mtime, Dir the
+// rollout's cwd when the rollout exists (Codex may create it later than
+// the lock), Status Unknown, and Alive is true only when the process
+// table holds a Codex process (not the npm launcher) that started no
+// later than the lock: with none, the file is a crash leftover. PID stays
+// 0 because the lock does not say which process holds it (several Codex
+// processes, or one app-server daemon writing many threads, are common),
+// and a process's CODEX_HOME is not readable (SPEC §5.1), so a process of
+// another home also counts; FindLiveSession therefore never matches a
+// Codex pid. A failed process-table read leaves every Alive false.
+// Disk · Read + one process-table read (Host.Processes).
 func (a *Agent) LiveSessions(h Home) ([]agentcli.LiveSession, error) {
-	return nil, nil
+	locks, err := a.ThreadLocks(h)
+	if err != nil || len(locks) == 0 {
+		return nil, err
+	}
+	var procs []agentcli.Process
+	if a.host.Processes != nil {
+		if rows, perr := a.host.Processes.Processes(context.Background()); perr == nil {
+			procs = rows
+		}
+	}
+	out := make([]agentcli.LiveSession, 0, len(locks))
+	for _, l := range locks {
+		s := agentcli.LiveSession{
+			ConversationID: l.ThreadID,
+			Home:           h.Neutral(),
+			Status:         agentcli.SessionStatusUnknown,
+			StartedAt:      l.ModTime,
+			Alive:          slices.ContainsFunc(procs, func(p agentcli.Process) bool { return a.writerCandidate(p, l.ModTime) }),
+		}
+		if c, cerr := a.Conversation(h, l.ThreadID); cerr == nil {
+			s.Dir = c.Dir
+		}
+		out = append(out, s)
+	}
+	slices.SortFunc(out, func(x, y agentcli.LiveSession) int { return strings.Compare(x.ConversationID, y.ConversationID) })
+	return out, nil
 }
 
-// IsLive reports whether a thread-writer lock exists for the
-// conversation; with no recorded lock format this is false (see
-// LiveSessions). Disk · Read.
+// IsLive reports whether conversationID has a thread writer lock that
+// LiveSessions marks Alive. Disk · Read + one process-table read.
 func (a *Agent) IsLive(h Home, conversationID string) (bool, error) {
-	return a.LiveConversation(h, conversationID)
-}
-
-// LiveConversation reports whether thread-writer-locks/ holds an entry
-// whose name contains the id. The lock format is unrecorded, so only the
-// name is matched. Disk · Read.
-func (a *Agent) LiveConversation(h Home, id string) (bool, error) {
-	if id == "" {
+	if conversationID == "" {
 		return false, nil
 	}
-	entries, err := os.ReadDir(a.Paths(h).ThreadWriterLocks)
+	all, err := a.LiveSessions(h)
+	if err != nil {
+		return false, err
+	}
+	return slices.ContainsFunc(all, func(s agentcli.LiveSession) bool {
+		return s.ConversationID == conversationID && s.Alive
+	}), nil
+}
+
+// LiveConversation reports whether thread-writer-locks/<id>.lock exists,
+// without the process-table cross-check: true may be a crash leftover
+// (see ThreadLock). Use IsLive for the checked answer. Disk · Read.
+func (a *Agent) LiveConversation(h Home, id string) (bool, error) {
+	if _, ok := ParseThreadLockName(id + threadLockSuffix); !ok {
+		return false, nil
+	}
+	st, err := os.Lstat(filepath.Join(a.Paths(h).ThreadWriterLocks, id+threadLockSuffix))
 	if errors.Is(err, fs.ErrNotExist) {
 		return false, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("codex: read %s: %w", dirThreadWriterLocks, err)
+		return false, fmt.Errorf("codex: stat %s: %w", dirThreadWriterLocks, err)
 	}
-	return slices.ContainsFunc(entries, func(e fs.DirEntry) bool { return strings.Contains(e.Name(), id) }), nil
+	return !st.IsDir(), nil
 }
 
 // DaemonSocket reports the app-server socket path when it exists. Disk · Read.

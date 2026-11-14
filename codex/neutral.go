@@ -68,7 +68,7 @@ func (n neutral) BinaryVersion(ctx context.Context) (agentcli.Version, error) {
 	return n.a.Runner().BinaryVersion(ctx)
 }
 
-// Identity is Disk · Read.
+// Identity is Disk · Read (keyring homes: Process · Read via Host.Secrets).
 func (n neutral) Identity(h agentcli.Home) (agentcli.Identity, error) {
 	ch, err := n.home(h)
 	if err != nil {
@@ -194,7 +194,7 @@ func (n neutral) PromptHistory(h agentcli.Home, q agentcli.PromptQuery) ([]agent
 	return out, nil
 }
 
-// LiveSessions is Disk · Read (none until a lock sample exists).
+// LiveSessions is Disk · Read + one process-table read.
 func (n neutral) LiveSessions(h agentcli.Home) ([]agentcli.LiveSession, error) {
 	ch, err := n.home(h)
 	if err != nil {
@@ -203,7 +203,7 @@ func (n neutral) LiveSessions(h agentcli.Home) ([]agentcli.LiveSession, error) {
 	return n.a.LiveSessions(ch)
 }
 
-// IsLive is Disk · Read.
+// IsLive is Disk · Read + one process-table read.
 func (n neutral) IsLive(h agentcli.Home, id string) (bool, error) {
 	ch, err := n.home(h)
 	if err != nil {

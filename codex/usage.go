@@ -117,16 +117,18 @@ func ParseUsage(body []byte) (Usage, error) {
 	return u, nil
 }
 
-// Usage fetches GET wham/usage once with the home's access token. It never
+// Usage fetches GET wham/usage once with the home's access token (from
+// auth.json or the OS keyring, as cli_auth_credentials_store says). It never
 // refreshes: an expired token returns ErrExpired, an API-key login returns
-// ErrBilledPerToken, 429 maps to ErrRateLimited (no retry). Network · Read:
-// call once, never poll.
+// ErrBilledPerToken, 429 maps to ErrRateLimited (no retry). Network · Read
+// (plus Process · Read via Host.Secrets for keyring homes): call once,
+// never poll.
 func (a *Agent) Usage(ctx context.Context, h Home) (Usage, error) {
 	return a.usageAt(ctx, h, UsageEndpoint)
 }
 
 func (a *Agent) usageAt(ctx context.Context, h Home, endpoint string) (Usage, error) {
-	tok, account, mode, apiKey, err := readAccess(a.Paths(h).Auth)
+	tok, account, mode, apiKey, err := a.readAccess(ctx, h)
 	if err != nil {
 		return Usage{}, err
 	}
@@ -248,9 +250,9 @@ type Subscription struct {
 
 // Subscription answers from the id_token claims on disk first; only when
 // the plan claim is absent does it fall back to one usage fetch. Disk ·
-// Read, then Network · Read.
+// Read (keyring homes: Process · Read via Host.Secrets), then Network · Read.
 func (a *Agent) Subscription(ctx context.Context, h Home) (Subscription, error) {
-	id, err := a.Identity(h)
+	id, err := a.IdentityContext(ctx, h)
 	if err != nil {
 		return Subscription{}, err
 	}

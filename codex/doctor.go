@@ -20,14 +20,19 @@ const (
 	CheckProfileConflict agentcli.CheckID = "profile-conflict"
 	CheckStaleUpdate     agentcli.CheckID = "update-cache"
 	CheckConfigParse     agentcli.CheckID = "config"
-	CheckKeyring         agentcli.CheckID = "keyring-login"
+	// CheckKeyring reports a keyring login that could not be read (lookup
+	// failure, unparsable value) or an ephemeral store; a readable keyring
+	// login reports under the neutral CheckLogin.
+	CheckKeyring agentcli.CheckID = "keyring-login"
 )
 
-// Checks runs the Disk-only doctor for h: binary, home, home env, API
-// billing env (shared), installed version against the tested range,
-// config.toml parse and drift, login presence and expiry, v2 profile files
-// that collide with legacy profiles (OD-18), and the stale update cache.
-// Never calls a Runner method. Disk · Read.
+// Checks runs the doctor for h: binary, home, home env, API billing env
+// (shared), installed version against the tested range, config.toml parse
+// and drift, login presence and expiry, v2 profile files that collide with
+// legacy profiles (OD-18), and the stale update cache. Never calls a
+// Runner method. Disk · Read, plus one keychain read (Process · Read via
+// Host.Secrets, MayTouchLogin false) for keyring and auto homes, as
+// Claude's doctor does.
 func (a *Agent) Checks(ctx context.Context, h Home) []agentcli.Check {
 	out := a.core.Checks(ctx, h.Neutral())
 	in, err := a.Install()
@@ -45,7 +50,7 @@ func (a *Agent) Checks(ctx context.Context, h Home) []agentcli.Check {
 	default:
 		out = append(out, agentcli.Check{ID: CheckConfigParse, Status: agentcli.CheckOK, Message: a.Paths(h).Config})
 	}
-	out = append(out, a.loginCheck(h))
+	out = append(out, a.loginCheck(ctx, h))
 	if c, ok := a.profileCheck(h, cfg); ok {
 		out = append(out, c)
 	}
@@ -58,20 +63,39 @@ func (a *Agent) Checks(ctx context.Context, h Home) []agentcli.Check {
 	return out
 }
 
-func (a *Agent) loginCheck(h Home) agentcli.Check {
-	id, err := a.Identity(h)
+// loginCheck reads the login where cli_auth_credentials_store puts it.
+// Like Claude's doctor (claude/doctor.go loginChecks → Credential) it
+// reads the keychain for keyring and auto homes: Process · Read via
+// Host.Secrets, MayTouchLogin false.
+func (a *Agent) loginCheck(ctx context.Context, h Home) agentcli.Check {
+	id, err := a.IdentityContext(ctx, h)
+	var kerr *KeyringError
 	switch {
 	case errors.Is(err, agentcli.ErrUnsupported):
-		return agentcli.Check{ID: CheckKeyring, Status: agentcli.CheckInfo, Message: "login is in the OS keyring; not read (OD-12)"}
+		return agentcli.Check{ID: CheckKeyring, Status: agentcli.CheckInfo, Message: err.Error()}
+	case errors.As(err, &kerr):
+		return agentcli.Check{ID: CheckKeyring, Status: agentcli.CheckWarn, Message: kerr.Error()}
 	case err != nil:
 		return agentcli.Check{ID: agentcli.CheckLogin, Status: agentcli.CheckFail, Message: err.Error()}
 	case !id.LoggedIn:
 		cmd := a.plainCommand(h, []string{subLogin})
-		return agentcli.Check{ID: agentcli.CheckLogin, Status: agentcli.CheckWarn, Message: "not logged in", Fix: &cmd}
+		return agentcli.Check{ID: agentcli.CheckLogin, Status: agentcli.CheckWarn, Message: "not logged in" + storeWhere(id), Fix: &cmd}
 	case !id.AccessExpiresAt.IsZero() && !a.now().IsZero() && !a.now().Before(id.AccessExpiresAt):
 		return agentcli.Check{ID: agentcli.CheckLogin, Status: agentcli.CheckInfo, Message: "access token expired at " + id.AccessExpiresAt.Format(time.RFC3339) + "; codex refreshes it on its next run"}
 	}
-	return agentcli.Check{ID: agentcli.CheckLogin, Status: agentcli.CheckOK, Message: "logged in (" + string(id.Mode) + ")"}
+	return agentcli.Check{ID: agentcli.CheckLogin, Status: agentcli.CheckOK, Message: "logged in (" + string(id.Mode) + ", " + string(id.CredentialStore) + ")"}
+}
+
+// storeWhere says where a missing login was looked for (entry names only).
+// Pure.
+func storeWhere(id Identity) string {
+	switch id.CredentialStore {
+	case StoreKeyring:
+		return ": no keyring entry " + id.Keyring.String()
+	case StoreAuto:
+		return ": no keyring entry " + id.Keyring.String() + " and no " + fileAuth
+	}
+	return ""
 }
 
 // InventoryEntry is one path of a home.
