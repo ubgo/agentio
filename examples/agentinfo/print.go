@@ -12,18 +12,41 @@ import (
 // timeLayout is how times print in the text view.
 const timeLayout = "2006-01-02 15:04"
 
-// printText writes the human-readable view of the report.
-func printText(w io.Writer, r Report) {
+// Table layout of the aligned sections (processes, paths, conversations):
+// two-space padding between columns, and a title clipped so one
+// conversation stays on one terminal line.
+const (
+	tableMinWidth = 2
+	tableTabWidth = 2
+	tablePadding  = 2
+	titleWidth    = 50
+)
+
+// newTable returns a tabwriter over w with the text view's column layout.
+// Its Flush must be checked: the tabwriter buffers every row, so a write
+// error on w only surfaces there.
+func newTable(w io.Writer) *tabwriter.Writer {
+	return tabwriter.NewWriter(w, tableMinWidth, tableTabWidth, tablePadding, ' ', 0)
+}
+
+// printText writes the human-readable view of the report. It returns the
+// first error from flushing a table to w.
+func printText(w io.Writer, r Report) error {
 	fmt.Fprintf(w, "agentinfo  %s  dir=%s\n", r.Generated.Format(time.RFC3339), r.Dir)
 	if r.ProcessError != "" {
 		fmt.Fprintf(w, "process table: %s\n", r.ProcessError)
 	}
 	for _, a := range r.Agents {
-		printAgent(w, a)
+		if err := printAgent(w, a); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
-func printAgent(w io.Writer, a AgentReport) {
+// printAgent writes one agent: install, compat, every home, then the
+// agent's running processes.
+func printAgent(w io.Writer, a AgentReport) error {
 	fmt.Fprintf(w, "\n=== %s (%s) ===\n", a.Name, a.ID)
 	if a.Install == nil {
 		fmt.Fprintf(w, "install:   not installed %s\n", paren(a.InstallError))
@@ -52,17 +75,21 @@ func printAgent(w io.Writer, a AgentReport) {
 		fmt.Fprintln(w, "homes:     none found")
 	}
 	for _, h := range a.Homes {
-		printHome(w, h)
+		if err := printHome(w, h); err != nil {
+			return err
+		}
 	}
 	fmt.Fprintf(w, "\nprocesses (%d):\n", len(a.Processes))
-	tw := tabwriter.NewWriter(w, 2, 2, 2, ' ', 0)
+	tw := newTable(w)
 	for _, p := range a.Processes {
 		fmt.Fprintf(tw, "  pid %d\tppid %d\t%s\tsession=%v\t%s\t%s\n", p.PID, p.PPID, p.Kind, p.Session, fmtTime(p.Start), p.Exe)
 	}
-	tw.Flush()
+	return tw.Flush()
 }
 
-func printHome(w io.Writer, h HomeReport) {
+// printHome writes one home section: paths, settings summary, identity,
+// usage, conversations, live sessions, doctor checks and per-section errors.
+func printHome(w io.Writer, h HomeReport) error {
 	def := ""
 	if h.Default {
 		def = " (default)"
@@ -70,11 +97,13 @@ func printHome(w io.Writer, h HomeReport) {
 	fmt.Fprintf(w, "\n--- home %s%s  name=%s\n", h.Dir, def, h.Name)
 	if len(h.Paths) > 0 {
 		fmt.Fprintln(w, "paths:")
-		tw := tabwriter.NewWriter(w, 2, 2, 2, ' ', 0)
+		tw := newTable(w)
 		for _, p := range h.Paths {
 			fmt.Fprintf(tw, "  %s\t%s\t%s\n", p.Name, p.Path, existsMark(p.Exists))
 		}
-		tw.Flush()
+		if err := tw.Flush(); err != nil {
+			return err
+		}
 	}
 	if s := h.Settings; s != nil {
 		fmt.Fprintf(w, "settings:  %d files, %d modelled %s keys, %d kept raw, %d unknown keys %s\n", len(s.Files), s.Keys, s.KeyUnit, s.RawKeys, len(s.UnknownKeys), bracket(s.UnknownKeys))
@@ -155,11 +184,13 @@ func printHome(w io.Writer, h HomeReport) {
 		fmt.Fprintf(w, "live usage (%s): %d windows\n", fmtTime(u.ObservedAt), len(u.Windows))
 	}
 	fmt.Fprintf(w, "conversations (latest %d):\n", len(h.Conversations))
-	tw := tabwriter.NewWriter(w, 2, 2, 2, ' ', 0)
+	tw := newTable(w)
 	for _, c := range h.Conversations {
-		fmt.Fprintf(tw, "  %s\t%s\t%s\t%s\n", c.ID, fmtTime(c.Updated), clip(c.Title, 50), c.Dir)
+		fmt.Fprintf(tw, "  %s\t%s\t%s\t%s\n", c.ID, fmtTime(c.Updated), clip(c.Title, titleWidth), c.Dir)
 	}
-	tw.Flush()
+	if err := tw.Flush(); err != nil {
+		return err
+	}
 	fmt.Fprintf(w, "live sessions (%d):\n", len(h.LiveSessions))
 	for _, s := range h.LiveSessions {
 		fmt.Fprintf(w, "  pid %d %s %s alive=%v status=%s since=%s %s\n", s.PID, s.ConversationID, s.Kind, s.Alive, s.Status, fmtTime(s.StatusSince), s.Dir)
@@ -173,8 +204,10 @@ func printHome(w io.Writer, h HomeReport) {
 	for _, e := range h.Errors {
 		fmt.Fprintf(w, "error %s: %s\n", e.Section, e.Error)
 	}
+	return nil
 }
 
+// orDash prints an empty value as "-" so table columns stay aligned.
 func orDash(s string) string {
 	if s == "" {
 		return "-"
@@ -182,6 +215,7 @@ func orDash(s string) string {
 	return s
 }
 
+// paren wraps a non-empty note in parentheses; empty stays empty.
 func paren(s string) string {
 	if s == "" {
 		return ""
@@ -189,6 +223,7 @@ func paren(s string) string {
 	return "(" + s + ")"
 }
 
+// bracket prints a non-empty list as [a b c]; empty stays empty.
 func bracket(list []string) string {
 	if len(list) == 0 {
 		return ""
@@ -196,6 +231,7 @@ func bracket(list []string) string {
 	return "[" + strings.Join(list, " ") + "]"
 }
 
+// existsMark labels a path row by whether the file exists.
 func existsMark(ok bool) string {
 	if ok {
 		return "ok"
@@ -203,6 +239,7 @@ func existsMark(ok bool) string {
 	return "missing"
 }
 
+// fmtTime prints t in the viewer's local zone; the zero time is "-".
 func fmtTime(t time.Time) string {
 	if t.IsZero() {
 		return "-"
@@ -210,6 +247,7 @@ func fmtTime(t time.Time) string {
 	return t.Local().Format(timeLayout)
 }
 
+// fmtTimePtr is fmtTime for optional times; nil is "-".
 func fmtTimePtr(t *time.Time) string {
 	if t == nil {
 		return "-"

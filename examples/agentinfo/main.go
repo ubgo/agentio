@@ -40,13 +40,16 @@ func main() {
 	flag.BoolVar(&o.network, "network", false, "also fetch live usage from the vendor (one request per home; may 429)")
 	flag.StringVar(&o.dir, "dir", "", "project folder for per-project reads (default: current directory)")
 	flag.Parse()
-	if err := run(context.Background(), o, os.Stdout); err != nil {
+	if err := runOS(context.Background(), o, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "agentinfo:", err)
 		os.Exit(1)
 	}
 }
 
-func run(ctx context.Context, o options, w io.Writer) error {
+// runOS is the command-line default: it reads this machine through
+// agentio.HostFromOS (the one place that touches the real machine) and
+// uses the current directory when --dir is not given.
+func runOS(ctx context.Context, o options, w io.Writer) error {
 	host, err := agentio.HostFromOS()
 	if err != nil {
 		return err
@@ -56,6 +59,13 @@ func run(ctx context.Context, o options, w io.Writer) error {
 			return err
 		}
 	}
+	return run(ctx, host, o, w)
+}
+
+// run prints the report for the agents on host. Every input comes through
+// host, so a test runs it on fixture homes with fake process, keychain and
+// HTTP inputs.
+func run(ctx context.Context, host agentio.Host, o options, w io.Writer) error {
 	agents, err := builtin.New(host)
 	if err != nil {
 		return err
@@ -71,8 +81,7 @@ func run(ctx context.Context, o options, w io.Writer) error {
 		enc.SetIndent("", "  ")
 		return enc.Encode(rep)
 	}
-	printText(w, rep)
-	return nil
+	return printText(w, rep)
 }
 
 // inspect gathers one agent's report. Each section records its own error so
@@ -111,32 +120,34 @@ func inspect(ctx context.Context, host agentio.Host, a agentio.Agent, all builti
 	return r
 }
 
+// inspectHome gathers one home's report through the shared accessors, then
+// the vendor-only extras. Like inspect, every read records its own error.
 func inspectHome(ctx context.Context, host agentio.Host, a agentio.Agent, all builtin.Agents, h agentio.Home, o options) HomeReport {
 	hr := HomeReport{Dir: h.Dir(), Name: h.Name(), Default: h.IsDefault()}
 	vendorHomeReport(&hr, all, a.ID(), h, o.dir)
 	if c, ok := agentio.ConfigOf(a); ok {
 		layers, err := c.ConfigLayers(h, o.dir)
-		hr.ConfigLayers, hr.Errors = layers, addErr(hr.Errors, "config-layers", err)
+		hr.ConfigLayers, hr.Errors = layers, addErr(hr.Errors, SectionConfigLayers, err)
 		trust, err := c.ProjectTrust(h, o.dir)
-		hr.ProjectTrust, hr.Errors = trust, addErr(hr.Errors, "project-trust", err)
+		hr.ProjectTrust, hr.Errors = trust, addErr(hr.Errors, SectionProjectTrust, err)
 		def, err := c.Defaults(h, o.dir)
-		hr.Defaults, hr.Errors = &def, addErr(hr.Errors, "defaults", err)
+		hr.Defaults, hr.Errors = &def, addErr(hr.Errors, SectionDefaults, err)
 	}
 	if m, ok := agentio.MCPServersOf(a); ok {
 		v, err := m.MCPServers(h, o.dir)
-		hr.MCPServers, hr.Errors = v, addErr(hr.Errors, "mcp", err)
+		hr.MCPServers, hr.Errors = v, addErr(hr.Errors, SectionMCP, err)
 	}
 	if in, ok := agentio.InstructionFilesOf(a); ok {
 		v, err := in.InstructionFiles(h, o.dir)
-		hr.InstructionFiles, hr.Errors = v, addErr(hr.Errors, "instructions", err)
+		hr.InstructionFiles, hr.Errors = v, addErr(hr.Errors, SectionInstructions, err)
 	}
 	if s, ok := agentio.SkillsOf(a); ok {
 		v, err := s.Skills(h, o.dir)
-		hr.Skills, hr.Errors = v, addErr(hr.Errors, "skills", err)
+		hr.Skills, hr.Errors = v, addErr(hr.Errors, SectionSkills, err)
 	}
 	if p, ok := agentio.PluginsOf(a); ok {
 		v, err := p.Plugins(h, o.dir)
-		hr.Plugins, hr.Errors = v, addErr(hr.Errors, "plugins", err)
+		hr.Plugins, hr.Errors = v, addErr(hr.Errors, SectionPlugins, err)
 	}
 	if id, ok := agentio.IdentityOf(a); ok {
 		v, err := id.Identity(h)
@@ -144,19 +155,19 @@ func inspectHome(ctx context.Context, host agentio.Host, a agentio.Agent, all bu
 			hr.Identity = &v
 			hr.Expired = v.Expired(host.Now())
 		}
-		hr.Errors = addErr(hr.Errors, "identity", err)
+		hr.Errors = addErr(hr.Errors, SectionIdentity, err)
 	}
 	if cu, ok := agentio.CachedUsageOf(a); ok {
 		u, found, err := cu.CachedUsage(h)
 		if found && err == nil {
 			hr.CachedUsage = &u
-			// The vendor refreshes this copy on its own schedule (OD-10), so
+			// The vendor refreshes this copy on its own schedule, so
 			// the reading's age is part of the answer.
 			if !u.ObservedAt.IsZero() {
 				hr.CachedUsageAge = host.Now().Sub(u.ObservedAt).Round(time.Minute)
 			}
 		}
-		hr.Errors = addErr(hr.Errors, "cached-usage", err)
+		hr.Errors = addErr(hr.Errors, SectionCachedUsage, err)
 	}
 	if o.network {
 		if ur, ok := agentio.UsageOf(a); ok {
@@ -164,16 +175,16 @@ func inspectHome(ctx context.Context, host agentio.Host, a agentio.Agent, all bu
 			if err == nil {
 				hr.LiveUsage = &u
 			}
-			hr.Errors = addErr(hr.Errors, "usage", err)
+			hr.Errors = addErr(hr.Errors, SectionUsage, err)
 		}
 	}
 	if cl, ok := agentio.ConversationsOf(a); ok {
 		v, err := cl.Conversations(ctx, h, agentio.ConversationQuery{Limit: recentConversations})
-		hr.Conversations, hr.Errors = v, addErr(hr.Errors, "conversations", err)
+		hr.Conversations, hr.Errors = v, addErr(hr.Errors, SectionConversations, err)
 	}
 	if ls, ok := agentio.LiveSessionsOf(a); ok {
 		v, err := ls.LiveSessions(h)
-		hr.LiveSessions, hr.Errors = v, addErr(hr.Errors, "live-sessions", err)
+		hr.LiveSessions, hr.Errors = v, addErr(hr.Errors, SectionLiveSessions, err)
 	}
 	if d, ok := agentio.DoctorOf(a); ok {
 		hr.Checks = d.Checks(ctx, h)
@@ -181,6 +192,8 @@ func inspectHome(ctx context.Context, host agentio.Host, a agentio.Agent, all bu
 	return hr
 }
 
+// errText flattens an error for the report; nil is "" so the field is
+// omitted from -json output.
 func errText(err error) string {
 	if err == nil {
 		return ""
@@ -188,7 +201,9 @@ func errText(err error) string {
 	return err.Error()
 }
 
-func addErr(list []SectionError, section string, err error) []SectionError {
+// addErr appends err under section; a nil err leaves list unchanged, so
+// every read can be recorded with one call.
+func addErr(list []SectionError, section Section, err error) []SectionError {
 	if err == nil {
 		return list
 	}

@@ -25,13 +25,13 @@ func codexCompat(_ *codex.Agent, inst *agentio.Install) *CompatReport {
 func codexHome(hr *HomeReport, x *codex.Agent, n agentio.Home) {
 	h, err := x.HomeOf(n)
 	if err != nil {
-		hr.Errors = addErr(hr.Errors, "home", err)
+		hr.Errors = addErr(hr.Errors, SectionHome, err)
 		return
 	}
 	hr.Paths = pathRows(reflect.ValueOf(x.Paths(h)))
 	cfg, warns, err := x.ConfigFileWarnings(h)
 	if err != nil {
-		hr.Errors = addErr(hr.Errors, "config.toml", err)
+		hr.Errors = addErr(hr.Errors, SectionConfigTOML, err)
 		return
 	}
 	s := &SettingsSummary{Notes: map[string]string{}}
@@ -56,7 +56,7 @@ func codexHome(hr *HomeReport, x *codex.Agent, n agentio.Home) {
 		s.Notes["profile"] = v
 	}
 	kc := cfg.KeyCount()
-	s.Keys, s.RawKeys, s.KeyUnit = kc.Typed, kc.Raw, "leaf"
+	s.Keys, s.RawKeys, s.KeyUnit = kc.Typed, kc.Raw, KeyUnitLeaf
 	if len(cfg.Unknown) != kc.Unknown {
 		s.Notes["unknown leaf keys"] = strconv.Itoa(kc.Unknown)
 	}
@@ -72,7 +72,7 @@ func codexHome(hr *HomeReport, x *codex.Agent, n agentio.Home) {
 // Disk · Read.
 func codexProfiles(hr *HomeReport, x *codex.Agent, h codex.Home, cfg codex.Config) {
 	profiles, err := x.Profiles(h)
-	hr.Errors = addErr(hr.Errors, "profiles", err)
+	hr.Errors = addErr(hr.Errors, SectionProfiles, err)
 	for _, p := range profiles {
 		hr.Profiles = append(hr.Profiles, ProfileRow{Name: p.Name, Kind: string(p.Kind), Path: p.Path, Selected: p.Selected})
 	}
@@ -109,7 +109,7 @@ func codexHooks(hr *HomeReport, x *codex.Agent, h codex.Home, configPath string,
 		add(configPath, cfg.Hooks.Events)
 	}
 	hf, found, err := x.HooksFile(h)
-	hr.Errors = addErr(hr.Errors, "hooks.json", err)
+	hr.Errors = addErr(hr.Errors, SectionHooksJSON, err)
 	if found {
 		add(hf.Path, hf.Events)
 	}

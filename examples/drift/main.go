@@ -1,5 +1,6 @@
-// Command drift is the release-routine drift check (SPEC §10): it reads the
-// real Claude Code and Codex homes of this machine through HostFromOS,
+// Command drift is the release-routine drift check: it reads the real
+// Claude Code and Codex homes of this machine through HostFromOS (or, with
+// -fixtures, the fixture homes checked into this repository),
 // decodes every modelled file with the library's own readers, and lists what
 // the library does not know yet: unknown keys (every agentio.Unknown field
 // reached in the decoded values), unknown enum values (open string types
@@ -9,10 +10,11 @@
 // feature table.
 //
 // Cost: Disk · Read plus one process-table read (live sessions). It never
-// runs a vendor binary, never calls the network, never reads the keychain
-// and never spends quota. Output names files, keys and enum spellings only,
-// never a value: map keys (paths, project names) and string fields are not
-// printed.
+// runs a vendor binary, never calls the network and never spends quota.
+// The only secret-store read is Codex Identity on a home whose login is
+// kept in the OS keyring (Process · Read through Host.Secrets). Output
+// names files, keys and enum spellings only, never a value: map keys
+// (paths, project names) and string fields are not printed.
 package main
 
 import (
@@ -23,10 +25,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/ubgo/agentio"
 	"github.com/ubgo/agentio/claude"
@@ -42,16 +46,33 @@ const (
 	historySample    = 2000
 )
 
+// findingKind says what sort of drift a finding is. The spelling is the
+// kind column of a saved report, so a baseline from an earlier run only
+// keeps matching while these values stay the same.
+type findingKind string
+
 // Finding kinds, in print order.
 const (
-	kindUnknownKey    = "unknown-key"
-	kindUnknownEnum   = "unknown-enum"
-	kindUnknownRecord = "unknown-record"
-	kindWarning       = "warning"
-	kindFormatVersion = "format-version"
-	kindReadError     = "read-error"
-	kindNewRecordKey  = "new-record-key"
-	kindMissingFlag   = "flag-not-in-table"
+	kindUnknownKey    findingKind = "unknown-key"
+	kindUnknownEnum   findingKind = "unknown-enum"
+	kindUnknownRecord findingKind = "unknown-record"
+	kindWarning       findingKind = "warning"
+	kindFormatVersion findingKind = "format-version"
+	kindReadError     findingKind = "read-error"
+	kindNewRecordKey  findingKind = "new-record-key"
+	kindMissingFlag   findingKind = "flag-not-in-table"
+)
+
+// Source and home labels used in more than one place. Every other source
+// label names the one reader it is passed with.
+const (
+	sourceTranscript = "transcript"
+	sourceHelp       = "--help"
+	// noHome fills the home column of a finding that belongs to no home
+	// (a flag in the saved --help text).
+	noHome = "-"
+	// longFlagPrefix marks a long flag inside a feature description.
+	longFlagPrefix = "--"
 )
 
 // Path segments the walker appends for container elements; a map key is
@@ -69,7 +90,9 @@ const helpFlagPattern = `--[a-z][a-z0-9-]+`
 
 // finding is one line of the report; count aggregates identical findings.
 type finding struct {
-	vendor, home, source, kind, detail string
+	vendor               agentio.ID
+	home, source, detail string
+	kind                 findingKind
 }
 
 // report collects findings with counts. baseline holds the findings of a
@@ -80,6 +103,7 @@ type report struct {
 	suppressed int
 }
 
+// add counts one occurrence of f.
 func (r *report) add(f finding) {
 	if r.counts == nil {
 		r.counts = map[finding]int{}
@@ -95,7 +119,7 @@ func (r *report) print(w io.Writer) {
 	}
 	sort.Slice(fs, func(i, j int) bool {
 		a, b := fs[i], fs[j]
-		return strings.Join([]string{a.vendor, a.home, a.kind, a.source, a.detail}, "\x00") < strings.Join([]string{b.vendor, b.home, b.kind, b.source, b.detail}, "\x00")
+		return strings.Join([]string{string(a.vendor), a.home, string(a.kind), a.source, a.detail}, "\x00") < strings.Join([]string{string(b.vendor), b.home, string(b.kind), b.source, b.detail}, "\x00")
 	})
 	for _, f := range fs {
 		if r.baseline[f.baselineKey()] {
@@ -121,7 +145,7 @@ const (
 // baselineKey is a finding without its home and count: the same unknown
 // key in another home, or seen more often, is not new drift.
 func (f finding) baselineKey() string {
-	return strings.Join([]string{f.vendor, f.kind, f.source, f.detail}, "\t")
+	return strings.Join([]string{string(f.vendor), string(f.kind), f.source, f.detail}, "\t")
 }
 
 // loadBaseline reads a saved drift report; every finding line in it is
@@ -138,7 +162,7 @@ func (r *report) loadBaseline(path string) error {
 		if len(cols) != numCols {
 			continue
 		}
-		f := finding{vendor: cols[colVendor], home: cols[colHome], kind: cols[colKind], source: cols[colSource], detail: cols[colDetail]}
+		f := finding{vendor: agentio.ID(cols[colVendor]), home: cols[colHome], kind: findingKind(cols[colKind]), source: cols[colSource], detail: cols[colDetail]}
 		r.baseline[f.baselineKey()] = true
 	}
 	return nil
@@ -148,14 +172,19 @@ func (r *report) loadBaseline(path string) error {
 // anywhere in a decoded value. Why reflection: the drift check must follow
 // every struct the library adds without a second hand-kept list.
 type walker struct {
-	r                    *report
-	vendor, home, source string
+	r            *report
+	vendor       agentio.ID
+	home, source string
 }
 
-func (w walker) add(kind, detail string) {
+// add records one finding for the walker's vendor, home and source.
+func (w walker) add(kind findingKind, detail string) {
 	w.r.add(finding{vendor: w.vendor, home: w.home, source: w.source, kind: kind, detail: detail})
 }
 
+// walk descends v and records drift. path is the field path so far
+// (".Settings.Hooks[]"); slice and map elements append segSlice/segMap, so
+// no map key or string value is ever part of the output.
 func (w walker) walk(v reflect.Value, path string) {
 	if !v.IsValid() {
 		return
@@ -224,24 +253,85 @@ func (w walker) read(source string, val reflect.Value, err error) {
 	w.walk(val, "")
 }
 
+// Fixture homes checked into the repository, relative to its root, and
+// the root seen from `cd examples`. -fixtures runs the check on them, so
+// the output is the same on every machine.
+const (
+	claudeFixture    = "claude/testdata/homes/2.1.325/userhome"
+	codexFixture     = "codex/testdata/homes/0.162.1"
+	repoFromExamples = ".."
+	// fixtureNoBinaries is a PATH with no vendor binary, so Install reports
+	// not-installed instead of finding the real claude or codex.
+	fixtureNoBinaries = "PATH=/nonexistent-bin"
+	fixtureUser       = "user"
+)
+
+// fixtureClock is the fixed time -fixtures reads at, so the run never
+// depends on the day it is made.
+func fixtureClock() time.Time { return time.Date(2026, 11, 13, 12, 0, 0, 0, time.UTC) }
+
 func main() {
 	helpPath := flag.String("claude-help", "", "a saved `claude --help` text: list long flags missing from claude/features.tsv")
 	basePath := flag.String("baseline", "", "a saved earlier drift report: list only findings not in it")
+	fixtures := flag.Bool("fixtures", false, "check the fixture homes in this repository instead of this machine's homes")
 	flag.Parse()
-	if err := run(context.Background(), *helpPath, *basePath, os.Stdout); err != nil {
+	host, err := pickHost(*fixtures)
+	if err == nil {
+		err = run(context.Background(), host, options{helpPath: *helpPath, basePath: *basePath}, os.Stdout)
+	}
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "drift:", err)
 		os.Exit(1)
 	}
 }
 
-func run(ctx context.Context, helpPath, basePath string, out io.Writer) error {
-	host, err := agentio.HostFromOS()
-	if err != nil {
-		return err
+// snippet:start pickhost
+// pickHost returns the real machine (the default: `task drift` checks the
+// homes of whoever runs it) or a Host over the repository fixtures.
+func pickHost(fixtures bool) (agentio.Host, error) {
+	if !fixtures {
+		return agentio.HostFromOS()
 	}
+	return fixtureHost(repoFromExamples)
+}
+
+// fixtureHost builds a Host over the fixture homes under repoRoot: the
+// Claude fixture is a whole user home, the Codex fixture one home selected
+// with CODEX_HOME. Processes is nil, so live sessions are read from their
+// files without a process table; nothing else here reaches Secrets, HTTP
+// or Exec.
+func fixtureHost(repoRoot string) (agentio.Host, error) {
+	root, err := filepath.Abs(repoRoot)
+	if err != nil {
+		return agentio.Host{}, err
+	}
+	home := filepath.Join(root, claudeFixture)
+	return agentio.Host{
+		UserHome: home,
+		User:     fixtureUser,
+		Env:      []string{"HOME=" + home, fixtureNoBinaries, codex.EnvHome + "=" + filepath.Join(root, codexFixture)},
+		Now:      fixtureClock,
+	}, nil
+}
+
+// snippet:end pickhost
+
+// snippet:start run
+// options are the optional inputs of one run.
+type options struct {
+	// helpPath is a saved `claude --help` text; "" skips the flag check.
+	helpPath string
+	// basePath is a saved earlier report; "" lists every finding.
+	basePath string
+}
+
+// run checks every Claude and Codex home host can see and writes the
+// report to out. host is a parameter so a test runs the check on fixture
+// homes; main passes HostFromOS() unless -fixtures is given.
+func run(ctx context.Context, host agentio.Host, opt options, out io.Writer) error {
 	r := &report{}
-	if basePath != "" {
-		if err := r.loadBaseline(basePath); err != nil {
+	if opt.basePath != "" {
+		if err := r.loadBaseline(opt.basePath); err != nil {
 			return err
 		}
 	}
@@ -251,8 +341,8 @@ func run(ctx context.Context, helpPath, basePath string, out io.Writer) error {
 	if err := codexDrift(ctx, codex.New(host), r, out); err != nil {
 		return err
 	}
-	if helpPath != "" {
-		if err := helpDrift(helpPath, r); err != nil {
+	if opt.helpPath != "" {
+		if err := helpDrift(opt.helpPath, r); err != nil {
 			return err
 		}
 	}
@@ -262,8 +352,10 @@ func run(ctx context.Context, helpPath, basePath string, out io.Writer) error {
 	return nil
 }
 
+// snippet:end run
+
 // versionLine prints the installed version against the tested range.
-func versionLine(out io.Writer, vendor string, inst agentio.Install, err error, c agentio.Compat) {
+func versionLine(out io.Writer, vendor agentio.ID, inst agentio.Install, err error, c agentio.Compat) {
 	if err != nil {
 		fmt.Fprintf(out, "%s: install not found (%v)\n", vendor, err)
 		return
@@ -271,15 +363,18 @@ func versionLine(out io.Writer, vendor string, inst agentio.Install, err error, 
 	fmt.Fprintf(out, "%s: installed %s, tested %s..%s: %s\n", vendor, inst.Version, c.Min, c.Max, c.Check(inst.Version))
 }
 
+// claudeDrift reads every modelled file of every Claude Code home and walks
+// the decoded values. Disk · Read only: Remote settings are read from their
+// on-disk cache, never fetched.
 func claudeDrift(ctx context.Context, c *claude.Agent, r *report, out io.Writer) error {
 	inst, ierr := c.Install()
-	versionLine(out, "claude", inst.Install, ierr, claude.Compat())
+	versionLine(out, claude.ID, inst.Install, ierr, claude.Compat())
 	homes, err := c.Homes()
 	if err != nil {
 		return err
 	}
 	for _, h := range homes {
-		w := walker{r: r, vendor: "claude", home: h.Name()}
+		w := walker{r: r, vendor: claude.ID, home: h.Name()}
 		fmt.Fprintf(out, "claude home %s\n", h.Name())
 		v, err := c.GlobalConfig(h)
 		w.read("global-config", reflect.ValueOf(v), err)
@@ -346,7 +441,7 @@ func transcriptDrift(ctx context.Context, c *claude.Agent, h claude.Home, w walk
 	for _, conv := range convs {
 		recs, err := c.TranscriptTail(h, conv.ID, transcriptTail)
 		if err != nil {
-			w.read("transcript", reflect.Value{}, err)
+			w.read(sourceTranscript, reflect.Value{}, err)
 			continue
 		}
 		for _, rec := range recs {
@@ -355,7 +450,7 @@ func transcriptDrift(ctx context.Context, c *claude.Agent, h claude.Home, w walk
 				noteKeys(firstSeen, rec)
 			}
 			if !rec.Type.IsKnown() {
-				w.source = "transcript"
+				w.source = sourceTranscript
 				w.add(kindUnknownRecord, string(rec.Type))
 				continue
 			}
@@ -367,11 +462,11 @@ func transcriptDrift(ctx context.Context, c *claude.Agent, h claude.Home, w walk
 			}
 		}
 	}
-	min := agentio.MustVersion(claude.TestedMin)
-	w.source = "transcript"
+	testedMin := agentio.MustVersion(claude.TestedMin)
+	w.source = sourceTranscript
 	for typ, keys := range firstSeen {
 		for k, v := range keys {
-			if v.Compare(min) > 0 {
+			if v.Compare(testedMin) > 0 {
 				w.add(kindNewRecordKey, fmt.Sprintf("%s.%s since %s", typ, k, v))
 			}
 		}
@@ -406,9 +501,14 @@ func noteKeys(firstSeen map[claude.RecordType]map[string]agentio.Version, rec cl
 	}
 }
 
+// codexDrift reads config.toml, the login identity and the conversation
+// index of every Codex home. Disk · Read, plus a keyring read through
+// Host.Secrets for a home whose login lives in the OS keyring (Identity
+// does that lookup). No token is ever printed: the walker never prints
+// string values.
 func codexDrift(ctx context.Context, x *codex.Agent, r *report, out io.Writer) error {
 	inst, ierr := x.Install()
-	versionLine(out, "codex", inst.Install, ierr, codex.Compat())
+	versionLine(out, codex.ID, inst.Install, ierr, codex.Compat())
 	homes, err := x.Homes()
 	if err != nil {
 		return err
@@ -417,7 +517,7 @@ func codexDrift(ctx context.Context, x *codex.Agent, r *report, out io.Writer) e
 		fmt.Fprintln(out, "codex: no home on this machine")
 	}
 	for _, h := range homes {
-		w := walker{r: r, vendor: "codex", home: h.Name()}
+		w := walker{r: r, vendor: codex.ID, home: h.Name()}
 		fmt.Fprintf(out, "codex home %s\n", h.Name())
 		cfg, warns, err := x.ConfigFileWarnings(h)
 		w.read("config.toml", reflect.ValueOf(cfg), err)
@@ -441,7 +541,7 @@ func helpDrift(path string, r *report) error {
 	known := map[string]bool{}
 	for _, f := range claude.Features() {
 		for _, tok := range strings.Fields(f.String()) {
-			if strings.HasPrefix(tok, "--") {
+			if strings.HasPrefix(tok, longFlagPrefix) {
 				known[tok] = true
 			}
 		}
@@ -450,7 +550,7 @@ func helpDrift(path string, r *report) error {
 	for _, fl := range regexp.MustCompile(helpFlagPattern).FindAllString(string(b), -1) {
 		if !known[fl] && !seen[fl] {
 			seen[fl] = true
-			r.add(finding{vendor: "claude", home: "-", source: "--help", kind: kindMissingFlag, detail: fl})
+			r.add(finding{vendor: claude.ID, home: noHome, source: sourceHelp, kind: kindMissingFlag, detail: fl})
 		}
 	}
 	return nil

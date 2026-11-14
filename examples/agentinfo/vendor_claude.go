@@ -27,7 +27,7 @@ func claudeCompat(inst *agentio.Install) *CompatReport {
 func claudeHome(hr *HomeReport, c *claude.Agent, n agentio.Home, dir string) {
 	h, err := c.HomeOf(n)
 	if err != nil {
-		hr.Errors = addErr(hr.Errors, "home", err)
+		hr.Errors = addErr(hr.Errors, SectionHome, err)
 		return
 	}
 	hr.Paths = pathRows(reflect.ValueOf(c.Paths(h)))
@@ -37,7 +37,7 @@ func claudeHome(hr *HomeReport, c *claude.Agent, n agentio.Home, dir string) {
 	}
 	eff, err := c.Settings(h, proj, nil)
 	if err != nil {
-		hr.Errors = addErr(hr.Errors, "settings", err)
+		hr.Errors = addErr(hr.Errors, SectionSettings, err)
 		return
 	}
 	s := &SettingsSummary{Notes: map[string]string{}}
@@ -51,14 +51,14 @@ func claudeHome(hr *HomeReport, c *claude.Agent, n agentio.Home, dir string) {
 			unknown[k] = true
 		}
 		if l.Err != nil {
-			hr.Errors = addErr(hr.Errors, "settings "+l.Source.Path, l.Err)
+			hr.Errors = addErr(hr.Errors, settingsLayerSection(l.Source.Path), l.Err)
 		}
 	}
 	for k := range unknown {
 		s.UnknownKeys = append(s.UnknownKeys, k)
 	}
 	sort.Strings(s.UnknownKeys)
-	s.Keys, s.KeyUnit = len(eff.Origin), "top-level"
+	s.Keys, s.KeyUnit = len(eff.Origin), KeyUnitTopLevel
 	m := eff.Merged
 	if m.Model != "" {
 		s.Notes["model"] = m.Model
