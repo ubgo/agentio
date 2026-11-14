@@ -1,0 +1,27 @@
+# agentio
+
+> Typed Go library for coding-agent CLIs (Claude Code, OpenAI Codex, and agents described by data): install and version, homes, settings, MCP servers, instruction files, skills, plugins, account identity, plan usage, conversations, live sessions, and building the command that launches or resumes an agent. Read-only by default; never refreshes or prints login tokens.
+
+agentio is a set of Go modules under github.com/ubgo/agentio: the stdlib-only core (`agentio`), one module per vendor (`claude`, `codex`, `codex/state` for Codex SQLite stores) and `builtin` (every built-in agent in one typed set). Everything runs locally against files on disk; network and quota calls are separate, explicit methods.
+
+## Docs
+- [README](README.md): overview, install per module, quick start, FAQ
+- [Learning path](docs/README.md#learning-path): the docs in reading order
+- [Choosing guides](docs/choosing/README.md): which module, level and door to use
+- [Feature index](docs/reference/features.md): every capability and method with its cost
+- [CHANGELOG](CHANGELOG.md): release history
+- [CONTRIBUTING](CONTRIBUTING.md): multi-module setup, checks, rules for changes
+- [SECURITY](SECURITY.md): disclosure policy and secret-handling guarantees
+
+## Install
+- `go get github.com/ubgo/agentio/claude` (Claude Code)
+- `go get github.com/ubgo/agentio/codex` (Codex)
+- `go get github.com/ubgo/agentio/builtin` (every built-in agent)
+- `go get github.com/ubgo/agentio/codex/state` (Codex SQLite stores; pulls a pure-Go SQLite driver)
+
+## Examples
+- [examples/agentinfo](examples/agentinfo): report of every agent and home on a machine
+- [examples/drift](examples/drift): what the library does not know yet about installed vendor versions
+
+## Links
+- Repository: https://github.com/ubgo/agentio

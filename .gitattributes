@@ -1,0 +1,17 @@
+# Normalize line endings: keep LF in the repo regardless of OS.
+* text=auto eol=lf
+
+# Fixture homes mirror real vendor files byte for byte (JSONL transcripts, SQLite stores, lock files): never normalize them.
+**/testdata/** -text
+
+# Binary files.
+*.sqlite binary
+*.db binary
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+
+# Fixture data stays out of language stats.
+**/testdata/** linguist-vendored
