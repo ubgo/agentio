@@ -27,7 +27,7 @@ Closes #
 ## Checklist
 
 - [ ] `task check` passes (gofmt, vet, staticcheck, race tests, cross-compile, standalone builds)
-- [ ] `task docs:check` passes when docs or examples changed
+- [ ] `task docs:check` passes (docscheck and `ds check`); flagged sentences were re-checked and acked with `ds ack`
 - [ ] New vendor structs are modelled on a real file or response, recorded as a fixture with every value replaced
 - [ ] No real account data, tokens, emails, machine names or local paths in code, fixtures or docs
 - [ ] Every new function states its cost (Pure, Disk, Process, Network, Quota) and access (Read, Write)

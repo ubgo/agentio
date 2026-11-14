@@ -1,0 +1,20 @@
+# docsync: fails when code that a doc sentence cites (ds:block links) changed
+# since the sentence was acked. Same check as `task docs:check` locally.
+#
+# Manual only (workflow_dispatch), on purpose: the repository is private and
+# GitHub Actions minutes are billed, so this never runs on push or pull
+# request. `task check` / `task docs:check` locally is the real gate; start
+# this from the Actions tab when you want CI to agree.
+name: docsync
+on:
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.26" }
+      - run: go install github.com/ubgo/docsync/cli/cmd/ds@latest
+      - run: ds check --json > "$RUNNER_TEMP/docsync.json" || (cat "$RUNNER_TEMP/docsync.json"; exit 1)

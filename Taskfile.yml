@@ -41,9 +41,11 @@ tasks:
       - cd examples && CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o ../dist/agentinfo-darwin-arm64 ./agentinfo
 
   docs:check:
-    desc: Check public markdown - snippet sync, relative links and anchors, no hard wraps, no local paths, no attribution
+    desc: Check public markdown - snippet sync, relative links and anchors, no hard wraps, no local paths, no attribution (internal/docscheck) - then docsync (ds check, fails when code a doc sentence cites changed since it was acked); needs the ds CLI (go install github.com/ubgo/docsync/cli/cmd/ds@latest)
     cmds:
       - go test -count=1 ./internal/docscheck/
+      - 'command -v ds >/dev/null || { echo "docs:check needs the ds CLI: go install github.com/ubgo/docsync/cli/cmd/ds@latest"; exit 1; }'
+      - ds check
 
   docs:snippets:
     desc: Rewrite markdown snippet blocks from their Go source regions
@@ -56,7 +58,7 @@ tasks:
       - for m in {{.MODULES}}; do (cd $m && golangci-lint run ./...) || exit 1; done
 
   check:
-    desc: Full gate - gofmt, vet, staticcheck (if installed), golangci-lint, race tests, cross-compile 6 platforms, standalone (GOWORK=off) builds
+    desc: Full gate - gofmt, vet, staticcheck (if installed), golangci-lint, race tests, cross-compile 6 platforms, standalone (GOWORK=off) builds, docs (docscheck + docsync)
     cmds:
       - task: check:fmt
       - task: vet
@@ -65,6 +67,7 @@ tasks:
       - task: check:race
       - task: check:cross
       - task: check:standalone
+      - task: docs:check
 
   check:fmt:
     desc: Fail when any Go file is not gofmt-clean
