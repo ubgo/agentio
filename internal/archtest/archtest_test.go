@@ -251,7 +251,8 @@ func directRequires(t *testing.T, path string) []string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer fh.Close()
+	// Read-only file, fully scanned below; a close error loses nothing.
+	defer func() { _ = fh.Close() }()
 	var out []string
 	inBlock := false
 	sc := bufio.NewScanner(fh)

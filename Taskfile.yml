@@ -50,12 +50,18 @@ tasks:
     cmds:
       - go test -count=1 ./internal/docscheck/ -run '^TestSnippets$' -args -update
 
+  lint:
+    desc: Run golangci-lint (.golangci.yml) on every module; fails when it is not installed
+    cmds:
+      - for m in {{.MODULES}}; do (cd $m && golangci-lint run ./...) || exit 1; done
+
   check:
-    desc: Full gate - gofmt, vet, staticcheck (if installed), race tests, cross-compile 6 platforms, standalone (GOWORK=off) builds
+    desc: Full gate - gofmt, vet, staticcheck (if installed), golangci-lint, race tests, cross-compile 6 platforms, standalone (GOWORK=off) builds
     cmds:
       - task: check:fmt
       - task: vet
       - task: check:staticcheck
+      - task: lint
       - task: check:race
       - task: check:cross
       - task: check:standalone

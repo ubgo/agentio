@@ -99,7 +99,7 @@ func TestApplyEnv_Matrix(t *testing.T) {
 	} {
 		before := slices.Clone(tc.env)
 		got := ApplyEnv(tc.env, tc.changes...)
-		if !slices.Equal(got, tc.want) && !(len(got) == 0 && len(tc.want) == 0) {
+		if !slices.Equal(got, tc.want) && (len(got) != 0 || len(tc.want) != 0) {
 			t.Errorf("%s: ApplyEnv = %q, want %q", tc.name, got, tc.want)
 		}
 		if !slices.Equal(tc.env, before) {

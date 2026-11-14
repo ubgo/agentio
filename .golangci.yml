@@ -1,0 +1,25 @@
+# golangci-lint v2 config for every module of the repository (task lint runs
+# it once per module; each module finds this file by walking up).
+# Default linters: errcheck, govet, ineffassign, staticcheck, unused.
+version: "2"
+
+run:
+  # Exclusion paths below are relative to the repository root, whichever
+  # module directory the run starts in.
+  relative-path-mode: gitroot
+
+linters:
+  exclusions:
+    rules:
+      # The runnable examples print their output with fmt.Fprint* to an
+      # io.Writer (os.Stdout or a test buffer). A failed write there has no
+      # better handling than stopping the print, so these calls alone are
+      # exempt; every other unchecked error in examples is still reported.
+      - path: ^examples/
+        linters: [errcheck]
+        text: "Error return value of `fmt\\.Fprint(f|ln)?` is not checked"
+
+issues:
+  # Report every finding, not the first few per linter.
+  max-issues-per-linter: 0
+  max-same-issues: 0

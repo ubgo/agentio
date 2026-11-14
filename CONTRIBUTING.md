@@ -6,7 +6,7 @@ By participating, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md
 
 ## Development setup
 
-You need Go (the version in the root `go.mod` or newer) and [Task](https://taskfile.dev). [staticcheck](https://staticcheck.dev) is optional; `task check` runs it when it is installed.
+You need Go (the version in the root `go.mod` or newer) and [Task](https://taskfile.dev). [golangci-lint](https://golangci-lint.run) v2 is required for `task check` (config in `.golangci.yml`); [staticcheck](https://staticcheck.dev) is optional and runs when it is installed.
 
 The repository holds several Go modules. A `go.work` ties them together for local development; it is gitignored and never committed, so create it once after cloning:
 
@@ -33,7 +33,8 @@ Run these before you open a pull request:
 
 | Command | What it does |
 |---|---|
-| `task check` | the full gate: gofmt, `go vet`, staticcheck (if installed), race tests, cross-compile for 6 platforms with CGO off, standalone (`GOWORK=off`) builds of every module |
+| `task lint` | golangci-lint on every module (`.golangci.yml`) |
+| `task check` | the full gate: gofmt, `go vet`, staticcheck (if installed), golangci-lint, race tests, cross-compile for 6 platforms with CGO off, standalone (`GOWORK=off`) builds of every module |
 | `task test:quick` | unit tests of every module, cached, no race detector (fast loop while you work) |
 | `task docs:check` | fails when a Go snippet in the docs differs from the example source it is synced from |
 | `task docs:snippets` | rewrites the docs snippets from their example sources |
@@ -53,7 +54,7 @@ These are easy to break and the reviews check them. Most are also enforced by `i
 - **Never refresh, write or print an OAuth token.** Refreshing rotates the refresh token and logs the vendor CLI out. Tokens travel as the redacting `agentio.Token`, never on argv; `Reveal()` is confined to an HTTP auth header and decoding a keychain blob.
 - **Vendor facts that bite.** The default home means the home variable (`CLAUDE_CONFIG_DIR`, `CODEX_HOME`) is absent from the child env, not set to the default path. Claude keychain lookups name the account. Never read a transcript whole (head for cwd, bounded tail for the title). Codex conversations cannot move between homes. Find the binary with a PATH walk over `Host.Env`, never a shell (a user's `claude` may be a shell function).
 - **Feature bounds are sourced.** A version bound in a feature table names the vendor changelog or release note it came from. A version outside the tested range warns; it never refuses.
-- **Clean code.** gofmt, vet and staticcheck clean with no suppressions. Named constants instead of magic values, and comments that say why.
+- **Clean code.** gofmt, vet, staticcheck and golangci-lint clean with no suppressions (no `//nolint`; the one exclusion in `.golangci.yml` covers example output written with `fmt.Fprint*`). Named constants instead of magic values, and comments that say why.
 
 ## Supporting a new vendor version
 

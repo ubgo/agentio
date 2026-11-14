@@ -29,6 +29,10 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 - `claude.Writer.MoveHistory` refuses while a Claude session runs in the source folder (or one of its conversations is live), with a typed `*claude.LiveSessionError` matching `agentio.ErrMoveBlocked` and the blocker text `PlanMove` lists.
 - `claude.Writer.ApplyHomeLinks` and `Core.ApplyHomeLinks` refuse links planned for another agent's homes with `ErrForeignHome`, as `ApplyMove` does.
 
+### Tooling
+
+- `.golangci.yml` (golangci-lint v2, default linters) and `task lint`, now part of `task check`; every module reports 0 issues. The only exclusion is errcheck on `fmt.Fprint*` output in `examples/`.
+
 ### Documentation
 
 - A documentation site under `docs/`: a learning path from the first `Host` to a production setup, a "start from your goal" table, and guides for the core, the shared capabilities, every Claude Code and Codex area, testing, and compatibility. Every guide has complete snippets, the real output of a runnable example, and pitfalls taken from the code and tests.
