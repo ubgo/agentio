@@ -151,7 +151,7 @@ func TestInstallAndVersion(t *testing.T) {
 	if err := os.MkdirAll(bin, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	agenttest.SymlinkOrSkip(t, script, filepath.Join(bin, Binary))
+	agenttest.SymlinkOrSkip(t, script, filepath.Join(bin, agenttest.ExeName(Binary)))
 	fx := &agenttest.FakeExec{Default: agentio.ProcessResult{Stdout: []byte("0.68.0\n")}}
 	a := New(agenttest.NewHost(t, agenttest.WithEnv("PATH="+bin), agenttest.WithExec(fx)))
 	in, err := a.Install()
