@@ -291,7 +291,7 @@ func runnerPlugins(ctx context.Context, w io.Writer, r *claude.Runner, h claude.
 		return err
 	}
 	for _, p := range plugins {
-		fmt.Fprintf(w, "runner plugin %s v%s (%s), enabled %t, installed %s\n", p.ID, p.Version, p.Scope, p.Enabled, p.InstalledAt.Format("2006-01-02"))
+		fmt.Fprintf(w, "runner plugin %s v%s (%s), enabled %t, installed %s\n", p.ID, p.Version, p.Scope, p.Enabled, p.InstalledAt.UTC().Format("2006-01-02"))
 	}
 	markets, err := r.Marketplaces(ctx, h)
 	if err != nil {

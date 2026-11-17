@@ -26,7 +26,7 @@ func listConversations(ctx context.Context, w io.Writer, a *claude.Agent, h clau
 	}
 	fmt.Fprintf(w, "conversations in %s: %d\n", h.Name(), len(all))
 	for _, c := range all {
-		fmt.Fprintf(w, "  %s  %-18q (%s) dir %s, v%s, updated %s\n", c.ID[:8], c.Title, c.TitleSource, c.Dir, c.Version, c.Updated.Format(time.RFC3339))
+		fmt.Fprintf(w, "  %s  %-18q (%s) dir %s, v%s, updated %s\n", c.ID[:8], c.Title, c.TitleSource, c.Dir, c.Version, c.Updated.UTC().Format(time.RFC3339))
 	}
 	in, err := a.Conversations(ctx, h, agentio.ConversationQuery{Dir: projectDir, Limit: 1})
 	if err != nil {

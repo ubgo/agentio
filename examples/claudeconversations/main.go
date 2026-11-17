@@ -198,7 +198,7 @@ func readStats(w io.Writer, a *claude.Agent, h claude.Home) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(w, "stats v%d computed %s: %d sessions, %d messages since %s\n", s.Version, s.LastComputed, s.TotalSessions, s.TotalMessages, s.FirstSession.Format(time.DateOnly))
+	fmt.Fprintf(w, "stats v%d computed %s: %d sessions, %d messages since %s\n", s.Version, s.LastComputed, s.TotalSessions, s.TotalMessages, s.FirstSession.UTC().Format(time.DateOnly))
 	for _, d := range s.Daily {
 		fmt.Fprintf(w, "  %s: %d messages, %d sessions, %d tool calls\n", d.Date, d.MessageCount, d.SessionCount, d.ToolCallCount)
 	}
@@ -236,7 +236,7 @@ func listConversations(ctx context.Context, w io.Writer, a *claude.Agent, h clau
 	}
 	fmt.Fprintf(w, "conversations in %s: %d\n", h.Name(), len(all))
 	for _, c := range all {
-		fmt.Fprintf(w, "  %s  %-18q (%s) dir %s, v%s, updated %s\n", c.ID[:8], c.Title, c.TitleSource, c.Dir, c.Version, c.Updated.Format(time.RFC3339))
+		fmt.Fprintf(w, "  %s  %-18q (%s) dir %s, v%s, updated %s\n", c.ID[:8], c.Title, c.TitleSource, c.Dir, c.Version, c.Updated.UTC().Format(time.RFC3339))
 	}
 	in, err := a.Conversations(ctx, h, agentio.ConversationQuery{Dir: projectDir, Limit: 1})
 	if err != nil {
@@ -474,7 +474,7 @@ func promptHistory(w io.Writer, a *claude.Agent, h claude.Home) error {
 	}
 	fmt.Fprintln(w, "prompt history, newest 3:")
 	for _, e := range recent {
-		fmt.Fprintf(w, "  %s %s %q (%d pastes)\n", e.Time.Format(time.RFC3339), e.Project, e.Display, len(e.Pasted))
+		fmt.Fprintf(w, "  %s %s %q (%d pastes)\n", e.Time.UTC().Format(time.RFC3339), e.Project, e.Display, len(e.Pasted))
 	}
 	in, err := a.PromptHistory(h, claude.HistoryQuery{Project: historyProject})
 	if err != nil {
@@ -485,7 +485,7 @@ func promptHistory(w io.Writer, a *claude.Agent, h claude.Home) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(w, "  parsed line: %q at %s, %d pastes\n", e.Display, e.Time.Format(time.RFC3339), len(e.Pasted))
+	fmt.Fprintf(w, "  parsed line: %q at %s, %d pastes\n", e.Display, e.Time.UTC().Format(time.RFC3339), len(e.Pasted))
 	return nil
 }
 

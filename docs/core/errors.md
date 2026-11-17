@@ -97,7 +97,7 @@ A 429 from a vendor usage or profile endpoint is `ErrRateLimited`, never a login
 // ErrRateLimited, never a login error. Pure.
 func rateLimits(p printer) error {
 	now := time.Date(2026, 11, 14, 12, 0, 0, 0, time.UTC)
-	for _, retry := range []string{"120", now.Add(90 * time.Second).Format(http.TimeFormat), ""} {
+	for _, retry := range []string{"120", now.Add(90 * time.Second).UTC().Format(http.TimeFormat), ""} {
 		h := http.Header{}
 		if retry != "" {
 			h.Set("Retry-After", retry)

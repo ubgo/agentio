@@ -37,7 +37,7 @@ func readStats(w io.Writer, a *claude.Agent, h claude.Home) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(w, "stats v%d computed %s: %d sessions, %d messages since %s\n", s.Version, s.LastComputed, s.TotalSessions, s.TotalMessages, s.FirstSession.Format(time.DateOnly))
+	fmt.Fprintf(w, "stats v%d computed %s: %d sessions, %d messages since %s\n", s.Version, s.LastComputed, s.TotalSessions, s.TotalMessages, s.FirstSession.UTC().Format(time.DateOnly))
 	for _, d := range s.Daily {
 		fmt.Fprintf(w, "  %s: %d messages, %d sessions, %d tool calls\n", d.Date, d.MessageCount, d.SessionCount, d.ToolCallCount)
 	}

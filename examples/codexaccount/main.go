@@ -126,7 +126,7 @@ func readIdentity(w io.Writer, host agentio.Host) error {
 	fmt.Fprintf(w, "logged-in=%v api-key=%v plan=%s (%s) workspace=%v\n",
 		id.LoggedIn, id.Mode == codex.AuthAPIKey, id.Plan, id.Plan.DisplayName(), id.Plan.IsWorkspace())
 	fmt.Fprintf(w, "email=%v account=%v store=%s\n", id.Email, id.AccountID, id.CredentialStore)
-	fmt.Fprintf(w, "access token expires %s\n", id.AccessExpiresAt.Format(time.RFC3339))
+	fmt.Fprintf(w, "access token expires %s\n", id.AccessExpiresAt.UTC().Format(time.RFC3339))
 
 	n := id.Neutral()
 	fmt.Fprintf(w, "neutral plan=%q billing=%s\n", n.PlanLabel, n.Billing)
@@ -225,7 +225,7 @@ func readUsage(w io.Writer, host agentio.Host, baseURL string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(w, "subscription plan=%s source=%s until=%s\n", sub.Plan, sub.Source, sub.ActiveUntil.Format("2006-01-02"))
+	fmt.Fprintf(w, "subscription plan=%s source=%s until=%s\n", sub.Plan, sub.Source, sub.ActiveUntil.UTC().Format("2006-01-02"))
 	return nil
 }
 
@@ -240,7 +240,7 @@ func readCachedUsage(w io.Writer, host agentio.Host) error {
 	if err != nil || !found {
 		return err
 	}
-	fmt.Fprintf(w, "cached source=%s observed=%s\n", u.Source, u.ObservedAt.Format(time.RFC3339))
+	fmt.Fprintf(w, "cached source=%s observed=%s\n", u.Source, u.ObservedAt.UTC().Format(time.RFC3339))
 	for _, win := range u.Windows {
 		fmt.Fprintf(w, "cached window %s limit=%s length=%s used=%.0f%%\n", win.Vendor, win.LimitID, win.Length, win.Percent)
 	}

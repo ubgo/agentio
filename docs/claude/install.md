@@ -32,7 +32,7 @@ func showInstall(p printer, host agentio.Host) error {
 		return err
 	}
 	if last != nil {
-		p.line(fmt.Sprintf("last update %s: %s -> %s outcome=%s", last.At.Format(time.RFC3339), last.From, last.To, last.Outcome))
+		p.line(fmt.Sprintf("last update %s: %s -> %s outcome=%s", last.At.UTC().Format(time.RFC3339), last.From, last.To, last.Outcome))
 	}
 	changelog, err := a.Changelog(a.DefaultHome()) // "" when cache/changelog.md is absent
 	if err != nil {

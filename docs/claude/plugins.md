@@ -46,14 +46,14 @@ func showMarketplaces(p printer, a *claude.Agent, _ claude.Project) error {
 		return err
 	}
 	for _, m := range markets {
-		p.line(fmt.Sprintf("%s source=%s repo=%s declared=%t updated=%s", m.Name, m.Source.Kind, m.Source.Repo, m.Declared, m.LastUpdated.Format(time.RFC3339)))
+		p.line(fmt.Sprintf("%s source=%s repo=%s declared=%t updated=%s", m.Name, m.Source.Kind, m.Source.Repo, m.Declared, m.LastUpdated.UTC().Format(time.RFC3339)))
 	}
 	bl, err := a.PluginBlocklist(h) // zero value when the file is absent
 	if err != nil {
 		return err
 	}
 	if bl.FetchedAt != nil {
-		p.line(fmt.Sprintf("blocklist fetched %s entries=%s", bl.FetchedAt.Format(time.RFC3339), bl.Plugins))
+		p.line(fmt.Sprintf("blocklist fetched %s entries=%s", bl.FetchedAt.UTC().Format(time.RFC3339), bl.Plugins))
 	}
 	return nil
 }

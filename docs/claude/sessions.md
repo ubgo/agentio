@@ -41,7 +41,7 @@ func liveSessions(w io.Writer, a *claude.Agent, h claude.Home) error {
 	fmt.Fprintf(w, "  conversation %s live: %t\n", busySessionID[:8], live)
 	if len(in) > 0 {
 		n := in[0].Neutral(h)
-		fmt.Fprintf(w, "  neutral: home %s, kind %s, status %s since %s\n", n.Home.Name(), n.Kind, n.Status, n.StatusSince.Format(time.RFC3339))
+		fmt.Fprintf(w, "  neutral: home %s, kind %s, status %s since %s\n", n.Home.Name(), n.Kind, n.Status, n.StatusSince.UTC().Format(time.RFC3339))
 	}
 	return nil
 }
@@ -102,7 +102,7 @@ func background(w io.Writer, a *claude.Agent, h claude.Home) error {
 			return err
 		}
 		for _, ev := range events {
-			fmt.Fprintf(w, "  %s %s: %s\n", ev.At.Format(time.RFC3339), ev.State, ev.Text)
+			fmt.Fprintf(w, "  %s %s: %s\n", ev.At.UTC().Format(time.RFC3339), ev.State, ev.Text)
 		}
 		for _, c := range []agentio.Command{a.AttachCommand(j.ID), a.LogsCommand(j.ID), a.StopCommand(j.ID)} {
 			fmt.Fprintf(w, "  command: %s\n", c)

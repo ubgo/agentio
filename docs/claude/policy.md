@@ -37,7 +37,7 @@ func showPolicy(p printer, host agentio.Host) error {
 	}
 	p.line(fmt.Sprintf("defaults=%d", len(pl.Defaults)))
 	if pl.Stamp != nil {
-		p.line(fmt.Sprintf("stamp kind=%s identity=%s confirmed=%s", pl.Stamp.Kind, pl.Stamp.Identity, pl.Stamp.ConfirmedAt.Format(time.RFC3339)))
+		p.line(fmt.Sprintf("stamp kind=%s identity=%s confirmed=%s", pl.Stamp.Kind, pl.Stamp.Identity, pl.Stamp.ConfirmedAt.UTC().Format(time.RFC3339)))
 	}
 	return nil
 }

@@ -258,7 +258,7 @@ func showInstall(p printer, host agentio.Host) error {
 		return err
 	}
 	if last != nil {
-		p.line(fmt.Sprintf("last update %s: %s -> %s outcome=%s", last.At.Format(time.RFC3339), last.From, last.To, last.Outcome))
+		p.line(fmt.Sprintf("last update %s: %s -> %s outcome=%s", last.At.UTC().Format(time.RFC3339), last.From, last.To, last.Outcome))
 	}
 	changelog, err := a.Changelog(a.DefaultHome()) // "" when cache/changelog.md is absent
 	if err != nil {
@@ -575,7 +575,7 @@ func showPolicy(p printer, host agentio.Host) error {
 	}
 	p.line(fmt.Sprintf("defaults=%d", len(pl.Defaults)))
 	if pl.Stamp != nil {
-		p.line(fmt.Sprintf("stamp kind=%s identity=%s confirmed=%s", pl.Stamp.Kind, pl.Stamp.Identity, pl.Stamp.ConfirmedAt.Format(time.RFC3339)))
+		p.line(fmt.Sprintf("stamp kind=%s identity=%s confirmed=%s", pl.Stamp.Kind, pl.Stamp.Identity, pl.Stamp.ConfirmedAt.UTC().Format(time.RFC3339)))
 	}
 	return nil
 }

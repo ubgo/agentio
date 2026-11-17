@@ -62,7 +62,7 @@ func readUpdateCache(w io.Writer, host agentio.Host) error {
 		return err
 	}
 	fmt.Fprintf(w, "latest seen=%s checked=%s dismissed=%v\n",
-		uc.LatestVersion, uc.LastCheckedAt.Format("2006-01-02"), uc.DismissedVersion != nil)
+		uc.LatestVersion, uc.LastCheckedAt.UTC().Format("2006-01-02"), uc.DismissedVersion != nil)
 	return nil
 }
 ```

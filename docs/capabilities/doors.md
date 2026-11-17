@@ -71,7 +71,7 @@ func useProber(ctx context.Context, w io.Writer, h agentio.Host, baseURL string)
 		return err
 	}
 	for _, win := range u.Windows {
-		fmt.Fprintf(w, "%s %.0f%% resets %s\n", win.Label, win.Percent, win.ResetsAt.Format("15:04 MST"))
+		fmt.Fprintf(w, "%s %.0f%% resets %s\n", win.Label, win.Percent, win.ResetsAt.UTC().Format("15:04 MST"))
 	}
 	return nil
 }

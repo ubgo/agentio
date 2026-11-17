@@ -38,7 +38,7 @@ func listConversations(w io.Writer, a *codex.Agent, h codex.Home) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(w, "by id: created=%s branch=%s\n", c.Created.Format(time.RFC3339), c.Git.Branch)
+	fmt.Fprintf(w, "by id: created=%s branch=%s\n", c.Created.UTC().Format(time.RFC3339), c.Git.Branch)
 	if _, err := a.Conversation(h, "0199e1a0-0000-7000-8000-00000000ffff"); errors.Is(err, codex.ErrConversationNotFound) {
 		fmt.Fprintln(w, "unknown id: ErrConversationNotFound")
 	}
@@ -127,7 +127,7 @@ func listModels(w io.Writer, a *codex.Agent, h codex.Home) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(w, "catalog client=%s fetched=%s\n", cat.ClientVersion, cat.FetchedAt.Format(time.DateOnly))
+	fmt.Fprintf(w, "catalog client=%s fetched=%s\n", cat.ClientVersion, cat.FetchedAt.UTC().Format(time.DateOnly))
 	for _, m := range cat.Models {
 		fmt.Fprintf(w, "model %s visible=%v default-effort=%s context=%d\n", m.Slug, m.Visible, m.DefaultReasoning, m.ContextWindow)
 	}

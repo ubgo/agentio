@@ -140,7 +140,7 @@ func readLive(ctx context.Context, w io.Writer, a *claude.Agent, h claude.Home) 
 	}
 	fmt.Fprintf(w, "live usage (%s, billing %s), highest window %.0f%%\n", u.Source, u.Billing, u.MaxPercent())
 	for _, win := range u.Windows {
-		fmt.Fprintf(w, "  %-16s %3.0f%%  class %-5s resets %s\n", win.Label, win.Percent, win.Class(), win.ResetsAt.Format(time.RFC3339))
+		fmt.Fprintf(w, "  %-16s %3.0f%%  class %-5s resets %s\n", win.Label, win.Percent, win.Class(), win.ResetsAt.UTC().Format(time.RFC3339))
 	}
 	for _, l := range u.Limits {
 		fmt.Fprintf(w, "  wire row: kind %s, group %s, severity %s, active %t, label %q\n", l.Kind, l.Group, l.Severity, l.IsActive, l.Label())
@@ -166,7 +166,7 @@ func readCached(w io.Writer, a *claude.Agent, h claude.Home) error {
 		return nil
 	}
 	age := a.Host().Now().Sub(u.ObservedAt).Round(time.Hour)
-	fmt.Fprintf(w, "cached usage (%s), observed %s (%s old), %d windows\n", u.Source, u.ObservedAt.Format(time.RFC3339), age, len(u.Windows))
+	fmt.Fprintf(w, "cached usage (%s), observed %s (%s old), %d windows\n", u.Source, u.ObservedAt.UTC().Format(time.RFC3339), age, len(u.Windows))
 	return nil
 }
 
@@ -199,7 +199,7 @@ func probe(ctx context.Context, w io.Writer, a *claude.Agent) error {
 	}
 	fmt.Fprintf(w, "probe usage (%s):\n", u.Source)
 	for _, win := range u.Windows {
-		fmt.Fprintf(w, "  %-16s %3.0f%%  resets %s\n", win.Label, win.Percent, win.ResetsAt.Format(time.RFC3339))
+		fmt.Fprintf(w, "  %-16s %3.0f%%  resets %s\n", win.Label, win.Percent, win.ResetsAt.UTC().Format(time.RFC3339))
 	}
 	if _, err := p.TokenUsage(ctx, agentio.TokenCredential{Kind: agentio.TokenAPIKey, Token: agentio.NewToken("sk-ant-api03-EXAMPLE")}); errors.Is(err, agentio.ErrBilledPerToken) {
 		fmt.Fprintln(w, "api key:", err)

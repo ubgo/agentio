@@ -26,7 +26,7 @@ func listLiveSessions(w io.Writer, a *codex.Agent, h codex.Home) error {
 	}
 	for _, s := range ls {
 		fmt.Fprintf(w, "session %s alive=%v pid=%d dir=%q status=%s started=%s\n",
-			s.ConversationID, s.Alive, s.PID, s.Dir, s.Status, s.StartedAt.Format(time.RFC3339))
+			s.ConversationID, s.Alive, s.PID, s.Dir, s.Status, s.StartedAt.UTC().Format(time.RFC3339))
 	}
 	for _, id := range []string{liveThread, staleThread} {
 		live, err := a.IsLive(h, id)
@@ -57,7 +57,7 @@ func readThreadLocks(w io.Writer, a *codex.Agent, h codex.Home) error {
 		return err
 	}
 	for _, l := range tl {
-		fmt.Fprintf(w, "lock %s taken=%s\n", l.ThreadID, l.ModTime.Format(time.RFC3339))
+		fmt.Fprintf(w, "lock %s taken=%s\n", l.ThreadID, l.ModTime.UTC().Format(time.RFC3339))
 	}
 	for _, name := range []string{staleThread + lockSuffix, ".coordination.lock", "notes.lock"} {
 		id, ok := codex.ParseThreadLockName(name)
@@ -94,7 +94,7 @@ func listProcesses(w io.Writer, a *codex.Agent, h codex.Home, table []agentio.Pr
 	}
 	for _, c := range chats {
 		fmt.Fprintf(w, "chat process %q pid=%d conversation=%s started=%s\n",
-			c.Command, c.OSPid, c.ConversationID, c.StartedAt.Format(time.RFC3339))
+			c.Command, c.OSPid, c.ConversationID, c.StartedAt.UTC().Format(time.RFC3339))
 	}
 	_, ok := a.DaemonSocket(h)
 	fmt.Fprintf(w, "daemon socket present: %v\n", ok)

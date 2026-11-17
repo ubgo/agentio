@@ -170,7 +170,7 @@ func readCredential(ctx context.Context, w io.Writer, a *claude.Agent, h claude.
 		return err
 	}
 	fmt.Fprintf(w, "%s: login in %s (%s)\n", h.Name(), c.Source, location(a, c))
-	fmt.Fprintf(w, "  expires %s, expired now: %t\n", c.ExpiresAt.Format(time.RFC3339), c.Expired(a.Host().Now()))
+	fmt.Fprintf(w, "  expires %s, expired now: %t\n", c.ExpiresAt.UTC().Format(time.RFC3339), c.Expired(a.Host().Now()))
 	fmt.Fprintf(w, "  plan %s / %s, %d scopes, token %v\n", c.SubscriptionType, c.RateLimitTier, len(c.Scopes), c.AccessToken)
 	fmt.Fprintf(w, "  keychain names tried: %d\n", len(claude.KeychainServices(h.Dir(), h.IsDefault())))
 	return nil
@@ -267,7 +267,7 @@ func readIdentity(w io.Writer, a *claude.Agent, h claude.Home) error {
 	fmt.Fprintf(w, "identity: logged in %t, plan %q, billing %s, credential %s\n", id.LoggedIn, id.PlanLabel, id.Billing, id.Neutral().Credential)
 	fmt.Fprintf(w, "  email %v, org %v\n", id.Email, id.Org)
 	if s := id.Credential; s != nil {
-		fmt.Fprintf(w, "  summary: %s, expires %s\n", s.Source, s.ExpiresAt.Format(time.RFC3339))
+		fmt.Fprintf(w, "  summary: %s, expires %s\n", s.Source, s.ExpiresAt.UTC().Format(time.RFC3339))
 	}
 	return nil
 }
@@ -295,7 +295,7 @@ func readAccount(w io.Writer, a *claude.Agent, h claude.Home) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(w, "profile: plan %s, status %s, billing %s, since %s\n", sub.Plan, sub.Status, sub.BillingType, sub.StartedAt.Format(time.DateOnly))
+	fmt.Fprintf(w, "profile: plan %s, status %s, billing %s, since %s\n", sub.Plan, sub.Status, sub.BillingType, sub.StartedAt.UTC().Format(time.DateOnly))
 	if _, err := claude.ParseProfile([]byte(`{}`)); errors.Is(err, claude.ErrNoOrganization) {
 		fmt.Fprintln(w, "profile without organization:", err)
 	}

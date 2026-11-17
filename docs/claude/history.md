@@ -26,7 +26,7 @@ func promptHistory(w io.Writer, a *claude.Agent, h claude.Home) error {
 	}
 	fmt.Fprintln(w, "prompt history, newest 3:")
 	for _, e := range recent {
-		fmt.Fprintf(w, "  %s %s %q (%d pastes)\n", e.Time.Format(time.RFC3339), e.Project, e.Display, len(e.Pasted))
+		fmt.Fprintf(w, "  %s %s %q (%d pastes)\n", e.Time.UTC().Format(time.RFC3339), e.Project, e.Display, len(e.Pasted))
 	}
 	in, err := a.PromptHistory(h, claude.HistoryQuery{Project: historyProject})
 	if err != nil {
@@ -37,7 +37,7 @@ func promptHistory(w io.Writer, a *claude.Agent, h claude.Home) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(w, "  parsed line: %q at %s, %d pastes\n", e.Display, e.Time.Format(time.RFC3339), len(e.Pasted))
+	fmt.Fprintf(w, "  parsed line: %q at %s, %d pastes\n", e.Display, e.Time.UTC().Format(time.RFC3339), len(e.Pasted))
 	return nil
 }
 ```

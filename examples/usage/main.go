@@ -83,7 +83,7 @@ func printWindows(w io.Writer, u agentio.Usage) {
 	for _, win := range u.Windows {
 		reset := "-"
 		if win.ResetsAt != nil {
-			reset = win.ResetsAt.Format(time.RFC3339)
+			reset = win.ResetsAt.UTC().Format(time.RFC3339)
 		}
 		fmt.Fprintf(w, "  %-16s %-5s %5.1f%% resets %s\n", win.Label, win.Class(), win.Percent, reset)
 	}

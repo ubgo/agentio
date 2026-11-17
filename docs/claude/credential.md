@@ -30,7 +30,7 @@ func readCredential(ctx context.Context, w io.Writer, a *claude.Agent, h claude.
 		return err
 	}
 	fmt.Fprintf(w, "%s: login in %s (%s)\n", h.Name(), c.Source, location(a, c))
-	fmt.Fprintf(w, "  expires %s, expired now: %t\n", c.ExpiresAt.Format(time.RFC3339), c.Expired(a.Host().Now()))
+	fmt.Fprintf(w, "  expires %s, expired now: %t\n", c.ExpiresAt.UTC().Format(time.RFC3339), c.Expired(a.Host().Now()))
 	fmt.Fprintf(w, "  plan %s / %s, %d scopes, token %v\n", c.SubscriptionType, c.RateLimitTier, len(c.Scopes), c.AccessToken)
 	fmt.Fprintf(w, "  keychain names tried: %d\n", len(claude.KeychainServices(h.Dir(), h.IsDefault())))
 	return nil

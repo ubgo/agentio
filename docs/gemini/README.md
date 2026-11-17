@@ -116,7 +116,7 @@ func conversations(ctx context.Context, p printer, a *gemini.Agent, m machine) e
 		return err
 	}
 	for _, s := range ss {
-		p(fmt.Sprintf("  %s  %-36q legacy=%-5t updated %s", s.ID[:8], s.Title, s.Legacy, s.Updated.Format("2006-01-02T15:04Z")))
+		p(fmt.Sprintf("  %s  %-36q legacy=%-5t updated %s", s.ID[:8], s.Title, s.Legacy, s.Updated.UTC().Format("2006-01-02T15:04Z")))
 	}
 	cmd, err := a.Launch(h.Target(), agentio.LaunchRequest{ResumeID: ss[0].ID, Dir: m.project})
 	if err != nil {
@@ -186,7 +186,7 @@ func login(p printer, a *gemini.Agent) error {
 	if err != nil {
 		return err
 	}
-	p(fmt.Sprintf("auth=%s logged-in=%t credential=%s email=%s expires=%s", id.AuthType, id.LoggedIn, id.Credential, id.Email, id.ExpiresAt.Format("2006-01-02")))
+	p(fmt.Sprintf("auth=%s logged-in=%t credential=%s email=%s expires=%s", id.AuthType, id.LoggedIn, id.Credential, id.Email, id.ExpiresAt.UTC().Format("2006-01-02")))
 	return nil
 }
 ```
