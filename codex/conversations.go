@@ -256,8 +256,10 @@ func readHead(path string, n int) ([]byte, error) {
 	return io.ReadAll(io.LimitReader(f, int64(n)))
 }
 
-// ErrConversationNotFound means no rollout file names the id.
-var ErrConversationNotFound = errors.New("codex: conversation not found")
+// ErrConversationNotFound means no rollout file names the id. It wraps
+// agentio.ErrNotFound, as the ConversationLister contract says, so a
+// caller looping over agents can test errors.Is(err, agentio.ErrNotFound).
+var ErrConversationNotFound = fmt.Errorf("codex: conversation not found: %w", agentio.ErrNotFound)
 
 // Conversation finds one rollout by id: the id is in the file name, so the
 // lookup matches names without opening other files. Disk · Read.
