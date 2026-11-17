@@ -38,6 +38,10 @@ type options struct {
 	// fixtures reads the repository fixture homes in place (read-only)
 	// instead of this machine.
 	fixtures bool
+	// loc is the zone times print in: the viewer's (time.Local) on a real
+	// machine; nil = UTC, so the fixtures and tests print the same on
+	// every machine whatever its TZ.
+	loc *time.Location
 }
 
 func main() {
@@ -77,6 +81,10 @@ func runOS(ctx context.Context, o options, w io.Writer) error {
 			return err
 		}
 	}
+	// This machine's report reads in the viewer's own zone; the fixture
+	// report above keeps the UTC default so its output is the same on
+	// every machine (CI compares it).
+	o.loc = time.Local
 	return run(ctx, host, o, w)
 }
 
@@ -103,7 +111,11 @@ func run(ctx context.Context, host agentio.Host, o options, w io.Writer) error {
 		enc.SetIndent("", "  ")
 		return enc.Encode(rep)
 	}
-	return printText(w, rep)
+	loc := o.loc
+	if loc == nil {
+		loc = time.UTC
+	}
+	return printText(w, rep, loc)
 }
 
 // inspect gathers one agent's report. Each section records its own error so

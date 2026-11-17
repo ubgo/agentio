@@ -31,13 +31,13 @@ func newTable(w io.Writer) *tabwriter.Writer {
 
 // printText writes the human-readable view of the report. It returns the
 // first error from flushing a table to w.
-func printText(w io.Writer, r Report) error {
+func printText(w io.Writer, r Report, loc *time.Location) error {
 	fmt.Fprintf(w, "agentinfo  %s  dir=%s\n", r.Generated.Format(time.RFC3339), r.Dir)
 	if r.ProcessError != "" {
 		fmt.Fprintf(w, "process table: %s\n", r.ProcessError)
 	}
 	for _, a := range r.Agents {
-		if err := printAgent(w, a); err != nil {
+		if err := printAgent(w, a, loc); err != nil {
 			return err
 		}
 	}
@@ -46,7 +46,7 @@ func printText(w io.Writer, r Report) error {
 
 // printAgent writes one agent: install, compat, every home, then the
 // agent's running processes.
-func printAgent(w io.Writer, a AgentReport) error {
+func printAgent(w io.Writer, a AgentReport, loc *time.Location) error {
 	fmt.Fprintf(w, "\n=== %s (%s) ===\n", a.Name, a.ID)
 	if a.Install == nil {
 		fmt.Fprintf(w, "install:   not installed %s\n", paren(a.InstallError))
@@ -75,21 +75,21 @@ func printAgent(w io.Writer, a AgentReport) error {
 		fmt.Fprintln(w, "homes:     none found")
 	}
 	for _, h := range a.Homes {
-		if err := printHome(w, h); err != nil {
+		if err := printHome(w, h, loc); err != nil {
 			return err
 		}
 	}
 	fmt.Fprintf(w, "\nprocesses (%d):\n", len(a.Processes))
 	tw := newTable(w)
 	for _, p := range a.Processes {
-		fmt.Fprintf(tw, "  pid %d\tppid %d\t%s\tsession=%v\t%s\t%s\n", p.PID, p.PPID, p.Kind, p.Session, fmtTime(p.Start), p.Exe)
+		fmt.Fprintf(tw, "  pid %d\tppid %d\t%s\tsession=%v\t%s\t%s\n", p.PID, p.PPID, p.Kind, p.Session, fmtTime(p.Start, loc), p.Exe)
 	}
 	return tw.Flush()
 }
 
 // printHome writes one home section: paths, settings summary, identity,
 // usage, conversations, live sessions, doctor checks and per-section errors.
-func printHome(w io.Writer, h HomeReport) error {
+func printHome(w io.Writer, h HomeReport, loc *time.Location) error {
 	def := ""
 	if h.Default {
 		def = " (default)"
@@ -167,33 +167,33 @@ func printHome(w io.Writer, h HomeReport) error {
 	if id := h.Identity; id != nil {
 		exp := "-"
 		if id.ExpiresAt != nil {
-			exp = fmtTime(*id.ExpiresAt)
+			exp = fmtTime(*id.ExpiresAt, loc)
 		}
 		fmt.Fprintf(w, "identity:  logged-in=%v email=%s org=%s plan=%s billing=%s credential=%s expires=%s expired=%v\n",
 			id.LoggedIn, id.Email, id.Org, orDash(id.PlanLabel), id.Billing, id.Credential, exp, h.Expired)
 	}
 	if u := h.CachedUsage; u != nil {
-		fmt.Fprintf(w, "cached usage (%s, as of %s, %s old):\n", u.Source, fmtTime(u.ObservedAt), fmtAge(h.CachedUsageAge))
+		fmt.Fprintf(w, "cached usage (%s, as of %s, %s old):\n", u.Source, fmtTime(u.ObservedAt, loc), fmtAge(h.CachedUsageAge))
 		for _, win := range u.Windows {
-			fmt.Fprintf(w, "  %-14s %-6s %5.1f%%  len=%s resets=%s\n", win.VendorKind, win.Class(), win.Percent, durationOrDash(win.Length), fmtTimePtr(win.ResetsAt))
+			fmt.Fprintf(w, "  %-14s %-6s %5.1f%%  len=%s resets=%s\n", win.VendorKind, win.Class(), win.Percent, durationOrDash(win.Length), fmtTimePtr(win.ResetsAt, loc))
 		}
 	} else {
 		fmt.Fprintln(w, "cached usage: none on disk")
 	}
 	if u := h.LiveUsage; u != nil {
-		fmt.Fprintf(w, "live usage (%s): %d windows\n", fmtTime(u.ObservedAt), len(u.Windows))
+		fmt.Fprintf(w, "live usage (%s): %d windows\n", fmtTime(u.ObservedAt, loc), len(u.Windows))
 	}
 	fmt.Fprintf(w, "conversations (latest %d):\n", len(h.Conversations))
 	tw := newTable(w)
 	for _, c := range h.Conversations {
-		fmt.Fprintf(tw, "  %s\t%s\t%s\t%s\n", c.ID, fmtTime(c.Updated), clip(c.Title, titleWidth), c.Dir)
+		fmt.Fprintf(tw, "  %s\t%s\t%s\t%s\n", c.ID, fmtTime(c.Updated, loc), clip(c.Title, titleWidth), c.Dir)
 	}
 	if err := tw.Flush(); err != nil {
 		return err
 	}
 	fmt.Fprintf(w, "live sessions (%d):\n", len(h.LiveSessions))
 	for _, s := range h.LiveSessions {
-		fmt.Fprintf(w, "  pid %d %s %s alive=%v status=%s since=%s %s\n", s.PID, s.ConversationID, s.Kind, s.Alive, s.Status, fmtTime(s.StatusSince), s.Dir)
+		fmt.Fprintf(w, "  pid %d %s %s alive=%v status=%s since=%s %s\n", s.PID, s.ConversationID, s.Kind, s.Alive, s.Status, fmtTime(s.StatusSince, loc), s.Dir)
 	}
 	if len(h.Checks) > 0 {
 		fmt.Fprintln(w, "doctor:")
@@ -239,20 +239,22 @@ func existsMark(ok bool) string {
 	return "missing"
 }
 
-// fmtTime prints t in the viewer's local zone; the zero time is "-".
-func fmtTime(t time.Time) string {
+// fmtTime prints t in loc (the viewer's zone on a real machine, UTC for
+// the fixtures and tests, so the output never depends on the machine's
+// TZ); the zero time is "-".
+func fmtTime(t time.Time, loc *time.Location) string {
 	if t.IsZero() {
 		return "-"
 	}
-	return t.Local().Format(timeLayout)
+	return t.In(loc).Format(timeLayout)
 }
 
 // fmtTimePtr is fmtTime for optional times; nil is "-".
-func fmtTimePtr(t *time.Time) string {
+func fmtTimePtr(t *time.Time, loc *time.Location) string {
 	if t == nil {
 		return "-"
 	}
-	return fmtTime(*t)
+	return fmtTime(*t, loc)
 }
 
 // clip shortens a title for one table row.
