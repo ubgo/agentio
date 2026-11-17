@@ -499,6 +499,13 @@ func (a *Agent) Subscription(ctx context.Context, h Home) (agentio.Subscription,
 	return s, err
 }
 
+// CachedUsageNote is what is known about the cached reading: Claude Code
+// stopped refreshing cachedUsageUtilization (observed 2026-11-17 with
+// 2.1.323 to 2.1.326: a home kept a reading weeks old through daily use,
+// and new homes never get one). No other file holds plan usage, so the
+// live read (Usage) is the only current source.
+const CachedUsageNote = "Claude Code 2.1.323 and later no longer store a usage reading on disk (an existing one is not refreshed); use live usage"
+
 // CachedUsage reads cachedUsageUtilization from .claude.json: usage with
 // no network call, Source Cache, ObservedAt = fetchedAtMs. found is false
 // when the home has no cached body. cost: Disk · Read.

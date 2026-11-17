@@ -166,6 +166,15 @@ type CachedUsageReader interface {
 	CachedUsage(h Home) (Usage, bool, error)
 }
 
+// CachedUsageNoter is an optional extension of CachedUsageReader: why a
+// home may have no cached reading, or only an old one, for agents whose
+// recent versions stopped writing it (Claude Code no longer refreshes
+// cachedUsageUtilization). A caller shows the note with a missing or old
+// reading instead of a generic "run the agent once". Pure.
+type CachedUsageNoter interface {
+	CachedUsageNote() string
+}
+
 // Subscription is what a vendor reports about an account's plan.
 type Subscription struct {
 	// Plan is a display label ("Max (20x)").

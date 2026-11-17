@@ -26,6 +26,7 @@ var (
 	_ agentio.IdentityReader      = neutral{}
 	_ agentio.UsageReader         = neutral{}
 	_ agentio.CachedUsageReader   = neutral{}
+	_ agentio.CachedUsageNoter    = neutral{}
 	_ agentio.SubscriptionReader  = neutral{}
 	_ agentio.TokenLogin          = neutral{}
 	_ agentio.TokenProber         = neutral{}
@@ -127,6 +128,10 @@ func (n neutral) CachedUsage(h agentio.Home) (agentio.Usage, bool, error) {
 	u, ok, err := n.a.CachedUsage(ch)
 	return u.Usage, ok, err
 }
+
+// CachedUsageNote says why a Claude home may have no fresh cached reading
+// (agentio.CachedUsageNoter). Pure.
+func (n neutral) CachedUsageNote() string { return CachedUsageNote }
 
 // Subscription is Network · Read.
 func (n neutral) Subscription(ctx context.Context, h agentio.Home) (agentio.Subscription, error) {

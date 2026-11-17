@@ -2,6 +2,8 @@
 
 Plan usage is how much of each rate-limit window an account has used: the five-hour session window, the weekly windows, and so on. agentio has three ways to read it: `CachedUsageReader` reads the copy the vendor CLI left on disk (free, safe in a loop), `UsageReader` asks the vendor once (network, may 429), and `SubscriptionReader` reports the plan itself. All three return neutral types, so one status bar can show Claude Code and Codex side by side.
 
+An agent whose recent versions stopped writing the on-disk copy also implements `CachedUsageNoter`: `CachedUsageNote()` says so, for a caller to show with a missing or old cached reading. Claude Code 2.1.323 and later no longer refresh `cachedUsageUtilization` in `.claude.json`; there is no replacement file, so live usage is the only current source.
+
 ## Before you start
 
 - Modules: `github.com/ubgo/agentio`, `github.com/ubgo/agentio/claude`, `github.com/ubgo/agentio/codex` (or `builtin`).
