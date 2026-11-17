@@ -48,9 +48,33 @@ func runMain(w io.Writer) error {
 	return run(w, tmp)
 }
 
+// runDirToken stands for the run dir inside argv before the command is
+// rendered: it is shell-safe, so Command.String does not quote it.
+const runDirToken = "RUNDIR"
+
+// displayCommand renders cmd with the run dir shown as "<run dir>/" on
+// every OS. Command.String quotes for a POSIX shell, so a Windows path
+// (backslashes) comes back quoted and escaped and a plain text replace of
+// the raw dir no longer matches; the dir is replaced in each argument
+// first, with a separator-neutral token, then rendered. Pure.
+func displayCommand(cmd agentio.Command, runDir string) string {
+	return displayCommandSep(cmd, runDir, string(os.PathSeparator))
+}
+
+// displayCommandSep is displayCommand with an explicit path separator, so
+// a test can render a Windows path on any OS. Pure.
+func displayCommandSep(cmd agentio.Command, runDir, sep string) string {
+	c := cmd
+	c.Args = make([]string, len(cmd.Args))
+	for i, a := range cmd.Args {
+		a = strings.ReplaceAll(a, runDir+sep, runDirToken+"/")
+		c.Args[i] = strings.ReplaceAll(a, runDir, runDirToken)
+	}
+	return strings.ReplaceAll(c.String(), runDirToken, "<run dir>")
+}
+
 // run prints each step; runDir receives the per-launch settings file.
 func run(w io.Writer, runDir string) error {
-	tidy := strings.NewReplacer(runDir, "<run dir>")
 	h := agentio.Host{UserHome: runDir, User: "user"}
 	a := claude.New(h)
 	fmt.Fprintln(w, "== claude options ==")
@@ -70,7 +94,7 @@ func run(w io.Writer, runDir string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(w, "command:", tidy.Replace(cmd.String()))
+	fmt.Fprintln(w, "command:", displayCommand(cmd, runDir))
 	fmt.Fprintln(w, "== live credential ==")
 	if err := liveCredential(w, a.Neutral()); err != nil {
 		return err
