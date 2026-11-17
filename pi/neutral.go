@@ -86,9 +86,16 @@ func (n neutral) UnsupportedReason(c agentio.Capability) (string, bool) {
 		return reasonRunEvents, true
 	case agentio.CapLiveCredential:
 		return reasonLiveCredential, true
+	case agentio.CapLaunchConfig:
+		return reasonLaunchConfig, true
 	}
 	return "", false
 }
+
+// reasonLaunchConfig is why pi takes no launch config: it has no flag
+// that takes a settings object, and agentio models no typed launch
+// options for it beyond the neutral request.
+const reasonLaunchConfig = "pi has no settings flag and no typed launch options in agentio; pass flags as raw args"
 
 // reasonLiveCredential is why pi has no live credential: an auth.json key
 // may be a "!command" pi runs, but when pi re-runs it is not documented

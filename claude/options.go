@@ -28,6 +28,7 @@ func optionDerivation() agentio.OptionDerivation {
 		Samples: map[reflect.Type]reflect.Value{
 			reflect.TypeFor[map[string]SubagentDef](): reflect.ValueOf(map[string]SubagentDef{"x": {Description: "d", Prompt: "p"}}),
 		},
+		Concerns: optionConcerns(),
 	}
 }
 

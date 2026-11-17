@@ -56,9 +56,10 @@ The closed sets, with their wire names in declaration order:
 | [`Access`](ds:block?id=accessnames-aun8gmkk) | `read`, `write` |
 | [`Autonomy`](ds:block?id=autonomynames-upa3mjff) | `default`, `read-only`, `ask`, `accept-edits`, `full` |
 | [`Billing`](ds:block?id=billingnames-phdn4dkq) | `unknown`, `subscription`, `per-token` |
-| [`Capability`](ds:block?id=capabilitynames-pdt7huwg) | 27 values, `installer` … `live-credential` ([Shared capabilities and accessors](../capabilities/accessors.md)) |
+| [`Capability`](ds:block?id=capabilitynames-pdt7huwg) | 28 values, `installer` … `launch-config` ([Shared capabilities and accessors](../capabilities/accessors.md)) |
 | [`CheckStatus`](ds:block?id=checkstatusnames-r66q6t8d) | `skip`, `ok`, `info`, `warn`, `fail` |
 | [`CompatStatus`](ds:block?id=compatstatusnames-8wen9ft3) | `unknown`, `in-range`, `newer`, `older` |
+| [`Concern`](ds:block?id=concernnames-r7c4n2lq) | `none`, `model`, `prompt`, `add-dir`, `autonomy`, `headless`, `resume`, `credential`, `settings` |
 | [`ConfigScope`](ds:block?id=configscopenames-8qqr6u4z) | `unknown`, `managed`, `user`, `project`, `local`, `profile`, `cli`, `plugin` |
 | [`CostClass`](ds:block?id=costclassnames-x4rv84vr) | `pure`, `disk`, `process`, `network`, `quota` |
 | [`CredentialSource`](ds:block?id=credentialsourcenames-8g8hwb67) | `none`, `keychain`, `file`, `keyring`, `env` |
@@ -67,10 +68,11 @@ The closed sets, with their wire names in declaration order:
 | [`Role`](ds:block?id=rolenames-dm4j429f) | `user`, `assistant` |
 | [`RunEventType`](ds:block?id=runeventtypenames-6vyhtd7t) | `other`, `started`, `message`, `tool`, `usage`, `done`, `error` |
 | [`SessionStatus`](ds:block?id=sessionstatusnames-9ja6re25) | `unknown`, `idle`, `busy` |
+| [`SettingsDelivery`](ds:block?id=settingsdeliverynames-r7d8v3kp) | `file`, `inline` |
 | [`TokenKind`](ds:block?id=tokenkindnames-xdc3hc3t) | `unknown`, `oauth-token`, `api-key`, `api-key-helper` |
 | [`Trust`](ds:block?id=trustnames-5zu82hd6) | `unknown`, `trusted`, `untrusted` |
 | [`UsageSource`](ds:block?id=usagesourcenames-hagrpw52) | `unknown`, `server`, `cache`, `transcript`, `probe` |
-| [`WarningKind`](ds:block?id=warningkindnames-a4xj32ut) | `untested-version`, `version-unknown`, `type-changed`, `old-key-name`, `unknown-record`, `unreadable` |
+| [`WarningKind`](ds:block?id=warningkindnames-a4xj32ut) | `untested-version`, `version-unknown`, `type-changed`, `old-key-name`, `unknown-record`, `unreadable`, `unknown-key` |
 | [`WindowClass`](ds:block?id=windowclassnames-757ahrk7) | `unknown`, `short`, `day`, `week`, `month` |
 
 The open sets, each with `XValues()` listing the names the library knows and `IsKnown()`:
@@ -130,7 +132,7 @@ capabilities: 27, first installer
 - **An out-of-range number prints, it does not panic.** [`agentio.Autonomy(42).String()`](ds:block?id=enumstring-57pf7m8z) is `autonomy(42)`, so a corrupted value is greppable; `ParseX` and `UnmarshalText` never produce one.
 - **Closed sets reject unknown text; open sets keep it.** Decoding `"yolo"` into an [`Autonomy`](ds:block?id=autonomy-unmarshaltext-ves9gtjm) fails; decoding `"mise"` into an [`InstallMethod`](ds:block?id=installmethod-isknown-yqgegrt9) succeeds and `IsKnown()` is false. Do not treat an unknown open value as an error: a newer vendor version may have added it.
 - **Values are append-only.** New values are added at the end, so the wire names are stable; never persist the numeric value, use the name.
-- **[`Capability`](ds:block?id=capabilitynames-pdt7huwg) has 27 values**, one per shared capability; `agentio.Supported(a)` and the accessors are on [Shared capabilities and accessors](../capabilities/accessors.md).
+- **[`Capability`](ds:block?id=capabilitynames-pdt7huwg) has 28 values**, one per shared capability; `agentio.Supported(a)` and the accessors are on [Shared capabilities and accessors](../capabilities/accessors.md).
 
 ## Related
 

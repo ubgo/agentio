@@ -1,0 +1,1 @@
+func settingsDeliveryNames() []string { return []string{"file", "inline"} }

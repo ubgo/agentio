@@ -1,0 +1,34 @@
+func DeriveOptionKeys(d OptionDerivation) ([]OptionKey, error) {
+	bases := d.Bases
+	if len(bases) == 0 || !bases[0].IsZero() {
+		bases = append([]reflect.Value{reflect.New(d.Type).Elem()}, bases...)
+	}
+	var out []OptionKey
+	var errs []error
+	for i := 0; i < d.Type.NumField(); i++ {
+		f := d.Type.Field(i)
+		if !f.IsExported() || slices.Contains(d.Skip, f.Name) {
+			continue
+		}
+		key, ok := jsonFieldName(f)
+		if !ok || key == f.Name {
+			errs = append(errs, fmt.Errorf("%s: no json key", f.Name))
+			continue
+		}
+		k, err := deriveOne(d, bases, f, key)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		out = append(out, k)
+	}
+	for key := range d.Concerns {
+		if !slices.ContainsFunc(out, func(k OptionKey) bool { return k.Key == key }) {
+			errs = append(errs, fmt.Errorf("concern for unknown key %s", key))
+		}
+	}
+	if len(errs) > 0 {
+		return out, fmt.Errorf("%w: %w", ErrOptionDerivation, errors.Join(errs...))
+	}
+	return out, nil
+}

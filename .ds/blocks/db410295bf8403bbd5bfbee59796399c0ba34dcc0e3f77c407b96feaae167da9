@@ -1,0 +1,21 @@
+type OptionKey struct {
+	// Key is the stable snake_case config key (the field's json tag).
+	Key string `json:"key"`
+	// Field is the Go field name in the vendor's LaunchOptions.
+	Field string `json:"field"`
+	// Kind is the value type; Values the allowed values of an enum kind.
+	Kind   OptionKind `json:"kind"`
+	Values []string   `json:"values,omitempty"`
+	// Flag is the vendor flag the option emits ("--effort"); "" for a
+	// positional value (the prompt) or verbatim args.
+	Flag string `json:"flag,omitempty"`
+	// Feature is the feature gate the flag checks (a features.tsv name)
+	// and Gate its span: the versions the flag exists in. An unknown span
+	// (no recorded Since or Until) means "assumed available".
+	Feature string      `json:"feature,omitempty"`
+	Gate    FeatureSpan `json:"gate,omitzero"`
+	// Concern is the neutral LaunchRequest concern the option overlaps
+	// (model, prompt, permission level…); ConcernNone for the rest. A
+	// launcher uses it for one winner per concern.
+	Concern Concern `json:"concern,omitempty"`
+}

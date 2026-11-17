@@ -39,6 +39,7 @@ var (
 	_ agentio.ModelLister         = neutral{}
 	_ agentio.RunEvents           = neutral{}
 	_ agentio.Doctor              = neutral{}
+	_ agentio.LaunchConfigurer    = neutral{}
 	_ agentio.UnsupportedReasoner = neutral{}
 )
 

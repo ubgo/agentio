@@ -26,10 +26,10 @@ claude personal ~/.claude (cached usage 6%)
 claude work ~/.claude-work
 codex personal ~/.codex (cached usage 12%)
 == supported ==
-claude: 26 capabilities
-  [installer binary-version identity usage cached-usage subscription token-login token-prober login-commander conversations history-checker history-mover conversation-mover prompt-history live-sessions process-classifier turns home-linker instruction-files mcp-servers skills plugins config run-events doctor live-credential]
-codex: 22 capabilities
-  [installer binary-version identity usage cached-usage subscription login-commander conversations history-checker prompt-history live-sessions process-classifier turns home-linker instruction-files mcp-servers skills plugins config models run-events doctor]
+claude: 27 capabilities
+  [installer binary-version identity usage cached-usage subscription token-login token-prober login-commander conversations history-checker history-mover conversation-mover prompt-history live-sessions process-classifier turns home-linker instruction-files mcp-servers skills plugins config run-events doctor live-credential launch-config]
+codex: 23 capabilities
+  [installer binary-version identity usage cached-usage subscription login-commander conversations history-checker prompt-history live-sessions process-classifier turns home-linker instruction-files mcp-servers skills plugins config models run-events doctor launch-config]
 gemini: 14 capabilities
   [installer binary-version identity token-login conversations history-checker process-classifier home-linker instruction-files mcp-servers skills plugins config doctor]
 pi: 13 capabilities
@@ -54,6 +54,7 @@ gemini lacks turns: Gemini chats rewrite earlier records ($rewindTo, $patch), so
 gemini lacks models: Gemini CLI keeps its model catalog in its own defaults, not in a file on disk
 gemini lacks run-events: the --output-format stream-json event shape is not recorded from a real run yet
 gemini lacks live-credential: Gemini CLI reads its login (oauth_creds.json, the keychain or GEMINI_API_KEY) at start and refreshes OAuth itself; it has no setting that re-reads a key from a caller's command
+gemini lacks launch-config: Gemini CLI has no settings flag and no typed launch options in agentio; pass flags as raw args
 pi lacks usage: pi has no plan or quota; it records per-message token cost in session files (pi.Agent.SessionUsage)
 pi lacks cached-usage: pi has no plan or quota; it records per-message token cost in session files (pi.Agent.SessionUsage)
 pi lacks subscription: pi has no plan or quota; it records per-message token cost in session files (pi.Agent.SessionUsage)
@@ -68,6 +69,7 @@ pi lacks plugins: pi packages and extensions are code loaded into the process, n
 pi lacks models: pi's model catalog (models-store.json) has no recorded shape yet
 pi lacks run-events: pi's --mode json event stream is recorded once but not yet modelled as a decoder
 pi lacks live-credential: pi can read a key from a !command in auth.json, but when it re-runs that command is not documented or recorded
+pi lacks launch-config: pi has no settings flag and no typed launch options in agentio; pass flags as raw args
 == cost ==
 installer            disk read
 binary-version       process read (may touch login)
@@ -96,6 +98,7 @@ models               disk read
 run-events           pure read
 doctor               disk read
 live-credential      pure read
+launch-config        disk write
 ```
 
 ## Guides

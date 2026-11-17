@@ -87,7 +87,7 @@ func unknownKeys(p printer) error {
 
 ## Step 3 — Collect warnings
 
-A [`Warning`](ds:block?id=warning-je4hy5xg) has a `Kind` (`WarningKind`), and optionally the `File` and `Key` it is about and a `Detail`. `Warnings` is the list a result carries, nil after a clean read; [`Add`](ds:block?id=warnings-add-pv3bqymk) appends, [`Has(kind)`](ds:block?id=warnings-has-e3uyt56b) checks for a kind, [`String()`](ds:block?id=warning-string-yxkaha8r) renders `kind: file: key: detail`. [The kinds:](ds:block?id=warningkindnames-a4xj32ut) `untested-version`, `version-unknown`, `type-changed`, `old-key-name`, `unknown-record`, `unreadable`.
+A [`Warning`](ds:block?id=warning-je4hy5xg) has a `Kind` (`WarningKind`), and optionally the `File` and `Key` it is about and a `Detail`. `Warnings` is the list a result carries, nil after a clean read; [`Add`](ds:block?id=warnings-add-pv3bqymk) appends, [`Has(kind)`](ds:block?id=warnings-has-e3uyt56b) checks for a kind, [`String()`](ds:block?id=warning-string-yxkaha8r) renders `kind: file: key: detail`. [The kinds:](ds:block?id=warningkindnames-a4xj32ut) `untested-version`, `version-unknown`, `type-changed`, `old-key-name`, `unknown-record`, `unreadable`, `unknown-key`.
 
 <!-- snippet: examples/values/values.go#collect-warnings -->
 ```go

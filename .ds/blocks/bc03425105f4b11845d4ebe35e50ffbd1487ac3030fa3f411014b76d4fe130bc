@@ -1,0 +1,28 @@
+type LaunchConfigurer interface {
+	// OptionKeys lists the agent's typed launch options, each with the
+	// neutral Concern it overlaps. Pure.
+	OptionKeys() ([]OptionKey, error)
+	// OptionsSchema is the closed JSON Schema of an options object. Pure.
+	OptionsSchema() (SchemaNode, error)
+	// CheckOptions validates an options object without building: an
+	// unknown key is an error listing the valid keys, a wrong value type
+	// an error naming the key and the expected kind. Pure.
+	CheckOptions(options Raw) error
+	// CheckSettings type-checks a settings object: type errors, unknown
+	// keys (with a suggestion) and the keys that overlap a neutral
+	// concern. A body that is not a JSON object is an error. Pure.
+	CheckSettings(settings Raw) (SettingsCheck, error)
+	// RawSettingsArg reports whether raw args (LaunchRequest.Args)
+	// already deliver settings (Claude: --settings), so the launcher skips
+	// its own; the agent would use only one of them. Pure.
+	RawSettingsArg(args []string) bool
+	// LaunchConfigured builds what Launch(t, r) builds (autonomy rules,
+	// credential env and scrub, home rule, dir, version warnings) with c's
+	// options applied over what r maps to and c's settings delivered. An
+	// option that sets a field r already sets is ErrInvalidOption naming
+	// both; every emitted flag is version-gated; settings with a type
+	// error are refused, unknown ones become Command.Warnings. r.Args stay
+	// last and verbatim. Pure, except Disk · Write when c.Delivery is
+	// SettingsFile and settings are delivered (the file in c.RunDir).
+	LaunchConfigured(t Target, r LaunchRequest, c LaunchConfig) (Command, error)
+}

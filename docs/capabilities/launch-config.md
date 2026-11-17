@@ -162,6 +162,31 @@ func runFiles(w io.Writer) error {
 }
 ```
 
+## Step 6 — Launch with options and settings through the neutral Agent
+
+Steps 1 to 4 use the vendor packages. A launcher that must stay agent-neutral asks [`agentio.LaunchConfigOf`](ds:block?id=launchconfigof-r7a2k4mq) instead and hands a [`LaunchConfig`](ds:block?id=launchconfig-r7b3m5nq) to [`LaunchConfigured`](ds:block?id=launchconfigurer-r7c4p6rs) next to the usual `LaunchRequest`: `Options` is the typed block as JSON, `Settings` the merged settings object, `Delivery` file (the default, into `RunDir` as `settings-<RunID>.json`) or inline. An empty `LaunchConfig` builds exactly what `Launch(t, r)` builds.
+
+- **Options overlay the request.** [Only the keys given are set](ds:block?id=overlayoptions-r7d5q8tv) on top of what the request maps to; a key whose field the request already sets is refused naming both (`option "model" conflicts with LaunchRequest.Model`). Every [`OptionKey`](ds:block?id=launch-optionkey-r6k4m2qa) carries the neutral `Concern` it overlaps (model, prompt, add-dir, autonomy, headless, resume, settings), so a launcher can apply one winner per concern before it builds. Every emitted flag is version-gated against `Target.Version`, as in `Launch`.
+- **Settings are checked, then delivered.** `CheckSettings` returns a [`SettingsCheck`](ds:block?id=settingscheck-r7e6s9wx): type errors (key and expected type, never the value), unknown keys with a "did you mean", and the given keys that overlap a concern (Claude `model`, `permissions.defaultMode`, `apiKeyHelper`, `env.<credential variable>`; Codex `model`, `sandbox_mode`, `approval_policy`). A launch with a type error is refused; unknown keys pass and come back as `unknown-key` warnings on the `Command`.
+- **Claude** [delivers settings through `LaunchSettings`](ds:block?id=claude-launchconfigured-r7f7t2yz) as `--settings <file|json>` after every other check, so a refused launch writes no file. An `api-key-helper` login is merged into the same object (a settings `apiKeyHelper` competing with it is refused) and follows `Delivery`, unlike the neutral `Launch`, which passes it inline. `RawSettingsArg` reports a raw `--settings` in the request's args: Claude would then see two, so skip your own.
+- **Codex** [turns each settings leaf into `-c path=value`](ds:block?id=codex-settingsoverrides-r7g8u3za): objects recurse, strings, bools, numbers and string arrays are quoted by the `Override` constructors, anything else is refused, and [each override is checked](ds:block?id=codex-launchconfigured-r7h9v4bc) with `CheckOverride`. Overrides always travel on argv, so `Delivery` does not apply.
+- **Gemini CLI, pi and config-defined agents** have no launch configurer; `agentio.Unsupported(a, agentio.CapLaunchConfig)` gives the reason. Pass their flags as raw args.
+
+```go
+lc, ok := agentio.LaunchConfigOf(a)
+if !ok {
+	reason, _ := agentio.Unsupported(a, agentio.CapLaunchConfig)
+	return fmt.Errorf("no launch config: %s", reason)
+}
+cmd, err := lc.LaunchConfigured(target, agentio.LaunchRequest{Model: "opus"}, agentio.LaunchConfig{
+	Options:  agentio.Raw(`{"effort": "high"}`),
+	Settings: agentio.Raw(`{"cleanupPeriodDays": 30}`),
+	RunDir:   runDir,
+	RunID:    runID,
+})
+// claude --model opus --effort high --settings <run dir>/settings-<run id>.json
+```
+
 ## Try it
 
 ```sh
@@ -176,6 +201,7 @@ The output is in the example's [README](../../examples/launchconfig/README.md).
 - **Inline settings are visible.** `SettingsViaInline` puts every key on argv, including an `apiKeyHelper` command and `env` values; use the file unless you have a reason not to.
 - **A run id names a file.** `LaunchSettings` accepts `[A-Za-z0-9][A-Za-z0-9._-]*` only and never reuses a file, so two launches cannot share settings.
 - **Record the start time from `Host.Processes`.** `ProcessAlive` allows two seconds of difference (macOS reports seconds); your own clock read before the exec is close enough, the process table's is exact.
+- **A launch config file is the caller's to clean up.** `LaunchConfigured` writes the settings file only when settings are delivered as a file; remove it with the run folder once the agent has ended (Step 5).
 - **The helper refresh is a floor, not a promise.** Claude also re-runs the helper on a 401; very short intervals run your command often.
 
 ## Related

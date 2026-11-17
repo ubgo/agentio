@@ -1,6 +1,6 @@
 # Capability matrix
 
-Which of the 27 shared capabilities each built-in agent has. A missing capability is never empty data: its accessor returns false and `agentio.Unsupported` gives the agent's reason, listed under the table. The table is the output of [`examples/capmatrix`](../../examples/capmatrix/), which reads it from `agentio.Supported`; its test pins the rows.
+Which of the 28 shared capabilities each built-in agent has. A missing capability is never empty data: its accessor returns false and `agentio.Unsupported` gives the agent's reason, listed under the table. The table is the output of [`examples/capmatrix`](../../examples/capmatrix/), which reads it from `agentio.Supported`; its test pins the rows.
 
 | Capability | Claude Code | Codex | Gemini CLI | pi |
 |---|---|---|---|---|
@@ -31,6 +31,7 @@ Which of the 27 shared capabilities each built-in agent has. A missing capabilit
 | `run-events` | ✅ | ✅ | — | — |
 | `doctor` | ✅ | ✅ | ✅ | ✅ |
 | `live-credential` | ✅ | — | — | — |
+| `launch-config` | ✅ | ✅ | — | — |
 
 ## Why a capability is missing
 
@@ -67,6 +68,8 @@ Which of the 27 shared capabilities each built-in agent has. A missing capabilit
 - **codex, `live-credential`:** Codex reads its login from auth.json or the keyring and refreshes it itself; it has no credential-helper setting
 - **gemini, `live-credential`:** Gemini CLI reads its login (oauth_creds.json, the keychain or GEMINI_API_KEY) at start and refreshes OAuth itself; it has no setting that re-reads a key from a caller's command
 - **pi, `live-credential`:** pi can read a key from a !command in auth.json, but when it re-runs that command is not documented or recorded
+- **gemini, `launch-config`:** Gemini CLI has no settings flag and no typed launch options in agentio; pass flags as raw args
+- **pi, `launch-config`:** pi has no settings flag and no typed launch options in agentio; pass flags as raw args
 
 ## Related
 

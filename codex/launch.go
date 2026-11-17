@@ -3,6 +3,7 @@ package codex
 import (
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -114,6 +115,33 @@ func OverrideStrings(path string, vs []string) Override {
 		q[i] = strconv.Quote(v)
 	}
 	return Override{Path: path, Value: TOMLRaw("[" + strings.Join(q, ", ") + "]")}
+}
+
+// TOML spellings Go's float formatting does not produce (Go prints -Inf
+// and drops the decimal point of integral values).
+const (
+	tomlNegInf   = "-" + tomlInf
+	tomlFloatDot = ".0"
+)
+
+// OverrideFloat renders a TOML float, always with a decimal point or an
+// exponent so TOML never reads it as an integer. Pure.
+func OverrideFloat(path string, v float64) Override {
+	var s string
+	switch {
+	case math.IsNaN(v):
+		s = tomlNaN
+	case math.IsInf(v, 1):
+		s = tomlInf
+	case math.IsInf(v, -1):
+		s = tomlNegInf
+	default:
+		s = strconv.FormatFloat(v, 'g', -1, 64)
+		if !strings.ContainsAny(s, ".eE") {
+			s += tomlFloatDot
+		}
+	}
+	return Override{Path: path, Value: TOMLRaw(s)}
 }
 
 // ErrBadOverride means a `-c` text has no `=`.
@@ -621,8 +649,20 @@ func (a *Agent) TargetFor(h Home) (agentio.Target, error) {
 
 // launchNeutral maps agentio.LaunchRequest onto the builders (SPEC §5.4).
 func (a *Agent) launchNeutral(t agentio.Target, r agentio.LaunchRequest) (agentio.Command, error) {
+	o, err := optionsFromRequest(t, r)
+	if err != nil {
+		return agentio.Command{}, err
+	}
+	return a.launchOptions(t, r, o)
+}
+
+// optionsFromRequest maps the neutral request's option fields (prompt,
+// model, extra dirs, autonomy, raw args) onto LaunchOptions; resume and
+// headless pick the builder instead (launchOptions). A token login and a
+// level Codex cannot express exactly are refused. Pure.
+func optionsFromRequest(t agentio.Target, r agentio.LaunchRequest) (LaunchOptions, error) {
 	if r.Credential != nil {
-		return agentio.Command{}, agentio.UnsupportedError(ID, "token login", "Codex has no token login; log in with codex login")
+		return LaunchOptions{}, agentio.UnsupportedError(ID, "token login", "Codex has no token login; log in with codex login")
 	}
 	o := LaunchOptions{Prompt: r.Prompt, Model: r.Model, AddDirs: r.AddDirs}
 	switch r.Autonomy {
@@ -632,16 +672,22 @@ func (a *Agent) launchNeutral(t agentio.Target, r agentio.LaunchRequest) (agenti
 	case agentio.AutonomyAsk:
 		o.Sandbox, o.Approval = ModeWorkspaceWrite, ApprovalOnRequest
 	case agentio.AutonomyAcceptEdits:
-		return agentio.Command{}, agentio.UnsupportedError(ID, "autonomy accept-edits", "Codex has no edits-only mode; never mapped to a more permissive one")
+		return LaunchOptions{}, agentio.UnsupportedError(ID, "autonomy accept-edits", "Codex has no edits-only mode; never mapped to a more permissive one")
 	case agentio.AutonomyFull:
 		if err := agentio.CheckAutonomy(t, r.Autonomy); err != nil {
-			return agentio.Command{}, err
+			return LaunchOptions{}, err
 		}
 		o.BypassAll = true
 	default:
-		return agentio.Command{}, agentio.UnsupportedError(ID, "autonomy "+r.Autonomy.String(), "unknown autonomy level")
+		return LaunchOptions{}, agentio.UnsupportedError(ID, "autonomy "+r.Autonomy.String(), "unknown autonomy level")
 	}
 	o.trailing = slices.Clone(r.Args)
+	return o, nil
+}
+
+// launchOptions picks the builder for the request (exec for headless,
+// resume for an id) and builds o with it, in the request's dir. Pure.
+func (a *Agent) launchOptions(t agentio.Target, r agentio.LaunchRequest, o LaunchOptions) (agentio.Command, error) {
 	var (
 		cmd agentio.Command
 		err error

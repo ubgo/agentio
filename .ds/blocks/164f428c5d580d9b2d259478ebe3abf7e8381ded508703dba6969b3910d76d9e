@@ -1,0 +1,3 @@
+func capabilityNames() []string {
+	return []string{"installer", "binary-version", "identity", "usage", "cached-usage", "subscription", "token-login", "token-prober", "login-commander", "conversations", "history-checker", "history-mover", "conversation-mover", "prompt-history", "live-sessions", "process-classifier", "turns", "home-linker", "instruction-files", "mcp-servers", "skills", "plugins", "config", "models", "run-events", "doctor", "live-credential", "launch-config"}
+}

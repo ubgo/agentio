@@ -1,0 +1,37 @@
+func (a *Agent) launchConfigured(t agentio.Target, r agentio.LaunchRequest, c agentio.LaunchConfig) (agentio.Command, error) {
+	o, err := optionsFromRequest(t, r)
+	if err != nil {
+		return agentio.Command{}, err
+	}
+	keys, err := LaunchOptionKeys()
+	if err != nil {
+		return agentio.Command{}, err
+	}
+	if err := agentio.OverlayOptions(c.Options, keys, reflect.ValueOf(&o), r, mapRequest); err != nil {
+		return agentio.Command{}, err
+	}
+	overrides, check, err := checkedOverrides(c.Settings)
+	if err != nil {
+		return agentio.Command{}, err
+	}
+	if !check.OK() {
+		parts := make([]string, len(check.TypeErrors))
+		for i, e := range check.TypeErrors {
+			parts[i] = e.Key + ": " + e.Detail
+		}
+		return agentio.Command{}, fmt.Errorf("%w: settings type errors: %s", agentio.ErrInvalidOption, strings.Join(parts, "; "))
+	}
+	o.Overrides = overrides
+	cmd, err := a.launchOptions(t, r, o)
+	if err != nil {
+		return agentio.Command{}, err
+	}
+	for _, u := range check.Unknown {
+		detail := u.Detail
+		if u.Suggestion != "" {
+			detail += suggestionPrefix + u.Suggestion + "?"
+		}
+		cmd.Warnings.Add(agentio.WarnUnknownKey, "", u.Key, detail)
+	}
+	return cmd, nil
+}

@@ -820,6 +820,16 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), whi
 <!-- ds:def id=pi-agent-sessions-r6p4c8h9 file=pi/sessions.go pick=symbol:Agent.Sessions owner=@khanakia -->
 <!-- ds:def id=pi-agent-logins-r6p6o4k5 file=pi/auth.go pick=symbol:Agent.Logins owner=@khanakia -->
 <!-- ds:def id=spec-tokenenv-r6v7b2nm file=spec.go pick=symbol:TokenEnv owner=@khanakia -->
+<!-- ds:def id=launchconfigof-r7a2k4mq file=accessor.go pick=symbol:LaunchConfigOf owner=@khanakia -->
+<!-- ds:def id=launchconfig-r7b3m5nq file=launchconfig.go pick=symbol:LaunchConfig owner=@khanakia -->
+<!-- ds:def id=launchconfigurer-r7c4p6rs file=launchconfig.go pick=symbol:LaunchConfigurer owner=@khanakia -->
+<!-- ds:def id=overlayoptions-r7d5q8tv file=launchconfig.go pick=symbol:OverlayOptions owner=@khanakia -->
+<!-- ds:def id=settingscheck-r7e6s9wx file=launchconfig.go pick=symbol:SettingsCheck owner=@khanakia -->
+<!-- ds:def id=claude-launchconfigured-r7f7t2yz file=claude/launchconfig.go pick=symbol:Agent.launchConfigured owner=@khanakia -->
+<!-- ds:def id=codex-settingsoverrides-r7g8u3za file=codex/launchconfig.go pick=symbol:SettingsOverrides owner=@khanakia -->
+<!-- ds:def id=codex-launchconfigured-r7h9v4bc file=codex/launchconfig.go pick=symbol:Agent.launchConfigured owner=@khanakia -->
+<!-- ds:def id=concernnames-r7c4n2lq file=enums.go pick=symbol:concernNames owner=@khanakia -->
+<!-- ds:def id=settingsdeliverynames-r7d8v3kp file=enums.go pick=symbol:settingsDeliveryNames owner=@khanakia -->
 
 ## License
 

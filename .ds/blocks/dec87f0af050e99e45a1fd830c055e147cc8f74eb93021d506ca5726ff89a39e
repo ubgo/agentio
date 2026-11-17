@@ -1,0 +1,16 @@
+type LaunchConfig struct {
+	// Options is a JSON object of the agent's option keys
+	// (LaunchConfigurer.OptionKeys), such as {"effort": "high"}; nil or
+	// empty = none.
+	Options Raw
+	// Settings is a nested JSON object of the agent's settings keys
+	// (Claude: settings.json keys; Codex: config.toml paths as nested
+	// objects); nil or empty = none.
+	Settings Raw
+	// Delivery is how Settings reach an agent that takes a settings
+	// object (SettingsFile, the default, needs RunDir and RunID).
+	Delivery SettingsDelivery
+	// RunDir is the caller's per-run folder the settings file is written
+	// into; RunID names the file (settings-<RunID>.json).
+	RunDir, RunID string
+}

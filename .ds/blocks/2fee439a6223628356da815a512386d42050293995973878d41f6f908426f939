@@ -1,0 +1,18 @@
+func (a specAgent) UnsupportedReason(c Capability) (string, bool) {
+	if a.HasCapability(c) {
+		return "", false
+	}
+	switch c {
+	case CapProcessClassifier:
+		return "spec has no process match", true
+	case CapLoginCommander:
+		return "spec has no login args", true
+	case CapHomeLinker:
+		return "spec has no shared home files", true
+	case CapBinaryVersion:
+		return "spec has no version args", true
+	case CapLaunchConfig:
+		return specLaunchConfigReason, true
+	}
+	return configOnlyReason, true
+}

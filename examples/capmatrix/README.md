@@ -39,6 +39,7 @@ models              -       yes     -       -
 run-events          yes     yes     -       -
 doctor              yes     yes     yes     yes
 live-credential     yes     -       -       -
+launch-config       yes     yes     -       -
 why not:
   gemini usage: Gemini CLI quota and tier come from a logged-in Code Assist API call (retrieveUserQuota, loadCodeAssist) whose responses are not recorded yet
   pi usage: pi has no plan or quota; it records per-message token cost in session files (pi.Agent.SessionUsage)
@@ -73,6 +74,8 @@ why not:
   codex live-credential: Codex reads its login from auth.json or the keyring and refreshes it itself; it has no credential-helper setting
   gemini live-credential: Gemini CLI reads its login (oauth_creds.json, the keychain or GEMINI_API_KEY) at start and refreshes OAuth itself; it has no setting that re-reads a key from a caller's command
   pi live-credential: pi can read a key from a !command in auth.json, but when it re-runs that command is not documented or recorded
+  gemini launch-config: Gemini CLI has no settings flag and no typed launch options in agentio; pass flags as raw args
+  pi launch-config: pi has no settings flag and no typed launch options in agentio; pass flags as raw args
 ```
 
 ## Test

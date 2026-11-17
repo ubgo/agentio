@@ -1,0 +1,3 @@
+func LaunchConfigOf(a Agent) (LaunchConfigurer, bool) {
+	return capabilityOf[LaunchConfigurer](a, CapLaunchConfig)
+}

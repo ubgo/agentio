@@ -19,6 +19,8 @@ func TestRun(t *testing.T) {
 		"usage               yes     yes     -       -",
 		"conversations       yes     yes     yes     yes",
 		"live-credential     yes     -       -       -",
+		"launch-config       yes     yes     -       -",
+		"gemini launch-config: Gemini CLI has no settings flag",
 		"codex live-credential: Codex reads its login",
 		"pi usage: ",
 		"gemini usage: Gemini CLI quota and tier come from a logged-in Code Assist API call",

@@ -1,0 +1,18 @@
+func OverlayOptions(options Raw, keys []OptionKey, dst reflect.Value, r LaunchRequest, mapOne RequestMapper) error {
+	if IsEmptyJSON(options) {
+		return nil
+	}
+	given, err := optionObject(options, keys)
+	if err != nil {
+		return err
+	}
+	for _, name := range given {
+		k, _ := FindOptionKey(keys, name)
+		f := dst.Elem().FieldByName(k.Field)
+		if !f.IsValid() || f.IsZero() {
+			continue
+		}
+		return fmt.Errorf("%w: option %q conflicts with %s%s", ErrInvalidOption, k.Key, requestFieldPrefix, requestSource(r, k.Field, mapOne))
+	}
+	return DecodeOptions(options, keys, dst)
+}

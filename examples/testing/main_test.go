@@ -56,8 +56,8 @@ func TestCollect(t *testing.T) {
 	if err := run(context.Background(), &b, h); err != nil {
 		t.Fatal(err)
 	}
-	want := "claude homes=[personal work] conversations=3 capabilities=26\n" +
-		"codex homes=[personal] conversations=2 capabilities=22\n" +
+	want := "claude homes=[personal work] conversations=3 capabilities=27\n" +
+		"codex homes=[personal] conversations=2 capabilities=23\n" +
 		"gemini homes=[] conversations=0 capabilities=14\n" +
 		"pi homes=[] conversations=0 capabilities=13\n"
 	if b.String() != want {

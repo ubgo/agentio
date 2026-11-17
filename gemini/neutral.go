@@ -69,6 +69,8 @@ func unsupportedReason(c agentio.Capability) string {
 		return "Gemini CLI keeps its model catalog in its own defaults, not in a file on disk"
 	case agentio.CapRunEvents:
 		return "the --output-format stream-json event shape is not recorded from a real run yet"
+	case agentio.CapLaunchConfig:
+		return "Gemini CLI has no settings flag and no typed launch options in agentio; pass flags as raw args"
 	case agentio.CapLiveCredential:
 		return "Gemini CLI reads its login (oauth_creds.json, the keychain or GEMINI_API_KEY) at start and refreshes OAuth itself; it has no setting that re-reads a key from a caller's command"
 	}

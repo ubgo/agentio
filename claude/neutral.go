@@ -47,6 +47,7 @@ var (
 	_ agentio.RunEvents           = neutral{}
 	_ agentio.Doctor              = neutral{}
 	_ agentio.LiveCredentialer    = neutral{}
+	_ agentio.LaunchConfigurer    = neutral{}
 	_ agentio.UnsupportedReasoner = neutral{}
 )
 

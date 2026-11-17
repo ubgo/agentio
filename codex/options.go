@@ -52,10 +52,11 @@ func probeLaunchOptions(v reflect.Value) ([]string, []agentio.OptionFeature, err
 // the builder. cost: Pure.
 func LaunchOptionKeys() ([]agentio.OptionKey, error) {
 	return agentio.DeriveOptionKeys(agentio.OptionDerivation{
-		Type:  reflect.TypeFor[LaunchOptions](),
-		Probe: probeLaunchOptions,
-		Enums: optionEnums,
-		Skip:  optionSkip(),
+		Type:     reflect.TypeFor[LaunchOptions](),
+		Probe:    probeLaunchOptions,
+		Enums:    optionEnums,
+		Skip:     optionSkip(),
+		Concerns: optionConcerns(),
 	})
 }
 

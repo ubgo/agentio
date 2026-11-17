@@ -1,0 +1,7 @@
+func SettingsOverrides(settings agentio.Raw) ([]Override, error) {
+	var out []Override
+	if err := flattenSettings("", settings, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}

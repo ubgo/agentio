@@ -1,0 +1,9 @@
+func LaunchOptionKeys() ([]agentio.OptionKey, error) {
+	return agentio.DeriveOptionKeys(agentio.OptionDerivation{
+		Type:     reflect.TypeFor[LaunchOptions](),
+		Probe:    probeLaunchOptions,
+		Enums:    optionEnums,
+		Skip:     optionSkip(),
+		Concerns: optionConcerns(),
+	})
+}

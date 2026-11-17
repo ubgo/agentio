@@ -1,0 +1,12 @@
+type SettingsCheck struct {
+	// TypeErrors are modelled keys with a value of the wrong type; a
+	// launch with any is refused.
+	TypeErrors []SettingsIssue `json:"type_errors,omitempty"`
+	// Unknown are keys (or values) the library does not model; they are
+	// passed on and become warnings, because the agent may know them.
+	Unknown []SettingsIssue `json:"unknown,omitempty"`
+	// Concerns maps each given key path that overlaps a neutral concern
+	// to it (Claude "model" → ConcernModel, "apiKeyHelper" →
+	// ConcernCredential), so a launcher can apply one winner per concern.
+	Concerns map[string]Concern `json:"concerns,omitempty"`
+}

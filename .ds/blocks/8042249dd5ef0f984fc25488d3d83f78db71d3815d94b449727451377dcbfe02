@@ -1,0 +1,3 @@
+func concernNames() []string {
+	return []string{"none", "model", "prompt", "add-dir", "autonomy", "headless", "resume", "credential", "settings"}
+}

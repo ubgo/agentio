@@ -481,35 +481,21 @@ func launchFromRequest(r agentio.LaunchRequest) (LaunchOptions, error) {
 // launchRequest is the neutral Launch: Autonomy rules, token login env,
 // then the rich builder.
 func (a *Agent) launchRequest(t agentio.Target, r agentio.LaunchRequest) (agentio.Command, error) {
-	if err := agentio.CheckAutonomy(t, r.Autonomy); err != nil {
-		return agentio.Command{}, err
-	}
-	o, err := launchFromRequest(r)
+	o, tokenEnv, err := a.requestOptions(t, r)
 	if err != nil {
 		return agentio.Command{}, err
 	}
-	var tokenEnv []agentio.EnvChange
-	if r.Credential != nil {
-		if tokenEnv, err = a.TokenEnv(*r.Credential); err != nil {
+	if r.Credential != nil && r.Credential.Kind == agentio.TokenAPIKeyHelper {
+		// The neutral request has no settings of its own, so the helper
+		// goes inline; LaunchConfigured merges it into the launch's
+		// settings and delivers them as asked (a 0600 file by default).
+		js, err := HelperSettings(*r.Credential)
+		if err != nil {
 			return agentio.Command{}, err
 		}
-		if r.Credential.Kind == agentio.TokenAPIKeyHelper {
-			// The neutral request has no settings of its own, so the
-			// helper goes inline; a launcher that merges more settings
-			// uses LaunchSettings and the rich Launch instead.
-			js, err := HelperSettings(*r.Credential)
-			if err != nil {
-				return agentio.Command{}, err
-			}
-			o.Settings = string(js)
-		}
+		o.Settings = string(js)
 	}
-	cmd, err := a.launch(t, o, tokenEnv)
-	if err != nil {
-		return agentio.Command{}, err
-	}
-	cmd.Dir = r.Dir
-	return cmd, nil
+	return a.launchAt(t, o, tokenEnv, r.Dir)
 }
 
 // EncodeAgentsFlag renders the --agents JSON {"name": {"description", "prompt", …}}.
