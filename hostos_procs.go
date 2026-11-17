@@ -95,7 +95,21 @@ func darwinEnv(ctx context.Context, pid int) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("agentio: ps -E: %w", err)
 	}
-	return envFields(string(out)), nil
+	return darwinEnvFrom(pid, string(out))
+}
+
+// darwinEnvFrom turns `ps -E` output into the environment. darwin prints
+// no environment at all for a process it will not expose (a protected
+// platform binary, a hardened process): an empty result is "unreadable",
+// never "an environment without the variable", or ProcessAlive would
+// call a running process ended and a cleaner would delete its files.
+// Every real process has at least one variable. Pure.
+func darwinEnvFrom(pid int, out string) ([]string, error) {
+	env := envFields(out)
+	if len(env) == 0 {
+		return nil, fmt.Errorf("%w: ps -E shows no environment for pid %d (darwin hides it for protected processes)", ErrUnsupported, pid)
+	}
+	return env, nil
 }
 
 // envFields keeps the space-separated fields shaped NAME=value. Pure.

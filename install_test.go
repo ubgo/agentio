@@ -1,6 +1,7 @@
 package agentio
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -79,6 +80,20 @@ func TestLinuxEnvAt(t *testing.T) {
 	}
 	if _, err := linuxEnvAt(root, 43); err == nil {
 		t.Error("missing pid must fail")
+	}
+}
+
+// TestDarwinEnvHidden: `ps -E` output with no NAME=value field (darwin
+// hides a protected process's environment) is unreadable, not an empty
+// environment, so ProcessAlive never calls such a process ended.
+func TestDarwinEnvHidden(t *testing.T) {
+	t.Parallel()
+	if _, err := darwinEnvFrom(7, "/bin/sleep 60\n"); !errors.Is(err, ErrUnsupported) {
+		t.Fatalf("hidden env: %v", err)
+	}
+	env, err := darwinEnvFrom(7, "/bin/sleep 60 AGX_RUN_ID=r1 PATH=/bin\n")
+	if err != nil || !slices.Equal(env, []string{"AGX_RUN_ID=r1", "PATH=/bin"}) {
+		t.Fatalf("visible env: %v %v", env, err)
 	}
 }
 
