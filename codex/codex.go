@@ -61,6 +61,7 @@ func Spec() agentio.Spec {
 		ID:          ID,
 		Name:        displayName,
 		Binary:      Binary,
+		Packages:    []string{npmPackage},
 		HomeEnv:     EnvHome,
 		DefaultHome: defaultHomeDir,
 		HomeMarkers: []string{fileConfig, fileAuth, dirSessions, fileStateDB, fileVersionCache, fileInstallationID},

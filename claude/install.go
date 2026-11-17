@@ -23,7 +23,7 @@ const (
 // Real-path shapes that tell the install method.
 const (
 	nativeVersionsDir   = "/.local/share/claude/versions/"
-	npmPackageDir       = "node_modules/@anthropic-ai/claude-code"
+	npmPackageDir       = "node_modules/" + NPMPackage
 	caskroomDir         = "/Caskroom/"
 	packageJSONFile     = "package.json"
 	nativeBinDir        = "/.local/bin/"

@@ -77,6 +77,11 @@ func apiBillingEnv() []string {
 	return []string{APIKeyEnv, AuthTokenEnv, UseBedrockEnv, UseVertexEnv, UseFoundryEnv}
 }
 
+// NPMPackage is the npm package Claude Code installs from; it is in Spec
+// so a caller can print an install hint ("npm i -g <package>") without
+// knowing the vendor.
+const NPMPackage = "@anthropic-ai/claude-code"
+
 // Spec returns the data Claude's core is built from. cost: Pure.
 func Spec() agentio.Spec {
 	return agentio.Spec{
@@ -89,6 +94,7 @@ func Spec() agentio.Spec {
 		AddDirArgs:      []string{flagAddDir, placeholderDir},
 		PromptArgs:      []string{placeholderPrompt},
 		VersionArgs:     []string{flagVersion},
+		Packages:        []string{NPMPackage},
 		LoginArgs:       []string{subAuth, subLogin},
 		LogoutArgs:      []string{subAuth, subLogout},
 		SharedHomeFiles: sharedHomeFiles(),
