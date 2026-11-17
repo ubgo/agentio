@@ -2,10 +2,10 @@ github.com/pelletier/go-toml/v2 v2.4.3 h1:GTRvJQutkOSftxIFD5xw9aepkYNuPWmVJpffdD
 github.com/pelletier/go-toml/v2 v2.4.3/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
 github.com/ubgo/agentio v0.0.0-20261117114637-0db0153c7850 h1:iXKyh7hJ+ZmVY5vaOXVcjlqQcWdc3JmAGSTW0iuzqqE=
 github.com/ubgo/agentio v0.0.0-20261117114637-0db0153c7850/go.mod h1:258owB0YCn00NB5D12/x2MpB3cSAh63SYJVR1Iu9WZo=
-github.com/ubgo/agentio/claude v0.0.0-20261117114637-0db0153c7850 h1:ZH3uNLv8FuuHshHzkv0dJujHNNi2W5BqHBNx4et/7hc=
-github.com/ubgo/agentio/claude v0.0.0-20261117114637-0db0153c7850/go.mod h1:hiXmjFJT16ELbwag1VS+xmV32DwXYmx79ErFTPgJabw=
-github.com/ubgo/agentio/codex v0.0.0-20261117114637-0db0153c7850 h1:MVtM75kidAgKpNFfI1skODPKjTfY3XrIbRtolutWZTA=
-github.com/ubgo/agentio/codex v0.0.0-20261117114637-0db0153c7850/go.mod h1:j1a/DdOAOxeR98oPCBYzz4EEnHjLFCbPOp3g3MywpMY=
+github.com/ubgo/agentio/claude v0.0.0-20261117115548-594c2a087e85 h1:4xWDhIp77mBL31DTzYGa12V/7uZCfQKPkxB5hft/rHM=
+github.com/ubgo/agentio/claude v0.0.0-20261117115548-594c2a087e85/go.mod h1:j+FiU0IxnWejxRXulCdkLlNEsNwgBjHHUPO9UUtINgs=
+github.com/ubgo/agentio/codex v0.0.0-20261117115548-594c2a087e85 h1:IQLYy/kAvhME+EVqYGkFXDtEuaAmqjdsL+w7biXjgpo=
+github.com/ubgo/agentio/codex v0.0.0-20261117115548-594c2a087e85/go.mod h1:OwGPleWAZK5tfKIOm507SavA3r62Jq+1oK1/SXwWWmc=
 github.com/ubgo/agentio/gemini v0.0.0-20261117114637-0db0153c7850 h1:oB6uwcfv5PTC86/mJ7i3AvEITdyyEfVLY/xGg1qeey4=
 github.com/ubgo/agentio/gemini v0.0.0-20261117114637-0db0153c7850/go.mod h1:Z8Afbiyn1LsqbYQiJDYNwNnL1xbWl5iXVCZeuKxDJUQ=
 github.com/ubgo/agentio/pi v0.0.0-20261117114637-0db0153c7850 h1:yd1FlmNZmlocxk7poZw2Go39kSZaGDPLKK42mvqkIPY=
