@@ -437,6 +437,8 @@ const (
 	WarnUnknownRecord
 	// WarnUnreadable: one entry could not be read or parsed; the rest of the result is valid.
 	WarnUnreadable
+	// WarnUnknownKey: a settings key or config override the library does not model; passed on unchecked.
+	WarnUnknownKey
 )
 
 // warningKindKind labels WarningKind in errors.
@@ -444,7 +446,7 @@ const warningKindKind = "warning kind"
 
 // warningKindNames is the wire spelling of each WarningKind, indexed by value. Pure.
 func warningKindNames() []string {
-	return []string{"untested-version", "version-unknown", "type-changed", "old-key-name", "unknown-record", "unreadable"}
+	return []string{"untested-version", "version-unknown", "type-changed", "old-key-name", "unknown-record", "unreadable", "unknown-key"}
 }
 
 // String returns the wire spelling. Pure.
@@ -823,6 +825,8 @@ const (
 	CapDoctor
 	// CapLiveCredential: LiveCredentialer · LiveCredentialOf.
 	CapLiveCredential
+	// CapLaunchConfig: LaunchConfigurer · LaunchConfigOf (writes a settings file when asked).
+	CapLaunchConfig
 )
 
 // capabilityKind labels Capability in errors.
@@ -830,7 +834,7 @@ const capabilityKind = "capability"
 
 // capabilityNames is the wire spelling of each Capability, indexed by value. Pure.
 func capabilityNames() []string {
-	return []string{"installer", "binary-version", "identity", "usage", "cached-usage", "subscription", "token-login", "token-prober", "login-commander", "conversations", "history-checker", "history-mover", "conversation-mover", "prompt-history", "live-sessions", "process-classifier", "turns", "home-linker", "instruction-files", "mcp-servers", "skills", "plugins", "config", "models", "run-events", "doctor", "live-credential"}
+	return []string{"installer", "binary-version", "identity", "usage", "cached-usage", "subscription", "token-login", "token-prober", "login-commander", "conversations", "history-checker", "history-mover", "conversation-mover", "prompt-history", "live-sessions", "process-classifier", "turns", "home-linker", "instruction-files", "mcp-servers", "skills", "plugins", "config", "models", "run-events", "doctor", "live-credential", "launch-config"}
 }
 
 // String returns the wire spelling. Pure.
@@ -887,3 +891,93 @@ func LivenessValues() []Liveness { return enumValues[Liveness](livenessNames()) 
 
 // ParseLiveness parses a wire spelling. Pure.
 func ParseLiveness(s string) (Liveness, bool) { return enumParse[Liveness](s, livenessNames()) }
+
+// SettingsDelivery says how per-launch settings reach an agent that reads a settings object at launch (Claude's --settings): a file or the JSON on argv.
+type SettingsDelivery uint8
+
+// SettingsDelivery values. Order is the wire order of names; append only.
+const (
+	// SettingsFile: a 0600 file in the caller's run dir; its path goes on argv, so nothing in it shows in the process list (the default).
+	SettingsFile SettingsDelivery = iota
+	// SettingsInline: the JSON itself on argv; no file to clean up, but every key (a helper command, env values) shows in ps.
+	SettingsInline
+)
+
+// settingsDeliveryKind labels SettingsDelivery in errors.
+const settingsDeliveryKind = "settings delivery"
+
+// settingsDeliveryNames is the wire spelling of each SettingsDelivery, indexed by value. Pure.
+func settingsDeliveryNames() []string { return []string{"file", "inline"} }
+
+// String returns the wire spelling. Pure.
+func (v SettingsDelivery) String() string {
+	return enumString(v, settingsDeliveryKind, settingsDeliveryNames())
+}
+
+// MarshalText encodes the wire spelling, so JSON and YAML carry names, not numbers. Pure.
+func (v SettingsDelivery) MarshalText() ([]byte, error) { return []byte(v.String()), nil }
+
+// UnmarshalText parses the wire spelling; an unknown name is an error (closed set). Pure.
+func (v *SettingsDelivery) UnmarshalText(b []byte) error {
+	return enumUnmarshal(v, b, settingsDeliveryKind, settingsDeliveryNames())
+}
+
+// SettingsDeliveryValues lists every SettingsDelivery in order: the canonical iteration list. Pure.
+func SettingsDeliveryValues() []SettingsDelivery {
+	return enumValues[SettingsDelivery](settingsDeliveryNames())
+}
+
+// ParseSettingsDelivery parses a wire spelling. Pure.
+func ParseSettingsDelivery(s string) (SettingsDelivery, bool) {
+	return enumParse[SettingsDelivery](s, settingsDeliveryNames())
+}
+
+// Concern is the neutral launch concern a vendor option key or settings key overlaps, so a launcher can apply "one winner per concern" without knowing vendor spellings.
+type Concern uint8
+
+// Concern values. Order is the wire order of names; append only.
+const (
+	// ConcernNone: the key overlaps no neutral request field.
+	ConcernNone Concern = iota
+	// ConcernModel: LaunchRequest.Model.
+	ConcernModel
+	// ConcernPrompt: LaunchRequest.Prompt.
+	ConcernPrompt
+	// ConcernAddDir: LaunchRequest.AddDirs.
+	ConcernAddDir
+	// ConcernAutonomy: LaunchRequest.Autonomy (the permission level).
+	ConcernAutonomy
+	// ConcernHeadless: LaunchRequest.Headless.
+	ConcernHeadless
+	// ConcernResume: LaunchRequest.ResumeID.
+	ConcernResume
+	// ConcernCredential: LaunchRequest.Credential (the login the agent uses).
+	ConcernCredential
+	// ConcernSettings: LaunchConfig.Settings (a raw settings value of its own).
+	ConcernSettings
+)
+
+// concernKind labels Concern in errors.
+const concernKind = "concern"
+
+// concernNames is the wire spelling of each Concern, indexed by value. Pure.
+func concernNames() []string {
+	return []string{"none", "model", "prompt", "add-dir", "autonomy", "headless", "resume", "credential", "settings"}
+}
+
+// String returns the wire spelling. Pure.
+func (v Concern) String() string { return enumString(v, concernKind, concernNames()) }
+
+// MarshalText encodes the wire spelling, so JSON and YAML carry names, not numbers. Pure.
+func (v Concern) MarshalText() ([]byte, error) { return []byte(v.String()), nil }
+
+// UnmarshalText parses the wire spelling; an unknown name is an error (closed set). Pure.
+func (v *Concern) UnmarshalText(b []byte) error {
+	return enumUnmarshal(v, b, concernKind, concernNames())
+}
+
+// ConcernValues lists every Concern in order: the canonical iteration list. Pure.
+func ConcernValues() []Concern { return enumValues[Concern](concernNames()) }
+
+// ParseConcern parses a wire spelling. Pure.
+func ParseConcern(s string) (Concern, bool) { return enumParse[Concern](s, concernNames()) }

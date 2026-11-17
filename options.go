@@ -67,6 +67,10 @@ type OptionKey struct {
 	// (no recorded Since or Until) means "assumed available".
 	Feature string      `json:"feature,omitempty"`
 	Gate    FeatureSpan `json:"gate,omitzero"`
+	// Concern is the neutral LaunchRequest concern the option overlaps
+	// (model, prompt, permission level…); ConcernNone for the rest. A
+	// launcher uses it for one winner per concern.
+	Concern Concern `json:"concern,omitempty"`
 }
 
 // OptionFeature is a feature gate a probe saw, by name with its span.
@@ -98,6 +102,10 @@ type OptionDerivation struct {
 	// Skip are Go field names that are not launch options (a config
 	// handle used for a check, a field set by the library itself).
 	Skip []string
+	// Concerns names the neutral concern of the keys that overlap one
+	// (by key); a key not in the struct is a derivation error, so a
+	// renamed field cannot silently lose its concern.
+	Concerns map[string]Concern
 }
 
 // ErrOptionDerivation means a field the registry could not describe.
@@ -132,6 +140,11 @@ func DeriveOptionKeys(d OptionDerivation) ([]OptionKey, error) {
 		}
 		out = append(out, k)
 	}
+	for key := range d.Concerns {
+		if !slices.ContainsFunc(out, func(k OptionKey) bool { return k.Key == key }) {
+			errs = append(errs, fmt.Errorf("concern for unknown key %s", key))
+		}
+	}
 	if len(errs) > 0 {
 		return out, fmt.Errorf("%w: %w", ErrOptionDerivation, errors.Join(errs...))
 	}
@@ -141,7 +154,7 @@ func DeriveOptionKeys(d OptionDerivation) ([]OptionKey, error) {
 // deriveOne probes one field on the first base that builds with it.
 func deriveOne(d OptionDerivation, bases []reflect.Value, f reflect.StructField, key string) (OptionKey, error) {
 	kind, values := optionKind(f.Type, d.Enums)
-	k := OptionKey{Key: key, Field: f.Name, Kind: kind, Values: values}
+	k := OptionKey{Key: key, Field: f.Name, Kind: kind, Values: values, Concern: d.Concerns[key]}
 	sample, ok := d.Samples[f.Type]
 	if !ok {
 		if sample, ok = sampleValue(f.Type, values); !ok {
@@ -352,8 +365,9 @@ func FindOptionKey(keys []OptionKey, key string) (OptionKey, error) {
 
 // DecodeOptions strictly decodes a typed options block (a profile's
 // "claude": {...}) into dst, a pointer to the vendor's options struct: an
-// unknown key fails with the valid keys listed, and enum values are
-// checked against the registry. Pure.
+// unknown key fails with the valid keys listed, a value of the wrong
+// kind names the key and the expected kind, and enum values are checked
+// against the registry. Pure.
 func DecodeOptions(data []byte, keys []OptionKey, dst reflect.Value) error {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
@@ -362,6 +376,9 @@ func DecodeOptions(data []byte, keys []OptionKey, dst reflect.Value) error {
 	for name, v := range raw {
 		k, err := FindOptionKey(keys, name)
 		if err != nil {
+			return err
+		}
+		if err := checkKindJSON(k, v); err != nil {
 			return err
 		}
 		if err := checkEnumJSON(k, v); err != nil {

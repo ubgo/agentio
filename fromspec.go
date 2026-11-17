@@ -21,6 +21,11 @@ var (
 // configOnlyReason is why a config-only agent lacks code-backed capabilities.
 const configOnlyReason = "config-only agent: a spec describes L1 only; this needs code"
 
+// specLaunchConfigReason is why a config-only agent takes no launch
+// config: a spec describes flags as templates for the neutral request
+// only; it names no typed options and no settings flag.
+const specLaunchConfigReason = "config-only agent: a spec has no typed launch options and no settings flag; pass vendor flags as raw args"
+
 // FromSpec builds a config-only agent from s (SPEC §5.6). Validation:
 // Spec.Validate. A spec whose ID equals a built-in's is refused by
 // builtin.New, not here. Pure.
@@ -64,6 +69,8 @@ func (a specAgent) UnsupportedReason(c Capability) (string, bool) {
 		return "spec has no shared home files", true
 	case CapBinaryVersion:
 		return "spec has no version args", true
+	case CapLaunchConfig:
+		return specLaunchConfigReason, true
 	}
 	return configOnlyReason, true
 }

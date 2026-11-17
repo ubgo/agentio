@@ -134,6 +134,13 @@ func LiveCredentialOf(a Agent) (LiveCredentialer, bool) {
 	return capabilityOf[LiveCredentialer](a, CapLiveCredential)
 }
 
+// LaunchConfigOf returns the launch configurer: typed vendor options and
+// per-launch settings through the neutral Agent. Its worst case is
+// Disk · Write (a settings file, only when asked). Pure.
+func LaunchConfigOf(a Agent) (LaunchConfigurer, bool) {
+	return capabilityOf[LaunchConfigurer](a, CapLaunchConfig)
+}
+
 // capabilityRow binds a Capability to its accessor and cost.
 type capabilityRow struct {
 	cap  Capability
@@ -183,6 +190,7 @@ func capabilityTable() []capabilityRow {
 		{CapRunEvents, present(RunEventsOf), pure},
 		{CapDoctor, present(DoctorOf), diskR},
 		{CapLiveCredential, present(LiveCredentialOf), pure},
+		{CapLaunchConfig, present(LaunchConfigOf), diskW},
 	}
 }
 
