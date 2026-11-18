@@ -1206,7 +1206,7 @@ func (c Config) FeatureOverrides() map[string]bool {
 
 // ErrProfileConflict matches the loader/mod.rs:303 refusal: `--profile X`
 // while config.toml also names X as a legacy profile.
-var ErrProfileConflict = errors.New("codex: profile name is also a legacy [profiles] entry")
+var ErrProfileConflict = agentio.NewLaunchSentinel("codex: profile name is also a legacy [profiles] entry")
 
 // ProfileConflict returns ErrProfileConflict (wrapped with the name) when
 // name is used by a legacy [profiles.<name>] table or the root `profile`

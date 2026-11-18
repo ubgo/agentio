@@ -277,3 +277,26 @@ func TestLaunchOptionKeysPaths(t *testing.T) {
 		t.Errorf("path keys = %v, want %v", got, want)
 	}
 }
+
+// TestInvalidLaunchIsInvalidOption: Codex's launch refusals (a bad value,
+// a missing session id, a bad override, a legacy profile conflict) keep
+// their own sentinel and are also agentio.ErrInvalidOption.
+func TestInvalidLaunchIsInvalidOption(t *testing.T) {
+	t.Parallel()
+	a, h := setup(t)
+	cfg, _ := a.ConfigFile(h)
+	_, badSandbox := a.New(h.Target(), LaunchOptions{Sandbox: "everything"})
+	_, noID := a.Resume(h.Target(), "", LaunchOptions{})
+	_, badOverride := ParseOverride("no-equals")
+	_, conflict := a.New(h.Target(), LaunchOptions{Profile: "ollama-launch", ProfileCheck: &cfg})
+	for name, tc := range map[string]struct{ err, own error }{
+		"bad sandbox":      {badSandbox, ErrInvalidOption},
+		"no session id":    {noID, ErrNoSessionID},
+		"bad override":     {badOverride, ErrBadOverride},
+		"profile conflict": {conflict, ErrProfileConflict},
+	} {
+		if !errors.Is(tc.err, tc.own) || !errors.Is(tc.err, agentio.ErrInvalidOption) {
+			t.Errorf("%s: %v", name, tc.err)
+		}
+	}
+}

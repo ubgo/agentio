@@ -196,7 +196,9 @@ func TestLaunchOptions(t *testing.T) {
 		"bad mode":         {Mode: "xml"},
 		"bad thinking":     {Thinking: "huge"},
 	} {
-		if _, err := bad.Args(agentio.Version{}); !errors.Is(err, ErrInvalidLaunch) {
+		// Also agentio.ErrInvalidOption, so a caller classifies a refused
+		// combination the same way for every vendor.
+		if _, err := bad.Args(agentio.Version{}); !errors.Is(err, ErrInvalidLaunch) || !errors.Is(err, agentio.ErrInvalidOption) {
 			t.Errorf("%s = %v", name, err)
 		}
 	}

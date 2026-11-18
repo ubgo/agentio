@@ -375,6 +375,25 @@ func OptionValueJSON(k OptionKey, value string) (Raw, error) {
 // refuses.
 var ErrInvalidOption = errors.New("agentio: invalid launch option")
 
+// launchSentinel is a vendor's own launch-refusal sentinel: its own
+// identity and message, and a match for ErrInvalidOption (Is).
+type launchSentinel struct{ msg string }
+
+// Error is the vendor's message. Pure.
+func (s *launchSentinel) Error() string { return s.msg }
+
+// Is makes every error wrapping s also match ErrInvalidOption. Pure.
+func (s *launchSentinel) Is(target error) bool { return target == ErrInvalidOption }
+
+// NewLaunchSentinel returns a sentinel for launch options a vendor CLI
+// rejects (claude.ErrInvalidLaunch, codex.ErrInvalidOption). Why: callers
+// classify a refused launch by agentio's sentinel, whatever the vendor; a
+// plain errors.New sentinel matched only its own vendor, so a caller saw a
+// refused combination as an unknown failure. errors.Is(err, sentinel) and
+// errors.Is(err, ErrInvalidOption) both hold for an error wrapping it, and
+// its message is msg alone (no doubled prefix). Pure.
+func NewLaunchSentinel(msg string) error { return &launchSentinel{msg: msg} }
+
 // FindOptionKey returns the key named key; the error lists the valid keys.
 // Pure.
 func FindOptionKey(keys []OptionKey, key string) (OptionKey, error) {

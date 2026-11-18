@@ -316,3 +316,22 @@ func TestLaunchOptionKeysPaths(t *testing.T) {
 		t.Errorf("path keys = %v, want %v", got, want)
 	}
 }
+
+// TestInvalidLaunchIsInvalidOption: every combination Claude Code rejects
+// is ErrInvalidLaunch and also agentio.ErrInvalidOption, through the rich
+// builder and the neutral LaunchConfigured, so a launcher classifies it
+// as an invalid option, never as an I/O failure.
+func TestInvalidLaunchIsInvalidOption(t *testing.T) {
+	t.Parallel()
+	_, lc, tg := launchConfigurer(t, testVersion)
+	for name, options := range map[string]string{
+		"resume and continue": `{"resume": "abc", "continue": true}`,
+		"format without -p":   `{"output_format": "json"}`,
+		"chrome twice":        `{"chrome": true, "no_chrome": true}`,
+	} {
+		_, err := lc.LaunchConfigured(tg, agentio.LaunchRequest{}, agentio.LaunchConfig{Options: agentio.Raw(options)})
+		if !errors.Is(err, ErrInvalidLaunch) || !errors.Is(err, agentio.ErrInvalidOption) {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+}

@@ -210,7 +210,8 @@ type LaunchOptions struct {
 }
 
 // ErrInvalidLaunch means a LaunchOptions combination Claude Code rejects.
-var ErrInvalidLaunch = errors.New("claude: invalid launch options")
+// It also matches agentio.ErrInvalidOption.
+var ErrInvalidLaunch = agentio.NewLaunchSentinel("claude: invalid launch options")
 
 // argBuilder collects argv and the features each flag needs.
 type argBuilder struct {

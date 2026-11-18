@@ -3,6 +3,7 @@ package agentio
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"slices"
 	"strings"
@@ -316,5 +317,24 @@ func TestDeriveOptionKeysPaths(t *testing.T) {
 	}
 	if _, err := DeriveOptionKeys(OptionDerivation{Type: reflect.TypeFor[unknownTag](), Probe: nameProbe}); !errors.Is(err, ErrOptionDerivation) || !strings.Contains(err.Error(), "paht") {
 		t.Errorf("unknown agentio tag: %v", err)
+	}
+}
+
+// TestNewLaunchSentinel: a vendor's launch-refusal sentinel keeps its own
+// identity and message, and every error wrapping it also matches
+// ErrInvalidOption, so a caller classifies a refused launch the same way
+// for every vendor.
+func TestNewLaunchSentinel(t *testing.T) {
+	t.Parallel()
+	a, b := NewLaunchSentinel("vendor: invalid launch options"), NewLaunchSentinel("vendor: invalid launch options")
+	err := fmt.Errorf("%w: --resume and --continue are exclusive", a)
+	if !errors.Is(err, a) || !errors.Is(err, ErrInvalidOption) || errors.Is(err, b) {
+		t.Errorf("Is: own %v, invalid option %v, other %v", errors.Is(err, a), errors.Is(err, ErrInvalidOption), errors.Is(err, b))
+	}
+	if err.Error() != "vendor: invalid launch options: --resume and --continue are exclusive" {
+		t.Errorf("message = %q", err.Error())
+	}
+	if errors.Is(ErrInvalidOption, a) {
+		t.Error("ErrInvalidOption must not match a vendor sentinel")
 	}
 }

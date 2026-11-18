@@ -1,7 +1,6 @@
 package pi
 
 import (
-	"errors"
 	"fmt"
 	"slices"
 
@@ -60,8 +59,9 @@ type LaunchOptions struct {
 	ExtraArgs []string
 }
 
-// ErrInvalidLaunch means a LaunchOptions combination pi rejects.
-var ErrInvalidLaunch = errors.New("pi: invalid launch options")
+// ErrInvalidLaunch means a LaunchOptions combination pi rejects. It also
+// matches agentio.ErrInvalidOption.
+var ErrInvalidLaunch = agentio.NewLaunchSentinel("pi: invalid launch options")
 
 // validate rejects the combinations pi refuses (main.js:274-309,
 // PKG/docs/cli.md:105-109).

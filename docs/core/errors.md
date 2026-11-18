@@ -29,6 +29,7 @@ Every sentinel answers one question. The list:
 | [`ErrNotFound`](ds:block?id=errnotfound-cusd5chu) | a named item (conversation, session, file) does not exist | — |
 | [`ErrDangerousNotAllowed`](ds:block?id=errdangerousnotallowed-cfd5h3du) | full autonomy without `Target.AllowDangerous` | a policy answer |
 | [`ErrInvalidSpec`](ds:block?id=errinvalidspec-835a58xh), [`ErrInvalidID`](ds:block?id=errinvalidid-typkqvpz) | a config-defined agent or ID was rejected | fix the config |
+| [`ErrInvalidOption`](ds:block?id=errinvalidoption-q2v7mk4d) | launch options the vendor CLI rejects: an unknown key, a wrong value, a refused combination. [Every vendor's own launch sentinel matches it too](ds:block?id=newlaunchsentinel-x5c9rj2h) (`claude.ErrInvalidLaunch`, `pi.ErrInvalidLaunch`, `codex.ErrInvalidOption`, `ErrNoSessionID`, `ErrBadOverride`, `ErrProfileConflict`) | fix the options |
 
 One function can map them all:
 

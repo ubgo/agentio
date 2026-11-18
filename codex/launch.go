@@ -144,8 +144,9 @@ func OverrideFloat(path string, v float64) Override {
 	return Override{Path: path, Value: TOMLRaw(s)}
 }
 
-// ErrBadOverride means a `-c` text has no `=`.
-var ErrBadOverride = errors.New("codex: override must be path=value")
+// ErrBadOverride means a `-c` text has no `=`. Like every Codex launch
+// refusal below, it also matches agentio.ErrInvalidOption.
+var ErrBadOverride = agentio.NewLaunchSentinel("codex: override must be path=value")
 
 // ParseOverride parses "path=value" exactly like Codex: the value is TOML
 // when it parses as TOML, else a literal string (then quoted here). Pure.
@@ -226,7 +227,7 @@ type ReviewTarget struct {
 }
 
 // ErrInvalidOption means an option value Codex would reject.
-var ErrInvalidOption = errors.New("codex: invalid launch option")
+var ErrInvalidOption = agentio.NewLaunchSentinel("codex: invalid launch option")
 
 // builder accumulates argv, warnings and the first error.
 type builder struct {
@@ -454,7 +455,7 @@ func (a *Agent) New(t agentio.Target, o LaunchOptions) (agentio.Command, error) 
 }
 
 // ErrNoSessionID means a resume/fork builder needs an id.
-var ErrNoSessionID = errors.New("codex: session id required")
+var ErrNoSessionID = agentio.NewLaunchSentinel("codex: session id required")
 
 // Resume builds `codex resume [flags] ID [PROMPT]`. Pure.
 func (a *Agent) Resume(t agentio.Target, id string, o LaunchOptions) (agentio.Command, error) {
