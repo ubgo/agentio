@@ -1,4 +1,4 @@
 github.com/pelletier/go-toml/v2 v2.4.3 h1:GTRvJQutkOSftxIFD5xw9aepkYNuPWmVJpffdDPYVpY=
 github.com/pelletier/go-toml/v2 v2.4.3/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
-github.com/ubgo/agentio v0.0.0-20261118075814-9e56e6ca9c74 h1:2dVo0h0avv2emMED/D9IGBQcTJsnDDND+20v5Rc+WYI=
-github.com/ubgo/agentio v0.0.0-20261118075814-9e56e6ca9c74/go.mod h1:258owB0YCn00NB5D12/x2MpB3cSAh63SYJVR1Iu9WZo=
+github.com/ubgo/agentio v0.1.0 h1:h+9YbMseAw+CXfy+CTPl6pCAbFApQlcmWG5jeYGMUU8=
+github.com/ubgo/agentio v0.1.0/go.mod h1:258owB0YCn00NB5D12/x2MpB3cSAh63SYJVR1Iu9WZo=
