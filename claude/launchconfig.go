@@ -46,22 +46,38 @@ const (
 	unknownSettingDetail = "not modelled by agentio; passed to Claude unchecked"
 	suggestionPrefix     = "; did you mean "
 	settingsFlagEq       = flagSettings + "="
-	whyHelperLogin       = "the request's api-key-helper login (LaunchRequest.Credential)"
+	whyHelperLogin       = "the request's api-key-helper login"
 )
 
 // OptionKeys is Pure.
-func (n neutral) OptionKeys() ([]agentio.OptionKey, error) { return LaunchOptionKeys() }
+func (n neutral) OptionKeys() ([]agentio.OptionKey, error) { return configOptionKeys() }
 
 // OptionsSchema is Pure.
-func (n neutral) OptionsSchema() (agentio.SchemaNode, error) { return LaunchOptionsSchema() }
+func (n neutral) OptionsSchema() (agentio.SchemaNode, error) {
+	keys, err := configOptionKeys()
+	return agentio.OptionsSchema(keys), err
+}
 
 // CheckOptions validates an options object against the registry. cost: Pure.
 func (n neutral) CheckOptions(options agentio.Raw) error {
-	keys, err := LaunchOptionKeys()
+	keys, err := configOptionKeys()
 	if err != nil {
 		return err
 	}
 	return agentio.CheckOptionsObject(options, keys)
+}
+
+// configOptionKeys is LaunchOptionKeys without the settings concern: the
+// neutral path has one settings channel, LaunchConfig.Settings (merged,
+// type-checked, delivered as --settings). The settings option (a raw
+// --settings file or JSON) stays on the rich builder; listed here too, a
+// launcher would show two settings keys for one flag. cost: Pure.
+func configOptionKeys() ([]agentio.OptionKey, error) {
+	keys, err := LaunchOptionKeys()
+	if err != nil {
+		return nil, err
+	}
+	return slices.DeleteFunc(keys, func(k agentio.OptionKey) bool { return k.Concern == agentio.ConcernSettings }), nil
 }
 
 // CheckSettings type-checks a settings object with ValidateSettings and
@@ -176,7 +192,7 @@ func (a *Agent) launchConfigured(t agentio.Target, r agentio.LaunchRequest, c ag
 	if err != nil {
 		return agentio.Command{}, err
 	}
-	keys, err := LaunchOptionKeys()
+	keys, err := configOptionKeys()
 	if err != nil {
 		return agentio.Command{}, err
 	}
@@ -195,9 +211,6 @@ func (a *Agent) launchConfigured(t agentio.Target, r agentio.LaunchRequest, c ag
 	}
 	if agentio.IsEmptyJSON(settings) {
 		return a.launchAt(t, o, tokenEnv, r.Dir)
-	}
-	if o.Settings != "" {
-		return agentio.Command{}, fmt.Errorf("%w: option %q conflicts with LaunchConfig.Settings", agentio.ErrInvalidOption, "settings")
 	}
 	warns, err := settingsWarnings(settings)
 	if err != nil {

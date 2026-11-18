@@ -177,7 +177,7 @@ func TestLaunchConfiguredSettings(t *testing.T) {
 		want string
 	}{
 		{"type error", agentio.LaunchRequest{}, agentio.LaunchConfig{Settings: agentio.Raw(`{"cleanupPeriodDays": "thirty"}`), RunDir: refused, RunID: "r"}, "cleanupPeriodDays"},
-		{"settings option", agentio.LaunchRequest{}, agentio.LaunchConfig{Options: agentio.Raw(`{"settings": "/s.json"}`), Settings: settings, RunDir: refused, RunID: "r"}, `option "settings" conflicts with LaunchConfig.Settings`},
+		{"settings option", agentio.LaunchRequest{}, agentio.LaunchConfig{Options: agentio.Raw(`{"settings": "/s.json"}`), Settings: settings, RunDir: refused, RunID: "r"}, `unknown key "settings"`},
 		{"no run dir", agentio.LaunchRequest{}, agentio.LaunchConfig{Settings: settings}, "RunDir"},
 		{"not an object", agentio.LaunchRequest{}, agentio.LaunchConfig{Settings: agentio.Raw(`[1]`), RunDir: refused, RunID: "r"}, ""},
 	}
@@ -222,7 +222,7 @@ func TestLaunchConfiguredHelperLogin(t *testing.T) {
 		t.Error("an outranking variable was kept")
 	}
 	_, err = lc.LaunchConfigured(tg, agentio.LaunchRequest{Credential: cred}, agentio.LaunchConfig{Settings: agentio.Raw(`{"apiKeyHelper": "other"}`), Delivery: agentio.SettingsInline})
-	if !errors.Is(err, agentio.ErrInvalidOption) || !strings.Contains(err.Error(), "apiKeyHelper") {
+	if !errors.Is(err, agentio.ErrInvalidOption) || !strings.Contains(err.Error(), "apiKeyHelper") || strings.Contains(err.Error(), "LaunchRequest") {
 		t.Errorf("competing helper: %v", err)
 	}
 	inline, err := lc.LaunchConfigured(tg, agentio.LaunchRequest{Credential: cred}, agentio.LaunchConfig{Delivery: agentio.SettingsInline})
@@ -263,14 +263,31 @@ func TestCheckSettingsAndConcerns(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for key, concern := range map[string]agentio.Concern{"model": agentio.ConcernModel, "permission_mode": agentio.ConcernAutonomy, "settings": agentio.ConcernSettings, "effort": agentio.ConcernNone, "allow_dangerously_skip_permissions": agentio.ConcernNone} {
+	for key, concern := range map[string]agentio.Concern{"model": agentio.ConcernModel, "permission_mode": agentio.ConcernAutonomy, "effort": agentio.ConcernNone, "allow_dangerously_skip_permissions": agentio.ConcernNone} {
 		k, err := agentio.FindOptionKey(keys, key)
 		if err != nil || k.Concern != concern {
 			t.Errorf("%s concern = %s (%v), want %s", key, k.Concern, err, concern)
 		}
 	}
-	if s, err := lc.OptionsSchema(); err != nil || s.Properties["effort"].Enum == nil {
+	// Settings have one channel through the neutral path, LaunchConfig.Settings:
+	// the settings option (raw --settings) is not an option key there, so a
+	// launcher's own settings key never duplicates it. The rich builder keeps it.
+	for _, k := range keys {
+		if k.Concern == agentio.ConcernSettings {
+			t.Errorf("neutral option %q has the settings concern", k.Key)
+		}
+	}
+	if s, err := lc.OptionsSchema(); err != nil || s.Properties["effort"].Enum == nil || len(s.Properties) != len(keys) {
 		t.Errorf("schema: %v", err)
+	} else if _, ok := s.Properties["settings"]; ok {
+		t.Error("neutral options schema lists settings")
+	}
+	if err := lc.CheckOptions(agentio.Raw(`{"settings": "/s.json"}`)); !errors.Is(err, agentio.ErrInvalidOption) {
+		t.Errorf("CheckOptions settings: %v", err)
+	}
+	rich, err := LaunchOptionKeys()
+	if k, ferr := agentio.FindOptionKey(rich, "settings"); err != nil || ferr != nil || k.Concern != agentio.ConcernSettings {
+		t.Errorf("rich settings key = %+v %v %v", k, err, ferr)
 	}
 	if !lc.RawSettingsArg([]string{"--x", "--settings", "{}"}) || !lc.RawSettingsArg([]string{"--settings=/f"}) || lc.RawSettingsArg([]string{"--setting-sources", "user"}) {
 		t.Error("raw --settings detection")
