@@ -131,6 +131,8 @@ const (
 
 // LaunchOptions are Claude's launch flags (CLAUDE_API §25). Zero values
 // emit nothing. Flags not modelled (rare / cloud) go through ExtraArgs.
+// A field tagged agentio:"path" takes a file or folder on this machine
+// (agentio.OptionKey.Path): a launcher expands "~" in those values only.
 type LaunchOptions struct {
 	Prompt                 string       `json:"prompt,omitempty"`
 	Print                  bool         `json:"print,omitempty"`
@@ -160,19 +162,19 @@ type LaunchOptions struct {
 	// Tools: nil = default; &[]string{} = "" (no tools).
 	Tools *[]string `json:"tools,omitempty"`
 
-	AddDirs         []string        `json:"add_dirs,omitempty"`
-	MCPConfigs      []string        `json:"mcp_configs,omitempty"`
+	AddDirs         []string        `json:"add_dirs,omitempty" agentio:"path"`
+	MCPConfigs      []string        `json:"mcp_configs,omitempty" agentio:"path"`
 	StrictMCPConfig bool            `json:"strict_mcp_config,omitempty"`
-	Settings        string          `json:"settings,omitempty"`
+	Settings        string          `json:"settings,omitempty" agentio:"path"`
 	SettingSources  []SettingsScope `json:"setting_sources,omitempty"`
 
 	SystemPrompt                       string   `json:"system_prompt,omitempty"`
 	AppendSystemPrompt                 string   `json:"append_system_prompt,omitempty"`
-	SystemPromptFile                   string   `json:"system_prompt_file,omitempty"`
-	AppendSystemPromptFile             string   `json:"append_system_prompt_file,omitempty"`
+	SystemPromptFile                   string   `json:"system_prompt_file,omitempty" agentio:"path"`
+	AppendSystemPromptFile             string   `json:"append_system_prompt_file,omitempty" agentio:"path"`
 	SystemPromptSnapshot               string   `json:"system_prompt_snapshot,omitempty"`
 	ExcludeDynamicSystemPromptSections bool     `json:"exclude_dynamic_system_prompt_sections,omitempty"`
-	PluginDirs                         []string `json:"plugin_dirs,omitempty"`
+	PluginDirs                         []string `json:"plugin_dirs,omitempty" agentio:"path"`
 	PluginURLs                         []string `json:"plugin_urls,omitempty"`
 	Bare                               bool     `json:"bare,omitempty"`
 	SafeMode                           bool     `json:"safe_mode,omitempty"`
@@ -191,7 +193,7 @@ type LaunchOptions struct {
 	Tmux          string   `json:"tmux,omitempty"`
 	Background    bool     `json:"background,omitempty"`
 	Debug         string   `json:"debug,omitempty"`
-	DebugFile     string   `json:"debug_file,omitempty"`
+	DebugFile     string   `json:"debug_file,omitempty" agentio:"path"`
 	IDE           bool     `json:"ide,omitempty"`
 	Chrome        bool     `json:"chrome,omitempty"`
 	NoChrome      bool     `json:"no_chrome,omitempty"`

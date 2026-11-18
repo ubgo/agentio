@@ -257,3 +257,23 @@ func warningText(ws agentio.Warnings) string {
 	}
 	return strings.Join(parts, "\n")
 }
+
+// TestLaunchOptionKeysPaths: exactly the options whose value names a file
+// or folder on this machine are marked Path (codex --help: --cd, --add-dir,
+// --image).
+func TestLaunchOptionKeysPaths(t *testing.T) {
+	t.Parallel()
+	keys, err := LaunchOptionKeys()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, k := range keys {
+		if k.Path {
+			got = append(got, k.Key)
+		}
+	}
+	if want := []string{"cd", "add_dirs", "images"}; !slices.Equal(got, want) {
+		t.Errorf("path keys = %v, want %v", got, want)
+	}
+}

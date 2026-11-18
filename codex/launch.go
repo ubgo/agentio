@@ -165,7 +165,9 @@ func ParseOverride(s string) (Override, error) {
 // String renders "path=value" for the -c argument. Pure.
 func (o Override) String() string { return o.Path + overrideSep + string(o.Value) }
 
-// LaunchOptions are the global/TUI flags of `codex` (§16).
+// LaunchOptions are the global/TUI flags of `codex` (§16). A field tagged
+// agentio:"path" takes a file or folder on this machine
+// (agentio.OptionKey.Path): a launcher expands "~" in those values only.
 type LaunchOptions struct {
 	Prompt             string         `json:"prompt,omitempty"`            // positional; "" = interactive
 	PromptFromStdin    bool           `json:"prompt_from_stdin,omitempty"` // exec only: "-"
@@ -175,9 +177,9 @@ type LaunchOptions struct {
 	Approval           ApprovalPolicy `json:"approval,omitempty"` // TUI only; exec renders -c approval_policy
 	ApproveForMe       bool           `json:"approve_for_me,omitempty"`
 	BypassAll          bool           `json:"bypass_all,omitempty"` // requires Target.AllowDangerous
-	Dir                string         `json:"cd,omitempty"`
-	AddDirs            []string       `json:"add_dirs,omitempty"`
-	Images             []string       `json:"images,omitempty"`
+	Dir                string         `json:"cd,omitempty" agentio:"path"`
+	AddDirs            []string       `json:"add_dirs,omitempty" agentio:"path"`
+	Images             []string       `json:"images,omitempty" agentio:"path"`
 	Search             bool           `json:"search,omitempty"`
 	OSS                bool           `json:"oss,omitempty"`
 	LocalProvider      string         `json:"local_provider,omitempty"`

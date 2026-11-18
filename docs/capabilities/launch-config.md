@@ -11,7 +11,7 @@ The snippets come from [`examples/launchconfig`](../../examples/launchconfig/).
 
 ## Step 1 — Validate typed options with the registry
 
-[`claude.LaunchOptionKeys`](ds:block?id=claude-launchoptionkeys-r6h2j9xa) lists every `claude.LaunchOptions` field as an [`agentio.OptionKey`](ds:block?id=launch-optionkey-r6k4m2qa): a stable snake_case key (`effort`, `mcp_configs`, `append_system_prompt_file`), its kind and allowed values, the flag it emits and the flag's feature gate from `features.tsv`. [The registry is derived by running the real argv builder](ds:block?id=launch-deriveoptionkeys-r6t7v3wd) once per field with a sample value, so it cannot drift from the flags that are built; a field the builder does not handle fails the derivation and its test.
+[`claude.LaunchOptionKeys`](ds:block?id=claude-launchoptionkeys-r6h2j9xa) lists every `claude.LaunchOptions` field as an [`agentio.OptionKey`](ds:block?id=launch-optionkey-r6k4m2qa): a stable snake_case key (`effort`, `mcp_configs`, `append_system_prompt_file`), its kind and allowed values, the flag it emits, the flag's feature gate from `features.tsv`, and [`Path`](ds:block?id=launch-optionkey-r6k4m2qa) when the value names a file or folder on this machine. [The registry is derived by running the real argv builder](ds:block?id=launch-deriveoptionkeys-r6t7v3wd) once per field with a sample value, so it cannot drift from the flags that are built; a field the builder does not handle fails the derivation and its test.
 
 [`DecodeLaunchOptions`](ds:block?id=claude-decodelaunchoptions-r6m4n8qe) strictly decodes a profile's typed block: an unknown key fails with the valid keys listed, and an enum value outside its set fails with the choices. [`ParseLaunchOption`](ds:block?id=claude-parselaunchoption-r6w3z7tb) applies one `key=value` on top (text is quoted, a list takes a JSON array or comma-separated text). [`LaunchOptionsSchema`](ds:block?id=claude-launchoptionsschema-r6c9f2ud) is the closed JSON Schema of the block, [built from the same keys](ds:block?id=launch-optionsschema-r6p8c5ke). Codex has the same four functions ([`codex.LaunchOptionKeys`](ds:block?id=codex-launchoptionkeys-r6x5k3pa); its profile key is `codex_profile`).
 
@@ -196,6 +196,8 @@ cd examples && go run ./launchconfig
 The output is in the example's [README](../../examples/launchconfig/README.md).
 
 ## Pitfalls
+
+- **Expand `~` only in path options.** [`OptionKey.Path`](ds:block?id=launch-optionkey-r6k4m2qa) comes from the struct tag `agentio:"path"` on the vendor field (a list marks every element); [the derivation refuses the tag on anything but text or a text list](ds:block?id=launch-deriveoptionkeys-r6t7v3wd). Claude: `add_dirs`, `mcp_configs` (files or JSON), `settings` (file or JSON), `system_prompt_file`, `append_system_prompt_file`, `plugin_dirs`, `debug_file`. Codex: `cd`, `add_dirs`, `images`. Claude's `files` takes `file_id:relative_path` (a remote resource) and `resume` an id or a name, so neither is a path. The same keys' `Flag` tells you which raw args take a path. Gemini CLI and pi have no option registry.
 
 - **Unknown is not wrong.** Claude and Codex know more keys than this library models. Unknown settings keys and unknown Codex overrides are passed through; show them as warnings, never drop them.
 - **Inline settings are visible.** `SettingsViaInline` puts every key on argv, including an `apiKeyHelper` command and `env` values; use the file unless you have a reason not to.

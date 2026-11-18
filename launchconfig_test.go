@@ -245,3 +245,76 @@ func TestSpecAgentHasNoLaunchConfig(t *testing.T) {
 		t.Errorf("reason = %q %v", reason, ok)
 	}
 }
+
+// pathSample is an options struct with path-tagged fields for
+// TestDeriveOptionKeysPaths.
+type pathSample struct {
+	Model  string   `json:"model,omitempty"`
+	File   string   `json:"file,omitempty" agentio:"path"`
+	Dirs   []string `json:"dirs,omitempty" agentio:"path"`
+	Labels []string `json:"labels,omitempty"`
+}
+
+// pathProbe renders pathSample as flags.
+func pathProbe(v reflect.Value) ([]string, []OptionFeature, error) {
+	o, _ := reflect.TypeAssert[pathSample](v)
+	var args []string
+	if o.Model != "" {
+		args = append(args, "--model", o.Model)
+	}
+	if o.File != "" {
+		args = append(args, "--file", o.File)
+	}
+	for _, d := range o.Dirs {
+		args = append(args, "--dir", d)
+	}
+	for _, l := range o.Labels {
+		args = append(args, "--label", l)
+	}
+	return args, nil, nil
+}
+
+// TestDeriveOptionKeysPaths: a field tagged agentio:"path" is a path
+// option (every element of a list), so a launcher knows which values to
+// expand ~ in; no other key is; the tag on a value that is not text is a
+// derivation error, so it cannot mark a bool or a number by mistake.
+func TestDeriveOptionKeysPaths(t *testing.T) {
+	t.Parallel()
+	keys, err := DeriveOptionKeys(OptionDerivation{Type: reflect.TypeFor[pathSample](), Probe: pathProbe})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var paths []string
+	for _, k := range keys {
+		if k.Path {
+			paths = append(paths, k.Key)
+		}
+	}
+	if !slices.Equal(paths, []string{"file", "dirs"}) {
+		t.Errorf("path keys = %v, want [file dirs]", paths)
+	}
+	type badPath struct {
+		On bool `json:"on,omitempty" agentio:"path"`
+	}
+	probe := func(v reflect.Value) ([]string, []OptionFeature, error) {
+		if o, _ := reflect.TypeAssert[badPath](v); o.On {
+			return []string{"--on"}, nil, nil
+		}
+		return nil, nil, nil
+	}
+	if _, err := DeriveOptionKeys(OptionDerivation{Type: reflect.TypeFor[badPath](), Probe: probe}); !errors.Is(err, ErrOptionDerivation) || !strings.Contains(err.Error(), "On") {
+		t.Errorf("path tag on a bool: %v", err)
+	}
+	type unknownTag struct {
+		Name string `json:"name,omitempty" agentio:"paht"`
+	}
+	nameProbe := func(v reflect.Value) ([]string, []OptionFeature, error) {
+		if o, _ := reflect.TypeAssert[unknownTag](v); o.Name != "" {
+			return []string{"--name", o.Name}, nil, nil
+		}
+		return nil, nil, nil
+	}
+	if _, err := DeriveOptionKeys(OptionDerivation{Type: reflect.TypeFor[unknownTag](), Probe: nameProbe}); !errors.Is(err, ErrOptionDerivation) || !strings.Contains(err.Error(), "paht") {
+		t.Errorf("unknown agentio tag: %v", err)
+	}
+}

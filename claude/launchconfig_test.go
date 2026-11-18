@@ -293,3 +293,26 @@ func TestCheckSettingsAndConcerns(t *testing.T) {
 		t.Error("raw --settings detection")
 	}
 }
+
+// TestLaunchOptionKeysPaths: exactly the options whose value names a file
+// or folder on this machine are marked Path (Claude Code --help: --add-dir,
+// --mcp-config files or JSON, --settings file or JSON, the system prompt
+// files, --plugin-dir, --debug-file). --file takes file_id:relative_path
+// (a remote resource) and --resume takes an id or name, so neither is.
+func TestLaunchOptionKeysPaths(t *testing.T) {
+	t.Parallel()
+	keys, err := LaunchOptionKeys()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, k := range keys {
+		if k.Path {
+			got = append(got, k.Key)
+		}
+	}
+	want := []string{"add_dirs", "mcp_configs", "settings", "system_prompt_file", "append_system_prompt_file", "plugin_dirs", "debug_file"}
+	if !slices.Equal(got, want) {
+		t.Errorf("path keys = %v, want %v", got, want)
+	}
+}
