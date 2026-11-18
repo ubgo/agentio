@@ -3,6 +3,7 @@ package codex
 import (
 	"errors"
 	"math"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -200,4 +201,59 @@ func TestOverrideFloat(t *testing.T) {
 	if got := string(OverrideFloat("k", math.NaN()).Value); got != "nan" {
 		t.Errorf("NaN = %s", got)
 	}
+}
+
+// TestCodexLaunchConfiguredProfileCheck: a profile option through the
+// neutral path is checked against the home's config.toml (the launcher
+// cannot pass one): a legacy profile of that name is refused before Codex
+// refuses it, any other name builds with no "not checked" warning, and a
+// home without config.toml has nothing to conflict with. The rich builder
+// without ProfileCheck still says, in plain words, what it did not check.
+func TestCodexLaunchConfiguredProfileCheck(t *testing.T) {
+	t.Parallel()
+	_, lc, tg := codexConfigurer(t)
+	profile := func(name string) agentio.LaunchConfig {
+		return agentio.LaunchConfig{Options: agentio.Raw(`{"codex_profile": "` + name + `"}`)}
+	}
+	cmd, err := lc.LaunchConfigured(tg, agentio.LaunchRequest{}, profile("work"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(warningText(cmd.Warnings), "profile") || !slices.Contains(cmd.Args, "work") {
+		t.Errorf("v2 profile without a legacy twin: args %v, warnings %v", cmd.Args, cmd.Warnings)
+	}
+	if _, err := lc.LaunchConfigured(tg, agentio.LaunchRequest{}, profile("ollama-launch")); !errors.Is(err, ErrProfileConflict) {
+		t.Errorf("legacy profile of that name: %v", err)
+	}
+	a, _ := setup(t)
+	bare := filepath.Join(t.TempDir(), "codex-bare")
+	agenttest.WriteFile(t, bare, fileInstallationID, "id")
+	other, err := a.HomeAt(bare)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ot := other.Target()
+	ot.Version = tg.Version
+	nlc, _ := agentio.LaunchConfigOf(a.Neutral())
+	cmd, err = nlc.LaunchConfigured(ot, agentio.LaunchRequest{}, profile("work"))
+	if err != nil || strings.Contains(warningText(cmd.Warnings), "profile") {
+		t.Errorf("home without config.toml: %v, warnings %v", err, cmd.Warnings)
+	}
+	cmd, err = a.New(a.DefaultHome().Target(), LaunchOptions{Profile: "work"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := warningText(cmd.Warnings)
+	if !strings.Contains(w, `--profile work`) || !strings.Contains(w, "config.toml") || strings.Contains(w, "no config given") {
+		t.Errorf("unchecked rich builder warning = %s", w)
+	}
+}
+
+// warningText joins the warnings' String forms for substring checks.
+func warningText(ws agentio.Warnings) string {
+	parts := make([]string, len(ws))
+	for i, w := range ws {
+		parts[i] = w.String()
+	}
+	return strings.Join(parts, "\n")
 }

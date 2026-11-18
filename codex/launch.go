@@ -356,6 +356,11 @@ func (b *builder) global(o LaunchOptions, exec bool) {
 	}
 }
 
+// warnProfileUnchecked is the warning for a --profile built without the
+// home's config.toml (LaunchOptions.ProfileCheck nil): it says what was
+// not checked and what Codex does about it, in the user's terms.
+const warnProfileUnchecked = "--profile %s not checked against the legacy [profiles] tables in config.toml; Codex refuses it when one has that name"
+
 // profile emits -p NAME with the version-gated meaning of §0.1 and the
 // legacy-conflict refusal of loader/mod.rs:303.
 func (b *builder) profile(o LaunchOptions) {
@@ -365,7 +370,7 @@ func (b *builder) profile(o LaunchOptions) {
 	case legacyOnly:
 		// below 0.131.0 -p selects a legacy [profiles.NAME]: no conflict exists
 	case o.ProfileCheck == nil:
-		b.warns.Add(agentio.WarnVersionUnknown, fileConfig, "profiles", "--profile conflict with a legacy profile not checked (no config given)")
+		b.warns.Add(agentio.WarnVersionUnknown, fileConfig, keyProfiles, fmt.Sprintf(warnProfileUnchecked, o.Profile))
 	default:
 		if err := o.ProfileCheck.ProfileConflict(o.Profile); err != nil {
 			b.fail(err)

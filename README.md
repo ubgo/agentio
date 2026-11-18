@@ -823,6 +823,7 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), whi
 <!-- ds:def id=pi-agent-logins-r6p6o4k5 file=pi/auth.go pick=symbol:Agent.Logins owner=@khanakia -->
 <!-- ds:def id=spec-tokenenv-r6v7b2nm file=spec.go pick=symbol:TokenEnv owner=@khanakia -->
 <!-- ds:def id=spec-tokenlogin-c3v9px6e file=spec.go pick=symbol:Spec.tokenLogin owner=@khanakia -->
+<!-- ds:def id=codex-agent-launchprofilecheck-h6t2nb4x file=codex/launchconfig.go pick=symbol:Agent.launchProfileCheck owner=@khanakia -->
 <!-- ds:def id=spec-validategenericmarkers-k7d2wq9m file=spec.go pick=symbol:Spec.validateGenericMarkers owner=@khanakia -->
 <!-- ds:def id=core-hashomemarker-p4n8ze2v file=core.go pick=symbol:Core.HasHomeMarker owner=@khanakia -->
 <!-- ds:def id=launchconfigof-r7a2k4mq file=accessor.go pick=symbol:LaunchConfigOf owner=@khanakia -->
