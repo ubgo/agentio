@@ -145,7 +145,7 @@ func buildCore(p printer, h agentio.Host) error {
 
 [`Core.Launch` expands the templates in a fixed order](ds:block?id=core-launch-v8h5ys7c): `Target.ExtraArgs`, then the autonomy and headless args, then the model and add-dir templates, then the request's own `Args`, then the prompt; the result is spliced where `{args}` stands in `NewArgs` (or `ResumeArgs` with `{id}` filled). [`Core.Checks`](ds:block?id=core-checks-8dj5h3dt) reports `binary-found`, `home`, `home-env` (the home variable is set in the base env) and `api-billing-env`; `api-billing-env` names the variables only, never their values, while `home-env` also names the folder the variable selects.
 
-To turn a Spec into a full `agentio.Agent` (with process classification, login commands and doctor wired as capabilities), use [`agentio.FromSpec`](ds:block?id=fromspec-4tcd24bd): see [Config-defined agents](../capabilities/fromspec.md).
+To turn a Spec into a full `agentio.Agent` (with process classification, login commands, token logins and doctor wired as capabilities), use [`agentio.FromSpec`](ds:block?id=fromspec-4tcd24bd): see [Config-defined agents](../capabilities/fromspec.md).
 
 ## Try it
 

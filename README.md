@@ -737,7 +737,9 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), whi
 <!-- ds:def id=some-y3g2rs4p file=value.go pick=symbol:Some owner=@khanakia -->
 <!-- ds:def id=spec-9rwc3qhn file=spec.go pick=symbol:Spec owner=@khanakia -->
 <!-- ds:def id=spec-validate-chxkxnh2 file=spec.go pick=symbol:Spec.Validate owner=@khanakia -->
+<!-- ds:def id=specagent-detecttokenkind-w7h2rk5n file=fromspec.go pick=symbol:specAgent.DetectTokenKind owner=@khanakia -->
 <!-- ds:def id=specagent-hascapability-tzc86rcg file=fromspec.go pick=symbol:specAgent.HasCapability owner=@khanakia -->
+<!-- ds:def id=specagent-tokenkinds-m4q8zt2c file=fromspec.go pick=symbol:specAgent.TokenKinds owner=@khanakia -->
 <!-- ds:def id=specagent-unsupportedreason-jp9ga9ft file=fromspec.go pick=symbol:specAgent.UnsupportedReason owner=@khanakia -->
 <!-- ds:def id=supported-33dzcvq6 file=accessor.go pick=symbol:Supported owner=@khanakia -->
 <!-- ds:def id=token-3nk7gtub file=secret.go pick=symbol:Token owner=@khanakia -->
@@ -820,6 +822,7 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), whi
 <!-- ds:def id=pi-agent-sessions-r6p4c8h9 file=pi/sessions.go pick=symbol:Agent.Sessions owner=@khanakia -->
 <!-- ds:def id=pi-agent-logins-r6p6o4k5 file=pi/auth.go pick=symbol:Agent.Logins owner=@khanakia -->
 <!-- ds:def id=spec-tokenenv-r6v7b2nm file=spec.go pick=symbol:TokenEnv owner=@khanakia -->
+<!-- ds:def id=spec-tokenlogin-c3v9px6e file=spec.go pick=symbol:Spec.tokenLogin owner=@khanakia -->
 <!-- ds:def id=launchconfigof-r7a2k4mq file=accessor.go pick=symbol:LaunchConfigOf owner=@khanakia -->
 <!-- ds:def id=launchconfig-r7b3m5nq file=launchconfig.go pick=symbol:LaunchConfig owner=@khanakia -->
 <!-- ds:def id=launchconfigurer-r7c4p6rs file=launchconfig.go pick=symbol:LaunchConfigurer owner=@khanakia -->

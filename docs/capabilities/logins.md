@@ -160,6 +160,7 @@ claude api key: billed per token, not probed
 
 - **Never put a token on argv.** `Command.String()` and `Args` never hold one; the token lives only in `Command.Env`. Print commands with `String()` or `Redacted()`, never by dumping `Env`. `Command.SecretEnvNames()` lists the variables that carry a secret.
 - **Never loop the probe.** `TokenUsage` spends quota on every call. Run it once when the user asks, and prefer cached or live usage for status displays.
+- **A config-defined agent has `TokenLogin` only with `token_env`.** Its spec names the variable per kind (and provider); it detects no kind from a token's shape and has no setup command. See [Config-defined agents](fromspec.md#step-5--launch-with-a-token-login).
 - **Codex has neither `TokenLogin` nor `TokenProber`.** Its token logins are `codex login --with-api-key` / `--with-access-token`, which read the secret from stdin and store it in the home. `agentio.Unsupported` says so.
 - **Claude's login flows other than `browser` are `ErrUnsupported`.** Claude Code logs in through the browser; tokens go through `TokenEnv` instead.
 - **A refresh token is not usable.** `DetectTokenKind` reports false for it; the vendor-level `claude.Agent.DetectTokenKind` returns `ErrUnusableToken` with the reason.

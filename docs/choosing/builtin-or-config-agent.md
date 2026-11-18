@@ -9,7 +9,7 @@ agentio knows two kinds of agent. A **built-in** agent (Claude Code, Codex) is a
 | Homes: default, home variable, extra-home glob, markers | ✅ | ✅ from `DefaultHome`, `HomeEnv`, `ExtraHomes`, [`HomeMarkers`](ds:block?id=core-homes-43a2yjev) |
 | Find the binary on `PATH` | ✅ | ✅ from [`Binary`](ds:block?id=core-lookpath-ke3ntet7) |
 | Launch and resume commands | ✅ typed vendor options plus neutral `LaunchRequest` | ✅ neutral `LaunchRequest` from `NewArgs`, `ResumeArgs`, `ModelArgs`, `AddDirArgs`, [`PromptArgs`](ds:block?id=core-launch-v8h5ys7c) |
-| Autonomy levels, headless runs, token logins | ✅ | ✅ when [`AutonomyArgs`, `HeadlessArgs` and `TokenEnv`](ds:block?id=core-launch-v8h5ys7c) describe them; otherwise `ErrUnsupported` |
+| Autonomy levels, headless runs, token logins | ✅ | ✅ when [`AutonomyArgs`, `HeadlessArgs` and `TokenEnv`](ds:block?id=core-launch-v8h5ys7c) describe them; otherwise `ErrUnsupported`. [`TokenEnv` also turns on `TokenLogin`](ds:block?id=specagent-hascapability-tzc86rcg) (the caller names the kind; none is detected) |
 | Login command | ✅ every vendor flow | ✅ browser flow only, when [`LoginArgs`](ds:block?id=core-logincommand-3b2a9mth) is set |
 | `--version` through a Runner | ✅ | ✅ when [`VersionArgs`](ds:block?id=runner-version-87cgudkv) is set |
 | Recognise its processes | ✅ | ✅ when [`Process`](ds:block?id=specagent-hascapability-tzc86rcg) is set |

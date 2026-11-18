@@ -113,7 +113,7 @@ Concepts both vendors share, each a small interface reached through a typed acce
 | [Doctor checks](capabilities/doctor.md) | Run the checks for a home; check the installed version | [accessors](../examples/accessors/) |
 | [Typed launch configuration](capabilities/launch-config.md) | Validate typed options with the registry; type-check settings and hand them to Claude; plan a switchable login; check Codex overrides; clean up run files | [launchconfig](../examples/launchconfig/) |
 | [Doors: Runner, Prober and Writer](capabilities/doors.md) | Run the vendor binary through a Runner; spend quota through a Prober; write through a Writer; link shared home files | [doors](../examples/doors/) |
-| [Config-defined agents](capabilities/fromspec.md) | Describe the agent as a Spec; build it with FromSpec; launch it | [fromspec](../examples/fromspec/) |
+| [Config-defined agents](capabilities/fromspec.md) | Describe the agent as a Spec; build it with FromSpec; launch it; launch with a token login | [fromspec](../examples/fromspec/) |
 
 ### Claude Code (L3, `claude` module)
 
@@ -243,7 +243,7 @@ Every example lives in its own folder under [`examples/`](../examples/) with a R
 | [livesessions](../examples/livesessions/) | live sessions with the PID-reuse guard, process classification, PID to session | [Live sessions](capabilities/live-sessions.md) |
 | [runevents](../examples/runevents/) | the neutral run-event decoder over a recorded Claude Code and Codex run | [Run events](capabilities/run-events.md) |
 | [doors](../examples/doors/) | the Runner, the Prober, the Writer and home links, with fakes | [Doors](capabilities/doors.md) |
-| [fromspec](../examples/fromspec/) | a made-up agent as a `Spec`: validation, homes, capabilities, launch, doctor | [Config-defined agents](capabilities/fromspec.md) |
+| [fromspec](../examples/fromspec/) | a made-up agent as a `Spec`: validation, homes, capabilities, launch, token login, doctor | [Config-defined agents](capabilities/fromspec.md) |
 | [claudesettings](../examples/claudesettings/) | the Claude agent and homes, install, paths, settings layers and merge, global config, permissions, policy | [Claude settings](claude/settings.md) |
 | [claudehooks](../examples/claudehooks/) | hooks, a hook program, a status-line program, the Writer (settings, hooks, history moves) | [Claude hooks](claude/hooks.md), [Claude writer](claude/writer.md) |
 | [claudeextensions](../examples/claudeextensions/) | MCP servers and commands, memory files, skills, slash commands, plugins, subagents, output styles, local data | [Claude MCP](claude/mcp.md) |

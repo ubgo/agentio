@@ -1,0 +1,10 @@
+func (s Spec) tokenLogin(cred TokenCredential) (TokenEnv, error) {
+	if e, ok := s.tokenEnvFor(cred); ok {
+		return e, nil
+	}
+	what := "token login " + cred.Kind.String()
+	if cred.Provider != "" {
+		what += " for provider " + cred.Provider
+	}
+	return TokenEnv{}, UnsupportedError(s.ID, what, specUndescribedReason)
+}
