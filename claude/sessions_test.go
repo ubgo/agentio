@@ -75,11 +75,28 @@ func TestLiveSessionsNoProcessLister(t *testing.T) {
 }
 
 func TestSessionStatusNeutral(t *testing.T) {
-	cases := map[SessionStatus]agentio.SessionStatus{StatusIdle: agentio.SessionIdle, StatusBusy: agentio.SessionBusy, StatusShell: agentio.SessionBusy, "new": agentio.SessionStatusUnknown}
+	cases := map[SessionStatus]agentio.SessionStatus{StatusIdle: agentio.SessionIdle, StatusBusy: agentio.SessionBusy, StatusShell: agentio.SessionBusy, StatusWaiting: agentio.SessionIdle, "new": agentio.SessionStatusUnknown}
 	for in, want := range cases {
 		if got := in.Neutral(); got != want {
 			t.Errorf("%s → %v, want %v", in, got, want)
 		}
+		if known := in != "new"; in.IsKnown() != known {
+			t.Errorf("%s IsKnown = %v, want %v", in, in.IsKnown(), known)
+		}
+	}
+}
+
+// TestLiveSessionWaiting decodes a registry entry recorded from Claude Code
+// 2.1.327 while a dialog was open: status "waiting" plus waitingFor. Both
+// are modelled, so nothing lands in Unknown (task drift would list it).
+func TestLiveSessionWaiting(t *testing.T) {
+	body := `{"pid": 4243, "sessionId": "s", "version": "2.1.327", "status": "waiting", "waitingFor": "dialog open"}`
+	s, err := parseLiveSession("4243.json", []byte(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Status != StatusWaiting || s.WaitingFor != "dialog open" || len(s.Unknown) != 0 {
+		t.Fatalf("session = %+v", s)
 	}
 }
 

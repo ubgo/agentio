@@ -11,7 +11,7 @@ The snippets come from [`examples/claudesessions`](../../examples/claudesessions
 
 ## Step 1 — List live sessions
 
-`a.LiveSessions(h)` reads every `sessions/<pid>.json` (never the `*.key` files next to them) and returns `[]claude.LiveSession` sorted by pid: `PID`, `SessionID` (the conversation), `Cwd`, `Name`, `Version`, `Kind`, `Entrypoint`, `Status` (a `claude.SessionStatus`: `StatusIdle`, `StatusBusy`, `StatusShell`), `StartedAt`, `UpdatedAt`, `StatusUpdatedAt`, `JobID`, `BridgeSessionID`, peer fields, `Path` and `Unknown`. `Alive` is true only when the pid is in the process table and its start time is within two minutes of `StartedAt`: a pid reused by another program reads as not alive.
+`a.LiveSessions(h)` reads every `sessions/<pid>.json` (never the `*.key` files next to them) and returns `[]claude.LiveSession` sorted by pid: `PID`, `SessionID` (the conversation), `Cwd`, `Name`, `Version`, `Kind`, `Entrypoint`, `Status` (a `claude.SessionStatus`: `StatusIdle`, `StatusBusy`, `StatusShell`, `StatusWaiting`), `WaitingFor` (the vendor's reason text while waiting, such as `dialog open`), `StartedAt`, `UpdatedAt`, `StatusUpdatedAt`, `JobID`, `BridgeSessionID`, peer fields, `Path` and `Unknown`. `Alive` is true only when the pid is in the process table and its start time is within two minutes of `StartedAt`: a pid reused by another program reads as not alive.
 
 `a.LiveSessionsIn(h, dir)` keeps the entries whose `Cwd` is `dir`; `a.IsLive(h, conversationID)` reports an alive session running that conversation. `LiveSession.Neutral(h)` and `SessionStatus.Neutral()` project onto `agentio.LiveSession` and `agentio.SessionStatus` (`shell` counts as busy: it is running a command, not waiting for input).
 

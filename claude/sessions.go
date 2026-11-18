@@ -20,23 +20,27 @@ import (
 type SessionStatus string
 
 // Statuses seen: idle and busy (docs + disk), shell (this server: a shell
-// command the user ran with `!` is executing).
+// command the user ran with `!` is executing), waiting (recorded at 2.1.327
+// while a dialog was open; the file then also carries waitingFor).
 const (
-	StatusIdle  SessionStatus = "idle"
-	StatusBusy  SessionStatus = "busy"
-	StatusShell SessionStatus = "shell"
+	StatusIdle    SessionStatus = "idle"
+	StatusBusy    SessionStatus = "busy"
+	StatusShell   SessionStatus = "shell"
+	StatusWaiting SessionStatus = "waiting"
 )
 
 // IsKnown reports a recorded status. cost: Pure.
 func (s SessionStatus) IsKnown() bool {
-	return s == StatusIdle || s == StatusBusy || s == StatusShell
+	return s == StatusIdle || s == StatusBusy || s == StatusShell || s == StatusWaiting
 }
 
 // Neutral maps onto the shared status. shell counts as Busy: the session is
-// running a command and is not waiting for input. cost: Pure.
+// running a command and is not waiting for input. waiting counts as Idle:
+// the shared Idle means "waiting for input", and a waiting session waits
+// on the user (a dialog or prompt), not on the model. cost: Pure.
 func (s SessionStatus) Neutral() agentio.SessionStatus {
 	switch s {
-	case StatusIdle:
+	case StatusIdle, StatusWaiting:
 		return agentio.SessionIdle
 	case StatusBusy, StatusShell:
 		return agentio.SessionBusy
@@ -51,16 +55,20 @@ type ProcStart string
 
 // LiveSession is one sessions/<pid>.json registry entry.
 type LiveSession struct {
-	PID             int
-	ProcStart       ProcStart
-	SessionID       string
-	Cwd             string
-	Name            string
-	NameSource      string
-	Version         string
-	Kind            agentio.SessionKind
-	Entrypoint      string
-	Status          SessionStatus
+	PID        int
+	ProcStart  ProcStart
+	SessionID  string
+	Cwd        string
+	Name       string
+	NameSource string
+	Version    string
+	Kind       agentio.SessionKind
+	Entrypoint string
+	Status     SessionStatus
+	// WaitingFor is the vendor's free-text reason while Status is waiting
+	// (seen: "dialog open"); "" when absent. Kept as text, not an enum: one
+	// value was recorded and the vendor does not document the set.
+	WaitingFor      string
 	StartedAt       time.Time
 	UpdatedAt       time.Time
 	StatusUpdatedAt time.Time
@@ -95,6 +103,7 @@ type wireLiveSession struct {
 	Name            string              `json:"name"`
 	NameSource      string              `json:"nameSource"`
 	Status          SessionStatus       `json:"status"`
+	WaitingFor      string              `json:"waitingFor"`
 	UpdatedAt       millis              `json:"updatedAt"`
 	StatusUpdatedAt millis              `json:"statusUpdatedAt"`
 	BridgeSessionID string              `json:"bridgeSessionId"`
@@ -114,7 +123,7 @@ func parseLiveSession(path string, data []byte) (LiveSession, error) {
 	}
 	return LiveSession{
 		PID: pid, ProcStart: w.ProcStart, SessionID: w.SessionID, Cwd: w.Cwd, Name: w.Name, NameSource: w.NameSource,
-		Version: w.Version, Kind: w.Kind, Entrypoint: w.Entrypoint, Status: w.Status, StartedAt: w.StartedAt.Time(),
+		Version: w.Version, Kind: w.Kind, Entrypoint: w.Entrypoint, Status: w.Status, WaitingFor: w.WaitingFor, StartedAt: w.StartedAt.Time(),
 		UpdatedAt: w.UpdatedAt.Time(), StatusUpdatedAt: w.StatusUpdatedAt.Time(), JobID: w.JobID, BridgeSessionID: w.BridgeSessionID,
 		MessagingSocket: w.MessagingSocket, PeerProtocol: w.PeerProtocol, PeerFeatures: w.PeerFeatures, Tmux: w.Tmux,
 		PIDDomain: w.PIDDomain, Path: path, Unknown: unknown,
