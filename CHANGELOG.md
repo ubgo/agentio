@@ -1,8 +1,12 @@
 # Changelog
 
-All notable changes to agentio are recorded in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each Go module is tagged on its own (`v0.1.1`, `claude/v0.1.1`, `codex/v0.1.1`, `codex/state/v0.1.1`, `builtin/v0.1.1`); an entry names the module it affects when it is not the whole library.
+All notable changes to agentio are recorded in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each Go module is tagged on its own (`v0.1.0`, `claude/v0.1.0`, `codex/v0.1.0`, `codex/state/v0.1.0`, `gemini/v0.1.0`, `pi/v0.1.0`, `builtin/v0.1.0`); an entry names the module it affects when it is not the whole library.
 
 ## [Unreleased]
+
+## [0.1.0] - 2026-11-18
+
+First release of every module: `github.com/ubgo/agentio` (`v0.1.0`), `claude/v0.1.0`, `codex/v0.1.0`, `codex/state/v0.1.0`, `gemini/v0.1.0`, `pi/v0.1.0` and `builtin/v0.1.0`.
 
 ### Added
 
@@ -86,4 +90,5 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 - A docs checker (`internal/docscheck`, run by `task docs:check`) that fails on broken links and anchors, hard-wrapped Markdown, local paths, attribution lines, and snippets that differ from the example source they are copied from; `task docs:snippets` rewrites snippet blocks from source.
 - Repository files: README, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, LICENSE, issue and pull request templates, and `llms.txt`.
 
-[Unreleased]: https://github.com/ubgo/agentio/commits/main
+[Unreleased]: https://github.com/ubgo/agentio/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/ubgo/agentio/releases/tag/v0.1.0
