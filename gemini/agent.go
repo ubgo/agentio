@@ -61,6 +61,12 @@ func homeMarkers() []string {
 // HomeMarkers lists the marker entries of a home. cost: Pure.
 func HomeMarkers() []string { return homeMarkers() }
 
+// genericHomeMarkers are the markers other tools write too: settings.json
+// (Claude Code, pi) and tmp/. Alone they mark a home only in ~/.gemini or
+// the GEMINI_CLI_HOME folder; a folder found elsewhere needs projects.json
+// (written by any command) or a login cache.
+func genericHomeMarkers() []string { return []string{settingsFile, tmpDir} }
+
 // sharedHomeFiles are linked from ~/.gemini into a new home: the user's
 // own instructions, custom commands, skills and extensions. settings.json
 // stays per home because it holds security.auth.selectedType (each home's
@@ -126,20 +132,21 @@ func Spec() agentio.Spec {
 	return agentio.Spec{
 		ID: ID, Name: displayName, Binary: Binary,
 		HomeEnv: HomeEnv, HomeEnvNamesParent: true, DefaultHome: defaultDirName,
-		HomeMarkers:     homeMarkers(),
-		NewArgs:         []string{placeholderArgs},
-		ResumeArgs:      []string{flagResume, placeholderID, placeholderArgs},
-		ModelArgs:       []string{flagModel, placeholderModel},
-		AddDirArgs:      []string{flagIncludeDirs, placeholderDir},
-		PromptArgs:      []string{flagPromptInteractive, placeholderPrompt},
-		AutonomyArgs:    autonomyArgs(),
-		HeadlessArgs:    []string{flagOutputFormat, outputStreamJSON},
-		TokenEnv:        tokenEnv(),
-		VersionArgs:     []string{flagVersion},
-		Packages:        []string{Package},
-		SharedHomeFiles: sharedHomeFiles(),
-		CredentialEnv:   credentialEnv(),
-		APIBillingEnv:   apiBillingEnv(),
+		HomeMarkers:        homeMarkers(),
+		GenericHomeMarkers: genericHomeMarkers(),
+		NewArgs:            []string{placeholderArgs},
+		ResumeArgs:         []string{flagResume, placeholderID, placeholderArgs},
+		ModelArgs:          []string{flagModel, placeholderModel},
+		AddDirArgs:         []string{flagIncludeDirs, placeholderDir},
+		PromptArgs:         []string{flagPromptInteractive, placeholderPrompt},
+		AutonomyArgs:       autonomyArgs(),
+		HeadlessArgs:       []string{flagOutputFormat, outputStreamJSON},
+		TokenEnv:           tokenEnv(),
+		VersionArgs:        []string{flagVersion},
+		Packages:           []string{Package},
+		SharedHomeFiles:    sharedHomeFiles(),
+		CredentialEnv:      credentialEnv(),
+		APIBillingEnv:      apiBillingEnv(),
 		Process: agentio.ProcessMatch{
 			Basenames:    []string{Binary},
 			ArgvContains: []string{argvPackage},

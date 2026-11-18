@@ -74,7 +74,14 @@ func homeFromEnv(p printer, a agentio.Agent) {
 }
 ```
 
-[`IsHome(dir)`](ds:block?id=core-ishome-nxgj8ve9) asks the same marker question for any folder:
+[`IsHome(dir)`](ds:block?id=core-ishome-nxgj8ve9) asks the same marker question for any folder, with one rule for file names other tools write too. A Spec lists those in [`GenericHomeMarkers`](ds:block?id=spec-validategenericmarkers-k7d2wq9m) (`settings.json` for Claude Code, Gemini CLI and pi; `sessions/` and `auth.json`, which pi and Codex share; `projects/`, `tmp/`, `config.toml`, `version.json`). Alone, a generic marker makes a home only of a folder the agent's own names select: the default home, an `ExtraHomes` hit, the home variable's folder. Any other folder (a search hit) needs a marker only that agent writes, so a folder holding just `settings.json` is no agent's home, and a pi home is not also reported as a Codex home. When the caller already names the folder as the agent's home (a configured profile home), [`HasHomeMarker(dir)`](ds:block?id=core-hashomemarker-p4n8ze2v) counts every marker; the doctor's home check and Codex `HomeAt` use it.
+
+| Agent | Distinctive markers (enough anywhere) | Generic markers (enough only in the agent's own folders) |
+|---|---|---|
+| Claude Code | `.claude.json` (every non-default home, from the first start), `.credentials.json` | `settings.json`, `projects/` |
+| Codex | `state_5.sqlite`, `installation_id` | `config.toml`, `auth.json`, `sessions/`, `version.json` |
+| Gemini CLI | `projects.json` (written by any command), `oauth_creds.json`, `google_accounts.json` | `settings.json`, `tmp/` |
+| pi | `models-store.json` (written on every start) | `settings.json`, `sessions/`, `auth.json` |
 
 <!-- snippet: examples/homes/main.go#is-home -->
 ```go
@@ -173,6 +180,7 @@ check owner: own home err=<nil>
 ## Pitfalls
 
 - **[`DefaultHome` and `HomeAt` never touch the disk.](ds:block?id=core-homeat-c4u3jwew)** They return a Home for a folder that may not exist. Use `Homes` or `IsHome` when you need "is there really a home here".
+- **A searched folder needs a distinctive marker.** A Claude home at an arbitrary path that Claude Code never started in (only `settings.json`) is not a home by `IsHome`; it is one in `~/.claude`, `~/.claude-*` or the `CLAUDE_CONFIG_DIR` folder, and for `HasHomeMarker`.
 - **A missing folder is not an error.** `IsHome` returns [`(false, nil)`](ds:block?id=core-ishome-nxgj8ve9) for a folder that does not exist or is a file; only a real stat failure (permissions) is an error.
 - **[The default home is launched with the variable ABSENT.](ds:block?id=homeenvchange-59nx5j7k)** `IsDefault()` homes get `CLAUDE_CONFIG_DIR` removed from the child env, never set to `~/.claude`: Claude Code would switch keychain entries and look logged out ([Targets and commands](launch.md#step-4--change-the-child-environment)).
 - **[An empty home variable counts as absent.](ds:block?id=core-homefromenv-jk7mncfj)** `CLAUDE_CONFIG_DIR=` makes `HomeFromEnv` return false, as the vendor CLI falls back to the default home.

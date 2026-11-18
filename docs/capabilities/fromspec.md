@@ -15,7 +15,7 @@ Not every coding agent needs Go code. If an agent is a binary on `PATH` with a c
 A Spec is plain data. The fields that matter most:
 
 - `ID`, `Name`, `Binary`: identity and the executable looked up on `PATH`.
-- `DefaultHome` (relative to the user home), `ExtraHomes` (a glob such as `.acme-*`), `HomeMarkers` (entries that make a folder a real home) and `HomeEnv` (the variable that selects a non-default home).
+- `DefaultHome` (relative to the user home), `ExtraHomes` (a glob such as `.acme-*`), `HomeMarkers` (entries that make a folder a real home), `GenericHomeMarkers` (the markers other tools write too, which count alone only in the agent's own folders) and `HomeEnv` (the variable that selects a non-default home).
 - Argv templates: `NewArgs` and `ResumeArgs` with `{args}` (where the computed args go; appended when absent) and `{id}`; optional `ModelArgs` (`{model}`), `AddDirArgs` (`{dir}`), `PromptArgs` (`{prompt}`).
 - `VersionArgs`, `LoginArgs`, `LogoutArgs`, `SharedHomeFiles`: each enables one data-driven capability.
 - `TokenEnv`: the variable each token login (kind, optional provider) goes into; it enables `TokenLogin` (step 5).
@@ -303,6 +303,7 @@ check api-billing-env warn ACME_API_KEY set: launches bill per token
 - **Only the browser login flow.** `LoginArgs` is the browser flow; every other `LoginFlow` is `ErrUnsupported`. Without `LogoutArgs`, `LogoutCommand` returns a zero `Command`.
 - **Do not type-assert capabilities.** The agent's Go type implements every data-driven interface; only the accessors and `Supported` check the Spec data (`CapabilityGate`).
 - **Empty `HomeMarkers` means any folder is a home.** With an `ExtraHomes` glob, that can list unrelated folders; give at least one marker file.
+- **List shared file names in `GenericHomeMarkers`.** A marker such as `settings.json` makes every folder that holds one look like your agent's home when a caller searches folders. Listed as generic, it still counts in your agent's own folders; keep one marker only your agent writes, or `Validate` refuses the Spec.
 - **`ExtraArgs` and `Args` order.** Computed args go where `{args}` stands (or at the end): `Target.ExtraArgs` first, then model, add-dir, `LaunchRequest.Args`, then the prompt template.
 - **IDs are unique per set.** `FromSpec` accepts the ID `claude`; `builtin.New` refuses it. Keep custom IDs distinct from the built-ins.
 

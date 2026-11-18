@@ -11,7 +11,7 @@ pi differs from the other built-ins in three ways that shape this API:
 
 - Add the module: `go get github.com/ubgo/agentio/pi` (stdlib only, plus the root module).
 - Build a `Host` (`agentio.HostFromOS()` in real programs; see [Host](../core/host.md)).
-- An agent dir (a home) is `~/.pi/agent` by default. [`PI_CODING_AGENT_DIR`](ds:block?id=pi-spec-r6p1s2d3) names another agent dir **itself** (pi adds no `agent` suffix and creates no `~/.pi`). A dir counts as a home when it holds `auth.json`, `models-store.json`, `settings.json` or `sessions/`; pi writes the first two on every start, even for `--help`.
+- An agent dir (a home) is `~/.pi/agent` by default. [`PI_CODING_AGENT_DIR`](ds:block?id=pi-spec-r6p1s2d3) names another agent dir **itself** (pi adds no `agent` suffix and creates no `~/.pi`). A dir counts as a home when it holds `auth.json`, `models-store.json`, `settings.json` or `sessions/`; pi writes the first two on every start, even for `--help`. Codex and Claude Code homes also hold `auth.json`, `sessions/` or `settings.json`, so outside `~/.pi/agent` and the `PI_CODING_AGENT_DIR` folder only `models-store.json` makes a dir a pi home ([Homes](../core/homes.md#step-2--list-every-home)).
 
 The snippets come from [`examples/pi`](../../examples/pi/), which runs on a temp copy of the 1.5.2 fixture agent dir.
 

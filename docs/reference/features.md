@@ -21,7 +21,7 @@ Areas follow the library's layers: L1 is the neutral core every agent shares, L2
 | `Spec` (data that describes an agent), `Spec.Validate`, `ProcessMatch` | `agentio` | [Agent, Spec and Core](../core/agent-and-spec.md#step-2--read-an-agents-spec) | [quickstart](../../examples/quickstart/) |
 | `NewCore` and `Core` (Spec-driven L1 core: homes, env, `Command`, `Launch`, `LoginCommand`, `Checks`) | `agentio` | [Agent, Spec and Core](../core/agent-and-spec.md#step-3--build-a-core-from-a-spec) | [quickstart](../../examples/quickstart/) |
 | `Home`, `NewHome`, `DefaultHomeName`, `Home.Dir` / `Name` / `IsDefault` / `Path` / `IsZero` | `agentio` | [Homes](../core/homes.md#step-1--get-the-default-home) | [homes](../../examples/homes/) |
-| `Agent.Homes`, `Agent.HomeFromEnv`, `Agent.IsHome` (home discovery by markers) | `agentio` | [Homes](../core/homes.md#step-2--list-every-home) | [homes](../../examples/homes/) |
+| `Agent.Homes`, `Agent.HomeFromEnv`, `Agent.IsHome` (home discovery by markers; `Spec.GenericHomeMarkers` count alone only in the agent's own folders), `Core.HasHomeMarker` | `agentio` | [Homes](../core/homes.md#step-2--list-every-home) | [homes](../../examples/homes/) |
 | `Core.HomeAt` / vendor `HomeAt` (open a home by folder) | `agentio` | [Homes](../core/homes.md#step-3--open-a-home-by-folder) | [homes](../../examples/homes/) |
 | `CheckOwner`, `Core.Owns`, `ErrForeignHome` | `agentio` | [Homes](../core/homes.md#step-4--check-who-owns-a-home) | [homes](../../examples/homes/) |
 | `Target`, `Home.Target` | `agentio` | [Targets and commands](../core/launch.md#step-1--build-a-target-from-a-home) | [launch](../../examples/launch/), [claudelaunch](../../examples/claudelaunch/), [codexlaunch](../../examples/codexlaunch/) |

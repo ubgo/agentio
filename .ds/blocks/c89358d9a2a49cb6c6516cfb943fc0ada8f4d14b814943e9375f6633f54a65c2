@@ -1,0 +1,1 @@
+func (c *Core) HasHomeMarker(dir string) (bool, error) { return c.hasMarker(dir, true) }

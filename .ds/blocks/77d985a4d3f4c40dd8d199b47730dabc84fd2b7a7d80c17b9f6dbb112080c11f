@@ -1,0 +1,24 @@
+func Spec() agentio.Spec {
+	return agentio.Spec{
+		ID: ID, Name: displayName, Binary: Binary,
+		HomeEnv: ConfigDirEnv, DefaultHome: defaultDirName, ExtraHomes: extraHomesGlob,
+		HomeMarkers:        homeMarkers(),
+		GenericHomeMarkers: genericHomeMarkers(),
+		NewArgs:            []string{placeholderArgs},
+		ResumeArgs:         []string{flagResume, placeholderID, placeholderArgs},
+		ModelArgs:          []string{flagModel, placeholderModel},
+		AddDirArgs:         []string{flagAddDir, placeholderDir},
+		PromptArgs:         []string{placeholderPrompt},
+		VersionArgs:        []string{flagVersion},
+		Packages:           []string{NPMPackage},
+		LoginArgs:          []string{subAuth, subLogin},
+		LogoutArgs:         []string{subAuth, subLogout},
+		SharedHomeFiles:    sharedHomeFiles(),
+		CredentialEnv:      credentialEnv(),
+		APIBillingEnv:      apiBillingEnv(),
+		Process: agentio.ProcessMatch{
+			Basenames: []string{Binary},
+			Exclude:   []string{excludeDesktopApp, excludeChromeHost, excludeDesktopSupport},
+		},
+	}
+}

@@ -6,7 +6,7 @@
 
 - Add the module: `go get github.com/ubgo/agentio/claude` (it pulls only the stdlib-only root module).
 - Build a `Host`. Real programs call `agentio.HostFromOS()`; tests and these examples build one by hand that points at a fixture home (see [Host](../core/host.md)).
-- A Claude home is a config dir holding [at least one marker](ds:block?id=claude-homemarkers-hvhwcdt5) (`settings.json`, `projects`, `.credentials.json`, `.claude.json`). The default home is `~/.claude`; others are [`~/.claude-<name>`](ds:block?id=claude-spec-yq7hsrb6) or any dir named by `CLAUDE_CONFIG_DIR`.
+- A Claude home is a config dir holding [at least one marker](ds:block?id=claude-homemarkers-hvhwcdt5) (`settings.json`, `projects`, `.credentials.json`, `.claude.json`). `settings.json` and `projects` are generic: alone they count only in `~/.claude`, a `~/.claude-<name>` or the `CLAUDE_CONFIG_DIR` folder (see [Homes](../core/homes.md#step-2--list-every-home)). The default home is `~/.claude`; others are [`~/.claude-<name>`](ds:block?id=claude-spec-yq7hsrb6) or any dir named by `CLAUDE_CONFIG_DIR`.
 
 The snippets come from [`examples/claudesettings`](../../examples/claudesettings/), which runs on a temp copy of the 2.1.325 fixture home.
 

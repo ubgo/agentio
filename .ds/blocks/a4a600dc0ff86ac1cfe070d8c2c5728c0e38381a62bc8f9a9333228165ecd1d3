@@ -1,0 +1,11 @@
+func (s Spec) validateGenericMarkers() error {
+	for _, m := range s.GenericHomeMarkers {
+		if !slices.Contains(s.HomeMarkers, m) {
+			return fmt.Errorf("%w: %s: generic home marker %q is not one of home_markers", ErrInvalidSpec, s.ID, m)
+		}
+	}
+	if len(s.GenericHomeMarkers) > 0 && !slices.ContainsFunc(s.HomeMarkers, func(m string) bool { return !slices.Contains(s.GenericHomeMarkers, m) }) {
+		return fmt.Errorf("%w: %s: every home marker is generic; keep one only this agent writes", ErrInvalidSpec, s.ID)
+	}
+	return nil
+}

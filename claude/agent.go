@@ -63,6 +63,14 @@ func homeMarkers() []string {
 // HomeMarkers lists the marker entries of a home. cost: Pure.
 func HomeMarkers() []string { return homeMarkers() }
 
+// genericHomeMarkers are the markers other tools write too: settings.json
+// (Gemini CLI, pi and many editors) and projects/ (a common folder name).
+// Alone they mark a home only in ~/.claude, a ~/.claude-* folder or the
+// CLAUDE_CONFIG_DIR folder; a folder found elsewhere needs .claude.json
+// (every non-default home holds it from the first start) or
+// .credentials.json.
+func genericHomeMarkers() []string { return []string{settingsFile, projectsDir} }
+
 // sharedHomeFiles are linked from ~/.claude into a new home: the user's own
 // instructions, skills and settings. Logins, history and caches stay per home.
 func sharedHomeFiles() []string { return []string{memoryFileName, skillsDir, settingsFile} }
@@ -87,19 +95,20 @@ func Spec() agentio.Spec {
 	return agentio.Spec{
 		ID: ID, Name: displayName, Binary: Binary,
 		HomeEnv: ConfigDirEnv, DefaultHome: defaultDirName, ExtraHomes: extraHomesGlob,
-		HomeMarkers:     homeMarkers(),
-		NewArgs:         []string{placeholderArgs},
-		ResumeArgs:      []string{flagResume, placeholderID, placeholderArgs},
-		ModelArgs:       []string{flagModel, placeholderModel},
-		AddDirArgs:      []string{flagAddDir, placeholderDir},
-		PromptArgs:      []string{placeholderPrompt},
-		VersionArgs:     []string{flagVersion},
-		Packages:        []string{NPMPackage},
-		LoginArgs:       []string{subAuth, subLogin},
-		LogoutArgs:      []string{subAuth, subLogout},
-		SharedHomeFiles: sharedHomeFiles(),
-		CredentialEnv:   credentialEnv(),
-		APIBillingEnv:   apiBillingEnv(),
+		HomeMarkers:        homeMarkers(),
+		GenericHomeMarkers: genericHomeMarkers(),
+		NewArgs:            []string{placeholderArgs},
+		ResumeArgs:         []string{flagResume, placeholderID, placeholderArgs},
+		ModelArgs:          []string{flagModel, placeholderModel},
+		AddDirArgs:         []string{flagAddDir, placeholderDir},
+		PromptArgs:         []string{placeholderPrompt},
+		VersionArgs:        []string{flagVersion},
+		Packages:           []string{NPMPackage},
+		LoginArgs:          []string{subAuth, subLogin},
+		LogoutArgs:         []string{subAuth, subLogout},
+		SharedHomeFiles:    sharedHomeFiles(),
+		CredentialEnv:      credentialEnv(),
+		APIBillingEnv:      apiBillingEnv(),
 		Process: agentio.ProcessMatch{
 			Basenames: []string{Binary},
 			Exclude:   []string{excludeDesktopApp, excludeChromeHost, excludeDesktopSupport},
