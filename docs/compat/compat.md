@@ -58,10 +58,10 @@ cd examples && go run ./compat
 ```
 
 ```text
-claude tested 2.1.323..2.1.325
+claude tested 2.1.323..2.1.327
 codex  tested 0.162.1..0.162.1
-claude.Compat() = {Min: 2.1.323, Max: 2.1.325}
-check "2.1.325" -> in-range
+claude.Compat() = {Min: 2.1.323, Max: 2.1.327}
+check "2.1.327" -> in-range
 check "2.1.400" -> newer (warning untested-version)
 check "2.1.40"  -> older (warning untested-version)
 check ""        -> unknown (warning version-unknown)
@@ -75,7 +75,7 @@ claude mcp add-json -               since 2.1.327  Claude Code CHANGELOG.md 2.1.
 claude features: 68 rows, 20 with a known version
 codex features: 39 rows, 9 with a known version
 --worktree in "2.1.40" : false
---worktree in "2.1.325": true
+--worktree in "2.1.327": true
 --worktree in ""       : true
 claude launch: claude: --worktree needs Claude Code >= 2.1.49 (installed 2.1.40)
   feature=--worktree installed=2.1.40 since=2.1.49 is ErrFeatureUnavailable=true

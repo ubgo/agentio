@@ -10,6 +10,7 @@ The fixture homes, relative to the repository root:
 |---|---|
 | `claude/testdata/homes/2.1.323/userhome` | a whole user home recorded at Claude Code 2.1.323 |
 | `claude/testdata/homes/2.1.325/userhome` | the same at 2.1.325: `.claude/` (the default home: settings, credentials, sessions, transcripts, history, skills, agents, commands, plugins, policy limits, stats), `.claude-work/` (a second home), `.claude.json` (global state) and `project/` (a project with `.mcp.json`, `CLAUDE.md` and `.claude/`) |
+| `claude/testdata/homes/2.1.327/userhome` | the 2.1.325 tree with the 2.1.327 changes: a session waiting on a dialog (`status` `waiting`, `waitingFor`), three new `.claude.json` keys, `gitCommitSha` on installed plugins, `toolDenialBeforeRun` on a transcript record |
 | `claude/testdata/stream/2.1.325` | a recorded `--output-format stream-json` run |
 | `codex/testdata/homes/0.162.1` | one Codex home at 0.162.1: `config.toml`, `work.config.toml`, `auth.json`, `sessions/`, `session_index.jsonl`, `history.jsonl`, `hooks.json`, `rules/`, `skills/`, `plugins/`, `thread-writer-locks/`, `models_cache.json` |
 
