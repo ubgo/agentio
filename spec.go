@@ -263,6 +263,21 @@ func (s Spec) tokenEnvFor(cred TokenCredential) (TokenEnv, bool) {
 	return TokenEnv{}, false
 }
 
+// tokenLogin is tokenEnvFor with the refusal both token paths share
+// (Core.Launch and a spec agent's TokenLogin.TokenEnv), so they word a
+// login token_env does not describe the same way: ErrUnsupported naming
+// the kind and, when given, the provider. Pure.
+func (s Spec) tokenLogin(cred TokenCredential) (TokenEnv, error) {
+	if e, ok := s.tokenEnvFor(cred); ok {
+		return e, nil
+	}
+	what := "token login " + cred.Kind.String()
+	if cred.Provider != "" {
+		what += " for provider " + cred.Provider
+	}
+	return TokenEnv{}, UnsupportedError(s.ID, what, specUndescribedReason)
+}
+
 // scrubFor is the list a token login through e removes: e.Scrub when set,
 // else CredentialEnv without e.Env. Pure.
 func (s Spec) scrubFor(e TokenEnv) []string {

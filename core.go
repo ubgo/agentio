@@ -344,7 +344,7 @@ func (c *Core) Launch(t Target, r LaunchRequest) (Command, error) {
 	}
 	s := c.spec
 	unsupported := func(what string) (Command, error) {
-		return Command{}, UnsupportedError(s.ID, what, "not described by the agent spec")
+		return Command{}, UnsupportedError(s.ID, what, specUndescribedReason)
 	}
 	autonomy, autonomyOK := s.AutonomyArgs[r.Autonomy]
 	switch {
@@ -364,13 +364,9 @@ func (c *Core) Launch(t Target, r LaunchRequest) (Command, error) {
 	var tokenEnv []EnvChange
 	var scrub []string
 	if r.Credential != nil {
-		e, ok := s.tokenEnvFor(*r.Credential)
-		if !ok {
-			what := "token login " + r.Credential.Kind.String()
-			if r.Credential.Provider != "" {
-				what += " for provider " + r.Credential.Provider
-			}
-			return unsupported(what)
+		e, err := s.tokenLogin(*r.Credential)
+		if err != nil {
+			return Command{}, err
 		}
 		tokenEnv = []EnvChange{EnvSetSecret(e.Env, r.Credential.Token)}
 		scrub = s.scrubFor(e)
@@ -443,7 +439,7 @@ func (c *Core) ApplyHomeLinks(links []HomeLink) error {
 // describable by a spec. Pure.
 func (c *Core) LoginCommand(h Home, f LoginFlow) (Command, error) {
 	if len(c.spec.LoginArgs) == 0 || f != LoginBrowser {
-		return Command{}, UnsupportedError(c.spec.ID, "login flow "+f.String(), "not described by the agent spec")
+		return Command{}, UnsupportedError(c.spec.ID, "login flow "+f.String(), specUndescribedReason)
 	}
 	return c.Command(h.Target(), "", c.spec.LoginArgs, nil)
 }
