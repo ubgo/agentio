@@ -29,7 +29,7 @@ add:    claude mcp add-json -s user docs "{\"type\":\"http\",\"url\":\"https://m
 remove: claude mcp remove -s user docs
 list:   claude mcp list
 reset:  claude mcp reset-project-choices
-server with env values refused: agentio: unsupported: claude: mcp add-json with env or headers: claude mcp add-json takes the server only on argv; env values and headers are secrets and never go on argv
+server with env values refused: agentio: unsupported: claude: mcp add-json with env or headers: agentio passes the server JSON on argv (agentio.Command has no stdin); env values and headers are secrets and never go on argv
 
 == memory files
 user         ~/.claude/CLAUDE.md size=97 paths=[] imports=2

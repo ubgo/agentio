@@ -75,11 +75,28 @@ func TestLiveSessionsNoProcessLister(t *testing.T) {
 }
 
 func TestSessionStatusNeutral(t *testing.T) {
-	cases := map[SessionStatus]agentio.SessionStatus{StatusIdle: agentio.SessionIdle, StatusBusy: agentio.SessionBusy, StatusShell: agentio.SessionBusy, "new": agentio.SessionStatusUnknown}
+	cases := map[SessionStatus]agentio.SessionStatus{StatusIdle: agentio.SessionIdle, StatusBusy: agentio.SessionBusy, StatusShell: agentio.SessionBusy, StatusWaiting: agentio.SessionIdle, "new": agentio.SessionStatusUnknown}
 	for in, want := range cases {
 		if got := in.Neutral(); got != want {
 			t.Errorf("%s → %v, want %v", in, got, want)
 		}
+		if known := in != "new"; in.IsKnown() != known {
+			t.Errorf("%s IsKnown = %v, want %v", in, in.IsKnown(), known)
+		}
+	}
+}
+
+// TestLiveSessionWaiting decodes a registry entry recorded from Claude Code
+// 2.1.327 while a dialog was open: status "waiting" plus waitingFor. Both
+// are modelled, so nothing lands in Unknown (task drift would list it).
+func TestLiveSessionWaiting(t *testing.T) {
+	body := `{"pid": 4243, "sessionId": "s", "version": "2.1.327", "status": "waiting", "waitingFor": "dialog open"}`
+	s, err := parseLiveSession("4243.json", []byte(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Status != StatusWaiting || s.WaitingFor != "dialog open" || len(s.Unknown) != 0 {
+		t.Fatalf("session = %+v", s)
 	}
 }
 
@@ -299,5 +316,40 @@ func TestStreamDecoder(t *testing.T) {
 	}
 	if _, err := DecodeJSONResult(strings.NewReader(`{"type":"system"}`)); !errors.Is(err, ErrWrongStreamMessage) {
 		t.Fatalf("non-result document: %v", err)
+	}
+}
+
+// TestFixture2_1_327Deltas reads what the 2.1.327 fixture adds over 2.1.325
+// (the drift run's observed deltas): a session waiting on a dialog, three
+// new global-config keys and gitCommitSha on plugin entries. The modelled
+// ones decode into fields; the rest stay in Unknown, never dropped.
+func TestFixture2_1_327Deltas(t *testing.T) {
+	a, h := sessionsAgent(t, filepath.Join("testdata", "homes", "2.1.327", "userhome"), nil)
+	ss, err := a.LiveSessions(h)
+	if err != nil || len(ss) != 2 {
+		t.Fatalf("sessions %d, %v", len(ss), err)
+	}
+	w := ss[1]
+	if w.Status != StatusWaiting || w.WaitingFor != "dialog open" || w.Version != "2.1.327" {
+		t.Fatalf("waiting session = %+v", w)
+	}
+	if _, ok := w.Unknown["waitingFor"]; ok {
+		t.Fatalf("waiting session = %+v", w)
+	}
+	gc, err := a.GlobalConfig(h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, k := range []string{"hasSeenTasksHint", "lspRecommendationIgnoredCount", "pluginUsageLspGraceAppliedIds"} {
+		if _, ok := gc.Unknown[k]; !ok {
+			t.Errorf("global config key %s not kept in Unknown", k)
+		}
+	}
+	ps, err := a.Plugins(h, nil)
+	if err != nil || len(ps) == 0 {
+		t.Fatalf("plugins %d, %v", len(ps), err)
+	}
+	if _, ok := ps[0].Unknown["gitCommitSha"]; !ok {
+		t.Errorf("plugin gitCommitSha not kept in Unknown: %+v", ps[0])
 	}
 }

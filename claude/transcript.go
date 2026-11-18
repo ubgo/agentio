@@ -45,6 +45,10 @@ const (
 	RecordAgentName           RecordType = "agent-name"
 	RecordContinuedIn         RecordType = "continued-in"
 	RecordAPIRequestShape     RecordType = "api-request-shape"
+	// RecordForkContextRef opens a subagent transcript (subagents/agent-*.jsonl):
+	// agentId, parentSessionId, parentLastUuid, contextLength. Seen since
+	// 2.1.323; it points at the parent conversation and carries no content.
+	RecordForkContextRef RecordType = "fork-context-ref"
 )
 
 // RecordTypes lists the recorded types. cost: Pure.
@@ -52,7 +56,7 @@ func RecordTypes() []RecordType {
 	return []RecordType{RecordUser, RecordAssistant, RecordAttachment, RecordSystem, RecordAPIRequest, RecordAPIRequestBlob,
 		RecordAtisLatch, RecordLastPrompt, RecordPermissionMode, RecordMode, RecordAITitle, RecordCustomTitle, RecordBridgeSession,
 		RecordCostState, RecordSessionOwner, RecordFileHistorySnapshot, RecordFileHistoryDelta, RecordQueueOperation, RecordToolsUsed,
-		RecordHistorySuppression, RecordPRLink, RecordAgentName, RecordContinuedIn, RecordAPIRequestShape}
+		RecordHistorySuppression, RecordPRLink, RecordAgentName, RecordContinuedIn, RecordAPIRequestShape, RecordForkContextRef}
 }
 
 // IsKnown reports a recorded type. cost: Pure.

@@ -9,9 +9,15 @@ import (
 )
 
 // Live credential: Claude Code re-runs the settings apiKeyHelper command
-// to get its key, on start, every CLAUDE_CODE_API_KEY_HELPER_TTL_MS and on
-// a 401 (Claude Code docs, "apiKeyHelper"; behaviour tested by hand on
-// 2026-11-13). A launcher that owns the command can switch a running
+// to get its key, on start, every CLAUDE_CODE_API_KEY_HELPER_TTL_MS, and on
+// a 401, before each retry (up to 10, with backoff), recovering as soon as
+// it prints a good key (Claude Code docs, "apiKeyHelper"; tested by hand on
+// 2026-11-13 and with 2.1.327 on 2026-11-18). The timed refresh is
+// stale-while-revalidate: the first request after it may still use the old
+// key. An empty output or a non-zero exit is fatal: three tries, then exit
+// 1, with no fallback to the home's own login. The TTL is honoured from the
+// settings "env" block as well as the process env; the plan uses the
+// process env. A launcher that owns the command can switch a running
 // session's login by changing what the command prints.
 const (
 	// APIKeyHelperTTLEnv is the helper's refresh interval in milliseconds.

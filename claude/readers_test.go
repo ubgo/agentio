@@ -253,3 +253,18 @@ func jsonString(t *testing.T, s string) string {
 	}
 	return string(b)
 }
+
+// TestForkContextRefRecord: subagent transcripts (projects/<dir>/<session>/
+// subagents/agent-*.jsonl) open with a fork-context-ref record, written
+// since at least 2.1.323 and listed by the 2.1.327 drift run. The type is
+// known, so a reader no longer treats it as new vendor drift.
+func TestForkContextRefRecord(t *testing.T) {
+	line := `{"type":"fork-context-ref","agentId":"a1","parentSessionId":"s","parentLastUuid":"u","contextLength":3}`
+	r, err := ParseRecord([]byte(line))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Type != RecordForkContextRef || !r.Type.IsKnown() || r.Type.isInternal() {
+		t.Fatalf("record type %q known=%v", r.Type, r.Type.IsKnown())
+	}
+}

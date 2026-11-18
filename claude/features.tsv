@@ -19,6 +19,7 @@ FlagName	--name	2.1.76		Claude Code CHANGELOG.md 2.1.76
 PluginDirZip	--plugin-dir .zip	2.1.128		Claude Code CHANGELOG.md 2.1.128 (behaviour)
 FallbackModelInteractive	--fallback-model interactive	2.1.166		Claude Code CHANGELOG.md 2.1.166 (behaviour; print-only before)
 FlagRestricted	--restricted	2.1.248		Claude Code CHANGELOG.md 2.1.248
+MCPAddJSONStdin	mcp add-json -	2.1.327		Claude Code CHANGELOG.md 2.1.327 (server JSON from stdin; MCPAddCommand still passes it on argv)
 FlagPrint	--print			
 FlagVerbose	--verbose			
 FlagOutputFormat	--output-format			

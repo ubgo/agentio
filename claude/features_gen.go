@@ -46,6 +46,8 @@ const (
 	FeatureFallbackModelInteractive
 	// FeatureFlagRestricted is --restricted.
 	FeatureFlagRestricted
+	// FeatureMCPAddJSONStdin is mcp add-json -.
+	FeatureMCPAddJSONStdin
 	// FeatureFlagPrint is --print.
 	FeatureFlagPrint
 	// FeatureFlagVerbose is --verbose.
@@ -166,6 +168,7 @@ func featureSpellings() []string {
 		"--plugin-dir .zip",
 		"--fallback-model interactive",
 		"--restricted",
+		"mcp add-json -",
 		"--print",
 		"--verbose",
 		"--output-format",
@@ -259,6 +262,8 @@ func FeatureInfo(f Feature) agentio.FeatureSpan {
 		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.166"), Until: agentio.MustVersion("")}
 	case FeatureFlagRestricted:
 		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.248"), Until: agentio.MustVersion("")}
+	case FeatureMCPAddJSONStdin:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.327"), Until: agentio.MustVersion("")}
 	}
 	return agentio.FeatureSpan{}
 }
@@ -304,6 +309,8 @@ func featureSource(f Feature) string {
 		return "Claude Code CHANGELOG.md 2.1.166 (behaviour; print-only before)"
 	case FeatureFlagRestricted:
 		return "Claude Code CHANGELOG.md 2.1.248"
+	case FeatureMCPAddJSONStdin:
+		return "Claude Code CHANGELOG.md 2.1.327 (server JSON from stdin; MCPAddCommand still passes it on argv)"
 	}
 	return ""
 }

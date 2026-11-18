@@ -647,6 +647,13 @@ type TokenProviderLister interface {
 // owns. The caller can then switch a running session's login by changing
 // what the command prints, without restarting the agent. The plan names
 // no secret: the command prints it to the agent alone.
+//
+// The command must always print one usable credential line and exit 0. An
+// agent may treat an empty output or a non-zero exit as fatal: Claude Code
+// 2.1.327 runs the helper three times, then exits 1, and never falls back
+// to the home's own login. A caller that cannot resolve the credential
+// must fail loudly (one stderr line, non-zero exit), never print an empty
+// value.
 type LiveCredentialPlan struct {
 	// Settings is a JSON object to merge into the launch's settings
 	// (Claude: {"apiKeyHelper": "<command>"}); empty when the agent takes

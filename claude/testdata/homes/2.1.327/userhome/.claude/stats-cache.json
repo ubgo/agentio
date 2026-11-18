@@ -1,0 +1,99 @@
+{
+  "version": 5,
+  "lastComputedDate": "2026-10-26",
+  "dailyActivity": [
+    {
+      "date": "2026-10-24",
+      "messageCount": 8944,
+      "sessionCount": 8,
+      "toolCallCount": 2595
+    },
+    {
+      "date": "2026-10-25",
+      "messageCount": 10933,
+      "sessionCount": 0,
+      "toolCallCount": 3239
+    },
+    {
+      "date": "2026-10-26",
+      "messageCount": 13460,
+      "sessionCount": 14,
+      "toolCallCount": 3323
+    }
+  ],
+  "dailyModelTokens": [
+    {
+      "date": "2026-10-24",
+      "tokensByModel": {
+        "claude-opus-5-5": 1363181889
+      }
+    },
+    {
+      "date": "2026-10-25",
+      "tokensByModel": {
+        "claude-opus-5-5": 2015191752
+      }
+    },
+    {
+      "date": "2026-10-26",
+      "tokensByModel": {
+        "claude-opus-5-5": 2125948148
+      }
+    }
+  ],
+  "dailyModelTokensVersion": 5,
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 110988,
+      "outputTokens": 39830885,
+      "cacheReadInputTokens": 14245967091,
+      "cacheCreationInputTokens": 178280890,
+      "webSearchRequests": 0,
+      "costUSD": 0,
+      "contextWindow": 0,
+      "maxOutputTokens": 0
+    },
+    "claude-sonnet-5-5": {
+      "inputTokens": 2234,
+      "outputTokens": 604908,
+      "cacheReadInputTokens": 139357236,
+      "cacheCreationInputTokens": 6396917,
+      "webSearchRequests": 0,
+      "costUSD": 0,
+      "contextWindow": 0,
+      "maxOutputTokens": 0
+    }
+  },
+  "totalSessions": 141,
+  "totalMessages": 93795,
+  "longestSession": {
+    "sessionId": "a2562902-c577-0125-7a37-f5d51619b733",
+    "duration": 355641039,
+    "messageCount": 670,
+    "timestamp": "2026-10-22T20:28:09.498Z"
+  },
+  "firstSessionDate": "2026-10-11T15:03:44.479Z",
+  "hourCounts": {
+    "2": 14,
+    "3": 3,
+    "4": 1,
+    "5": 7,
+    "6": 2,
+    "7": 8,
+    "8": 8,
+    "9": 4,
+    "10": 7,
+    "11": 8,
+    "12": 4,
+    "13": 8,
+    "14": 2,
+    "15": 7,
+    "16": 8,
+    "17": 23,
+    "19": 3,
+    "20": 17,
+    "21": 3,
+    "22": 2,
+    "23": 2
+  }
+}
