@@ -26,10 +26,20 @@ type Command struct {
 	// secretNames are env names whose values came from a Token or EnvValue;
 	// Redacted masks them even when the name looks harmless.
 	secretNames []string
+	// credentialNames are names the build scrubbed (a credential variable,
+	// Spec.CredentialEnv or a token's scrub list) and then set again with a
+	// plain value (a caller's ExtraEnv key): Redacted masks them.
+	credentialNames []string
+	// plainNames are names the build set with a plain value (EnvSet) and
+	// never scrubbed: their source chose to show them, so Redacted prints
+	// them whatever the name (CLAUDE_CODE_API_KEY_HELPER_TTL_MS).
+	plainNames []string
 }
 
 // sensitiveNameParts mark an env name as secret-bearing for Redacted, for
-// values that did not come through a Token (profile ExtraEnv).
+// values inherited unchanged from the base env: their source is unknown,
+// so the name is the only guard (a user's GITHUB_TOKEN). Values the build
+// set are judged by their source instead (Command.Redacted).
 func sensitiveNameParts() []string {
 	return []string{"TOKEN", "KEY", "SECRET", "PASSWORD", "PASSWD", "CREDENTIAL", "AUTH"}
 }
@@ -45,18 +55,27 @@ func isSensitiveName(name string) bool {
 	return false
 }
 
-// Redacted returns a copy safe to print in dry runs and errors: env values
-// that came from a Token or EnvValue, or whose name looks secret-bearing,
-// are replaced by "[redacted]". Pure.
+// Redacted returns a copy safe to print in dry runs and errors. Each env
+// value is judged by its source, replaced by "[redacted]" when:
+//   - it came from a Token or EnvValue (EnvSetSecret);
+//   - the build scrubbed its name as a credential and then set it again
+//     with a plain value (a caller's ExtraEnv API key);
+//   - it was inherited unchanged from the base env and its name looks
+//     secret-bearing (sensitiveNameParts): the source is unknown there.
+//
+// A plain value the build set (EnvSet) on a name it did not scrub is
+// shown as written, whatever the name: its source chose plain. Pure.
 func (c Command) Redacted() Command {
 	out := c
 	out.Args = slices.Clone(c.Args)
 	out.Warnings = slices.Clone(c.Warnings)
 	out.secretNames = slices.Clone(c.secretNames)
+	out.credentialNames = slices.Clone(c.credentialNames)
+	out.plainNames = slices.Clone(c.plainNames)
 	out.Env = make([]string, len(c.Env))
 	for i, kv := range c.Env {
 		name, val, ok := strings.Cut(kv, envSep)
-		if ok && val != "" && (slices.Contains(c.secretNames, name) || isSensitiveName(name)) {
+		if ok && val != "" && c.redacts(name) {
 			kv = name + envSep + redactedText
 		}
 		out.Env[i] = kv
@@ -256,25 +275,60 @@ func ScrubEnv(names []string) []EnvChange {
 	return out
 }
 
-// secretNamesOf lists names set from secrets in changes.
-func secretNamesOf(changes []EnvChange) []string {
-	var out []string
-	for _, c := range changes {
-		if c.op == EnvSetSecretOp && !slices.Contains(out, c.name) {
-			out = append(out, c.name)
+// redacts reports whether Redacted masks name's value, by its source
+// (see Redacted). Pure.
+func (c Command) redacts(name string) bool {
+	switch {
+	case slices.Contains(c.secretNames, name), slices.Contains(c.credentialNames, name):
+		return true
+	case slices.Contains(c.plainNames, name):
+		return false
+	}
+	return isSensitiveName(name)
+}
+
+// envSources sorts the names changes set by source: from a Token or
+// EnvValue (secret), plain after the same changes scrubbed the name
+// (credential), or plain on a name never scrubbed (plain). A name set
+// from a secret anywhere stays secret. Pure.
+func envSources(changes []EnvChange) (secret, credential, plain []string) {
+	var scrubbed []string
+	add := func(list *[]string, name string) {
+		if !slices.Contains(*list, name) {
+			*list = append(*list, name)
 		}
 	}
-	return out
+	for _, c := range changes {
+		switch c.op {
+		case EnvUnsetOp:
+			add(&scrubbed, c.name)
+		case EnvSetSecretOp:
+			add(&secret, c.name)
+		case EnvSetOp:
+			if slices.Contains(scrubbed, c.name) {
+				add(&credential, c.name)
+			} else {
+				add(&plain, c.name)
+			}
+		}
+	}
+	plain = slices.DeleteFunc(plain, func(n string) bool {
+		return slices.Contains(secret, n) || slices.Contains(credential, n)
+	})
+	return secret, credential, plain
 }
 
 // NewCommand builds a Command whose env is base with changes applied, and
 // records which names hold secrets so Redacted masks them. Pure.
 func NewCommand(path string, args []string, base []string, dir string, changes ...EnvChange) Command {
+	secret, credential, plain := envSources(changes)
 	return Command{
-		Path:        path,
-		Args:        slices.Clone(args),
-		Env:         ApplyEnv(base, changes...),
-		Dir:         dir,
-		secretNames: secretNamesOf(changes),
+		Path:            path,
+		Args:            slices.Clone(args),
+		Env:             ApplyEnv(base, changes...),
+		Dir:             dir,
+		secretNames:     secret,
+		credentialNames: credential,
+		plainNames:      plain,
 	}
 }

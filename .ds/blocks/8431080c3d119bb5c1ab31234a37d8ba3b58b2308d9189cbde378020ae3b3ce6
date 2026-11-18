@@ -1,0 +1,25 @@
+type Command struct {
+	// Path is the binary name (Spec.Binary) or an absolute path. Building is
+	// Pure, so a launch builder never walks PATH; resolve with Agent.LookPath.
+	Path string
+	// Args excludes argv[0]. Never holds a token (invariant 8).
+	Args []string
+	// Env is the full child environment ("K=V"). It is the one place a token
+	// lives; print it only through Redacted.
+	Env []string
+	// Dir is the working directory; "" = the caller's.
+	Dir string
+	// Warnings are drift notes from building (untested or unknown version).
+	Warnings Warnings
+	// secretNames are env names whose values came from a Token or EnvValue;
+	// Redacted masks them even when the name looks harmless.
+	secretNames []string
+	// credentialNames are names the build scrubbed (a credential variable,
+	// Spec.CredentialEnv or a token's scrub list) and then set again with a
+	// plain value (a caller's ExtraEnv key): Redacted masks them.
+	credentialNames []string
+	// plainNames are names the build set with a plain value (EnvSet) and
+	// never scrubbed: their source chose to show them, so Redacted prints
+	// them whatever the name (CLAUDE_CODE_API_KEY_HELPER_TTL_MS).
+	plainNames []string
+}

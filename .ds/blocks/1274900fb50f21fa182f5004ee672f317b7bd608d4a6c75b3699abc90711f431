@@ -1,0 +1,26 @@
+func envSources(changes []EnvChange) (secret, credential, plain []string) {
+	var scrubbed []string
+	add := func(list *[]string, name string) {
+		if !slices.Contains(*list, name) {
+			*list = append(*list, name)
+		}
+	}
+	for _, c := range changes {
+		switch c.op {
+		case EnvUnsetOp:
+			add(&scrubbed, c.name)
+		case EnvSetSecretOp:
+			add(&secret, c.name)
+		case EnvSetOp:
+			if slices.Contains(scrubbed, c.name) {
+				add(&credential, c.name)
+			} else {
+				add(&plain, c.name)
+			}
+		}
+	}
+	plain = slices.DeleteFunc(plain, func(n string) bool {
+		return slices.Contains(secret, n) || slices.Contains(credential, n)
+	})
+	return secret, credential, plain
+}

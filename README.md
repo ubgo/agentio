@@ -729,7 +729,7 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), whi
 <!-- ds:def id=runner-version-87cgudkv file=core.go pick=symbol:Runner.Version owner=@khanakia -->
 <!-- ds:def id=scalar-v4y3hks8 file=value.go pick=symbol:Scalar owner=@khanakia -->
 <!-- ds:def id=scrubenv-4rdtd62j file=command.go pick=symbol:ScrubEnv owner=@khanakia -->
-<!-- ds:def id=secretnamesof-7pd7kykk file=command.go pick=symbol:secretNamesOf owner=@khanakia -->
+<!-- ds:def id=secretnamesof-7pd7kykk file=command.go pick=symbol:envSources owner=@khanakia -->
 <!-- ds:def id=sensitivenameparts-55jafnj3 file=command.go pick=symbol:sensitiveNameParts owner=@khanakia -->
 <!-- ds:def id=sessionkindvalues-dz2kaxw9 file=capability.go pick=symbol:SessionKindValues owner=@khanakia -->
 <!-- ds:def id=sessionstatusnames-9ja6re25 file=enums.go pick=symbol:sessionStatusNames owner=@khanakia -->
