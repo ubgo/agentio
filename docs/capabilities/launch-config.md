@@ -205,6 +205,7 @@ The output is in the example's [README](../../examples/launchconfig/README.md).
 - **Record the start time from `Host.Processes`.** `ProcessAlive` allows two seconds of difference (macOS reports seconds); your own clock read before the exec is close enough, the process table's is exact.
 - **A launch config file is the caller's to clean up.** `LaunchConfigured` writes the settings file only when settings are delivered as a file; remove it with the run folder once the agent has ended (Step 5).
 - **The helper refresh is a floor, not a promise.** Claude also re-runs the helper on a 401; very short intervals run your command often.
+- **The command must never print an empty value.** Claude Code treats an empty output or a non-zero exit as fatal: it tries three times, then exits 1, and never falls back to the home's own login. When your command cannot resolve the credential, write one line to stderr and exit non-zero so the reason shows up. A timed refresh is stale-while-revalidate, so the first request after a switch may still use the old key; a 401 makes Claude re-run the command before each retry.
 
 ## Related
 
