@@ -30,6 +30,7 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 
 ### Changed
 
+- `OverlayOptions` (module root): an option list that lands where `LaunchRequest.Args` go (Claude's `extra_args`) is no longer refused next to raw args; both are kept, the option's list first, then the raw args. Conflict errors name the request part in plain words (`option "model" conflicts with the request's model`) instead of Go field names (`LaunchRequest.Model`).
 - Credential scrubbing follows the login: a launch on the home's own login scrubs `Spec.CredentialEnv`, a token login scrubs only the variables that outrank that token, so a variable that is the login mechanism (pi's provider keys, a Gemini API-key home's `GEMINI_API_KEY`) is kept.
 - The free `agentio.LookPath` and `LookPathAll` use the running OS's rules (`LookPathAllFor` with `runtime.GOOS`): on Windows they now try `PATHEXT` and need no exec bit; Windows PATH rules accept rooted (`\tools`) and quoted entries; home dirs and PATH lookups use each OS's own path syntax instead of the runner's `filepath`.
 - Every launch scrubs the vendor's inherited credential variables (`Spec.CredentialEnv`), for a home login too, before `Target.ExtraEnv` is applied: an inherited `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` or `CLAUDE_CODE_OAUTH_TOKEN` no longer overrides a Claude home's login. Codex's `CredentialEnv` is now only `CODEX_API_KEY` (it beats the home login in `codex exec`); `OPENAI_API_KEY` is kept because Codex auth does not read it and a model provider may name it as its key.

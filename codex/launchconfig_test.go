@@ -82,7 +82,7 @@ func TestCodexLaunchConfiguredOptions(t *testing.T) {
 		t.Errorf("args = %s", got)
 	}
 	cases := []struct{ name, options, want string }{
-		{"model conflict", `{"model": "gpt-5"}`, `option "model" conflicts with LaunchRequest.Model`},
+		{"model conflict", `{"model": "gpt-5"}`, `option "model" conflicts with the request's model`},
 		{"unknown key", `{"profile": "deep"}`, `unknown key "profile"`},
 		{"wrong type", `{"search": "yes"}`, "search: expected true or false"},
 		{"bad enum", `{"sandbox": "everything"}`, "is not one of"},
@@ -94,7 +94,7 @@ func TestCodexLaunchConfiguredOptions(t *testing.T) {
 		}
 	}
 	_, err = lc.LaunchConfigured(tg, agentio.LaunchRequest{Autonomy: agentio.AutonomyAsk}, agentio.LaunchConfig{Options: agentio.Raw(`{"sandbox": "read-only"}`)})
-	if err == nil || !strings.Contains(err.Error(), "LaunchRequest.Autonomy") {
+	if err == nil || !strings.Contains(err.Error(), "conflicts with the request's autonomy level") {
 		t.Errorf("autonomy conflict: %v", err)
 	}
 	if _, err := lc.LaunchConfigured(tg, agentio.LaunchRequest{}, agentio.LaunchConfig{Options: agentio.Raw(`{"bypass_all": true}`)}); !errors.Is(err, agentio.ErrDangerousNotAllowed) {

@@ -15,6 +15,7 @@ type overlaySample struct {
 	Effort string   `json:"effort,omitempty"`
 	Dirs   []string `json:"dirs,omitempty"`
 	Bare   bool     `json:"bare,omitempty"`
+	Extra  []string `json:"extra_args,omitempty"`
 }
 
 // overlayKeys is the registry of overlaySample, written out.
@@ -24,12 +25,13 @@ func overlayKeys() []OptionKey {
 		{Key: "effort", Field: "Effort", Kind: OptionEnum, Values: []string{"low", "high"}},
 		{Key: "dirs", Field: "Dirs", Kind: OptionList, Concern: ConcernAddDir},
 		{Key: "bare", Field: "Bare", Kind: OptionBool},
+		{Key: "extra_args", Field: "Extra", Kind: OptionList},
 	}
 }
 
 // mapOverlaySample maps the request fields overlaySample has.
 func mapOverlaySample(r LaunchRequest) (reflect.Value, error) {
-	return reflect.ValueOf(overlaySample{Model: r.Model, Dirs: r.AddDirs}), nil
+	return reflect.ValueOf(overlaySample{Model: r.Model, Dirs: r.AddDirs, Extra: r.Args}), nil
 }
 
 // TestOverlayOptions: only given keys are set; a key the request already
@@ -46,9 +48,9 @@ func TestOverlayOptions(t *testing.T) {
 		t.Errorf("overlay = %+v", o)
 	}
 	for _, tc := range []struct{ options, want string }{
-		{`{"model": "sonnet"}`, `option "model" conflicts with LaunchRequest.Model`},
-		{`{"dirs": ["/b"]}`, `option "dirs" conflicts with LaunchRequest.AddDirs`},
-		{`{"modle": "x"}`, `unknown key "modle" (valid: bare, dirs, effort, model)`},
+		{`{"model": "sonnet"}`, `option "model" conflicts with the request's model`},
+		{`{"dirs": ["/b"]}`, `option "dirs" conflicts with the request's add-dir folders`},
+		{`{"modle": "x"}`, `unknown key "modle" (valid: bare, dirs, effort, extra_args, model)`},
 		{`{"bare": "yes"}`, "bare: expected true or false (bool)"},
 		{`{"dirs": "/b"}`, "dirs: expected an array of strings (list)"},
 		{`{"effort": "max"}`, `effort="max" is not one of low, high`},
@@ -56,7 +58,7 @@ func TestOverlayOptions(t *testing.T) {
 	} {
 		fresh := overlaySample{Model: "opus", Dirs: []string{"/a"}}
 		err := OverlayOptions(Raw(tc.options), overlayKeys(), reflect.ValueOf(&fresh), r, mapOverlaySample)
-		if !errors.Is(err, ErrInvalidOption) || !strings.Contains(err.Error(), tc.want) {
+		if !errors.Is(err, ErrInvalidOption) || !strings.Contains(err.Error(), tc.want) || strings.Contains(err.Error(), "LaunchRequest") {
 			t.Errorf("%s: %v", tc.options, err)
 		}
 	}
@@ -70,6 +72,34 @@ func TestOverlayOptions(t *testing.T) {
 	}
 	if err := CheckOptionsObject(Raw(`{"effort": "max"}`), overlayKeys()); !errors.Is(err, ErrInvalidOption) {
 		t.Errorf("check enum: %v", err)
+	}
+}
+
+// TestOverlayOptions_RawArgsTogether: an options list that lands where the
+// request's raw args go is never a conflict: raw args always win, so both
+// are kept, the option's first, then the request's raw args (later flags
+// win in a vendor CLI's parser).
+func TestOverlayOptions_RawArgsTogether(t *testing.T) {
+	t.Parallel()
+	for name, tc := range map[string]struct {
+		r       LaunchRequest
+		options string
+		want    []string
+	}{
+		"option and raw args": {LaunchRequest{Args: []string{"--raw", "1"}}, `{"extra_args": ["--opt", "2"]}`, []string{"--opt", "2", "--raw", "1"}},
+		"option only":         {LaunchRequest{}, `{"extra_args": ["--opt"]}`, []string{"--opt"}},
+		"raw args only":       {LaunchRequest{Args: []string{"--raw"}}, `{"bare": true}`, []string{"--raw"}},
+		"empty option list":   {LaunchRequest{Args: []string{"--raw"}}, `{"extra_args": []}`, []string{"--raw"}},
+	} {
+		v, _ := mapOverlaySample(tc.r)
+		o, _ := reflect.TypeAssert[overlaySample](v)
+		if err := OverlayOptions(Raw(tc.options), overlayKeys(), reflect.ValueOf(&o), tc.r, mapOverlaySample); err != nil {
+			t.Errorf("%s: %v", name, err)
+			continue
+		}
+		if !slices.Equal(o.Extra, tc.want) {
+			t.Errorf("%s: extra = %q, want %q", name, o.Extra, tc.want)
+		}
 	}
 }
 
@@ -92,6 +122,7 @@ func TestDeriveOptionKeysConcerns(t *testing.T) {
 		if o.Bare {
 			args = append(args, "--bare")
 		}
+		args = append(args, o.Extra...)
 		return args, nil, nil
 	}
 	d := OptionDerivation{Type: reflect.TypeFor[overlaySample](), Probe: probe, Concerns: map[string]Concern{"model": ConcernModel}}

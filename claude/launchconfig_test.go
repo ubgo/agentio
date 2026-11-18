@@ -86,15 +86,23 @@ func TestLaunchConfiguredOptions(t *testing.T) {
 	if got := strings.Join(cmd.Args, " "); got != "--model opus --effort high --mcp-config /m.json --raw -- hi" {
 		t.Errorf("args = %s", got)
 	}
+	// extra_args next to raw args: both kept, extra_args first, then the
+	// request's raw args, all before the prompt's "--".
+	cmd, err = lc.LaunchConfigured(tg, r, agentio.LaunchConfig{Options: agentio.Raw(`{"extra_args": ["--debug", "api"]}`)})
+	if err != nil {
+		t.Fatalf("extra_args with raw args: %v", err)
+	}
+	if got := strings.Join(cmd.Args, " "); got != "--model opus --debug api --raw -- hi" {
+		t.Errorf("extra_args with raw args: args = %s", got)
+	}
 	cases := []struct {
 		name, options, want string
 	}{
 		{"unknown key", `{"efort": "high"}`, `unknown key "efort"`},
 		{"wrong type", `{"effort": 3}`, "effort: expected a string"},
 		{"bad enum", `{"effort": "turbo"}`, "is not one of"},
-		{"model conflict", `{"model": "sonnet"}`, `option "model" conflicts with LaunchRequest.Model`},
-		{"prompt conflict", `{"prompt": "other"}`, `option "prompt" conflicts with LaunchRequest.Prompt`},
-		{"raw args conflict", `{"extra_args": ["--x"]}`, `option "extra_args" conflicts with LaunchRequest.Args`},
+		{"model conflict", `{"model": "sonnet"}`, `option "model" conflicts with the request's model`},
+		{"prompt conflict", `{"prompt": "other"}`, `option "prompt" conflicts with the request's prompt`},
 		{"not an object", `["effort"]`, "options must be a JSON object"},
 	}
 	for _, c := range cases {
@@ -102,14 +110,17 @@ func TestLaunchConfiguredOptions(t *testing.T) {
 		if !errors.Is(err, agentio.ErrInvalidOption) || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: %v", c.name, err)
 		}
-		if c.name != "model conflict" && c.name != "prompt conflict" && c.name != "raw args conflict" {
+		if strings.Contains(err.Error(), "LaunchRequest") {
+			t.Errorf("%s: the message names an internal type: %v", c.name, err)
+		}
+		if c.name != "model conflict" && c.name != "prompt conflict" {
 			if err := lc.CheckOptions(agentio.Raw(c.options)); !errors.Is(err, agentio.ErrInvalidOption) {
 				t.Errorf("%s: CheckOptions accepted it", c.name)
 			}
 		}
 	}
 	_, err = lc.LaunchConfigured(tg, agentio.LaunchRequest{Autonomy: agentio.AutonomyReadOnly}, agentio.LaunchConfig{Options: agentio.Raw(`{"permission_mode": "auto"}`)})
-	if err == nil || !strings.Contains(err.Error(), "LaunchRequest.Autonomy") {
+	if err == nil || !strings.Contains(err.Error(), "conflicts with the request's autonomy level") {
 		t.Errorf("autonomy conflict: %v", err)
 	}
 	old := tg

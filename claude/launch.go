@@ -200,7 +200,10 @@ type LaunchOptions struct {
 	RemoteControl *string  `json:"remote_control,omitempty"`
 	Betas         []string `json:"betas,omitempty"`
 	Files         []string `json:"files,omitempty"`
-	// ExtraArgs are appended last, verbatim.
+	// ExtraArgs are appended after the modelled flags, verbatim, before
+	// the prompt. Through the neutral Agent, LaunchRequest.Args land here
+	// too; an extra_args option given with them is kept first, then the
+	// request's args (agentio.OverlayOptions).
 	ExtraArgs []string `json:"extra_args,omitempty"`
 }
 

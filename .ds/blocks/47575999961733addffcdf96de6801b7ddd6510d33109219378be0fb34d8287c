@@ -1,0 +1,36 @@
+func OverlayOptions(options Raw, keys []OptionKey, dst reflect.Value, r LaunchRequest, mapOne RequestMapper) error {
+	if IsEmptyJSON(options) {
+		return nil
+	}
+	given, err := optionObject(options, keys)
+	if err != nil {
+		return err
+	}
+	type rawTail struct {
+		field  string
+		values reflect.Value
+	}
+	var tails []rawTail
+	for _, name := range given {
+		k, _ := FindOptionKey(keys, name)
+		f := dst.Elem().FieldByName(k.Field)
+		if !f.IsValid() || f.IsZero() {
+			continue
+		}
+		source := requestSource(r, k.Field, mapOne)
+		if source == requestRawArgs && f.Kind() == reflect.Slice {
+			// Keep the raw args aside; the decode below replaces the field.
+			tails = append(tails, rawTail{field: k.Field, values: reflect.AppendSlice(reflect.MakeSlice(f.Type(), 0, f.Len()), f)})
+			continue
+		}
+		return fmt.Errorf("%w: option %q conflicts with the request's %s", ErrInvalidOption, k.Key, source)
+	}
+	if err := DecodeOptions(options, keys, dst); err != nil {
+		return err
+	}
+	for _, t := range tails {
+		f := dst.Elem().FieldByName(t.field)
+		f.Set(reflect.AppendSlice(f, t.values))
+	}
+	return nil
+}
