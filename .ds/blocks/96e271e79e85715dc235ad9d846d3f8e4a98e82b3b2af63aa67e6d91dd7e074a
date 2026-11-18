@@ -1,0 +1,1 @@
+func (specAgent) DetectTokenKind(Token) (TokenKind, bool) { return TokenKindUnknown, false }

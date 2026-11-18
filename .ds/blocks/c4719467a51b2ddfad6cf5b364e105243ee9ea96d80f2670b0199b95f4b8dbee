@@ -1,0 +1,10 @@
+func (a *Agent) launchProfileCheck(h agentio.Home, profile string) *Config {
+	if profile == "" || agentio.CheckOwner(ID, h) != nil {
+		return nil
+	}
+	cfg, err := a.ConfigFile(Home{h: h})
+	if err != nil {
+		return nil
+	}
+	return &cfg
+}

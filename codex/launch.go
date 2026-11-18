@@ -144,8 +144,9 @@ func OverrideFloat(path string, v float64) Override {
 	return Override{Path: path, Value: TOMLRaw(s)}
 }
 
-// ErrBadOverride means a `-c` text has no `=`.
-var ErrBadOverride = errors.New("codex: override must be path=value")
+// ErrBadOverride means a `-c` text has no `=`. Like every Codex launch
+// refusal below, it also matches agentio.ErrInvalidOption.
+var ErrBadOverride = agentio.NewLaunchSentinel("codex: override must be path=value")
 
 // ParseOverride parses "path=value" exactly like Codex: the value is TOML
 // when it parses as TOML, else a literal string (then quoted here). Pure.
@@ -165,7 +166,9 @@ func ParseOverride(s string) (Override, error) {
 // String renders "path=value" for the -c argument. Pure.
 func (o Override) String() string { return o.Path + overrideSep + string(o.Value) }
 
-// LaunchOptions are the global/TUI flags of `codex` (§16).
+// LaunchOptions are the global/TUI flags of `codex` (§16). A field tagged
+// agentio:"path" takes a file or folder on this machine
+// (agentio.OptionKey.Path): a launcher expands "~" in those values only.
 type LaunchOptions struct {
 	Prompt             string         `json:"prompt,omitempty"`            // positional; "" = interactive
 	PromptFromStdin    bool           `json:"prompt_from_stdin,omitempty"` // exec only: "-"
@@ -175,9 +178,9 @@ type LaunchOptions struct {
 	Approval           ApprovalPolicy `json:"approval,omitempty"` // TUI only; exec renders -c approval_policy
 	ApproveForMe       bool           `json:"approve_for_me,omitempty"`
 	BypassAll          bool           `json:"bypass_all,omitempty"` // requires Target.AllowDangerous
-	Dir                string         `json:"cd,omitempty"`
-	AddDirs            []string       `json:"add_dirs,omitempty"`
-	Images             []string       `json:"images,omitempty"`
+	Dir                string         `json:"cd,omitempty" agentio:"path"`
+	AddDirs            []string       `json:"add_dirs,omitempty" agentio:"path"`
+	Images             []string       `json:"images,omitempty" agentio:"path"`
 	Search             bool           `json:"search,omitempty"`
 	OSS                bool           `json:"oss,omitempty"`
 	LocalProvider      string         `json:"local_provider,omitempty"`
@@ -224,7 +227,7 @@ type ReviewTarget struct {
 }
 
 // ErrInvalidOption means an option value Codex would reject.
-var ErrInvalidOption = errors.New("codex: invalid launch option")
+var ErrInvalidOption = agentio.NewLaunchSentinel("codex: invalid launch option")
 
 // builder accumulates argv, warnings and the first error.
 type builder struct {
@@ -356,6 +359,11 @@ func (b *builder) global(o LaunchOptions, exec bool) {
 	}
 }
 
+// warnProfileUnchecked is the warning for a --profile built without the
+// home's config.toml (LaunchOptions.ProfileCheck nil): it says what was
+// not checked and what Codex does about it, in the user's terms.
+const warnProfileUnchecked = "--profile %s not checked against the legacy [profiles] tables in config.toml; Codex refuses it when one has that name"
+
 // profile emits -p NAME with the version-gated meaning of §0.1 and the
 // legacy-conflict refusal of loader/mod.rs:303.
 func (b *builder) profile(o LaunchOptions) {
@@ -365,7 +373,7 @@ func (b *builder) profile(o LaunchOptions) {
 	case legacyOnly:
 		// below 0.131.0 -p selects a legacy [profiles.NAME]: no conflict exists
 	case o.ProfileCheck == nil:
-		b.warns.Add(agentio.WarnVersionUnknown, fileConfig, "profiles", "--profile conflict with a legacy profile not checked (no config given)")
+		b.warns.Add(agentio.WarnVersionUnknown, fileConfig, keyProfiles, fmt.Sprintf(warnProfileUnchecked, o.Profile))
 	default:
 		if err := o.ProfileCheck.ProfileConflict(o.Profile); err != nil {
 			b.fail(err)
@@ -447,7 +455,7 @@ func (a *Agent) New(t agentio.Target, o LaunchOptions) (agentio.Command, error) 
 }
 
 // ErrNoSessionID means a resume/fork builder needs an id.
-var ErrNoSessionID = errors.New("codex: session id required")
+var ErrNoSessionID = agentio.NewLaunchSentinel("codex: session id required")
 
 // Resume builds `codex resume [flags] ID [PROMPT]`. Pure.
 func (a *Agent) Resume(t agentio.Target, id string, o LaunchOptions) (agentio.Command, error) {

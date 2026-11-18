@@ -1,7 +1,7 @@
 // Command fromspec describes a coding agent agentio has no code for as a
 // plain agentio.Spec, builds it with agentio.FromSpec and uses it like a
-// built-in: homes, capabilities, launch commands, login command, process
-// classification and doctor checks. Everything runs in a temporary folder
+// built-in: homes, capabilities, launch commands, token logins, login
+// command, process classification and doctor checks. Everything runs in a temporary folder
 // with an inert fake binary; nothing is executed.
 package main
 
@@ -28,6 +28,7 @@ const (
 	acmeBinary    = "acme"
 	acmeHomeEnv   = "ACME_HOME"
 	acmeKeyEnv    = "ACME_API_KEY"
+	acmeOAuthEnv  = "ACME_OAUTH_TOKEN"
 	acmeConfig    = "config.yml"
 	acmeDefault   = ".acme"
 	acmeWork      = ".acme-work"
@@ -45,11 +46,15 @@ const (
 	execPerm = 0o755
 )
 
+// exampleToken stands in for a token the caller read from its secret
+// store; agentio only ever prints it redacted.
+const exampleToken = "example-token-value"
+
 // snippet:start spec
 // acmeSpec describes Acme Code as data: binary, homes, argv templates
 // ({args}, {id}, {model}, {prompt}), version and login args, files a new
-// home shares with the default one, credential variables and how to
-// recognise its process.
+// home shares with the default one, the variable each token login goes
+// into, credential variables and how to recognise its process.
 func acmeSpec() agentio.Spec {
 	return agentio.Spec{
 		ID:              acmeID,
@@ -67,9 +72,13 @@ func acmeSpec() agentio.Spec {
 		LoginArgs:       []string{"login"},
 		LogoutArgs:      []string{"logout"},
 		SharedHomeFiles: []string{acmeConfig},
-		CredentialEnv:   []string{acmeKeyEnv},
-		APIBillingEnv:   []string{acmeKeyEnv},
-		Process:         agentio.ProcessMatch{Basenames: []string{acmeBinary}, Exclude: []string{"acme-desktop"}},
+		TokenEnv: []agentio.TokenEnv{
+			{Kind: agentio.TokenAPIKey, Env: acmeKeyEnv},
+			{Kind: agentio.TokenOAuthToken, Env: acmeOAuthEnv},
+		},
+		CredentialEnv: []string{acmeKeyEnv},
+		APIBillingEnv: []string{acmeKeyEnv},
+		Process:       agentio.ProcessMatch{Basenames: []string{acmeBinary}, Exclude: []string{"acme-desktop"}},
 	}
 }
 
@@ -140,6 +149,10 @@ func run(ctx context.Context, w io.Writer, h agentio.Host) error {
 	}
 	fmt.Fprintln(w, "== launch ==")
 	if err := launch(w, h, a); err != nil {
+		return err
+	}
+	fmt.Fprintln(w, "== token login ==")
+	if err := tokenLogin(w, a); err != nil {
 		return err
 	}
 	fmt.Fprintln(w, "== login, process, doctor ==")
@@ -230,6 +243,42 @@ func launch(w io.Writer, h agentio.Host, a agentio.Agent) error {
 }
 
 // snippet:end launch
+
+// snippet:start token
+// tokenLogin launches with a token instead of the home's stored login.
+// TokenLogin is there because the Spec has token_env; the caller names
+// the kind (a spec describes no token shapes to detect it from). The token
+// goes into that kind's variable, never argv, and prints redacted; the
+// variables that would outrank it are removed (here ACME_API_KEY for the
+// OAuth token). A kind token_env does not name is ErrUnsupported.
+func tokenLogin(w io.Writer, a agentio.Agent) error {
+	tl, ok := agentio.TokenLoginOf(a)
+	if !ok {
+		return errors.New("acme has no token login")
+	}
+	_, detected := tl.DetectTokenKind(agentio.NewToken(exampleToken))
+	fmt.Fprintf(w, "kinds: %v (detected from the value: %t)\n", tl.TokenKinds(), detected)
+	for _, k := range tl.TokenKinds() {
+		cred := &agentio.TokenCredential{Kind: k, Token: agentio.NewToken(exampleToken)}
+		cmd, err := a.Launch(a.DefaultHome().Target(), agentio.LaunchRequest{Credential: cred})
+		if err != nil {
+			return err
+		}
+		var env []string
+		for _, kv := range cmd.Redacted().Env {
+			if strings.HasPrefix(kv, "ACME_") {
+				env = append(env, kv)
+			}
+		}
+		fmt.Fprintf(w, "%s: %s env %v\n", k, cmd, env)
+	}
+	cred := &agentio.TokenCredential{Kind: agentio.TokenAPIKeyHelper, Token: agentio.NewToken(exampleToken)}
+	_, err := a.Launch(a.DefaultHome().Target(), agentio.LaunchRequest{Credential: cred})
+	fmt.Fprintf(w, "api-key-helper: %v\n", err)
+	return nil
+}
+
+// snippet:end token
 
 // snippet:start extras
 // extras builds the login command, classifies two process rows and runs

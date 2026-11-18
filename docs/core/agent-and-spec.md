@@ -83,13 +83,13 @@ func readSpec(p printer, a agentio.Agent) error {
 The fields, grouped:
 
 - **Identity:** `ID`, `Name`, `Binary` (the executable looked up on PATH).
-- **Homes:** `HomeEnv` (the variable that selects a non-default home, `""` = one home only), `DefaultHome` (relative to `Host.UserHome`), `ExtraHomes` (a glob such as `.claude-*`), [`HomeMarkers`](ds:block?id=spec-9rwc3qhn) (entries that make a folder a real home), and `HomeEnvNamesParent` when the variable names the folder that contains the home (Gemini CLI's `GEMINI_CLI_HOME`).
+- **Homes:** `HomeEnv` (the variable that selects a non-default home, `""` = one home only), `DefaultHome` (relative to `Host.UserHome`), `ExtraHomes` (a glob such as `.claude-*`), [`HomeMarkers`](ds:block?id=spec-9rwc3qhn) (entries that make a folder a real home), `GenericHomeMarkers` (markers other tools write too, which alone count only in the agent's own folders), and `HomeEnvNamesParent` when the variable names the folder that contains the home (Gemini CLI's `GEMINI_CLI_HOME`).
 - **Launch templates:** `NewArgs`, `ResumeArgs`, `ModelArgs`, `AddDirArgs`, `PromptArgs`, with placeholders `{args}`, `{id}`, `{model}`, `{dir}`, `{prompt}`.
 - **Data-driven capabilities:** `VersionArgs` (binary version through a Runner), `LoginArgs` / `LogoutArgs` (login commands), `SharedHomeFiles` (home links).
 - **Credentials:** `CredentialEnv` (variables that would override the home's stored login: [scrubbed from a launch on the home's login, and from a token login when they outrank the token](ds:block?id=core-envchanges-f8hrn3we)), `APIBillingEnv` (variables that switch to per-token billing).
 - **Process:** `ProcessMatch` with `Basenames`, `ArgvContains` and `Exclude` ([an exclude substring vetoes a match](ds:block?id=processmatch-match-6phmdfg3), which is how the Claude desktop app is told apart from the CLI).
 
-[`Spec.Validate`](ds:block?id=spec-validate-chxkxnh2) checks the ID, that `Binary` is set, that `DefaultHome` is relative and set whenever `HomeEnv` is, that `ExtraHomes` is a valid local glob, that `HomeEnvNamesParent` has a home variable and a one-element `DefaultHome`, that every `TokenEnv` entry has a kind and a variable and no (kind, provider) repeats, and that every non-empty template holds its placeholder. A failure matches `ErrInvalidSpec`.
+[`Spec.Validate`](ds:block?id=spec-validate-chxkxnh2) checks the ID, that `Binary` is set, that `DefaultHome` is relative and set whenever `HomeEnv` is, that `ExtraHomes` is a valid local glob, that `HomeEnvNamesParent` has a home variable and a one-element `DefaultHome`, that every `GenericHomeMarkers` entry is a home marker and at least one marker is not generic, that every `TokenEnv` entry has a kind and a variable and no (kind, provider) repeats, and that every non-empty template holds its placeholder. A failure matches `ErrInvalidSpec`.
 
 ## Step 3 — Build a Core from a Spec
 
@@ -145,7 +145,7 @@ func buildCore(p printer, h agentio.Host) error {
 
 [`Core.Launch` expands the templates in a fixed order](ds:block?id=core-launch-v8h5ys7c): `Target.ExtraArgs`, then the autonomy and headless args, then the model and add-dir templates, then the request's own `Args`, then the prompt; the result is spliced where `{args}` stands in `NewArgs` (or `ResumeArgs` with `{id}` filled). [`Core.Checks`](ds:block?id=core-checks-8dj5h3dt) reports `binary-found`, `home`, `home-env` (the home variable is set in the base env) and `api-billing-env`; `api-billing-env` names the variables only, never their values, while `home-env` also names the folder the variable selects.
 
-To turn a Spec into a full `agentio.Agent` (with process classification, login commands and doctor wired as capabilities), use [`agentio.FromSpec`](ds:block?id=fromspec-4tcd24bd): see [Config-defined agents](../capabilities/fromspec.md).
+To turn a Spec into a full `agentio.Agent` (with process classification, login commands, token logins and doctor wired as capabilities), use [`agentio.FromSpec`](ds:block?id=fromspec-4tcd24bd): see [Config-defined agents](../capabilities/fromspec.md).
 
 ## Try it
 

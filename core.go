@@ -207,10 +207,25 @@ func (c *Core) Homes() ([]Home, error) {
 	return out, nil
 }
 
-// IsHome reports whether dir is a directory holding any HomeMarker (any
-// directory when the spec names none). A missing dir is (false, nil).
-// Disk · Read.
+// IsHome reports whether dir is a home of this agent: a directory holding
+// a HomeMarker (any directory when the spec names none). A marker listed
+// in GenericHomeMarkers counts only when this agent's own names select dir
+// (selectsByName); anywhere else dir needs a distinctive marker, so a
+// folder holding just settings.json is no agent's home. A missing dir is
+// (false, nil). Disk · Read.
 func (c *Core) IsHome(dir string) (bool, error) {
+	return c.hasMarker(dir, c.selectsByName(dir))
+}
+
+// HasHomeMarker reports whether dir is a directory holding any HomeMarker,
+// generic ones included: the check for a folder the caller already names
+// as this agent's home (a configured profile home, a doctor target), where
+// the name, not the content, says whose home it is. Disk · Read.
+func (c *Core) HasHomeMarker(dir string) (bool, error) { return c.hasMarker(dir, true) }
+
+// hasMarker is IsHome with the generic-marker rule given: withGeneric
+// false skips GenericHomeMarkers. Disk · Read.
+func (c *Core) hasMarker(dir string, withGeneric bool) (bool, error) {
 	fi, err := os.Stat(dir)
 	if errors.Is(err, fs.ErrNotExist) {
 		return false, nil
@@ -225,11 +240,31 @@ func (c *Core) IsHome(dir string) (bool, error) {
 		return true, nil
 	}
 	for _, m := range c.spec.HomeMarkers {
+		if !withGeneric && slices.Contains(c.spec.GenericHomeMarkers, m) {
+			continue
+		}
 		if _, err := os.Lstat(filepath.Join(dir, m)); err == nil {
 			return true, nil
 		}
 	}
 	return false, nil
+}
+
+// selectsByName reports whether dir is a folder this agent's own names
+// pick: the default home, an ExtraHomes glob hit under the user home, or
+// the folder the home variable selects. Pure (reads Host.Env only).
+func (c *Core) selectsByName(dir string) bool {
+	dir = filepath.Clean(dir)
+	if c.spec.DefaultHome != "" && dir == c.DefaultHome().Dir() {
+		return true
+	}
+	if c.spec.ExtraHomes != "" {
+		if ok, err := filepath.Match(filepath.Join(c.host.UserHome, c.spec.ExtraHomes), dir); err == nil && ok {
+			return true
+		}
+	}
+	h, ok := c.HomeFromEnv()
+	return ok && dir == h.Dir()
 }
 
 // Owns returns ErrForeignHome when h is not this agent's home. Pure.
@@ -344,7 +379,7 @@ func (c *Core) Launch(t Target, r LaunchRequest) (Command, error) {
 	}
 	s := c.spec
 	unsupported := func(what string) (Command, error) {
-		return Command{}, UnsupportedError(s.ID, what, "not described by the agent spec")
+		return Command{}, UnsupportedError(s.ID, what, specUndescribedReason)
 	}
 	autonomy, autonomyOK := s.AutonomyArgs[r.Autonomy]
 	switch {
@@ -364,13 +399,9 @@ func (c *Core) Launch(t Target, r LaunchRequest) (Command, error) {
 	var tokenEnv []EnvChange
 	var scrub []string
 	if r.Credential != nil {
-		e, ok := s.tokenEnvFor(*r.Credential)
-		if !ok {
-			what := "token login " + r.Credential.Kind.String()
-			if r.Credential.Provider != "" {
-				what += " for provider " + r.Credential.Provider
-			}
-			return unsupported(what)
+		e, err := s.tokenLogin(*r.Credential)
+		if err != nil {
+			return Command{}, err
 		}
 		tokenEnv = []EnvChange{EnvSetSecret(e.Env, r.Credential.Token)}
 		scrub = s.scrubFor(e)
@@ -443,7 +474,7 @@ func (c *Core) ApplyHomeLinks(links []HomeLink) error {
 // describable by a spec. Pure.
 func (c *Core) LoginCommand(h Home, f LoginFlow) (Command, error) {
 	if len(c.spec.LoginArgs) == 0 || f != LoginBrowser {
-		return Command{}, UnsupportedError(c.spec.ID, "login flow "+f.String(), "not described by the agent spec")
+		return Command{}, UnsupportedError(c.spec.ID, "login flow "+f.String(), specUndescribedReason)
 	}
 	return c.Command(h.Target(), "", c.spec.LoginArgs, nil)
 }
@@ -522,7 +553,7 @@ func (c *Core) Checks(_ context.Context, h Home) []Check {
 	}
 	if err := c.Owns(h); err != nil {
 		out = append(out, Check{ID: CheckHome, Status: CheckFail, Message: err.Error()})
-	} else if ok, err := c.IsHome(h.Dir()); err != nil {
+	} else if ok, err := c.HasHomeMarker(h.Dir()); err != nil {
 		out = append(out, Check{ID: CheckHome, Status: CheckFail, Message: err.Error()})
 	} else if !ok {
 		out = append(out, Check{ID: CheckHome, Status: CheckWarn, Message: h.Dir() + " is not a home (missing or no marker)"})

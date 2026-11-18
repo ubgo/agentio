@@ -1,6 +1,6 @@
 # Config-defined agents example
 
-Describes a made-up coding agent, "Acme Code", as a plain `agentio.Spec`, shows what `Spec.Validate` refuses, builds it with `agentio.FromSpec`, and uses it like a built-in: homes, `agentio.Supported` and `agentio.Unsupported`, launch and resume commands from the templates (and the refusals for headless and full autonomy), the login command, process classification and the L1 doctor checks.
+Describes a made-up coding agent, "Acme Code", as a plain `agentio.Spec`, shows what `Spec.Validate` refuses, builds it with `agentio.FromSpec`, and uses it like a built-in: homes, `agentio.Supported` and `agentio.Unsupported`, launch and resume commands from the templates (and the refusals for headless and full autonomy), token logins from `token_env` (the token only in the env, redacted; the variable that outranks it removed; an undescribed kind refused), the login command, process classification and the L1 doctor checks.
 
 Everything runs in a temp folder with an inert fake `acme` binary; nothing is executed.
 
@@ -25,7 +25,7 @@ agentio: invalid spec: acme: default home "/etc/acme" must be relative to the us
 == build ==
 home personal default=true ~/.acme
 home work default=false ~/.acme-work
-supported: [installer binary-version login-commander process-classifier home-linker doctor]
+supported: [installer binary-version token-login login-commander process-classifier home-linker doctor]
 usage: config-only agent: a spec describes L1 only; this needs code
 without login args: login commander false (spec has no login args)
 == launch ==
@@ -33,7 +33,12 @@ personal: acme (ACME_HOME set=false )
 personal: acme --model acme-large --message "fix the build" (ACME_HOME set=false )
 work: acme --resume c-42 (ACME_HOME set=true ~/.acme-work)
 headless: agentio: unsupported: acme: headless: not described by the agent spec (unsupported=true)
-full autonomy: agentio: full autonomy needs Target.AllowDangerous
+full autonomy: agentio: full autonomy needs explicit consent
+== token login ==
+kinds: [api-key oauth-token] (detected from the value: false)
+api-key: acme env [ACME_API_KEY=[redacted]]
+oauth-token: acme env [ACME_OAUTH_TOKEN=[redacted]]
+api-key-helper: agentio: unsupported: acme: token login api-key-helper: not described by the agent spec
 == login, process, doctor ==
 login: acme login, logout: acme logout
 device login: agentio: unsupported: acme: login flow device: not described by the agent spec

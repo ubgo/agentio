@@ -3,6 +3,7 @@ package codex
 import (
 	"errors"
 	"math"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -82,7 +83,7 @@ func TestCodexLaunchConfiguredOptions(t *testing.T) {
 		t.Errorf("args = %s", got)
 	}
 	cases := []struct{ name, options, want string }{
-		{"model conflict", `{"model": "gpt-5"}`, `option "model" conflicts with LaunchRequest.Model`},
+		{"model conflict", `{"model": "gpt-5"}`, `option "model" conflicts with the request's model`},
 		{"unknown key", `{"profile": "deep"}`, `unknown key "profile"`},
 		{"wrong type", `{"search": "yes"}`, "search: expected true or false"},
 		{"bad enum", `{"sandbox": "everything"}`, "is not one of"},
@@ -94,7 +95,7 @@ func TestCodexLaunchConfiguredOptions(t *testing.T) {
 		}
 	}
 	_, err = lc.LaunchConfigured(tg, agentio.LaunchRequest{Autonomy: agentio.AutonomyAsk}, agentio.LaunchConfig{Options: agentio.Raw(`{"sandbox": "read-only"}`)})
-	if err == nil || !strings.Contains(err.Error(), "LaunchRequest.Autonomy") {
+	if err == nil || !strings.Contains(err.Error(), "conflicts with the request's autonomy level") {
 		t.Errorf("autonomy conflict: %v", err)
 	}
 	if _, err := lc.LaunchConfigured(tg, agentio.LaunchRequest{}, agentio.LaunchConfig{Options: agentio.Raw(`{"bypass_all": true}`)}); !errors.Is(err, agentio.ErrDangerousNotAllowed) {
@@ -199,5 +200,103 @@ func TestOverrideFloat(t *testing.T) {
 	}
 	if got := string(OverrideFloat("k", math.NaN()).Value); got != "nan" {
 		t.Errorf("NaN = %s", got)
+	}
+}
+
+// TestCodexLaunchConfiguredProfileCheck: a profile option through the
+// neutral path is checked against the home's config.toml (the launcher
+// cannot pass one): a legacy profile of that name is refused before Codex
+// refuses it, any other name builds with no "not checked" warning, and a
+// home without config.toml has nothing to conflict with. The rich builder
+// without ProfileCheck still says, in plain words, what it did not check.
+func TestCodexLaunchConfiguredProfileCheck(t *testing.T) {
+	t.Parallel()
+	_, lc, tg := codexConfigurer(t)
+	profile := func(name string) agentio.LaunchConfig {
+		return agentio.LaunchConfig{Options: agentio.Raw(`{"codex_profile": "` + name + `"}`)}
+	}
+	cmd, err := lc.LaunchConfigured(tg, agentio.LaunchRequest{}, profile("work"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(warningText(cmd.Warnings), "profile") || !slices.Contains(cmd.Args, "work") {
+		t.Errorf("v2 profile without a legacy twin: args %v, warnings %v", cmd.Args, cmd.Warnings)
+	}
+	if _, err := lc.LaunchConfigured(tg, agentio.LaunchRequest{}, profile("ollama-launch")); !errors.Is(err, ErrProfileConflict) {
+		t.Errorf("legacy profile of that name: %v", err)
+	}
+	a, _ := setup(t)
+	bare := filepath.Join(t.TempDir(), "codex-bare")
+	agenttest.WriteFile(t, bare, fileInstallationID, "id")
+	other, err := a.HomeAt(bare)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ot := other.Target()
+	ot.Version = tg.Version
+	nlc, _ := agentio.LaunchConfigOf(a.Neutral())
+	cmd, err = nlc.LaunchConfigured(ot, agentio.LaunchRequest{}, profile("work"))
+	if err != nil || strings.Contains(warningText(cmd.Warnings), "profile") {
+		t.Errorf("home without config.toml: %v, warnings %v", err, cmd.Warnings)
+	}
+	cmd, err = a.New(a.DefaultHome().Target(), LaunchOptions{Profile: "work"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := warningText(cmd.Warnings)
+	if !strings.Contains(w, `--profile work`) || !strings.Contains(w, "config.toml") || strings.Contains(w, "no config given") {
+		t.Errorf("unchecked rich builder warning = %s", w)
+	}
+}
+
+// warningText joins the warnings' String forms for substring checks.
+func warningText(ws agentio.Warnings) string {
+	parts := make([]string, len(ws))
+	for i, w := range ws {
+		parts[i] = w.String()
+	}
+	return strings.Join(parts, "\n")
+}
+
+// TestLaunchOptionKeysPaths: exactly the options whose value names a file
+// or folder on this machine are marked Path (codex --help: --cd, --add-dir,
+// --image).
+func TestLaunchOptionKeysPaths(t *testing.T) {
+	t.Parallel()
+	keys, err := LaunchOptionKeys()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, k := range keys {
+		if k.Path {
+			got = append(got, k.Key)
+		}
+	}
+	if want := []string{"cd", "add_dirs", "images"}; !slices.Equal(got, want) {
+		t.Errorf("path keys = %v, want %v", got, want)
+	}
+}
+
+// TestInvalidLaunchIsInvalidOption: Codex's launch refusals (a bad value,
+// a missing session id, a bad override, a legacy profile conflict) keep
+// their own sentinel and are also agentio.ErrInvalidOption.
+func TestInvalidLaunchIsInvalidOption(t *testing.T) {
+	t.Parallel()
+	a, h := setup(t)
+	cfg, _ := a.ConfigFile(h)
+	_, badSandbox := a.New(h.Target(), LaunchOptions{Sandbox: "everything"})
+	_, noID := a.Resume(h.Target(), "", LaunchOptions{})
+	_, badOverride := ParseOverride("no-equals")
+	_, conflict := a.New(h.Target(), LaunchOptions{Profile: "ollama-launch", ProfileCheck: &cfg})
+	for name, tc := range map[string]struct{ err, own error }{
+		"bad sandbox":      {badSandbox, ErrInvalidOption},
+		"no session id":    {noID, ErrNoSessionID},
+		"bad override":     {badOverride, ErrBadOverride},
+		"profile conflict": {conflict, ErrProfileConflict},
+	} {
+		if !errors.Is(tc.err, tc.own) || !errors.Is(tc.err, agentio.ErrInvalidOption) {
+			t.Errorf("%s: %v", name, tc.err)
+		}
 	}
 }

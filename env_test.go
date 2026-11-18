@@ -177,3 +177,61 @@ func TestRetryAfter(t *testing.T) {
 		t.Errorf("RateLimitError = %v", err)
 	}
 }
+
+// TestRedactedBySource: Redacted decides by where a value came from. A
+// value set from a Token or EnvValue is redacted; a credential variable
+// the build scrubbed and then set again (a caller's ExtraEnv key) is
+// redacted; a plain value the build set (EnvSet) is shown, whatever its
+// name, so CLAUDE_CODE_API_KEY_HELPER_TTL_MS=300000 reads as written. A
+// value inherited unchanged from the base env has no known source, so the
+// secret-name rule still guards it (a user's GITHUB_TOKEN never prints).
+func TestRedactedBySource(t *testing.T) {
+	t.Parallel()
+	base := []string{"PATH=/bin", "GITHUB_TOKEN=inherited-secret", "INHERITED_TTL_MS=1", "ANTHROPIC_API_KEY=inherited-key"}
+	cmd := NewCommand("claude", nil, base, "",
+		EnvUnset("ANTHROPIC_API_KEY"),
+		EnvSet("CLAUDE_CODE_API_KEY_HELPER_TTL_MS", "300000"),
+		EnvSet("ANTHROPIC_API_KEY", "profile-key"),
+		EnvSet("PLAIN_NAME", "plain"),
+		EnvSetSecret("OPAQUE", NewToken("tok")),
+	)
+	want := map[string]string{
+		"PATH":                              "/bin",
+		"CLAUDE_CODE_API_KEY_HELPER_TTL_MS": "300000",
+		"PLAIN_NAME":                        "plain",
+		"ANTHROPIC_API_KEY":                 redactedText,
+		"OPAQUE":                            redactedText,
+		"GITHUB_TOKEN":                      redactedText,
+		"INHERITED_TTL_MS":                  "1",
+	}
+	red := cmd.Redacted()
+	for name, w := range want {
+		if got, _ := EnvLookup(red.Env, name); got != w {
+			t.Errorf("%s = %q, want %q", name, got, w)
+		}
+	}
+	j, err := json.Marshal(cmd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(j), "CLAUDE_CODE_API_KEY_HELPER_TTL_MS=300000") || strings.Contains(string(j), "profile-key") || strings.Contains(string(j), "inherited-secret") {
+		t.Errorf("json = %s", j)
+	}
+	// A Redacted copy redacts the same way again.
+	if again, _ := EnvLookup(red.Redacted().Env, "CLAUDE_CODE_API_KEY_HELPER_TTL_MS"); again != "300000" {
+		t.Errorf("Redacted twice: %q", again)
+	}
+}
+
+// TestDangerousNotAllowedWording: the refusal of full autonomy is shown to
+// a launcher's user, so it says what is missing in their terms and names
+// no Go field; the sentinel keeps its identity through wrapping.
+func TestDangerousNotAllowedWording(t *testing.T) {
+	t.Parallel()
+	if got := ErrDangerousNotAllowed.Error(); got != "agentio: full autonomy needs explicit consent" || strings.Contains(got, "Target") {
+		t.Errorf("message = %q", got)
+	}
+	if err := fmt.Errorf("launch: %w", ErrDangerousNotAllowed); !errors.Is(err, ErrDangerousNotAllowed) {
+		t.Error("identity lost through wrapping")
+	}
+}

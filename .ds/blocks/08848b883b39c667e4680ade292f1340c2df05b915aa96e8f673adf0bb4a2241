@@ -1,0 +1,18 @@
+func (a specAgent) HasCapability(c Capability) bool {
+	s := a.spec
+	switch c {
+	case CapProcessClassifier:
+		return !s.Process.IsZero()
+	case CapLoginCommander:
+		return len(s.LoginArgs) > 0
+	case CapHomeLinker:
+		return len(s.SharedHomeFiles) > 0
+	case CapBinaryVersion:
+		return len(s.VersionArgs) > 0
+	case CapTokenLogin:
+		return len(s.TokenEnv) > 0
+	case CapDoctor, CapInstaller:
+		return true
+	}
+	return false
+}

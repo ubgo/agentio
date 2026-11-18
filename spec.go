@@ -40,6 +40,14 @@ type Spec struct {
 	ExtraHomes string `json:"extra_homes,omitempty"`
 	// HomeMarkers are entries that make a dir a real home; empty = any dir.
 	HomeMarkers []string `json:"home_markers,omitempty"`
+	// GenericHomeMarkers are the HomeMarkers other tools write too
+	// (settings.json, sessions/, auth.json): alone they mark a home only in
+	// a folder this agent's own names select (DefaultHome, an ExtraHomes
+	// hit, the HomeEnv folder). A folder found anywhere else needs a marker
+	// not listed here, so one shared file name never makes it a home of
+	// several agents at once. Each must be in HomeMarkers, and at least one
+	// marker must stay distinctive.
+	GenericHomeMarkers []string `json:"generic_home_markers,omitempty"`
 	// NewArgs and ResumeArgs are argv templates with {args} (where the
 	// computed args go; appended when absent) and {id} (resume id).
 	NewArgs    []string `json:"new_args,omitempty"`
@@ -198,6 +206,9 @@ func (s Spec) Validate() error {
 	if s.HomeEnvNamesParent && (s.HomeEnv == "" || strings.ContainsAny(s.DefaultHome, `/\`)) {
 		return fmt.Errorf("%w: %s: home_env_names_parent needs home_env and a one-element default home, not %q", ErrInvalidSpec, s.ID, s.DefaultHome)
 	}
+	if err := s.validateGenericMarkers(); err != nil {
+		return err
+	}
 	if err := s.validateTokenEnv(); err != nil {
 		return err
 	}
@@ -218,6 +229,21 @@ func (s Spec) Validate() error {
 		if len(t.tpl) > 0 && !templateHas(t.tpl, t.placeholder) {
 			return fmt.Errorf("%w: %s: %s %v lack %s", ErrInvalidSpec, s.ID, t.name, t.tpl, t.placeholder)
 		}
+	}
+	return nil
+}
+
+// validateGenericMarkers checks GenericHomeMarkers: each one is a
+// HomeMarker, and one HomeMarker at least is not generic (otherwise no
+// folder outside the agent's own names could ever be a home). Pure.
+func (s Spec) validateGenericMarkers() error {
+	for _, m := range s.GenericHomeMarkers {
+		if !slices.Contains(s.HomeMarkers, m) {
+			return fmt.Errorf("%w: %s: generic home marker %q is not one of home_markers", ErrInvalidSpec, s.ID, m)
+		}
+	}
+	if len(s.GenericHomeMarkers) > 0 && !slices.ContainsFunc(s.HomeMarkers, func(m string) bool { return !slices.Contains(s.GenericHomeMarkers, m) }) {
+		return fmt.Errorf("%w: %s: every home marker is generic; keep one only this agent writes", ErrInvalidSpec, s.ID)
 	}
 	return nil
 }
@@ -261,6 +287,21 @@ func (s Spec) tokenEnvFor(cred TokenCredential) (TokenEnv, bool) {
 		return ofKind[0], true
 	}
 	return TokenEnv{}, false
+}
+
+// tokenLogin is tokenEnvFor with the refusal both token paths share
+// (Core.Launch and a spec agent's TokenLogin.TokenEnv), so they word a
+// login token_env does not describe the same way: ErrUnsupported naming
+// the kind and, when given, the provider. Pure.
+func (s Spec) tokenLogin(cred TokenCredential) (TokenEnv, error) {
+	if e, ok := s.tokenEnvFor(cred); ok {
+		return e, nil
+	}
+	what := "token login " + cred.Kind.String()
+	if cred.Provider != "" {
+		what += " for provider " + cred.Provider
+	}
+	return TokenEnv{}, UnsupportedError(s.ID, what, specUndescribedReason)
 }
 
 // scrubFor is the list a token login through e removes: e.Scrub when set,

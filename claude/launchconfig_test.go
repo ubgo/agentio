@@ -86,15 +86,23 @@ func TestLaunchConfiguredOptions(t *testing.T) {
 	if got := strings.Join(cmd.Args, " "); got != "--model opus --effort high --mcp-config /m.json --raw -- hi" {
 		t.Errorf("args = %s", got)
 	}
+	// extra_args next to raw args: both kept, extra_args first, then the
+	// request's raw args, all before the prompt's "--".
+	cmd, err = lc.LaunchConfigured(tg, r, agentio.LaunchConfig{Options: agentio.Raw(`{"extra_args": ["--debug", "api"]}`)})
+	if err != nil {
+		t.Fatalf("extra_args with raw args: %v", err)
+	}
+	if got := strings.Join(cmd.Args, " "); got != "--model opus --debug api --raw -- hi" {
+		t.Errorf("extra_args with raw args: args = %s", got)
+	}
 	cases := []struct {
 		name, options, want string
 	}{
 		{"unknown key", `{"efort": "high"}`, `unknown key "efort"`},
 		{"wrong type", `{"effort": 3}`, "effort: expected a string"},
 		{"bad enum", `{"effort": "turbo"}`, "is not one of"},
-		{"model conflict", `{"model": "sonnet"}`, `option "model" conflicts with LaunchRequest.Model`},
-		{"prompt conflict", `{"prompt": "other"}`, `option "prompt" conflicts with LaunchRequest.Prompt`},
-		{"raw args conflict", `{"extra_args": ["--x"]}`, `option "extra_args" conflicts with LaunchRequest.Args`},
+		{"model conflict", `{"model": "sonnet"}`, `option "model" conflicts with the request's model`},
+		{"prompt conflict", `{"prompt": "other"}`, `option "prompt" conflicts with the request's prompt`},
 		{"not an object", `["effort"]`, "options must be a JSON object"},
 	}
 	for _, c := range cases {
@@ -102,14 +110,17 @@ func TestLaunchConfiguredOptions(t *testing.T) {
 		if !errors.Is(err, agentio.ErrInvalidOption) || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: %v", c.name, err)
 		}
-		if c.name != "model conflict" && c.name != "prompt conflict" && c.name != "raw args conflict" {
+		if strings.Contains(err.Error(), "LaunchRequest") {
+			t.Errorf("%s: the message names an internal type: %v", c.name, err)
+		}
+		if c.name != "model conflict" && c.name != "prompt conflict" {
 			if err := lc.CheckOptions(agentio.Raw(c.options)); !errors.Is(err, agentio.ErrInvalidOption) {
 				t.Errorf("%s: CheckOptions accepted it", c.name)
 			}
 		}
 	}
 	_, err = lc.LaunchConfigured(tg, agentio.LaunchRequest{Autonomy: agentio.AutonomyReadOnly}, agentio.LaunchConfig{Options: agentio.Raw(`{"permission_mode": "auto"}`)})
-	if err == nil || !strings.Contains(err.Error(), "LaunchRequest.Autonomy") {
+	if err == nil || !strings.Contains(err.Error(), "conflicts with the request's autonomy level") {
 		t.Errorf("autonomy conflict: %v", err)
 	}
 	old := tg
@@ -166,7 +177,7 @@ func TestLaunchConfiguredSettings(t *testing.T) {
 		want string
 	}{
 		{"type error", agentio.LaunchRequest{}, agentio.LaunchConfig{Settings: agentio.Raw(`{"cleanupPeriodDays": "thirty"}`), RunDir: refused, RunID: "r"}, "cleanupPeriodDays"},
-		{"settings option", agentio.LaunchRequest{}, agentio.LaunchConfig{Options: agentio.Raw(`{"settings": "/s.json"}`), Settings: settings, RunDir: refused, RunID: "r"}, `option "settings" conflicts with LaunchConfig.Settings`},
+		{"settings option", agentio.LaunchRequest{}, agentio.LaunchConfig{Options: agentio.Raw(`{"settings": "/s.json"}`), Settings: settings, RunDir: refused, RunID: "r"}, `unknown key "settings"`},
 		{"no run dir", agentio.LaunchRequest{}, agentio.LaunchConfig{Settings: settings}, "RunDir"},
 		{"not an object", agentio.LaunchRequest{}, agentio.LaunchConfig{Settings: agentio.Raw(`[1]`), RunDir: refused, RunID: "r"}, ""},
 	}
@@ -211,7 +222,7 @@ func TestLaunchConfiguredHelperLogin(t *testing.T) {
 		t.Error("an outranking variable was kept")
 	}
 	_, err = lc.LaunchConfigured(tg, agentio.LaunchRequest{Credential: cred}, agentio.LaunchConfig{Settings: agentio.Raw(`{"apiKeyHelper": "other"}`), Delivery: agentio.SettingsInline})
-	if !errors.Is(err, agentio.ErrInvalidOption) || !strings.Contains(err.Error(), "apiKeyHelper") {
+	if !errors.Is(err, agentio.ErrInvalidOption) || !strings.Contains(err.Error(), "apiKeyHelper") || strings.Contains(err.Error(), "LaunchRequest") {
 		t.Errorf("competing helper: %v", err)
 	}
 	inline, err := lc.LaunchConfigured(tg, agentio.LaunchRequest{Credential: cred}, agentio.LaunchConfig{Delivery: agentio.SettingsInline})
@@ -252,16 +263,75 @@ func TestCheckSettingsAndConcerns(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for key, concern := range map[string]agentio.Concern{"model": agentio.ConcernModel, "permission_mode": agentio.ConcernAutonomy, "settings": agentio.ConcernSettings, "effort": agentio.ConcernNone, "allow_dangerously_skip_permissions": agentio.ConcernNone} {
+	for key, concern := range map[string]agentio.Concern{"model": agentio.ConcernModel, "permission_mode": agentio.ConcernAutonomy, "effort": agentio.ConcernNone, "allow_dangerously_skip_permissions": agentio.ConcernNone} {
 		k, err := agentio.FindOptionKey(keys, key)
 		if err != nil || k.Concern != concern {
 			t.Errorf("%s concern = %s (%v), want %s", key, k.Concern, err, concern)
 		}
 	}
-	if s, err := lc.OptionsSchema(); err != nil || s.Properties["effort"].Enum == nil {
+	// Settings have one channel through the neutral path, LaunchConfig.Settings:
+	// the settings option (raw --settings) is not an option key there, so a
+	// launcher's own settings key never duplicates it. The rich builder keeps it.
+	for _, k := range keys {
+		if k.Concern == agentio.ConcernSettings {
+			t.Errorf("neutral option %q has the settings concern", k.Key)
+		}
+	}
+	if s, err := lc.OptionsSchema(); err != nil || s.Properties["effort"].Enum == nil || len(s.Properties) != len(keys) {
 		t.Errorf("schema: %v", err)
+	} else if _, ok := s.Properties["settings"]; ok {
+		t.Error("neutral options schema lists settings")
+	}
+	if err := lc.CheckOptions(agentio.Raw(`{"settings": "/s.json"}`)); !errors.Is(err, agentio.ErrInvalidOption) {
+		t.Errorf("CheckOptions settings: %v", err)
+	}
+	rich, err := LaunchOptionKeys()
+	if k, ferr := agentio.FindOptionKey(rich, "settings"); err != nil || ferr != nil || k.Concern != agentio.ConcernSettings {
+		t.Errorf("rich settings key = %+v %v %v", k, err, ferr)
 	}
 	if !lc.RawSettingsArg([]string{"--x", "--settings", "{}"}) || !lc.RawSettingsArg([]string{"--settings=/f"}) || lc.RawSettingsArg([]string{"--setting-sources", "user"}) {
 		t.Error("raw --settings detection")
+	}
+}
+
+// TestLaunchOptionKeysPaths: exactly the options whose value names a file
+// or folder on this machine are marked Path (Claude Code --help: --add-dir,
+// --mcp-config files or JSON, --settings file or JSON, the system prompt
+// files, --plugin-dir, --debug-file). --file takes file_id:relative_path
+// (a remote resource) and --resume takes an id or name, so neither is.
+func TestLaunchOptionKeysPaths(t *testing.T) {
+	t.Parallel()
+	keys, err := LaunchOptionKeys()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, k := range keys {
+		if k.Path {
+			got = append(got, k.Key)
+		}
+	}
+	want := []string{"add_dirs", "mcp_configs", "settings", "system_prompt_file", "append_system_prompt_file", "plugin_dirs", "debug_file"}
+	if !slices.Equal(got, want) {
+		t.Errorf("path keys = %v, want %v", got, want)
+	}
+}
+
+// TestInvalidLaunchIsInvalidOption: every combination Claude Code rejects
+// is ErrInvalidLaunch and also agentio.ErrInvalidOption, through the rich
+// builder and the neutral LaunchConfigured, so a launcher classifies it
+// as an invalid option, never as an I/O failure.
+func TestInvalidLaunchIsInvalidOption(t *testing.T) {
+	t.Parallel()
+	_, lc, tg := launchConfigurer(t, testVersion)
+	for name, options := range map[string]string{
+		"resume and continue": `{"resume": "abc", "continue": true}`,
+		"format without -p":   `{"output_format": "json"}`,
+		"chrome twice":        `{"chrome": true, "no_chrome": true}`,
+	} {
+		_, err := lc.LaunchConfigured(tg, agentio.LaunchRequest{}, agentio.LaunchConfig{Options: agentio.Raw(options)})
+		if !errors.Is(err, ErrInvalidLaunch) || !errors.Is(err, agentio.ErrInvalidOption) {
+			t.Errorf("%s: %v", name, err)
+		}
 	}
 }

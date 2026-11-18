@@ -1,0 +1,1 @@
+var ErrInvalidOption = errors.New("agentio: invalid launch option")

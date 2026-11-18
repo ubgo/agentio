@@ -1,0 +1,3 @@
+func (c *Core) IsHome(dir string) (bool, error) {
+	return c.hasMarker(dir, c.selectsByName(dir))
+}

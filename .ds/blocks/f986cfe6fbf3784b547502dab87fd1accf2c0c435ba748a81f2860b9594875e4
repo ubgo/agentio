@@ -1,0 +1,7 @@
+func configOptionKeys() ([]agentio.OptionKey, error) {
+	keys, err := LaunchOptionKeys()
+	if err != nil {
+		return nil, err
+	}
+	return slices.DeleteFunc(keys, func(k agentio.OptionKey) bool { return k.Concern == agentio.ConcernSettings }), nil
+}

@@ -94,7 +94,10 @@ func mapRequest(r agentio.LaunchRequest) (reflect.Value, error) {
 
 // launchConfigured builds the launch with options over the request
 // mapping and the settings as -c overrides (before every other flag, as
-// the builder renders them). cost: Pure.
+// the builder renders them). A codex_profile option is checked against the
+// home's config.toml (launchProfileCheck), because a launcher has no way to pass
+// LaunchOptions.ProfileCheck through the neutral path. cost: Pure; Disk ·
+// Read of config.toml when codex_profile is set.
 func (a *Agent) launchConfigured(t agentio.Target, r agentio.LaunchRequest, c agentio.LaunchConfig) (agentio.Command, error) {
 	o, err := optionsFromRequest(t, r)
 	if err != nil {
@@ -107,6 +110,7 @@ func (a *Agent) launchConfigured(t agentio.Target, r agentio.LaunchRequest, c ag
 	if err := agentio.OverlayOptions(c.Options, keys, reflect.ValueOf(&o), r, mapRequest); err != nil {
 		return agentio.Command{}, err
 	}
+	o.ProfileCheck = a.launchProfileCheck(t.Home, o.Profile)
 	overrides, check, err := checkedOverrides(c.Settings)
 	if err != nil {
 		return agentio.Command{}, err
@@ -131,6 +135,22 @@ func (a *Agent) launchConfigured(t agentio.Target, r agentio.LaunchRequest, c ag
 		cmd.Warnings.Add(agentio.WarnUnknownKey, "", u.Key, detail)
 	}
 	return cmd, nil
+}
+
+// launchProfileCheck reads h's config.toml for the --profile conflict check.
+// nil (the builder then warns that it did not check) when no profile is
+// set, h is another agent's home, or the file cannot be read or parsed;
+// a missing file is an empty Config, which has no legacy profile.
+// cost: Disk · Read when profile is set.
+func (a *Agent) launchProfileCheck(h agentio.Home, profile string) *Config {
+	if profile == "" || agentio.CheckOwner(ID, h) != nil {
+		return nil
+	}
+	cfg, err := a.ConfigFile(Home{h: h})
+	if err != nil {
+		return nil
+	}
+	return &cfg
 }
 
 // checkedOverrides flattens settings and checks every override. cost: Pure.

@@ -133,23 +133,44 @@ func requestParts(r LaunchRequest) []requestPart {
 			out = append(out, requestPart{name: name, req: one})
 		}
 	}
-	add("Prompt", r.Prompt != "", LaunchRequest{Prompt: r.Prompt})
-	add("ResumeID", r.ResumeID != "", LaunchRequest{ResumeID: r.ResumeID})
-	add("Model", r.Model != "", LaunchRequest{Model: r.Model})
-	add("AddDirs", len(r.AddDirs) > 0, LaunchRequest{AddDirs: r.AddDirs})
-	add("Autonomy", r.Autonomy != AutonomyDefault, LaunchRequest{Autonomy: r.Autonomy})
-	add("Headless", r.Headless, LaunchRequest{Headless: true})
-	add("Args", len(r.Args) > 0, LaunchRequest{Args: r.Args})
+	add(requestPrompt, r.Prompt != "", LaunchRequest{Prompt: r.Prompt})
+	add(requestResume, r.ResumeID != "", LaunchRequest{ResumeID: r.ResumeID})
+	add(requestModel, r.Model != "", LaunchRequest{Model: r.Model})
+	add(requestAddDirs, len(r.AddDirs) > 0, LaunchRequest{AddDirs: r.AddDirs})
+	add(requestAutonomy, r.Autonomy != AutonomyDefault, LaunchRequest{Autonomy: r.Autonomy})
+	add(requestHeadless, r.Headless, LaunchRequest{Headless: true})
+	add(requestRawArgs, len(r.Args) > 0, LaunchRequest{Args: r.Args})
 	return out
 }
 
-// requestFieldPrefix names a LaunchRequest field in conflict errors.
-const requestFieldPrefix = "LaunchRequest."
+// Request part names, as a conflict error words them. They are plain
+// words, not Go field names, because a launcher shows the error to its
+// user, who never saw a LaunchRequest.
+const (
+	requestPrompt   = "prompt"
+	requestResume   = "resume id"
+	requestModel    = "model"
+	requestAddDirs  = "add-dir folders"
+	requestAutonomy = "autonomy level"
+	requestHeadless = "headless mode"
+	// requestRawArgs is LaunchRequest.Args: raw vendor args. An option
+	// landing in the same field is merged, never a conflict (OverlayOptions).
+	requestRawArgs = "raw args"
+	// requestUnknown stands in when no single part maps to the field.
+	requestUnknown = "launch request"
+)
 
 // OverlayOptions applies an options object over dst, a pointer to the
 // vendor's options struct already mapped from r: only the keys given are
 // set. A key whose field r already set is ErrInvalidOption naming the key
-// and the request field (found by mapping each set field of r alone).
+// and the request part in plain words (found by mapping each set field of
+// r alone), e.g. `option "model" conflicts with the request's model`.
+//
+// The one exception is a list option that lands where r.Args (raw vendor
+// args) go, such as Claude's extra_args: raw args are never refused, so
+// both are kept, the option's list first and then r.Args, which therefore
+// win wherever the vendor CLI lets a later flag override an earlier one.
+//
 // Unknown keys and wrong value kinds are refused as in DecodeOptions.
 // Empty options do nothing. Pure.
 func OverlayOptions(options Raw, keys []OptionKey, dst reflect.Value, r LaunchRequest, mapOne RequestMapper) error {
@@ -160,15 +181,33 @@ func OverlayOptions(options Raw, keys []OptionKey, dst reflect.Value, r LaunchRe
 	if err != nil {
 		return err
 	}
+	type rawTail struct {
+		field  string
+		values reflect.Value
+	}
+	var tails []rawTail
 	for _, name := range given {
 		k, _ := FindOptionKey(keys, name)
 		f := dst.Elem().FieldByName(k.Field)
 		if !f.IsValid() || f.IsZero() {
 			continue
 		}
-		return fmt.Errorf("%w: option %q conflicts with %s%s", ErrInvalidOption, k.Key, requestFieldPrefix, requestSource(r, k.Field, mapOne))
+		source := requestSource(r, k.Field, mapOne)
+		if source == requestRawArgs && f.Kind() == reflect.Slice {
+			// Keep the raw args aside; the decode below replaces the field.
+			tails = append(tails, rawTail{field: k.Field, values: reflect.AppendSlice(reflect.MakeSlice(f.Type(), 0, f.Len()), f)})
+			continue
+		}
+		return fmt.Errorf("%w: option %q conflicts with the request's %s", ErrInvalidOption, k.Key, source)
 	}
-	return DecodeOptions(options, keys, dst)
+	if err := DecodeOptions(options, keys, dst); err != nil {
+		return err
+	}
+	for _, t := range tails {
+		f := dst.Elem().FieldByName(t.field)
+		f.Set(reflect.AppendSlice(f, t.values))
+	}
+	return nil
 }
 
 // requestSource names the request field whose mapping sets field. Pure.
@@ -182,7 +221,7 @@ func requestSource(r LaunchRequest, field string, mapOne RequestMapper) string {
 			return p.name
 		}
 	}
-	return "?"
+	return requestUnknown
 }
 
 // optionObject checks an options object (every key known, every value of

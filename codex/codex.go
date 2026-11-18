@@ -65,11 +65,17 @@ func Spec() agentio.Spec {
 		HomeEnv:     EnvHome,
 		DefaultHome: defaultHomeDir,
 		HomeMarkers: []string{fileConfig, fileAuth, dirSessions, fileStateDB, fileVersionCache, fileInstallationID},
-		NewArgs:     []string{tplArgs},
-		ResumeArgs:  []string{subResume, tplArgs, tplID},
-		VersionArgs: []string{flagVersion},
-		LoginArgs:   []string{subLogin},
-		LogoutArgs:  []string{subLogout},
+		// Names other tools write too (pi: auth.json, sessions/; Claude
+		// Code: sessions/; config.toml and version.json are common): alone
+		// they mark a home only in ~/.codex or the CODEX_HOME folder, and
+		// HomeAt still takes them for a caller-named home. A folder found
+		// elsewhere needs state_5.sqlite or installation_id.
+		GenericHomeMarkers: []string{fileConfig, fileAuth, dirSessions, fileVersionCache},
+		NewArgs:            []string{tplArgs},
+		ResumeArgs:         []string{subResume, tplArgs, tplID},
+		VersionArgs:        []string{flagVersion},
+		LoginArgs:          []string{subLogin},
+		LogoutArgs:         []string{subLogout},
 		// Codex has no shared-file convention between homes; nothing to link.
 		SharedHomeFiles: nil,
 		// Only the variable that overrides a home login; see EnvAPIKey.
@@ -186,7 +192,9 @@ func (a *Agent) Homes() ([]Home, error) {
 // holds no Codex marker. Disk · Read.
 func (a *Agent) HomeAt(dir string) (Home, error) {
 	h := a.core.HomeAt(dir)
-	ok, err := a.core.IsHome(h.Dir())
+	// The caller names the folder as a Codex home, so a generic marker is
+	// enough here (HasHomeMarker), as it is in ~/.codex.
+	ok, err := a.core.HasHomeMarker(h.Dir())
 	if err != nil {
 		return Home{}, err
 	}

@@ -1,0 +1,11 @@
+func FromSpec(s Spec, h Host) (Agent, error) {
+	c, err := NewCore(s, h)
+	if err != nil {
+		return nil, err
+	}
+	a := specAgent{Core: c}
+	if slices.ContainsFunc(s.TokenEnv, func(e TokenEnv) bool { return e.Provider != "" }) {
+		return specProviderAgent{specAgent: a}, nil
+	}
+	return a, nil
+}

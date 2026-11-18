@@ -1,0 +1,1 @@
+func NewLaunchSentinel(msg string) error { return &launchSentinel{msg: msg} }

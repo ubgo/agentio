@@ -729,7 +729,7 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), whi
 <!-- ds:def id=runner-version-87cgudkv file=core.go pick=symbol:Runner.Version owner=@khanakia -->
 <!-- ds:def id=scalar-v4y3hks8 file=value.go pick=symbol:Scalar owner=@khanakia -->
 <!-- ds:def id=scrubenv-4rdtd62j file=command.go pick=symbol:ScrubEnv owner=@khanakia -->
-<!-- ds:def id=secretnamesof-7pd7kykk file=command.go pick=symbol:secretNamesOf owner=@khanakia -->
+<!-- ds:def id=secretnamesof-7pd7kykk file=command.go pick=symbol:envSources owner=@khanakia -->
 <!-- ds:def id=sensitivenameparts-55jafnj3 file=command.go pick=symbol:sensitiveNameParts owner=@khanakia -->
 <!-- ds:def id=sessionkindvalues-dz2kaxw9 file=capability.go pick=symbol:SessionKindValues owner=@khanakia -->
 <!-- ds:def id=sessionstatusnames-9ja6re25 file=enums.go pick=symbol:sessionStatusNames owner=@khanakia -->
@@ -737,7 +737,9 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), whi
 <!-- ds:def id=some-y3g2rs4p file=value.go pick=symbol:Some owner=@khanakia -->
 <!-- ds:def id=spec-9rwc3qhn file=spec.go pick=symbol:Spec owner=@khanakia -->
 <!-- ds:def id=spec-validate-chxkxnh2 file=spec.go pick=symbol:Spec.Validate owner=@khanakia -->
+<!-- ds:def id=specagent-detecttokenkind-w7h2rk5n file=fromspec.go pick=symbol:specAgent.DetectTokenKind owner=@khanakia -->
 <!-- ds:def id=specagent-hascapability-tzc86rcg file=fromspec.go pick=symbol:specAgent.HasCapability owner=@khanakia -->
+<!-- ds:def id=specagent-tokenkinds-m4q8zt2c file=fromspec.go pick=symbol:specAgent.TokenKinds owner=@khanakia -->
 <!-- ds:def id=specagent-unsupportedreason-jp9ga9ft file=fromspec.go pick=symbol:specAgent.UnsupportedReason owner=@khanakia -->
 <!-- ds:def id=supported-33dzcvq6 file=accessor.go pick=symbol:Supported owner=@khanakia -->
 <!-- ds:def id=token-3nk7gtub file=secret.go pick=symbol:Token owner=@khanakia -->
@@ -820,6 +822,13 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), whi
 <!-- ds:def id=pi-agent-sessions-r6p4c8h9 file=pi/sessions.go pick=symbol:Agent.Sessions owner=@khanakia -->
 <!-- ds:def id=pi-agent-logins-r6p6o4k5 file=pi/auth.go pick=symbol:Agent.Logins owner=@khanakia -->
 <!-- ds:def id=spec-tokenenv-r6v7b2nm file=spec.go pick=symbol:TokenEnv owner=@khanakia -->
+<!-- ds:def id=spec-tokenlogin-c3v9px6e file=spec.go pick=symbol:Spec.tokenLogin owner=@khanakia -->
+<!-- ds:def id=errinvalidoption-q2v7mk4d file=options.go pick=symbol:ErrInvalidOption owner=@khanakia -->
+<!-- ds:def id=newlaunchsentinel-x5c9rj2h file=options.go pick=symbol:NewLaunchSentinel owner=@khanakia -->
+<!-- ds:def id=claude-configoptionkeys-w3m8ht5q file=claude/launchconfig.go pick=symbol:configOptionKeys owner=@khanakia -->
+<!-- ds:def id=codex-agent-launchprofilecheck-h6t2nb4x file=codex/launchconfig.go pick=symbol:Agent.launchProfileCheck owner=@khanakia -->
+<!-- ds:def id=spec-validategenericmarkers-k7d2wq9m file=spec.go pick=symbol:Spec.validateGenericMarkers owner=@khanakia -->
+<!-- ds:def id=core-hashomemarker-p4n8ze2v file=core.go pick=symbol:Core.HasHomeMarker owner=@khanakia -->
 <!-- ds:def id=launchconfigof-r7a2k4mq file=accessor.go pick=symbol:LaunchConfigOf owner=@khanakia -->
 <!-- ds:def id=launchconfig-r7b3m5nq file=launchconfig.go pick=symbol:LaunchConfig owner=@khanakia -->
 <!-- ds:def id=launchconfigurer-r7c4p6rs file=launchconfig.go pick=symbol:LaunchConfigurer owner=@khanakia -->

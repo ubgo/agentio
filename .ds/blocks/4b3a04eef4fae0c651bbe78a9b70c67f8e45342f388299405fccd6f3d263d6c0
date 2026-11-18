@@ -1,0 +1,13 @@
+func (a *Agent) HomeAt(dir string) (Home, error) {
+	h := a.core.HomeAt(dir)
+	// The caller names the folder as a Codex home, so a generic marker is
+	// enough here (HasHomeMarker), as it is in ~/.codex.
+	ok, err := a.core.HasHomeMarker(h.Dir())
+	if err != nil {
+		return Home{}, err
+	}
+	if !ok {
+		return Home{}, fmt.Errorf("%w: no Codex home marker in %s", agentio.ErrNotFound, h.Dir())
+	}
+	return Home{h: h}, nil
+}

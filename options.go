@@ -71,7 +71,23 @@ type OptionKey struct {
 	// (model, prompt, permission level…); ConcernNone for the rest. A
 	// launcher uses it for one winner per concern.
 	Concern Concern `json:"concern,omitempty"`
+	// Path marks a value that names a file or folder on this machine (for
+	// a list, every element), set by the struct tag agentio:"path" on the
+	// vendor field. A launcher expands "~" and resolves relative paths in
+	// these values, and only in these; the vendor CLI never does it for
+	// values that do not pass through a shell. Some path options also take
+	// inline JSON (Claude --settings, --mcp-config), which never starts
+	// with "~".
+	Path bool `json:"path,omitempty"`
 }
+
+// Struct tag that marks an option field (OptionKey.Path).
+const (
+	// optionTagName is the struct tag key agentio reads on option fields.
+	optionTagName = "agentio"
+	// optionTagPath marks a field whose value is a filesystem path.
+	optionTagPath = "path"
+)
 
 // OptionFeature is a feature gate a probe saw, by name with its span.
 type OptionFeature struct {
@@ -155,6 +171,16 @@ func DeriveOptionKeys(d OptionDerivation) ([]OptionKey, error) {
 func deriveOne(d OptionDerivation, bases []reflect.Value, f reflect.StructField, key string) (OptionKey, error) {
 	kind, values := optionKind(f.Type, d.Enums)
 	k := OptionKey{Key: key, Field: f.Name, Kind: kind, Values: values, Concern: d.Concerns[key]}
+	switch tag := f.Tag.Get(optionTagName); tag {
+	case "":
+	case optionTagPath:
+		if kind != OptionString && kind != OptionList {
+			return k, fmt.Errorf("%s: tag %s:%q needs a string or a string list, not %s", f.Name, optionTagName, tag, kind)
+		}
+		k.Path = true
+	default:
+		return k, fmt.Errorf("%s: unknown tag %s:%q", f.Name, optionTagName, tag)
+	}
 	sample, ok := d.Samples[f.Type]
 	if !ok {
 		if sample, ok = sampleValue(f.Type, values); !ok {
@@ -348,6 +374,25 @@ func OptionValueJSON(k OptionKey, value string) (Raw, error) {
 // ErrInvalidOption means a launch option key or value the registry
 // refuses.
 var ErrInvalidOption = errors.New("agentio: invalid launch option")
+
+// launchSentinel is a vendor's own launch-refusal sentinel: its own
+// identity and message, and a match for ErrInvalidOption (Is).
+type launchSentinel struct{ msg string }
+
+// Error is the vendor's message. Pure.
+func (s *launchSentinel) Error() string { return s.msg }
+
+// Is makes every error wrapping s also match ErrInvalidOption. Pure.
+func (s *launchSentinel) Is(target error) bool { return target == ErrInvalidOption }
+
+// NewLaunchSentinel returns a sentinel for launch options a vendor CLI
+// rejects (claude.ErrInvalidLaunch, codex.ErrInvalidOption). Why: callers
+// classify a refused launch by agentio's sentinel, whatever the vendor; a
+// plain errors.New sentinel matched only its own vendor, so a caller saw a
+// refused combination as an unknown failure. errors.Is(err, sentinel) and
+// errors.Is(err, ErrInvalidOption) both hold for an error wrapping it, and
+// its message is msg alone (no doubled prefix). Pure.
+func NewLaunchSentinel(msg string) error { return &launchSentinel{msg: msg} }
 
 // FindOptionKey returns the key named key; the error lists the valid keys.
 // Pure.

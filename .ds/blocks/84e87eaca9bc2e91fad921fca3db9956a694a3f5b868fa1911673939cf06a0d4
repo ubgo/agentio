@@ -1,0 +1,9 @@
+func (a specAgent) TokenKinds() []TokenKind {
+	var out []TokenKind
+	for _, e := range a.spec.TokenEnv {
+		if !slices.Contains(out, e.Kind) {
+			out = append(out, e.Kind)
+		}
+	}
+	return out
+}

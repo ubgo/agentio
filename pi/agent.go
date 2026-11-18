@@ -64,6 +64,13 @@ func homeMarkers() []string {
 // HomeMarkers lists the marker entries of an agent dir. Pure.
 func HomeMarkers() []string { return homeMarkers() }
 
+// genericHomeMarkers are the markers other agents' homes hold too:
+// settings.json (Claude Code, Gemini CLI), sessions/ (Claude Code, Codex)
+// and auth.json (Codex). Alone they mark a home only in ~/.pi/agent or the
+// PI_CODING_AGENT_DIR folder; a folder found elsewhere needs
+// models-store.json, which pi writes on every start.
+func genericHomeMarkers() []string { return []string{settingsFile, sessionsDir, authFile} }
+
 // tokenEnv maps a provider to the variable pi reads its API key from
 // (node_modules/@earendil-works/pi-ai/dist/env-api-keys.js:68-120 in pi
 // 1.5.2). Only providers with exactly one key variable are listed: a
@@ -122,16 +129,17 @@ func Spec() agentio.Spec {
 	return agentio.Spec{
 		ID: ID, Name: displayName, Binary: Binary,
 		HomeEnv: HomeEnv, DefaultHome: defaultHomeDir,
-		HomeMarkers:  homeMarkers(),
-		NewArgs:      []string{placeholderArgs},
-		ResumeArgs:   []string{flagSession, placeholderID, placeholderArgs},
-		ModelArgs:    []string{flagModel, placeholderModel},
-		PromptArgs:   []string{endOfOptions, placeholderPrompt},
-		AutonomyArgs: autonomyArgs(),
-		HeadlessArgs: []string{flagMode, string(ModeJSON)},
-		TokenEnv:     tokenEnv(),
-		VersionArgs:  []string{flagVersion},
-		Packages:     []string{PackageName, legacyPackageName},
+		HomeMarkers:        homeMarkers(),
+		GenericHomeMarkers: genericHomeMarkers(),
+		NewArgs:            []string{placeholderArgs},
+		ResumeArgs:         []string{flagSession, placeholderID, placeholderArgs},
+		ModelArgs:          []string{flagModel, placeholderModel},
+		PromptArgs:         []string{endOfOptions, placeholderPrompt},
+		AutonomyArgs:       autonomyArgs(),
+		HeadlessArgs:       []string{flagMode, string(ModeJSON)},
+		TokenEnv:           tokenEnv(),
+		VersionArgs:        []string{flagVersion},
+		Packages:           []string{PackageName, legacyPackageName},
 		// pi sets process.title = "pi" (PKG/dist/cli/setup.js:4), which
 		// overwrites argv on linux: the row's argv0 is "pi" and its exe is
 		// node, so only the basename can match; the package path never

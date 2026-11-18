@@ -181,7 +181,7 @@ untested version: claude --worktree
 - **Inherited credential variables are removed.** `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` and `CLAUDE_CODE_OAUTH_TOKEN` in the base env would silently override the home's login, so [every launch (and `LoginCommand`) unsets them](ds:block?id=core-envchanges-f8hrn3we). Use a token login or `Target.ExtraEnv` to launch with a key on purpose.
 - **[A zero version skips checks, it does not fail.](ds:block?id=featurespan-in-vh7rmz94)** If you never call `TargetFor`, every launch builds with a `version-unknown` warning and no flag is checked.
 - **Since dates come only from explicit changelog lines.** Many flags have no known `since`; [they are treated as always available](ds:block?id=featurespan-in-vh7rmz94), so an old Claude Code may still reject a flag the library allowed.
-- **[`ExtraArgs` are not checked.](ds:block?id=claude-launchoptions-build-78wzjpre)** They go in verbatim after the modelled flags and before the prompt; validation and version checks do not see them.
+- **[`ExtraArgs` are not checked.](ds:block?id=claude-launchoptions-build-78wzjpre)** They go in verbatim after the modelled flags and before the prompt; validation and version checks do not see them. Through `LaunchConfigured`, an `extra_args` option and the request's raw `Args` are both kept, `extra_args` first.
 - **[`Tools` and `Worktree` are pointers on purpose.](ds:block?id=claude-launchoptions-build-78wzjpre)** `Tools: &[]string{}` emits `--tools ""` (no tools) while nil emits nothing; `Worktree: &""` emits `--worktree` with no name.
 
 ## Related

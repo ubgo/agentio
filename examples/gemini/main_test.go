@@ -46,7 +46,7 @@ func TestRun(t *testing.T) {
 		"launch: gemini --approval-mode plan --model gemini-2.5-flash\n",
 		`launch: gemini --approval-mode yolo --output-format stream-json --include-directories ../lib --prompt "fix the failing tests"`,
 		"token launch sets GEMINI_API_KEY (value redacted in output: true)\n",
-		"full without AllowDangerous: agentio: full autonomy needs Target.AllowDangerous\n",
+		"full without AllowDangerous: agentio: full autonomy needs explicit consent\n",
 		"login-commander: Gemini CLI has no login subcommand",
 	} {
 		if !strings.Contains(got, want) {

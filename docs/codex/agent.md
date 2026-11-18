@@ -6,7 +6,7 @@
 
 - Add the module: `go get github.com/ubgo/agentio/codex`. It pulls the root module and a TOML parser; the SQLite reader lives in the separate [`codex/state`](state.md) module so a caller of `codex` never downloads a SQLite driver.
 - Build a `Host`. Real programs call `agentio.HostFromOS()`; tests and these examples build one by hand around a temp user home (see [Host](../core/host.md)).
-- A Codex home is a directory holding at least one marker: `config.toml`, `auth.json`, `sessions/`, `state_5.sqlite`, `version.json` or [`installation_id`](ds:block?id=codex-spec-ut8me6cu). The default home is [`~/.codex`](ds:block?id=codex-agent-defaulthome-54qemjw6); another home is whatever directory [`CODEX_HOME`](ds:block?id=codex-agent-homefromenv-hgwbx2cn) names. Codex has no `~/.codex-*` convention, so other homes come from you ([`HomeAt`](ds:block?id=codex-agent-homes-nffucnw6)).
+- A Codex home is a directory holding at least one marker: `config.toml`, `auth.json`, `sessions/`, `state_5.sqlite`, `version.json` or [`installation_id`](ds:block?id=codex-spec-ut8me6cu). The first four are names pi and other tools write too: `IsHome` on a folder other than `~/.codex` or the `CODEX_HOME` one needs `state_5.sqlite` or `installation_id` (see [Homes](../core/homes.md#step-2--list-every-home)); `HomeAt` takes any marker. The default home is [`~/.codex`](ds:block?id=codex-agent-defaulthome-54qemjw6); another home is whatever directory [`CODEX_HOME`](ds:block?id=codex-agent-homefromenv-hgwbx2cn) names. Codex has no `~/.codex-*` convention, so other homes come from you ([`HomeAt`](ds:block?id=codex-agent-homes-nffucnw6)).
 
 The snippets come from [`examples/codexconfig`](../../examples/codexconfig/), which runs on a temp copy of the 0.162.1 fixture home.
 
@@ -49,7 +49,7 @@ Every reader takes a [`codex.Home`](ds:block?id=codex-home-hsdrs8z7), never a ba
 | [`a.Homes()`](ds:block?id=codex-agent-homes-nffucnw6) | the default home and the `CODEX_HOME` one, only those holding a marker | Disk read |
 | [`a.HomeFromEnv()`](ds:block?id=codex-agent-homefromenv-hgwbx2cn) | the home `CODEX_HOME` in `Host.Env` selects; `false` when unset | Pure |
 | [`a.HomeAt(dir)`](ds:block?id=codex-agent-homeat-5kpz3t54) | a caller-named home; `agentio.ErrNotFound` when `dir` holds no marker | Disk read |
-| [`a.IsHome(dir)`](ds:block?id=codex-agent-ishome-28msd42y) | whether `dir` holds any marker | Disk read |
+| [`a.IsHome(dir)`](ds:block?id=codex-agent-ishome-28msd42y) | whether `dir` holds a marker (a distinctive one outside `~/.codex` and `CODEX_HOME`) | Disk read |
 | [`a.HomeOf(n)`](ds:block?id=codex-agent-homeof-xjk5xqdc) | converts a neutral `agentio.Home`; `ErrForeignHome` for another agent's | Pure |
 
 `Home.Dir()`, `Home.Name()` ([`personal`](ds:block?id=defaulthomename-2x8teypk) for the default), `Home.IsDefault()`, `Home.Neutral()` and [`Home.Target()`](ds:block?id=codex-home-target-4s8v9g29) (a plain launch target, version unknown) are all pure.
