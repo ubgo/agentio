@@ -1,0 +1,24 @@
+func (a *Agent) MCPAddCommand(h Home, dir string, s MCPServer) (agentio.Command, error) {
+	if len(s.Env) > 0 || len(s.Headers) > 0 {
+		return agentio.Command{}, agentio.UnsupportedError(ID, "mcp add-json with env or headers",
+			"agentio passes the server JSON on argv (agentio.Command has no stdin); env values and headers are secrets and never go on argv")
+	}
+	type wire struct {
+		Type    MCPTransport `json:"type,omitempty"`
+		Command string       `json:"command,omitempty"`
+		Args    []string     `json:"args,omitempty"`
+		URL     string       `json:"url,omitempty"`
+	}
+	w := wire{Type: s.Transport, Command: s.Command, Args: s.Args, URL: s.URL}
+	js, err := json.Marshal(w)
+	if err != nil {
+		return agentio.Command{}, err
+	}
+	scope := s.Scope
+	if scope == "" {
+		scope = MCPScopeLocal
+	}
+	c := a.command(h, subMCP, subAddJSON, flagScope, string(scope), s.Name, string(js))
+	c.Dir = dir
+	return c, nil
+}

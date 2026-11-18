@@ -110,12 +110,12 @@ add:    claude mcp add-json -s user docs "{\"type\":\"http\",\"url\":\"https://m
 remove: claude mcp remove -s user docs
 list:   claude mcp list
 reset:  claude mcp reset-project-choices
-server with env values refused: agentio: unsupported: claude: mcp add-json with env or headers: claude mcp add-json takes the server only on argv; env values and headers are secrets and never go on argv
+server with env values refused: agentio: unsupported: claude: mcp add-json with env or headers: agentio passes the server JSON on argv (agentio.Command has no stdin); env values and headers are secrets and never go on argv
 ```
 
 ## Pitfalls
 
-- **A server with env values or headers cannot be added through `MCPAddCommand`.** `claude mcp add-json` takes the server only on argv, and the library never puts secrets on argv. Add the server without them, then set the values through Claude Code itself.
+- **A server with env values or headers cannot be added through `MCPAddCommand`.** The library passes the server JSON on argv and never puts secrets on argv. Claude Code 2.1.327 added `claude mcp add-json <name> -`, which reads the JSON from stdin (feature `FeatureMCPAddJSONStdin`), but `agentio.Command` has no stdin channel, so the refusal stays. Add the server without them, then set the values through Claude Code itself.
 - **Never run `MCPListCommand` casually.** `claude mcp list` starts every server for a health check; the library builds it but never runs it. Use `MCPServers` to list.
 - Project servers from `.mcp.json` are listed even when not approved; check `Approval` before treating one as active. `pending` servers are what the doctor's `mcp-project-pending` check reports.
 - Servers that come from plugins, claude.ai connectors or a session's `--mcp-config` are not in these files and are not listed; a running session reports its real set in the stream `init` line (see [Claude stream](stream.md)).

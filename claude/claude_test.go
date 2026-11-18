@@ -643,3 +643,16 @@ func TestStricterLowerValueWins(t *testing.T) {
 		t.Fatal(string(got))
 	}
 }
+
+// TestMCPAddJSONStdinRow pins the 2.1.327 drift row: `claude mcp add-json
+// <name> -` reads the server JSON from stdin since 2.1.327 (CHANGELOG
+// "Added"), the vendor's way to keep env values and headers off argv.
+func TestMCPAddJSONStdinRow(t *testing.T) {
+	span := FeatureInfo(FeatureMCPAddJSONStdin)
+	if span.Since.String() != "2.1.327" || !span.Until.IsZero() || FeatureSource(FeatureMCPAddJSONStdin) == "" {
+		t.Fatalf("span %v source %q", span, FeatureSource(FeatureMCPAddJSONStdin))
+	}
+	if span.In(agentio.MustVersion("2.1.326")) || !span.In(agentio.MustVersion("2.1.327")) {
+		t.Fatalf("span %v must start at 2.1.327", span)
+	}
+}

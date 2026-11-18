@@ -597,14 +597,17 @@ func (a *Agent) MCPListCommand(h Home, dir string) agentio.Command {
 }
 
 // MCPAddCommand is `claude mcp add-json -s <scope> <name> <json>`: a
-// vendor command, never a file edit, because Claude Code owns the file. The CLI takes the server JSON only on
-// argv, so a server with env values or headers is refused: those are secrets
-// (EnvValue) and must never ride in argv (invariant 8). Add such a server
-// without them and set the values through Claude Code itself. cost: Pure.
+// vendor command, never a file edit, because Claude Code owns the file. The
+// server JSON rides on argv, so a server with env values or headers is
+// refused: those are secrets (EnvValue) and must never ride in argv
+// (invariant 8). Claude Code 2.1.327 added `add-json <name> -`, which reads
+// the JSON from stdin (FeatureMCPAddJSONStdin), but agentio.Command has no
+// stdin channel yet, so the refusal stays. Add such a server without them
+// and set the values through Claude Code itself. cost: Pure.
 func (a *Agent) MCPAddCommand(h Home, dir string, s MCPServer) (agentio.Command, error) {
 	if len(s.Env) > 0 || len(s.Headers) > 0 {
 		return agentio.Command{}, agentio.UnsupportedError(ID, "mcp add-json with env or headers",
-			"claude mcp add-json takes the server only on argv; env values and headers are secrets and never go on argv")
+			"agentio passes the server JSON on argv (agentio.Command has no stdin); env values and headers are secrets and never go on argv")
 	}
 	type wire struct {
 		Type    MCPTransport `json:"type,omitempty"`

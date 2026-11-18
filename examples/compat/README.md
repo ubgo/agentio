@@ -27,7 +27,8 @@ claude --name                       since 2.1.76   Claude Code CHANGELOG.md 2.1.
 claude --plugin-dir .zip            since 2.1.128  Claude Code CHANGELOG.md 2.1.128 (behaviour)
 claude --fallback-model interactive since 2.1.166  Claude Code CHANGELOG.md 2.1.166 (behaviour; print-only before)
 claude --restricted                 since 2.1.248  Claude Code CHANGELOG.md 2.1.248
-claude features: 67 rows, 19 with a known version
+claude mcp add-json -               since 2.1.327  Claude Code CHANGELOG.md 2.1.327 (server JSON from stdin; MCPAddCommand still passes it on argv)
+claude features: 68 rows, 20 with a known version
 codex features: 39 rows, 9 with a known version
 --worktree in "2.1.40" : false
 --worktree in "2.1.325": true
