@@ -222,3 +222,16 @@ func TestRedactedBySource(t *testing.T) {
 		t.Errorf("Redacted twice: %q", again)
 	}
 }
+
+// TestDangerousNotAllowedWording: the refusal of full autonomy is shown to
+// a launcher's user, so it says what is missing in their terms and names
+// no Go field; the sentinel keeps its identity through wrapping.
+func TestDangerousNotAllowedWording(t *testing.T) {
+	t.Parallel()
+	if got := ErrDangerousNotAllowed.Error(); got != "agentio: full autonomy needs explicit consent" || strings.Contains(got, "Target") {
+		t.Errorf("message = %q", got)
+	}
+	if err := fmt.Errorf("launch: %w", ErrDangerousNotAllowed); !errors.Is(err, ErrDangerousNotAllowed) {
+		t.Error("identity lost through wrapping")
+	}
+}

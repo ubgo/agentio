@@ -276,7 +276,7 @@ personal: acme (ACME_HOME set=false )
 personal: acme --model acme-large --message "fix the build" (ACME_HOME set=false )
 work: acme --resume c-42 (ACME_HOME set=true ~/.acme-work)
 headless: agentio: unsupported: acme: headless: not described by the agent spec (unsupported=true)
-full autonomy: agentio: full autonomy needs Target.AllowDangerous
+full autonomy: agentio: full autonomy needs explicit consent
 == token login ==
 kinds: [api-key oauth-token] (detected from the value: false)
 api-key: acme env [ACME_API_KEY=[redacted]]

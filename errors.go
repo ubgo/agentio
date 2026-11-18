@@ -49,8 +49,10 @@ var (
 	ErrNotInstalled = errors.New("agentio: binary not found on PATH")
 	// ErrDangerousNotAllowed means AutonomyFull was asked for without
 	// Target.AllowDangerous. Added beyond SPEC §9.1: refusing is a policy
-	// answer, not a missing capability, so it is not ErrUnsupported.
-	ErrDangerousNotAllowed = errors.New("agentio: full autonomy needs Target.AllowDangerous")
+	// answer, not a missing capability, so it is not ErrUnsupported. Its
+	// text is shown to a launcher's user, so it names the missing consent,
+	// not the Go field that carries it.
+	ErrDangerousNotAllowed = errors.New("agentio: full autonomy needs explicit consent")
 	// ErrInvalidSpec means FromSpec / NewCore rejected a Spec.
 	ErrInvalidSpec = errors.New("agentio: invalid spec")
 	// ErrInvalidID means ParseID rejected a string.

@@ -53,7 +53,7 @@ launch: gemini --prompt-interactive "explain the parser"
 launch: gemini --approval-mode plan --model gemini-2.5-flash
 launch: gemini --approval-mode yolo --output-format stream-json --include-directories ../lib --prompt "fix the failing tests"
 token launch sets GEMINI_API_KEY (value redacted in output: true)
-full without AllowDangerous: agentio: full autonomy needs Target.AllowDangerous
+full without AllowDangerous: agentio: full autonomy needs explicit consent
 == capabilities
 supported: [installer binary-version identity token-login conversations history-checker process-classifier home-linker instruction-files mcp-servers skills plugins config doctor]
 usage: Gemini CLI quota and tier come from a logged-in Code Assist API call (retrieveUserQuota, loadCodeAssist) whose responses are not recorded yet

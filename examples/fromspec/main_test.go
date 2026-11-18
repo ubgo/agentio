@@ -34,7 +34,7 @@ func TestRun(t *testing.T) {
 		`personal: acme --model acme-large --message "fix the build" (ACME_HOME set=false )`,
 		"work: acme --resume c-42 (ACME_HOME set=true ~/.acme-work)",
 		"(unsupported=true)",
-		"full autonomy: agentio: full autonomy needs Target.AllowDangerous",
+		"full autonomy: agentio: full autonomy needs explicit consent",
 		"kinds: [api-key oauth-token] (detected from the value: false)",
 		"api-key: acme env [ACME_API_KEY=[redacted]]",
 		"oauth-token: acme env [ACME_OAUTH_TOKEN=[redacted]]",
