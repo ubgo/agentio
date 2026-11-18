@@ -2,4 +2,4 @@ module github.com/ubgo/agentio/gemini
 
 go 1.26.4
 
-require github.com/ubgo/agentio v0.0.0-20261117163642-2632ef9e81ef
+require github.com/ubgo/agentio v0.0.0-20261118075106-f7a836b954bd

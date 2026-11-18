@@ -14,10 +14,10 @@ github.com/pelletier/go-toml/v2 v2.4.3 h1:GTRvJQutkOSftxIFD5xw9aepkYNuPWmVJpffdD
 github.com/pelletier/go-toml/v2 v2.4.3/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
 github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec h1:W09IVJc94icq4NjY3clb7Lk8O1qJ8BdBEF8z0ibU0rE=
 github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec/go.mod h1:qqbHyh8v60DhA7CoWK5oRCqLrMHRGoxYCSS9EjAz6Eo=
-github.com/ubgo/agentio v0.0.0-20261117163642-2632ef9e81ef h1:Rc+Vr3NIkeg0Z7NANTJvliIye/zUlFf88zL1V5j3/RM=
-github.com/ubgo/agentio v0.0.0-20261117163642-2632ef9e81ef/go.mod h1:258owB0YCn00NB5D12/x2MpB3cSAh63SYJVR1Iu9WZo=
-github.com/ubgo/agentio/codex v0.0.0-20261114123354-6c716020fe1c h1:8D61bCCXiKQL7G+TIjz/t83m1shGCsZ0ZQDC74OM7m4=
-github.com/ubgo/agentio/codex v0.0.0-20261114123354-6c716020fe1c/go.mod h1:YIo/sCrUEALFN3lFoqJg8dcbTi738DHzVPQnotdvkTc=
+github.com/ubgo/agentio v0.0.0-20261118075106-f7a836b954bd h1:+L5yUpp0VKwYBhiGnJLMPF8vx2XJiUGvsYuVH8GmXmQ=
+github.com/ubgo/agentio v0.0.0-20261118075106-f7a836b954bd/go.mod h1:258owB0YCn00NB5D12/x2MpB3cSAh63SYJVR1Iu9WZo=
+github.com/ubgo/agentio/codex v0.0.0-20261118075106-f7a836b954bd h1:cXv5OuNrxejU7ZByeQMAA7TyNpVngNRgvHr9d5qglo4=
+github.com/ubgo/agentio/codex v0.0.0-20261118075106-f7a836b954bd/go.mod h1:OdsDb34qs7ah+0088Q8V3XoS8+NpgpbEYPPQl0Xqwcc=
 golang.org/x/mod v0.41.0 h1:qJmnOUb4YB+FsEuM3HcWucdZASCPGhsX6uljO6pog0c=
 golang.org/x/mod v0.41.0/go.mod h1:Ek9pY8RKWXwsWvd3rQiHYtMqkjSUV+s1Rj7j4H5Ur6o=
 golang.org/x/sync v0.23.0 h1:KameEIfc1IkluZyXWLn39Wd4tURc6GbCiISGiZm2bQk=
