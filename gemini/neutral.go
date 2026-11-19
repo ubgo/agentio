@@ -43,6 +43,7 @@ func supported() []agentio.Capability {
 		agentio.CapConversations, agentio.CapHistoryChecker, agentio.CapProcessClassifier,
 		agentio.CapHomeLinker, agentio.CapInstructionFiles, agentio.CapMCPServers, agentio.CapSkills,
 		agentio.CapPlugins, agentio.CapConfig, agentio.CapDoctor,
+		agentio.CapProcessSessions, agentio.CapStopPlanner,
 	}
 }
 
