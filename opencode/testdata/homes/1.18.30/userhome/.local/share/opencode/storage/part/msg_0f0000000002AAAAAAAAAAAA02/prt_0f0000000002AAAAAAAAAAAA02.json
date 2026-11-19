@@ -1,0 +1,17 @@
+{
+  "id": "prt_0f0000000002AAAAAAAAAAAA02",
+  "sessionID": "ses_0f0000000001ffeFixtureAAAA",
+  "messageID": "msg_0f0000000002AAAAAAAAAAAA02",
+  "type": "reasoning",
+  "text": "Looking at the form.",
+  "metadata": {
+    "openai": {
+      "itemId": "rs_fixture01",
+      "reasoningEncryptedContent": "ENCRYPTED-FIXTURE"
+    }
+  },
+  "time": {
+    "start": 1760100551000,
+    "end": 1760100552000
+  }
+}

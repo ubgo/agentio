@@ -1,0 +1,12 @@
+# name	spelling	since	until	source
+# opencode feature table. since/until are vendor versions; empty = unknown, never guessed. A non-empty bound names the GitHub release note (anomalyco/opencode, formerly sst/opencode) it comes from. Spellings recorded from 1.18.30 --help and the bundled source.
+Database	opencode.db	1.2.0		release v1.2.0 (2026-02-14: a data migration on first run moves all flat files in the data directory to a single sqlite database)
+LegacyStorage	storage/ JSON tree		1.2.0	release v1.2.0 (2026-02-14: a data migration on first run moves all flat files in the data directory to a single sqlite database)
+FlagFork	--fork	1.1.54		release v1.1.54 #11340 (Claude Code-style --fork flag to duplicate sessions before continuing)
+FlagSession	--session
+FlagContinue	--continue
+FlagModel	--model
+FlagPrompt	--prompt
+FlagAuto	--auto
+RunFormatJSON	run --format json
+DBEnv	OPENCODE_DB

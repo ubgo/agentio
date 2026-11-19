@@ -1,0 +1,16 @@
+{
+  "id": "prt_0f0000000002AAAAAAAAAAAA04",
+  "sessionID": "ses_0f0000000001ffeFixtureAAAA",
+  "messageID": "msg_0f0000000002AAAAAAAAAAAA02",
+  "type": "text",
+  "text": "I fixed the login form.",
+  "time": {
+    "start": 1760100570000,
+    "end": 1760100572000
+  },
+  "metadata": {
+    "openai": {
+      "itemId": "msg_fixture01"
+    }
+  }
+}
