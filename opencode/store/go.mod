@@ -3,8 +3,8 @@ module github.com/ubgo/agentio/opencode/store
 go 1.26.4
 
 require (
-	github.com/ubgo/agentio v0.1.0
-	github.com/ubgo/agentio/opencode v0.1.0
+	github.com/ubgo/agentio v0.1.1-0.20261119141607-5780c2b34458
+	github.com/ubgo/agentio/opencode v0.0.0-20261119141607-5780c2b34458
 	modernc.org/sqlite v1.60.1
 )
 

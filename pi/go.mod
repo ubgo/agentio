@@ -2,4 +2,4 @@ module github.com/ubgo/agentio/pi
 
 go 1.26.4
 
-require github.com/ubgo/agentio v0.1.0
+require github.com/ubgo/agentio v0.1.1-0.20261119141607-5780c2b34458
