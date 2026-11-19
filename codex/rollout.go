@@ -115,6 +115,28 @@ func (t ItemType) IsKnown() bool {
 	return false
 }
 
+// Phase is the wire `phase` of an agent message (event_msg agent_message
+// and an item_completed AgentMessage item): whether Codex showed it while
+// still working or as its answer. Open set: an unknown value is kept as
+// written, never rejected.
+type Phase string
+
+// Phase values seen in rollouts of cli 0.117 … 0.162.
+const (
+	// PhaseCommentary is a message shown while the agent keeps working.
+	PhaseCommentary Phase = "commentary"
+	// PhaseFinalAnswer is the answer that ends the turn.
+	PhaseFinalAnswer Phase = "final_answer"
+)
+
+// IsKnown reports a modelled phase. Pure.
+func (p Phase) IsKnown() bool { return p == PhaseCommentary || p == PhaseFinalAnswer }
+
+// Interim reports a message that is not the turn's answer: any phase other
+// than final_answer. An absent phase (older rollouts wrote none) is an
+// answer, so old files keep every agent message. Pure.
+func (p Phase) Interim() bool { return p != "" && p != PhaseFinalAnswer }
+
 // Message roles in response_item/message.
 const (
 	RoleUser      = "user"
@@ -212,6 +234,7 @@ type EventMsg struct {
 	ThreadID         string          `json:"thread_id,omitempty"`
 	TurnID           string          `json:"turn_id,omitempty"`
 	Message          string          `json:"message,omitempty"` // user_message / agent_message (older versions)
+	Phase            Phase           `json:"phase,omitempty"`   // agent_message
 	LastAgentMessage string          `json:"last_agent_message,omitempty"`
 	DurationMs       int64           `json:"duration_ms,omitempty"`
 	Reason           string          `json:"reason,omitempty"` // turn_aborted
@@ -230,10 +253,12 @@ type EventError struct {
 // TurnItem is the typed item of item_completed (header + text; the full
 // item stays in Raw because its schema is per item type).
 type TurnItem struct {
-	Type ItemType    `json:"type"`
-	ID   string      `json:"id"`
-	Raw  agentio.Raw `json:"-"`
-	text string
+	Type ItemType `json:"type"`
+	ID   string   `json:"id"`
+	// Phase is set on AgentMessage items (cli 0.16x+).
+	Phase Phase       `json:"phase,omitempty"`
+	Raw   agentio.Raw `json:"-"`
+	text  string
 }
 
 // Text is the user or agent message text of the item; "" for other types. Pure.
@@ -242,6 +267,7 @@ func (t TurnItem) Text() string { return t.text }
 type turnItemWire struct {
 	Type    ItemType `json:"type"`
 	ID      string   `json:"id"`
+	Phase   Phase    `json:"phase"`
 	Content []struct {
 		Type string `json:"type"`
 		Text string `json:"text"`
@@ -265,7 +291,7 @@ func (t *TurnItem) UnmarshalJSON(b []byte) error {
 	if text == "" {
 		text = w.Text
 	}
-	*t = TurnItem{Type: w.Type, ID: w.ID, Raw: append(agentio.Raw(nil), b...), text: text}
+	*t = TurnItem{Type: w.Type, ID: w.ID, Phase: w.Phase, Raw: append(agentio.Raw(nil), b...), text: text}
 	return nil
 }
 
