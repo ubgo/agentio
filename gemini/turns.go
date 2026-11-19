@@ -76,14 +76,40 @@ type legacyChat struct {
 //     only way to read it) and its cursor is the count of messages read.
 //     The CLI never appends to one; resuming it rewrites it as .jsonl.
 //
-// ConversationID is the chat's sessionId; Dir is "" (a chat records its
-// project only as a hash). Disk · Read (streaming; a bounded first-line
+// ConversationID is the chat's sessionId; Dir is the project dir from the
+// chat's tmp/<slug>/.project_root (the chat itself records the project
+// only as a hash), "" when the marker is missing. AgentVersion is "": a
+// chat file records no CLI version. Disk · Read (streaming; a bounded first-line
 // read for a read that starts past 0; legacy .json read whole).
 func (a *Agent) TurnsAt(path string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {
-	if strings.HasSuffix(path, legacySessionFileExt) {
-		return legacyTurns(path, from, fn)
+	dir := chatProjectDir(path)
+	withDir := func(t agentio.Turn) error {
+		t.Dir = dir
+		return fn(t)
 	}
-	return jsonlTurns(path, from, fn)
+	if strings.HasSuffix(path, legacySessionFileExt) {
+		return legacyTurns(path, from, withDir)
+	}
+	return jsonlTurns(path, from, withDir)
+}
+
+// maxChatDepth bounds the walk from a chat file up to its tmp/<slug> dir:
+// tmp/<slug>/chats/<file> or, for a subagent chat,
+// tmp/<slug>/chats/<parent id>/<file>.
+const maxChatDepth = 3
+
+// chatProjectDir is the project dir recorded in the .project_root of the
+// tmp/<slug> dir holding the chat at path; "" when none is found within
+// maxChatDepth parents. cost: Disk · Read (a small marker file).
+func chatProjectDir(path string) string {
+	dir := filepath.Dir(path)
+	for range maxChatDepth {
+		if b, err := os.ReadFile(filepath.Join(dir, projectRootFile)); err == nil {
+			return strings.TrimSpace(string(b))
+		}
+		dir = filepath.Dir(dir)
+	}
+	return ""
 }
 
 // jsonlTurns is TurnsAt over a JSONL chat. Disk · Read.

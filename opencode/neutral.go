@@ -99,6 +99,9 @@ func (n neutral) UnsupportedReason(c agentio.Capability) (string, bool) {
 // DefaultHome is the data dir the Host env selects. Pure.
 func (n neutral) DefaultHome() agentio.Home { return n.a.DefaultHome().Neutral() }
 
+// HomeAt is Agent.HomeAt: the data dir itself names the home. Pure.
+func (n neutral) HomeAt(dir string) agentio.Home { return n.a.HomeAt(dir).Neutral() }
+
 // HomeFromEnv is the default home when XDG_DATA_HOME selects it. Pure.
 func (n neutral) HomeFromEnv() (agentio.Home, bool) {
 	h, ok := n.a.HomeFromEnv()

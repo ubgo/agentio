@@ -460,6 +460,9 @@ type TranscriptReader struct {
 	f      *os.File
 	r      *bufio.Reader
 	offset agentio.Offset
+	// onBad, when set, hears each non-JSON line Next skips: where it
+	// starts and the decode error.
+	onBad func(at agentio.Offset, err error)
 }
 
 // openTranscriptFile opens path at from.
@@ -478,19 +481,25 @@ func openTranscriptFile(path string, from agentio.Offset) (*TranscriptReader, er
 }
 
 // Next returns the next complete record; io.EOF at the end or before a
-// partial trailing line. Blank and non-JSON lines are skipped. A line over
-// 16 MiB is an error. cost: Disk · Read.
+// partial trailing line. Blank and non-JSON lines are skipped. Record.Raw
+// is the line without its terminator ("\n" or "\r\n"). A line over 16 MiB
+// is an error. cost: Disk · Read.
 func (t *TranscriptReader) Next() (Record, error) {
 	for {
+		at := t.offset
 		line, err := t.readLine()
 		if err != nil {
 			return Record{}, err
 		}
+		line = agentio.TrimLineEnd(line)
 		if len(bytes.TrimSpace(line)) == 0 {
 			continue
 		}
 		rec, perr := ParseRecord(line)
 		if perr != nil {
+			if t.onBad != nil {
+				t.onBad(at, perr)
+			}
 			continue
 		}
 		return rec, nil

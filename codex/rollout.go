@@ -351,6 +351,18 @@ type TurnContext struct {
 	CurrentDate       string           `json:"current_date,omitempty"`
 	CollaborationMode agentio.Raw      `json:"collaboration_mode,omitempty"`
 	PermissionProfile agentio.Raw      `json:"permission_profile,omitempty"`
+	// Personality is the personality the turn ran with ("pragmatic",
+	// codex-cli 0.162 rollouts); "" when the line has none.
+	Personality Personality `json:"personality,omitempty"`
+	// Unknown keeps every other payload key (root_turn_id,
+	// approvals_reviewer, disabled_plugin_ids, …).
+	Unknown agentio.Unknown `json:"-"`
+}
+
+// turnContextKnownKeys are the turn_context keys TurnContext models. Pure.
+func turnContextKnownKeys() []string {
+	return []string{"turn_id", "cwd", "approval_policy", "sandbox_policy", "model", "effort", "summary", "timezone",
+		"current_date", "collaboration_mode", "permission_profile", "personality"}
 }
 
 // Compacted is a compacted payload.
@@ -391,7 +403,7 @@ type approvalWire struct {
 func ParseRecord(line []byte) (Record, error) {
 	var w recordWire
 	if err := json.Unmarshal(line, &w); err != nil {
-		return Record{}, fmt.Errorf("codex: rollout line: %w", err)
+		return Record{}, fmt.Errorf("%w: %w", ErrInvalidLine, err)
 	}
 	r := Record{Time: parseRFC3339(w.Timestamp), Ordinal: w.Ordinal, Kind: w.Type, Raw: append(agentio.Raw(nil), line...)}
 	p := w.Payload
@@ -419,6 +431,7 @@ func ParseRecord(line []byte) (Record, error) {
 			if json.Unmarshal(p, &aw) == nil {
 				v.ApprovalPolicy = decodeApproval(aw.ApprovalPolicy)
 			}
+			v.Unknown, _ = agentio.ExtractUnknown(p, turnContextKnownKeys())
 			r.TurnContext = &v
 		}
 	case KindCompacted:
@@ -510,6 +523,10 @@ func openRolloutAt(path string, from agentio.Offset) (*RolloutReader, error) {
 	}
 	return &RolloutReader{f: f, br: bufio.NewReaderSize(f, readChunk), offset: from}, nil
 }
+
+// ErrInvalidLine marks a rollout line that is not valid JSON (ParseRecord
+// and RolloutReader.Next wrap it); TurnsAt skips such a line.
+var ErrInvalidLine = errors.New("codex: rollout line is not valid JSON")
 
 // ErrLineTooLong means a rollout line exceeded the reader's bound.
 var ErrLineTooLong = errors.New("codex: rollout line exceeds the size limit")

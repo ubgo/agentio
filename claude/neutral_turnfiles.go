@@ -8,11 +8,19 @@ import (
 )
 
 // Claude reads turns from a transcript path a caller holds (CapTurnFiles).
-var _ agentio.TurnFileReader = neutral{}
+var (
+	_ agentio.TurnFileReader  = neutral{}
+	_ agentio.BadLineReporter = neutral{}
+)
 
 // TurnsAt is TurnsFile. Disk · Read.
 func (n neutral) TurnsAt(path string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {
 	return TurnsFile(path, from, fn)
+}
+
+// TurnsAtReporting is TurnsFileReporting. Disk · Read.
+func (n neutral) TurnsAtReporting(path string, from agentio.Offset, fn func(agentio.Turn) error, bad func(agentio.BadLine)) (agentio.Offset, error) {
+	return TurnsFileReporting(path, from, fn, bad)
 }
 
 // TranscriptOwner is Agent.TranscriptAt with the TurnFileReader error

@@ -82,7 +82,11 @@ func (n neutral) PlanHooks(h agentio.Home, want []agentio.HookEntry) (agentio.Ho
 	if err != nil {
 		return agentio.HookPlan{}, err
 	}
-	p := agentio.HookPlan{Agent: ID, Home: h, File: path, Add: missing, Present: present}
+	existing, err := hookjson.Existing(data, hookFileOptions(), func(ev string) agentio.HookKind { return HookKindOf(HookEvent(ev)) })
+	if err != nil {
+		return agentio.HookPlan{}, err
+	}
+	p := agentio.HookPlan{Agent: ID, Home: h, File: path, Add: missing, Present: present, Existing: existing}
 	if c, err := n.a.ConfigFile(ch); err == nil {
 		if f, ok := c.Features[featureHooks]; ok && !f.Enabled {
 			p.Manual = append(p.Manual, manualFeatureHooks)

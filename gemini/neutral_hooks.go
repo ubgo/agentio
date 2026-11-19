@@ -92,7 +92,11 @@ func (n neutral) PlanHooks(h agentio.Home, want []agentio.HookEntry) (agentio.Ho
 	if err != nil {
 		return agentio.HookPlan{}, err
 	}
-	return agentio.HookPlan{Agent: ID, Home: h, File: path, Add: missing, Present: present, Manual: hookManual(data, entries)}, nil
+	existing, err := hookjson.Existing(data, hookFileOptions(), func(ev string) agentio.HookKind { return HookKindOf(HookEvent(ev)) })
+	if err != nil {
+		return agentio.HookPlan{}, err
+	}
+	return agentio.HookPlan{Agent: ID, Home: h, File: path, Add: missing, Present: present, Existing: existing, Manual: hookManual(data, entries)}, nil
 }
 
 // ApplyHooks appends p.Add to the plan's settings.json after a backup,

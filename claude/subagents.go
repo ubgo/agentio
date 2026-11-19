@@ -34,6 +34,9 @@ type SubagentDef struct {
 	Err error
 }
 
+// subagentFilePrefix starts every subagent run file name (agent-<id>).
+const subagentFilePrefix = "agent-"
+
 // Subagent frontmatter keys (docs).
 const (
 	fmTools                = "tools"
@@ -94,14 +97,20 @@ func (a *Agent) SubagentDefs(h Home, p *Project) ([]SubagentDef, error) {
 	return out, nil
 }
 
-// SubagentRun is one subagents/agent-<id>.meta.json of a session.
+// SubagentRun is one subagent run of a session: a
+// subagents/agent-<id>.meta.json with its transcript, or (older Claude
+// Code, which wrote no meta file) a subagents/agent-<id>.jsonl alone, for
+// which only ID and Transcript are set and HasMeta is false.
 type SubagentRun struct {
 	ID, AgentType, Name, Description, Model, TeamName, TaskKind string
 	IsBuiltIn, NonInteractive, PlanModeRequired                 bool
 	SpawnDepth                                                  int
 	PermissionMode                                              PermissionMode
 	Transcript                                                  string
-	Unknown                                                     agentio.Unknown
+	// HasMeta reports the run's .meta.json was read; false for a
+	// transcript without one.
+	HasMeta bool
+	Unknown agentio.Unknown
 }
 
 type wireSubagentMeta struct {
@@ -118,17 +127,33 @@ type wireSubagentMeta struct {
 	PermissionMode        PermissionMode `json:"permissionMode"`
 }
 
-// SubagentRuns lists the subagent runs of one session started in dir.
-// cost: Disk · Read.
+// SubagentRuns lists the subagent runs of one session started in dir, in
+// name order: every agent-<id>.meta.json (an unreadable one is skipped),
+// and every agent-<id>.jsonl transcript without a meta file (older
+// Claude Code wrote none; HasMeta false). Files in subfolders (workflow
+// journals) are not runs. cost: Disk · Read.
 func (a *Agent) SubagentRuns(h Home, dir, sessionID string) ([]SubagentRun, error) {
 	sub := filepath.Join(a.HistoryDir(h, dir), sessionID, subagentsDir)
 	entries, err := sortedEntries(sub)
 	if err != nil {
 		return nil, err
 	}
+	metas := map[string]bool{}
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), metaSuffix) {
+			metas[strings.TrimSuffix(e.Name(), metaSuffix)] = true
+		}
+	}
 	var out []SubagentRun
 	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), metaSuffix) {
+		if e.IsDir() {
+			continue
+		}
+		if id, ok := strings.CutSuffix(e.Name(), transcriptExt); ok && strings.HasPrefix(id, subagentFilePrefix) && !metas[id] {
+			out = append(out, SubagentRun{ID: id, Transcript: filepath.Join(sub, e.Name())})
+			continue
+		}
+		if !strings.HasSuffix(e.Name(), metaSuffix) {
 			continue
 		}
 		path := filepath.Join(sub, e.Name())
@@ -145,7 +170,7 @@ func (a *Agent) SubagentRuns(h Home, dir, sessionID string) ([]SubagentRun, erro
 		out = append(out, SubagentRun{
 			ID: id, AgentType: w.AgentType, Name: w.Name, Description: w.Description, Model: w.Model, TeamName: w.TeamName,
 			TaskKind: w.TaskKind, IsBuiltIn: w.IsBuiltIn, NonInteractive: w.RequestNonInteractive, PlanModeRequired: w.PlanModeRequired,
-			SpawnDepth: w.SpawnDepth, PermissionMode: w.PermissionMode, Transcript: filepath.Join(sub, id+transcriptExt), Unknown: unknown,
+			SpawnDepth: w.SpawnDepth, PermissionMode: w.PermissionMode, Transcript: filepath.Join(sub, id+transcriptExt), HasMeta: true, Unknown: unknown,
 		})
 	}
 	return out, nil
