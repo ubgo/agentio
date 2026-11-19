@@ -20,9 +20,17 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 - Guides `docs/capabilities/process-sessions.md` and `docs/capabilities/hooks.md`; examples `examples/processsessions` and `examples/hooks`.
 
 - Batch process-session join (modules root, `claude`): `FindProcessSessions(ctx, agents, table)` returns sessions by pid, asking an agent's `ProcessSessionBatchReader` (`ProcessSessionBatchOf`) once for all its rows; `claude.Agent.ProcessSessions` reads every start environment in one call and lists the homes once. `ProcessEnvBatchReader` (`HostFromOS`: one `ps -E` run on macOS, `/proc` on Linux), `Core.ProcessHomes`, `Process.Cwd` (a cwd the caller already looked up; every agent's reader reuses it) and `Host.ProcessCwd`. `agenttest.FakeProcesses` implements `EnvBatch` and counts host calls (`TableReads`, `CwdCalls`, `EnvCalls`, `EnvBatchCalls`).
-- `Host.ProcessesAlive(ctx, []ProcessRef)` re-checks many recorded processes with one table read; `ProcessAlive` uses it (module root).
+- `Host.ProcessesAlive(ctx, []ProcessRef, ...AliveOption)` re-checks many recorded processes with one table read; `ProcessAlive` uses it. `ExactStart()` requires the exact recorded start time instead of the two-second tolerance (module root).
+- `agenttest.FakeProcesses` is safe for concurrent use; `Counts()` returns a `ProcessCalls` snapshot (module root).
 - `Command.ShellLine()` and `StopPlan.ResumeLine()`: the line to print for a person, with the home variable of a non-default home (`CLAUDE_CONFIG_DIR=<home> claude --resume <id>`) and `cd <dir> &&`, never a token or any other env value (module root).
 - `ProcessKind` value `command`: a short subcommand that is never a session (module root).
+- `agentio.BadLine`, `BadLineReporter` and `TurnsAtReporting(r, path, from, fn, bad)`: report the transcript lines a turn reader skipped as undecodable; `claude.TurnsFileReporting`, `codex.Agent.TurnsAtReporting` and both neutral views implement it (modules root, `claude`, `codex`).
+- `agentio.TrimLineEnd` (module root).
+- `HookPlan.Existing` (every command hook the file already holds, with its neutral kind) and `HookPlan.Matching(match)` (what a `RemoveHooks` with the same match would drop), filled by the Claude, Codex and Gemini installers (modules root, `claude`, `codex`, `gemini`).
+- `HomeAt(dir)` on the neutral `agentio.Agent` interface; opencode's neutral view uses its data-dir rule (modules root, `opencode`).
+- `codex.TurnContext.Personality` and `TurnContext.Unknown`; `codex.ErrInvalidLine` (module `codex`).
+- `claude.SubagentRun.HasMeta`; `SubagentRuns` also lists `agent-<id>.jsonl` transcripts without a meta file (module `claude`).
+- Gemini turns carry `Dir` from the chat's `tmp/<slug>/.project_root` (module `gemini`).
 
 ### Changed
 
@@ -30,6 +38,8 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 - `Offset` is documented as an opaque, agent-defined cursor (a byte offset for JSONL transcripts, a message count for opencode); store and pass back the value a read returns.
 - Codex turn readers emit commentary as `Interim` turns without tokens, pair `token_count` with the final answer, and hold back an answer whose usage has not been written yet: the returned cursor stays on its line, so a live reader gets the turn once, with tokens. A session that crashes before writing another line keeps its last answer held back (module `codex`).
 - `claude.Writer.AddHook` and `RemoveHooks` keep every other byte of `settings.json` instead of re-marshalling it (module `claude`).
+- A Codex rollout line that is not valid JSON no longer ends `TurnsAt` with an error: it is skipped, like Claude's reader, and reported through `TurnsAtReporting` (module `codex`).
+- `Turn.Raw` (and `claude.Record.Raw`) is the line without its terminator for every agent: Claude and pi kept the trailing `\n` (or `\r\n`) (modules `claude`, `pi`).
 - No `codex mcp …` row is a session any more: `codex mcp serve` and a bare `codex mcp` classify as `mcp-server`, `codex mcp list|add|remove|…` as `command`, and stop plans refuse them (module `codex`). Every `claude mcp …` row other than `mcp serve` is `command`, not a CLI session (module `claude`).
 - `npm install @openai/codex` and `npm install @anthropic-ai/claude-code` are no longer classified as agent processes; the pi basename matches only a process titled `pi` or run by node (modules `codex`, `claude`, `pi`).
 

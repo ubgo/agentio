@@ -50,7 +50,15 @@ const rolloutIDLen = 36
 // resumeContextBytes before the cursor. ConversationID comes from
 // session_meta. Disk · Read (streaming, bounded head and window reads).
 func (a *Agent) TurnsAt(path string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {
-	return turnsFromPath(path, "", from, fn)
+	return turnsFromPath(path, "", from, fn, nil)
+}
+
+// TurnsAtReporting is TurnsAt that also reports each skipped line to bad
+// (nil = silent): a line that is not valid JSON (ErrInvalidLine) never
+// stops the read, as in Claude's reader; the turns after it are read.
+// Disk · Read.
+func (a *Agent) TurnsAtReporting(path string, from agentio.Offset, fn func(agentio.Turn) error, bad func(agentio.BadLine)) (agentio.Offset, error) {
+	return turnsFromPath(path, "", from, fn, bad)
 }
 
 // turnState is what earlier records say about the turns that follow.
@@ -119,8 +127,9 @@ func readRange(path string, start, end int64) ([]byte, error) {
 }
 
 // turnsFromPath is TurnsAt with a known conversation id ("" = take it from
-// session_meta).
-func turnsFromPath(path, id string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {
+// session_meta). A line that is not valid JSON is skipped and reported to
+// bad (when set); a read error or an over-long line still stops the read.
+func turnsFromPath(path, id string, from agentio.Offset, fn func(agentio.Turn) error, bad func(agentio.BadLine)) (agentio.Offset, error) {
 	tr := &turnRead{st: turnState{id: id}, fn: fn}
 	if from > 0 {
 		seedState(path, from, &tr.st)
@@ -136,6 +145,12 @@ func turnsFromPath(path, id string, from agentio.Offset, fn func(agentio.Turn) e
 		rec, err := r.Next()
 		if errors.Is(err, io.EOF) {
 			return tr.cursor(r.Offset()), nil
+		}
+		if errors.Is(err, ErrInvalidLine) {
+			if bad != nil {
+				bad(agentio.BadLine{Path: path, Offset: at, Err: err})
+			}
+			continue
 		}
 		if err != nil {
 			return tr.cursor(r.Offset()), err

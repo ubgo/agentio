@@ -382,5 +382,5 @@ func (a *Agent) Turns(h Home, id string, from agentio.Offset, fn func(agentio.Tu
 	if err != nil {
 		return from, err
 	}
-	return turnsFromPath(c.Path, id, from, fn)
+	return turnsFromPath(c.Path, id, from, fn, nil)
 }

@@ -160,7 +160,7 @@ func showAncestors(w io.Writer, table []agentio.Process) {
 
 ## Step 5 — Re-check right before signalling
 
-A table read is a snapshot: by the time a user confirms, a pid can have ended and been reused by an unrelated program. Right before signalling each target, call `Host.ProcessAlive(ctx, pid, start, "", "")` with the start time from the read the plan came from, and act only on `LivenessAlive`. `LivenessEnded` means the process is gone or the pid was reused; `LivenessUnknown` is a reason to skip, never to force. Re-check again before forcing the targets still running after `Grace`. `Host.ProcessesAlive(ctx, refs)` re-checks every target with one table read: each `ProcessRef{PID, Start}` gets `LivenessAlive`, `LivenessEnded`, or `LivenessUnknown` when either side has no start time.
+A table read is a snapshot: by the time a user confirms, a pid can have ended and been reused by an unrelated program. Right before signalling each target, call `Host.ProcessAlive(ctx, pid, start, "", "")` with the start time from the read the plan came from, and act only on `LivenessAlive`. `LivenessEnded` means the process is gone or the pid was reused; `LivenessUnknown` is a reason to skip, never to force. Re-check again before forcing the targets still running after `Grace`. `Host.ProcessesAlive(ctx, refs)` re-checks every target with one table read: each `ProcessRef{PID, Start}` gets `LivenessAlive`, `LivenessEnded`, or `LivenessUnknown` when either side has no start time. Start times match within two seconds by default (macOS reports whole seconds); pass `agentio.ExactStart()` when `Start` came from the same reader moments before, so any difference counts as another process.
 
 <!-- snippet: examples/processsessions/main.go#safety -->
 ```go

@@ -35,7 +35,7 @@ func showSubagentDefs(p printer, a *claude.Agent, proj claude.Project) error {
 
 ## Step 2 — List subagent runs
 
-`a.SubagentRuns(h, dir, sessionID)` lists the subagents one session (started in `dir`) launched. A `SubagentRun` has `ID`, `AgentType`, `Name`, `Description`, `Model`, `IsBuiltIn`, `SpawnDepth`, `PermissionMode`, `Transcript` and `Unknown`.
+`a.SubagentRuns(h, dir, sessionID)` lists the subagents one session (started in `dir`) launched. A `SubagentRun` has `ID`, `AgentType`, `Name`, `Description`, `Model`, `IsBuiltIn`, `SpawnDepth`, `PermissionMode`, `Transcript`, `HasMeta` and `Unknown`. A transcript `agent-<id>.jsonl` without a `.meta.json` (older Claude Code wrote none) is listed too, with only `ID` and `Transcript` set and `HasMeta` false.
 
 <!-- snippet: examples/claudeextensions/main.go#subagentruns -->
 ```go
