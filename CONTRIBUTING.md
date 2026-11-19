@@ -96,7 +96,7 @@ These are easy to break and the reviews check them. Most are also enforced by `i
 
 ## Releases and versioning
 
-Each module is tagged on its own (`v0.1.0`, `claude/v0.1.0`, `codex/v0.1.0`, `codex/state/v0.1.0`, `gemini/v0.1.0`, `pi/v0.1.0`, `builtin/v0.1.0`); `examples` is never tagged. Bumps are PATCH by default; a published tag is never moved (use `retract` instead). A cross-module change tags the root first, then the modules that require it. User-facing changes go under `[Unreleased]` in [CHANGELOG.md](CHANGELOG.md), following [Keep a Changelog](https://keepachangelog.com/).
+Each module is tagged on its own (`v0.1.1`, `claude/v0.1.1`, `codex/v0.1.1`, `codex/state/v0.1.1`, `gemini/v0.1.1`, `pi/v0.1.1`, `opencode/v0.1.0`, `opencode/store/v0.1.0`, `builtin/v0.1.1`); `examples` is never tagged. Bumps are PATCH by default; a published tag is never moved (use `retract` instead). A cross-module change tags the root first, then the modules that require it. User-facing changes go under `[Unreleased]` in [CHANGELOG.md](CHANGELOG.md), following [Keep a Changelog](https://keepachangelog.com/).
 
 ## Questions
 

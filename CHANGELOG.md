@@ -1,8 +1,12 @@
 # Changelog
 
-All notable changes to agentio are recorded in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each Go module is tagged on its own (`v0.1.0`, `claude/v0.1.0`, `codex/v0.1.0`, `codex/state/v0.1.0`, `gemini/v0.1.0`, `pi/v0.1.0`, `builtin/v0.1.0`); an entry names the module it affects when it is not the whole library.
+All notable changes to agentio are recorded in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each Go module is tagged on its own (`v0.1.1`, `claude/v0.1.1`, `codex/v0.1.1`, `codex/state/v0.1.1`, `gemini/v0.1.1`, `pi/v0.1.1`, `opencode/v0.1.0`, `opencode/store/v0.1.0`, `builtin/v0.1.1`); an entry names the module it affects when it is not the whole library.
 
 ## [Unreleased]
+
+## [0.1.1] - 2026-11-19
+
+Patch release of every module: `github.com/ubgo/agentio` (`v0.1.1`), `claude/v0.1.1`, `codex/v0.1.1`, `codex/state/v0.1.1`, `gemini/v0.1.1`, `pi/v0.1.1` and `builtin/v0.1.1`, plus the first release of `opencode/v0.1.0` and `opencode/store/v0.1.0`.
 
 ### Added
 
@@ -18,7 +22,6 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 - Module `opencode/store` (pure-Go SQLite): reads `opencode.db` read-only: sessions with token and cost totals, conversations, messages and turns in a stable order.
 - `agenttest`: golden turn helpers (`GoldenTurn`, `Golden`, `CheckTurns` with `-update`, `ReadTurns`, `GrowingTurns`) and `HookMerge`, which checks every merge guarantee against a hook installer.
 - Guides `docs/capabilities/process-sessions.md` and `docs/capabilities/hooks.md`; examples `examples/processsessions` and `examples/hooks`.
-
 - Batch process-session join (modules root, `claude`): `FindProcessSessions(ctx, agents, table)` returns sessions by pid, asking an agent's `ProcessSessionBatchReader` (`ProcessSessionBatchOf`) once for all its rows; `claude.Agent.ProcessSessions` reads every start environment in one call and lists the homes once. `ProcessEnvBatchReader` (`HostFromOS`: one `ps -E` run on macOS, `/proc` on Linux), `Core.ProcessHomes`, `Process.Cwd` (a cwd the caller already looked up; every agent's reader reuses it) and `Host.ProcessCwd`. `agenttest.FakeProcesses` implements `EnvBatch` and counts host calls (`TableReads`, `CwdCalls`, `EnvCalls`, `EnvBatchCalls`).
 - `Host.ProcessesAlive(ctx, []ProcessRef, ...AliveOption)` re-checks many recorded processes with one table read; `ProcessAlive` uses it. `ExactStart()` requires the exact recorded start time instead of the two-second tolerance (module root).
 - `agenttest.FakeProcesses` is safe for concurrent use; `Counts()` returns a `ProcessCalls` snapshot (module root).
@@ -129,5 +132,6 @@ First release of every module: `github.com/ubgo/agentio` (`v0.1.0`), `claude/v0.
 - A docs checker (`internal/docscheck`, run by `task docs:check`) that fails on broken links and anchors, hard-wrapped Markdown, local paths, attribution lines, and snippets that differ from the example source they are copied from; `task docs:snippets` rewrites snippet blocks from source.
 - Repository files: README, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, LICENSE, issue and pull request templates, and `llms.txt`.
 
-[Unreleased]: https://github.com/ubgo/agentio/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/ubgo/agentio/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/ubgo/agentio/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ubgo/agentio/releases/tag/v0.1.0
