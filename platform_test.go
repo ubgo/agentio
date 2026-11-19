@@ -148,7 +148,7 @@ func TestShimTarget(t *testing.T) {
 // CommandLineToArgvW.
 func TestParseWin32Processes(t *testing.T) {
 	t.Parallel()
-	ps51 := []byte("\xEF\xBB\xBF" + `[{"ProcessId":4242,"ParentProcessId":1,"CreationDate":"\/Date(1794639376159)\/","ExecutablePath":"C:\\Users\\u\\AppData\\Roaming\\npm\\node.exe","CommandLine":"\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\u\\AppData\\Roaming\\npm\\node_modules\\@openai\\codex\\bin\\codex.js exec \"a b\""},{"ProcessId":4,"ParentProcessId":0,"CreationDate":null,"ExecutablePath":null,"CommandLine":null}]`)
+	ps51 := []byte("\xEF\xBB\xBF" + `[{"ProcessId":4242,"ParentProcessId":1,"CreationDate":"\/Date(1794639376159)\/","ExecutablePath":"C:\\Users\\u\\AppData\\Roaming\\npm\\node.exe","CommandLine":"\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\u\\AppData\\Roaming\\npm\\node_modules\\@openai\\codex\\bin\\codex.js exec \"a b\"","WorkingSetSize":52428800,"UserModeTime":312500,"KernelModeTime":156250},{"ProcessId":4,"ParentProcessId":0,"CreationDate":null,"ExecutablePath":null,"CommandLine":null,"WorkingSetSize":null,"UserModeTime":null,"KernelModeTime":null}]`)
 	procs, err := parseWin32Processes(ps51)
 	if err != nil || len(procs) != 2 {
 		t.Fatalf("%v %v", procs, err)
@@ -157,10 +157,22 @@ func TestParseWin32Processes(t *testing.T) {
 	if p.PID != 4242 || p.PPID != 1 || !p.Start.Equal(time.UnixMilli(1794639376159)) || len(p.Argv) != 4 || p.Argv[0] != `C:\Program Files\nodejs\node.exe` || p.Argv[3] != "a b" {
 		t.Errorf("row = %+v", p)
 	}
-	ps7 := []byte(`{"ProcessId":7,"ParentProcessId":2,"CreationDate":"2026-11-14T07:31:00.5+00:00","ExecutablePath":"","CommandLine":"claude.exe --resume x"}`)
+	if p.RSS != 52428800 || p.CPUTime != 46875*time.Microsecond {
+		t.Errorf("ps51 resources = RSS %d CPU %v", p.RSS, p.CPUTime)
+	}
+	if p.CommandLine != `"C:\Program Files\nodejs\node.exe" C:\Users\u\AppData\Roaming\npm\node_modules\@openai\codex\bin\codex.js exec "a b"` {
+		t.Errorf("raw command line = %q", p.CommandLine)
+	}
+	if procs[1].RSS != 0 || procs[1].CPUTime != 0 || procs[1].CommandLine != "" {
+		t.Errorf("null resource columns = %+v", procs[1])
+	}
+	ps7 := []byte(`{"ProcessId":7,"ParentProcessId":2,"CreationDate":"2026-11-14T07:31:00.5+00:00","ExecutablePath":"","CommandLine":"claude.exe  --resume x","WorkingSetSize":104857600,"UserModeTime":15000000,"KernelModeTime":5000000}`)
 	one, err := parseWin32Processes(ps7)
 	if err != nil || len(one) != 1 || one[0].Exe != "claude.exe" || one[0].Start.IsZero() {
 		t.Fatalf("ps7 = %+v %v", one, err)
+	}
+	if q := one[0]; q.RSS != 104857600 || q.CPUTime != 2*time.Second || q.TTY != "" || q.CommandLine != "claude.exe  --resume x" {
+		t.Errorf("ps7 resources = RSS %d CPU %v TTY %q line %q", q.RSS, q.CPUTime, q.TTY, q.CommandLine)
 	}
 	for in, want := range map[string][]string{
 		`a "b c" d`:         {"a", "b c", "d"},
@@ -177,7 +189,10 @@ func TestParseWin32Processes(t *testing.T) {
 }
 
 // TestLinuxProcessesFromProcTree reads a fixture /proc tree the way the
-// real reader does (no `ps`, so it works on Alpine and minimal images).
+// real reader does (no `ps`, so it works on Alpine and minimal images):
+// start time, CPU time and RSS from stat (comm with spaces and a ")"),
+// the raw command line, and the tty from the fd/0 link (a terminal, a
+// non-terminal and an unreadable link).
 func TestLinuxProcessesFromProcTree(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
@@ -190,27 +205,94 @@ func TestLinuxProcessesFromProcTree(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	link := func(target, rel string) bool {
+		p := filepath.Join(root, rel)
+		if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		return os.Symlink(target, p) == nil
+	}
+	// Fields after comm: state ppid pgrp session tty_nr tpgid flags minflt
+	// cminflt majflt cmajflt utime(14) stime(15) cutime cstime priority
+	// nice threads itrealvalue starttime(22) vsize rss(24).
 	write("stat", "cpu 1 2 3\nbtime 1794600000\n")
-	write("4242/stat", "4242 (claude) S 77 4242 4242 0 -1 0 0 0 0 0 0 0 0 0 20 0 1 0 1000 0 0\n")
-	write("4242/cmdline", "claude\x00--resume\x00x\x00")
+	write("4242/stat", "4242 (claude) S 77 4242 4242 0 -1 0 0 0 0 0 250 50 0 0 20 0 1 0 1000 123456 300\n")
+	write("4242/cmdline", "node\x00/opt/my tools/bin/claude\x00--resume\x00x\x00")
+	write("4343/stat", "4343 (odd) name) S 1 4343 4343 0 -1 0 0 0 0 0 1 2 0 0 20 0 1 0 2000 0 7\n")
+	write("4343/cmdline", "pi\x00")
 	write("self/stat", "not a pid dir")
-	procs, err := linuxProcessesAt(root)
-	if err != nil || len(procs) != 1 {
+	symlinks := link("/dev/pts/3", "4242/fd/0") && link("/dev/null", "4343/fd/0")
+	procs, err := linuxProcessesAt(root, 4096)
+	if err != nil || len(procs) != 2 {
 		t.Fatalf("%+v %v", procs, err)
 	}
+	slices.SortFunc(procs, func(a, b Process) int { return a.PID - b.PID })
 	p := procs[0]
-	if p.PID != 4242 || p.PPID != 77 || !slices.Equal(p.Argv, []string{"claude", "--resume", "x"}) || !p.Start.Equal(time.Unix(1794600000+10, 0)) {
+	if p.PID != 4242 || p.PPID != 77 || !slices.Equal(p.Argv, []string{"node", "/opt/my tools/bin/claude", "--resume", "x"}) || !p.Start.Equal(time.Unix(1794600000+10, 0)) {
 		t.Errorf("proc = %+v", p)
+	}
+	if p.CommandLine != "node /opt/my tools/bin/claude --resume x" || p.CPUTime != 3*time.Second || p.RSS != 300*4096 {
+		t.Errorf("resources = line %q CPU %v RSS %d", p.CommandLine, p.CPUTime, p.RSS)
+	}
+	q := procs[1]
+	if q.PPID != 1 || q.CPUTime != 30*time.Millisecond || q.RSS != 7*4096 || q.TTY != "" || q.CommandLine != "pi" {
+		t.Errorf("comm with \")\" = %+v", q)
+	}
+	if symlinks && p.TTY != "pts/3" {
+		t.Errorf("tty = %q, want pts/3", p.TTY)
+	}
+	if !symlinks && p.TTY != "" {
+		t.Errorf("unreadable fd/0: tty = %q, want empty", p.TTY)
 	}
 }
 
-// TestParseDarwinPS keeps the macOS reader's shape.
+// TestParseDarwinPS keeps the macOS reader's shape: one row per line with
+// rss (KiB), tty ("??" = none), cumulative CPU time and the raw command
+// line, whose runs of spaces survive (a path like "Application Support"
+// is not cut in two there).
 func TestParseDarwinPS(t *testing.T) {
 	t.Parallel()
-	out := []byte("  4242     1 Fri Nov 13 19:38:43 2026 /Users/u/.local/bin/claude --resume x\n bad line\n")
+	out := []byte("" +
+		"  4242     1 Fri Nov 13 19:38:43 2026  1276560 ttys000   72:06.69 /Users/alice/.local/bin/claude --resume x\n" +
+		"  837   640 Wed Nov 18 10:30:41 2026     499312 ??         2:22.87 /Users/alice/Library/Application Support/Claude/helper  --type=renderer\n" +
+		" bad line\n" +
+		"  9  1 Fri Nov 13 19:38:43 2026 notanumber ?? junk /bin/x\n")
 	procs := parseDarwinPS(out, time.UTC)
-	if len(procs) != 1 || procs[0].PID != 4242 || procs[0].Argv[1] != "--resume" || procs[0].Start.Day() != 13 {
+	if len(procs) != 3 || procs[0].PID != 4242 || procs[0].Argv[1] != "--resume" || procs[0].Start.Day() != 13 {
 		t.Fatalf("%+v", procs)
+	}
+	p := procs[0]
+	if p.RSS != 1276560*1024 || p.TTY != "ttys000" || p.CPUTime != 72*time.Minute+6690*time.Millisecond || p.CommandLine != "/Users/alice/.local/bin/claude --resume x" {
+		t.Errorf("row = RSS %d TTY %q CPU %v line %q", p.RSS, p.TTY, p.CPUTime, p.CommandLine)
+	}
+	h := procs[1]
+	if h.TTY != "" || h.CommandLine != "/Users/alice/Library/Application Support/Claude/helper  --type=renderer" || h.Argv[0] != "/Users/alice/Library/Application" {
+		t.Errorf("helper = TTY %q line %q argv %q", h.TTY, h.CommandLine, h.Argv)
+	}
+	if bad := procs[2]; bad.RSS != 0 || bad.CPUTime != 0 || bad.CommandLine != "/bin/x" {
+		t.Errorf("unparsable columns = %+v", bad)
+	}
+}
+
+// TestParsePSTime covers every cumulative CPU time shape ps prints.
+func TestParsePSTime(t *testing.T) {
+	t.Parallel()
+	for in, want := range map[string]time.Duration{
+		"0:01.23":    1230 * time.Millisecond,
+		"12:34.56":   12*time.Minute + 34560*time.Millisecond,
+		"462:03.95":  462*time.Minute + 3950*time.Millisecond,
+		"1:02:03":    time.Hour + 2*time.Minute + 3*time.Second,
+		"1-02:03:04": 26*time.Hour + 3*time.Minute + 4*time.Second,
+		"00:00:00":   0,
+	} {
+		if got, ok := parsePSTime(in); !ok || got != want {
+			t.Errorf("parsePSTime(%q) = %v %v, want %v", in, got, ok, want)
+		}
+	}
+	for _, in := range []string{"", "junk", "1", "a:b", "1:2:3:4", "x-1:00", "1:-5"} {
+		if _, ok := parsePSTime(in); ok {
+			t.Errorf("parsePSTime(%q) accepted", in)
+		}
 	}
 }
 

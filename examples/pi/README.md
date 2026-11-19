@@ -41,7 +41,7 @@ settings        ok    ~/.pi/agent/settings.json
 login           ok    env OPENAI_API_KEY
 cache-warming   info  cacheWarming is idle (the default): pi keeps the prompt cache warm for up to 30 minutes after a run and spends tokens doing so
 == capabilities ==
-supported: [installer binary-version identity token-login conversations history-checker process-classifier turns instruction-files mcp-servers skills config doctor]
+supported: [installer binary-version identity token-login conversations history-checker process-classifier turns instruction-files mcp-servers skills config doctor process-sessions stop-planner turn-files]
 lacks usage: pi has no plan or quota; it records per-message token cost in session files (pi.Agent.SessionUsage)
 lacks cached-usage: pi has no plan or quota; it records per-message token cost in session files (pi.Agent.SessionUsage)
 lacks subscription: pi has no plan or quota; it records per-message token cost in session files (pi.Agent.SessionUsage)

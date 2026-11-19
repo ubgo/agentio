@@ -71,6 +71,29 @@ type Process struct {
 	// Argv is the command line. On darwin it is split on spaces from `ps`
 	// output, so an argument containing a space is split too.
 	Argv []string
+	// CommandLine is the command line as one string, unsplit: the `ps`
+	// command column on darwin, the NUL-separated cmdline joined with
+	// spaces on linux, Win32_Process CommandLine on windows. Exclusions
+	// and substring matches test it, because darwin's space-split Argv
+	// cuts a path like "Application Support/Claude" in two. "" = unknown.
+	CommandLine string
+	// RSS is the resident set size in bytes; 0 = unknown.
+	RSS uint64
+	// TTY is the controlling terminal without "/dev/" ("ttys004",
+	// "pts/3"); "" = none or unknown (always "" on windows).
+	TTY string
+	// CPUTime is the user plus system CPU time used so far; 0 = unknown.
+	// A CPU percentage needs two samples, which is the caller's job.
+	CPUTime time.Duration
+}
+
+// CommandString is CommandLine, or Argv joined with spaces when the
+// table gave no raw line. Pure.
+func (p Process) CommandString() string {
+	if p.CommandLine != "" {
+		return p.CommandLine
+	}
+	return strings.Join(p.Argv, " ")
 }
 
 // ProcessLister reads the process table.

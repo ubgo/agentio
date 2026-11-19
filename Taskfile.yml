@@ -3,7 +3,7 @@ version: '3'
 # Every module of the repository (SPEC §3). go.work ties them together for
 # local development; it is never committed.
 vars:
-  MODULES: . claude codex codex/state gemini pi builtin examples
+  MODULES: . claude codex codex/state gemini pi opencode opencode/store builtin examples
   PLATFORMS: linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64
 
 tasks:

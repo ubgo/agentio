@@ -31,7 +31,7 @@ agentio knows two kinds of agent. A **built-in** agent (Claude Code, Codex) is a
 
 ## Pitfalls
 
-- **IDs must be unique.** `builtin.New` refuses a Spec with a built-in ID (`claude`, `codex`, `gemini`, `pi`), or a repeated custom ID, with [`ErrInvalidSpec`](ds:block?id=builtin-new-55hg377w); a Spec never overrides a built-in. [`FromSpec` alone does not check against built-ins](ds:block?id=fromspec-4tcd24bd).
+- **IDs must be unique.** `builtin.New` refuses a Spec with a built-in ID (`claude`, `codex`, `gemini`, `pi`, `opencode`), or a repeated custom ID, with [`ErrInvalidSpec`](ds:block?id=builtin-new-55hg377w); a Spec never overrides a built-in. [`FromSpec` alone does not check against built-ins](ds:block?id=fromspec-4tcd24bd).
 - **Empty `HomeMarkers` means [any folder is a home](ds:block?id=core-ishome-nxgj8ve9).** With an `ExtraHomes` glob that can list unrelated folders; name at least one file only a real home has.
 - **Use the accessors, never type assertions.** The config-defined agent's Go type implements every data-driven interface; [only the accessors check whether the Spec data turns the capability on](ds:block?id=capabilityof-t96bhbpq).
 - **Process matching order.** [`agentio.ClassifyProcess`](ds:block?id=classifyprocess-cddjj5sy) returns the first agent that claims a process and built-ins come first, so a broad custom match cannot take Claude Code or Codex processes, but two broad custom matches shadow each other in config order.

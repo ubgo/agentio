@@ -22,13 +22,15 @@ const modulePrefix = "github.com/ubgo/agentio"
 
 // Vendor module import paths (SPEC §3).
 const (
-	modClaude  = modulePrefix + "/claude"
-	modCodex   = modulePrefix + "/codex"
-	modState   = modulePrefix + "/codex/state"
-	modPi      = modulePrefix + "/pi"
-	modGemini  = modulePrefix + "/gemini"
-	modBuiltin = modulePrefix + "/builtin"
-	modExample = modulePrefix + "/examples"
+	modClaude   = modulePrefix + "/claude"
+	modCodex    = modulePrefix + "/codex"
+	modState    = modulePrefix + "/codex/state"
+	modPi       = modulePrefix + "/pi"
+	modGemini   = modulePrefix + "/gemini"
+	modOpencode = modulePrefix + "/opencode"
+	modOCStore  = modulePrefix + "/opencode/store"
+	modBuiltin  = modulePrefix + "/builtin"
+	modExample  = modulePrefix + "/examples"
 )
 
 // hostFileGlob names the root files allowed to touch the real machine
@@ -173,7 +175,7 @@ func isStdlib(path string) bool {
 
 // vendorOf reports which vendor module an import path belongs to ("" = none).
 func vendorOf(path string) string {
-	for _, m := range []string{modState, modClaude, modCodex, modPi, modGemini, modBuiltin, modExample} {
+	for _, m := range []string{modState, modOCStore, modClaude, modCodex, modPi, modGemini, modOpencode, modBuiltin, modExample} {
 		if path == m || strings.HasPrefix(path, m+"/") {
 			return m
 		}
@@ -206,15 +208,17 @@ func TestRootImportsStdlibOnly(t *testing.T) {
 
 // Rules 2 and 3: vendor modules never import each other; only builtin (and
 // the examples module that consumes it) imports more than one vendor;
-// builtin never imports codex/state.
+// builtin never imports codex/state or opencode/store.
 func TestVendorIsolation(t *testing.T) {
 	forbidden := map[string][]string{
-		modClaude:  {modCodex, modState, modPi, modGemini, modBuiltin},
-		modCodex:   {modClaude, modState, modPi, modGemini, modBuiltin},
-		modState:   {modClaude, modPi, modGemini, modBuiltin},
-		modPi:      {modClaude, modCodex, modState, modGemini, modBuiltin},
-		modGemini:  {modClaude, modCodex, modState, modPi, modBuiltin},
-		modBuiltin: {modState},
+		modClaude:   {modCodex, modState, modPi, modGemini, modOpencode, modOCStore, modBuiltin},
+		modCodex:    {modClaude, modState, modPi, modGemini, modOpencode, modOCStore, modBuiltin},
+		modState:    {modClaude, modPi, modGemini, modOpencode, modOCStore, modBuiltin},
+		modPi:       {modClaude, modCodex, modState, modGemini, modOpencode, modOCStore, modBuiltin},
+		modGemini:   {modClaude, modCodex, modState, modPi, modOpencode, modOCStore, modBuiltin},
+		modOpencode: {modClaude, modCodex, modState, modPi, modGemini, modOCStore, modBuiltin},
+		modOCStore:  {modClaude, modCodex, modState, modPi, modGemini, modBuiltin},
+		modBuiltin:  {modState, modOCStore},
 	}
 	for _, f := range loadFiles(t) {
 		for _, im := range imports(f) {
@@ -232,14 +236,16 @@ func TestVendorIsolation(t *testing.T) {
 // (direct requirements; indirect ones are what those pull).
 func TestGoModRequires(t *testing.T) {
 	allowed := map[string][]string{
-		".":           {},
-		"claude":      {},
-		"codex":       {"github.com/pelletier/go-toml/v2"},
-		"codex/state": {"modernc.org/sqlite"},
-		"pi":          {},
-		"gemini":      {},
-		"builtin":     {},
-		"examples":    {},
+		".":              {},
+		"claude":         {},
+		"codex":          {"github.com/pelletier/go-toml/v2"},
+		"codex/state":    {"modernc.org/sqlite"},
+		"pi":             {},
+		"gemini":         {},
+		"opencode":       {},
+		"opencode/store": {"modernc.org/sqlite"},
+		"builtin":        {},
+		"examples":       {},
 	}
 	root := repoRoot(t)
 	for dir, want := range allowed {

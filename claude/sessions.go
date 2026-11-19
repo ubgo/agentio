@@ -35,13 +35,15 @@ func (s SessionStatus) IsKnown() bool {
 }
 
 // Neutral maps onto the shared status. shell counts as Busy: the session is
-// running a command and is not waiting for input. waiting counts as Idle:
-// the shared Idle means "waiting for input", and a waiting session waits
-// on the user (a dialog or prompt), not on the model. cost: Pure.
+// running a command and is not waiting for input. waiting is
+// SessionWaiting: the session is blocked on the user (a dialog or
+// permission prompt), not idle at its prompt and not working. cost: Pure.
 func (s SessionStatus) Neutral() agentio.SessionStatus {
 	switch s {
-	case StatusIdle, StatusWaiting:
+	case StatusIdle:
 		return agentio.SessionIdle
+	case StatusWaiting:
+		return agentio.SessionWaiting
 	case StatusBusy, StatusShell:
 		return agentio.SessionBusy
 	}

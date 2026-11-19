@@ -1,0 +1,91 @@
+[
+  {
+    "id": "g-user-1",
+    "role": "user",
+    "time": "2026-11-12T08:00:01Z",
+    "conversation_id": "cccccccc-0000-4000-8000-000000000001",
+    "text": "fake gemini prompt"
+  },
+  {
+    "id": "g-model-1",
+    "role": "assistant",
+    "time": "2026-11-12T08:00:03Z",
+    "conversation_id": "cccccccc-0000-4000-8000-000000000001",
+    "model": "gemini-fake-pro",
+    "text": "fake reading the file"
+  },
+  {
+    "id": "g-model-1",
+    "role": "assistant",
+    "time": "2026-11-12T08:00:03Z",
+    "conversation_id": "cccccccc-0000-4000-8000-000000000001",
+    "model": "gemini-fake-pro",
+    "text": "fake reading the file",
+    "tokens": {
+      "Input": 1210,
+      "CachedInput": 200,
+      "CacheWrite": 0,
+      "Output": 30,
+      "Reasoning": 40
+    }
+  },
+  {
+    "id": "g-model-2",
+    "role": "assistant",
+    "time": "2026-11-12T08:00:06Z",
+    "conversation_id": "cccccccc-0000-4000-8000-000000000001",
+    "model": "gemini-fake-pro",
+    "text": "fake gemini answer",
+    "tokens": {
+      "Input": 1500,
+      "CachedInput": 1000,
+      "CacheWrite": 0,
+      "Output": 12,
+      "Reasoning": 0
+    }
+  },
+  {
+    "id": "g-user-2",
+    "role": "user",
+    "time": "2026-11-12T08:01:00Z",
+    "conversation_id": "cccccccc-0000-4000-8000-000000000001",
+    "text": "fake prompt that gets rewound"
+  },
+  {
+    "id": "g-model-3",
+    "role": "assistant",
+    "time": "2026-11-12T08:01:02Z",
+    "conversation_id": "cccccccc-0000-4000-8000-000000000001",
+    "model": "gemini-fake-flash",
+    "text": "fake answer that gets rewound",
+    "tokens": {
+      "Input": 1600,
+      "CachedInput": 1400,
+      "CacheWrite": 0,
+      "Output": 9,
+      "Reasoning": 0
+    }
+  },
+  {
+    "id": "g-user-3",
+    "role": "user",
+    "time": "2026-11-12T08:02:00Z",
+    "conversation_id": "cccccccc-0000-4000-8000-000000000001",
+    "text": "fake prompt after the rewind"
+  },
+  {
+    "id": "g-model-4",
+    "role": "assistant",
+    "time": "2026-11-12T08:02:02Z",
+    "conversation_id": "cccccccc-0000-4000-8000-000000000001",
+    "model": "gemini-fake-flash",
+    "text": "fake answer after the rewind",
+    "tokens": {
+      "Input": 1700,
+      "CachedInput": 1500,
+      "CacheWrite": 0,
+      "Output": 11,
+      "Reasoning": 3
+    }
+  }
+]

@@ -1,14 +1,18 @@
 # agentio
 
-> Typed Go library for coding-agent CLIs (Claude Code, OpenAI Codex, and agents described by data): install and version, homes, settings, MCP servers, instruction files, skills, plugins, account identity, plan usage, conversations, live sessions, and building the command that launches or resumes an agent. Read-only by default; never refreshes or prints login tokens.
+> Typed Go library for coding-agent CLIs (Claude Code, OpenAI Codex, Gemini CLI, pi, opencode, and agents described by data): install and version, homes, settings, MCP servers, instruction files, skills, plugins, account identity, plan usage, conversations and turns, live sessions, which conversation a running process serves, stop plans, command hooks, and building the command that launches or resumes an agent. Read-only by default; never refreshes or prints login tokens.
 
-agentio is a set of Go modules under github.com/ubgo/agentio: the stdlib-only core (`agentio`), one module per vendor (`claude`, `codex`, `codex/state` for Codex SQLite stores) and `builtin` (every built-in agent in one typed set). Everything runs locally against files on disk; network and quota calls are separate, explicit methods.
+agentio is a set of Go modules under github.com/ubgo/agentio: the stdlib-only core (`agentio`), one module per vendor (`claude`, `codex`, `gemini`, `pi`, `opencode`), SQLite readers in their own modules (`codex/state`, `opencode/store`) and `builtin` (every built-in agent in one typed set). Everything runs locally against files on disk; network and quota calls are separate, explicit methods.
 
 ## Docs
 - [README](README.md): overview, install per module, quick start, FAQ
 - [Learning path](docs/README.md#learning-path): the docs in reading order
 - [Choosing guides](docs/choosing/README.md): which module, level and door to use
 - [Feature index](docs/reference/features.md): every capability and method with its cost
+- [Conversations and turns](docs/capabilities/conversations.md): list conversations, read turns from an id or a transcript path (`TurnFilesOf`, `TurnsAt`, `TranscriptOwner`), stable `Turn.ID`, Codex commentary as `Interim`, the opaque `Offset` cursor
+- [Process sessions and stop plans](docs/capabilities/process-sessions.md): process table fields, join a process to its conversation with a confidence (`ProcessSessionsOf`), data-only stop plans (`StopPlannerOf`), the kill-safety re-check
+- [Hooks: install and decode](docs/capabilities/hooks.md): one command hook into Claude Code, Codex and Gemini CLI (`HooksOf`), merge guarantees, payload decoding
+- [opencode](docs/opencode/README.md): the opencode agent, legacy sessions, opencode.db via opencode/store, cursor, launch, processes
 - [CHANGELOG](CHANGELOG.md): release history
 - [CONTRIBUTING](CONTRIBUTING.md): multi-module setup, checks, rules for changes
 - [SECURITY](SECURITY.md): disclosure policy and secret-handling guarantees
@@ -16,12 +20,19 @@ agentio is a set of Go modules under github.com/ubgo/agentio: the stdlib-only co
 ## Install
 - `go get github.com/ubgo/agentio/claude` (Claude Code)
 - `go get github.com/ubgo/agentio/codex` (Codex)
+- `go get github.com/ubgo/agentio/gemini` (Gemini CLI)
+- `go get github.com/ubgo/agentio/pi` (pi)
+- `go get github.com/ubgo/agentio/opencode` (opencode)
 - `go get github.com/ubgo/agentio/builtin` (every built-in agent)
 - `go get github.com/ubgo/agentio/codex/state` (Codex SQLite stores; pulls a pure-Go SQLite driver)
+- `go get github.com/ubgo/agentio/opencode/store` (opencode.db; pulls a pure-Go SQLite driver)
 
 ## Examples
 - [examples/agentinfo](examples/agentinfo): report of every agent and home on a machine
 - [examples/drift](examples/drift): what the library does not know yet about installed vendor versions
+- [examples/processsessions](examples/processsessions): process table, process sessions and stop plans on a fixture host
+- [examples/hooks](examples/hooks): install, re-install and remove a hook in fixture homes
+- [examples/opencode](examples/opencode): walk a fixture opencode data dir and a built opencode.db
 
 ## Links
 - Repository: https://github.com/ubgo/agentio

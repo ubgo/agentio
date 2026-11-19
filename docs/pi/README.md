@@ -105,6 +105,8 @@ func sessions(p printer, a *pi.Agent) error {
 }
 ```
 
+`TurnsAt(path, from, fn)` reads a session file the caller already holds (`Session.Path`, the neutral `TurnFileReader`), with the same rules as `Turns`; `SessionOwner(path)` maps a path to its agent dir and the header's session id, for a file in the default tree or in a flat custom session dir of the `PI_CODING_AGENT_DIR` or default home (no other dir is searched). Each turn's `ID` is the entry id. pi keeps every branch in one file (each entry names its `parentId`; `/tree` adds a `branch_summary` where a new branch starts), so turns of every branch arrive in file order; to show one branch, follow `parentId` in `Raw` from the leaf. `AgentVersion` is empty: a session file records its format version (3), not pi's. A file whose header line is still being written reads as empty, not as an error.
+
 ## Step 4 — Settings, trust and defaults
 
 `settings.json` (global in the agent dir, project in `.pi/settings.json`) has about 80 keys and pi accepts unknown ones. `pi.Settings` types the keys a launcher needs (`defaultProvider`, `defaultModel`, `defaultThinkingLevel`, `defaultTools`, `sessionDir`, `cacheWarming`, the resource lists) and keeps every other key raw in `Unknown`; `MarshalJSON` writes them back, so a round trip loses nothing. A modelled key whose value changed type moves to `Unknown` with a `type-changed` warning instead of failing the file. `SettingsKeys` lists the typed keys.
@@ -233,10 +235,11 @@ The full output is in [`examples/pi/README.md`](../../examples/pi/README.md).
 ## Pitfalls
 
 - **Never call `pi auth check` without `--no-refresh`.** It refreshes OAuth tokens and rewrites `auth.json`; `pi auth print-bearer-token` refreshes too. This module never builds either.
-- **`pi` in the process table hides its argv.** pi sets its process title to `pi`, so on Linux the command line is just `pi` and the executable is `node`; only the basename matches.
+- **`pi` in the process table hides its argv.** pi sets its process title to `pi`, so on Linux the command line is just `pi` and the executable is `node`. The short basename is matched only for such a row (argv exactly `pi`, or a node executable), so another program named `pi` with arguments is not pi; on Windows the row is node running the package's `cli.js` and matches by that path. With argv hidden, `ProcessSession` infers the session from the cwd (the newest session file started after the process) and labels it `inferred`; `--session` is read only where argv survives ([Process sessions](../capabilities/process-sessions.md)).
 - **A relative session dir is refused.** pi resolves `PI_CODING_AGENT_SESSION_DIR` or `sessionDir` against its own working directory, which a reader cannot know.
 - **Read-only is a tool allowlist, not a sandbox.** pi runs with the process's permissions; `--tools read,grep,find,ls` only removes the tools that write. Isolate pi in a container when that matters.
 - **Every provider has its own key variable.** A token login without `TokenCredential.Provider` is refused rather than guessed.
+- **No hooks to install.** pi has no `HookInstaller`: its extensions are TypeScript modules loaded into the process, not shell commands named in a settings key, so there is nothing for agentio to add or remove. `agentio.Unsupported(n, agentio.CapHooks)` returns that reason; a hook-based tool falls back to reading pi's session files. See [Hooks: install and decode](../capabilities/hooks.md).
 
 ## Related
 

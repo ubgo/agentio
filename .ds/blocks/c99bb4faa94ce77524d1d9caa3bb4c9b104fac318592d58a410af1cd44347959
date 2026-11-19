@@ -1,0 +1,3 @@
+func sessionStatusNames() []string {
+	return []string{"unknown", "idle", "busy", "waiting"}
+}

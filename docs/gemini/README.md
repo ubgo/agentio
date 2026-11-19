@@ -1,6 +1,6 @@
 # Gemini CLI (gemini)
 
-The `gemini` module is agentio's typed API for Google's Gemini CLI (`@google/gemini-cli`). It reads the install and its version from package metadata, the homes, every settings layer with all keys kept, conversations per project, instruction files, MCP servers, skills and extensions, and the login state. It also builds the command that launches or resumes Gemini with an approval mode, a headless stream or an API key. It never logs in, never refreshes or prints a token, and writes nothing Gemini owns.
+The `gemini` module is agentio's typed API for Google's Gemini CLI (`@google/gemini-cli`). It reads the install and its version from package metadata, the homes, every settings layer with all keys kept, conversations per project, instruction files, MCP servers, skills and extensions, and the login state. It also builds the command that launches or resumes Gemini with an approval mode, a headless stream or an API key. It never logs in, never refreshes or prints a token. The one file it writes, only when asked and after a backup, is the `hooks` key of a home's `settings.json` (step 8).
 
 Every shape is recorded from Gemini CLI 0.68.0. Files the CLI writes without a login (`projects.json`, `.project_root`, `logs.json`, `state.json`) were observed on a real install; files that need a logged-in run (chats, `oauth_creds.json`, `google_accounts.json`) are modelled from the CLI's bundled source and marked so in the fixture. A recording run with a real login is still owed for those.
 
@@ -127,6 +127,17 @@ func conversations(ctx context.Context, p printer, a *gemini.Agent, m machine) e
 }
 ```
 
+### Turns
+
+`TurnsAt(path, from, fn)` reads the user and model messages of one chat file (the neutral `TurnFileReader`, `agentio.TurnFilesOf`), and `ChatOwner(path)` maps a chat path to its home and full session id (the file name holds only the first 8 characters, so the id comes from the metadata line). What a caller sees:
+
+- Each turn's `ID` is the message id. Gemini appends a whole message again with the same id when it adds tokens or tool results to it, so the same `ID` can arrive twice; keep the later turn.
+- A `user` message with text and a `gemini` message with text or tokens are turns; `info`, `error` and `warning` records are not. `tokens` map to `Input` (input plus tool-use prompt tokens), `CachedInput`, `Output` and `Reasoning` (thoughts); `Model` is the message's model. `Dir` is empty: a chat records its project only as a hash.
+- `$set`, `$rewindTo` and `$patch` records emit nothing. After a rewind (or a patch with `removeIds`) the CLI no longer shows the removed messages, but turns already read stay with the caller, and the messages that follow carry new ids. A patch that rewrites a message's content (model history edits) is not re-emitted.
+- For a `.jsonl` chat the cursor is the byte offset after the last complete line. A legacy `.json` chat has no lines: it is read whole and its cursor counts messages; the CLI rewrites it as `.jsonl` when it is resumed.
+
+Because a rewind cannot be reported through a turn callback, Gemini supports turn files but not `TurnReader` (`Turns` by id).
+
 ## Step 5 — Instructions, MCP servers, skills and extensions
 
 `InstructionFiles(h, dir)` lists the files the CLI loads, in order: `<home>/GEMINI.md` (or the `context.fileName` names), the project memory `tmp/<slug>/memory/MEMORY.md`, then every context file from the git root down to `dir`. A folder `trustedFolders.json` marks `DO_NOT_TRUST` loads no project file. Files in subdirectories the CLI loads only when a tool touches them are not listed.
@@ -239,14 +250,24 @@ func launch(p printer, a *gemini.Agent) error {
 }
 ```
 
+## Step 8 — Hooks
+
+Gemini CLI runs command hooks from the `hooks` key of `settings.json`, in the same event, matcher group, handler shape as Claude Code, with its own event names (`gemini.HookEvents()`: `BeforeTool`, `AfterTool`, `BeforeAgent`, `AfterAgent`, `BeforeModel`, `AfterModel`, `BeforeToolSelection`, `SessionStart`, `SessionEnd`, `Notification`, `PreCompress`). `a.Writer().EnsureHook(h, event, command)` appends a command hook to the home's user `settings.json` unless one with the same command is already on that event, and `a.Writer().RemoveHooks(h, match)` removes the matching command hooks. Both back the file up first and splice into its bytes, so comments, other sections and other tools' hooks keep their exact bytes.
+
+The neutral `agentio.HooksOf(a.Neutral())` installs through kinds: prompt-submit is `BeforeAgent`, turn-end `AfterAgent`, plus `SessionStart` and `SessionEnd`. Its plan reports as `Manual` what keeps a hook from running: `hooksConfig.enabled: false`, the command listed in `hooksConfig.disabled`, and folder trust (on by default), under which Gemini CLI loads settings hooks only in trusted folders. See [Hooks: install and decode](../capabilities/hooks.md).
+
+`gemini.DecodeHookInput(stdin)` decodes what a hook command receives: `SessionID`, `TranscriptPath`, `Cwd`, `HookEventName`, `Timestamp`, and per event `Prompt`, `PromptResponse`, `StopHookActive`, `Source`, `Reason`; every other key stays in `Unknown`, the payload in `Raw`. This shape is unverified: it comes from the hooks reference and source in the 0.68.0 package, not from a recorded run.
+
 ## Capabilities
 
 | Capability | Gemini |
 |---|---|
 | install, binary version, process classifier | yes |
+| process sessions, stop planner | yes: the relaunch child joined to a chat by `--resume <id>` (argv) or by the newest chat of the cwd's project started after it (inferred); stop the child, then the relaunch parent |
 | identity, token login (API key) | yes |
 | conversations, history checker | yes |
 | instruction files, MCP servers, skills, plugins (extensions), config, doctor, home linker | yes |
+| hooks (install into `settings.json`, decode payloads) | yes; payloads unverified |
 | usage, subscription | no: quota and tier come from a logged-in Code Assist API call whose responses are not recorded yet |
 | cached usage | no: nothing on disk |
 | token prober | no: probing spends quota through an unmodelled model call |
@@ -254,19 +275,21 @@ func launch(p printer, a *gemini.Agent) error {
 | history and conversation movers | no: chats are keyed by the slug registry |
 | prompt history | no: `logs.json` is recorded only from source |
 | live sessions | no: no session lock or pid file |
-| turns | no: chats rewrite earlier records (`$rewindTo`, `$patch`) |
+| turn files | yes: `TurnsAt` over a chat path, see [Turns](#turns) |
+| turns | no: chats rewrite earlier records (`$rewindTo`, `$patch`); read a chat by path with turn files |
 | models | no: the catalog lives in the CLI's own defaults |
 | run events | no: the stream-json event shape is not recorded yet |
 
 ## Pitfalls
 
 - **`GEMINI_CLI_HOME` is the parent.** Setting it to a `.gemini` dir makes Gemini use `<that dir>/.gemini`.
-- **Two processes per session.** Gemini relaunches itself as a child with `GEMINI_CLI_NO_RELAUNCH=true`; `ClassifyProcess` matches both, so keep the child when you count sessions.
+- **Two processes per session.** Gemini relaunches itself as a child with `GEMINI_CLI_NO_RELAUNCH=true`; `ClassifyProcess` matches both, so keep the child when you count sessions (`RelaunchChild(p, table)` finds it). `ProcessSession` answers only for the child, and `StopPlan` targets the child first, then the parent ([Process sessions](../capabilities/process-sessions.md)).
 - **Old chats disappear.** `general.sessionRetention` deletes chats older than 30 days at the CLI's startup by default.
 - **The keychain is shared.** With `GEMINI_FORCE_ENCRYPTED_FILE_STORAGE`, the Google login lives in a keychain entry with a fixed name, shared by every home, and `Identity` (which reads `oauth_creds.json`) reports logged out.
+- **A new hook may not run yet.** In a folder Gemini CLI does not trust, it skips settings hooks; read the plan's `Manual` lines.
 - **`.env` files inject keys.** Gemini reads `GEMINI_API_KEY` from `.env` files in the project and the home when it is not in the environment, which agentio does not model.
 
 ## Related
 
 - Example: [`examples/gemini`](../../examples/gemini/)
-- [Homes](../core/homes.md), [Targets and commands](../core/launch.md), [Logins](../capabilities/logins.md)
+- [Homes](../core/homes.md), [Targets and commands](../core/launch.md), [Logins](../capabilities/logins.md), [Hooks: install and decode](../capabilities/hooks.md)

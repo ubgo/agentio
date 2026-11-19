@@ -67,9 +67,9 @@ func openConversation(w io.Writer, a *claude.Agent, h claude.Home) error {
 
 ## Step 3 — Read turns
 
-`a.Turns(h, id, from, fn)` reads the transcript from byte offset `from` to the last complete line, calls `fn` with each normalized `agentio.Turn` (`Role`, `Time`, `Text`, `Model`, `StopReason`, `Tokens`, `AgentVersion`, `Raw`), and returns the new offset. Save the offset and call again later to read only what was appended: this is how a live view follows a running session. A trailing line Claude Code is still writing is never consumed, so the next call picks it up whole. Tool-result user lines and assistant lines with neither text nor usage are skipped: they are not turns a person typed or read. Returning an error from `fn` stops the read and returns the offset reached.
+`a.Turns(h, id, from, fn)` reads the transcript from byte offset `from` to the last complete line, calls `fn` with each normalized `agentio.Turn` (`ID`, the record uuid; `Role`, `Time`, `Text`, `Model`, `StopReason`, `Tokens`, `AgentVersion`, `Raw`), and returns the new offset. Save the offset and call again later to read only what was appended: this is how a live view follows a running session. A trailing line Claude Code is still writing is never consumed, so the next call picks it up whole. Tool-result user lines and assistant lines with neither text nor usage are skipped: they are not turns a person typed or read. Returning an error from `fn` stops the read and returns the offset reached.
 
-`claude.TurnsFile(path, from, fn)` does the same for a transcript path you already hold (for example from a hook's `transcript_path`).
+`claude.TurnsFile(path, from, fn)` does the same for a transcript path you already hold (for example from a hook's `transcript_path`); the neutral view offers it as `TurnFileReader.TurnsAt` (`agentio.TurnFilesOf`), with `TranscriptOwner(path)` for the home and conversation id. Claude Code writes an assistant record with its usage on the same line, so no turn waits for a later line.
 
 <!-- snippet: examples/claudeconversations/main.go#turns -->
 ```go

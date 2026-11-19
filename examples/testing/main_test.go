@@ -16,6 +16,7 @@ import (
 	"github.com/ubgo/agentio/claude"
 	"github.com/ubgo/agentio/codex"
 	"github.com/ubgo/agentio/gemini"
+	"github.com/ubgo/agentio/opencode"
 	"github.com/ubgo/agentio/pi"
 )
 
@@ -56,10 +57,11 @@ func TestCollect(t *testing.T) {
 	if err := run(context.Background(), &b, h); err != nil {
 		t.Fatal(err)
 	}
-	want := "claude homes=[personal work] conversations=3 capabilities=27\n" +
-		"codex homes=[personal] conversations=2 capabilities=23\n" +
-		"gemini homes=[] conversations=0 capabilities=14\n" +
-		"pi homes=[] conversations=0 capabilities=13\n"
+	want := "claude homes=[personal work] conversations=3 capabilities=31\n" +
+		"codex homes=[personal] conversations=2 capabilities=27\n" +
+		"gemini homes=[] conversations=0 capabilities=18\n" +
+		"pi homes=[] conversations=0 capabilities=16\n" +
+		"opencode homes=[] conversations=0 capabilities=10\n"
 	if b.String() != want {
 		t.Fatalf("got\n%s\nwant\n%s", b.String(), want)
 	}
@@ -292,7 +294,7 @@ func TestLoopOverAgents(t *testing.T) {
 	for _, r := range rows {
 		ids = append(ids, r.ID)
 	}
-	if !slices.Equal(ids, []agentio.ID{claude.ID, codex.ID, gemini.ID, pi.ID, "toy"}) {
+	if !slices.Equal(ids, []agentio.ID{claude.ID, codex.ID, gemini.ID, pi.ID, opencode.ID, "toy"}) {
 		t.Fatalf("ids %v", ids)
 	}
 	toy := rows[len(rows)-1]

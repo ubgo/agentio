@@ -123,7 +123,7 @@ install method mise: known=false
 autonomy values: [default read-only ask accept-edits full]
 cost classes: [pure disk process network quota]
 process kinds: [cli exec app-server mcp-server desktop bridge launcher]
-capabilities: 27, first installer
+capabilities: 32, first installer
 ```
 
 ## Pitfalls
@@ -132,7 +132,7 @@ capabilities: 27, first installer
 - **An out-of-range number prints, it does not panic.** [`agentio.Autonomy(42).String()`](ds:block?id=enumstring-57pf7m8z) is `autonomy(42)`, so a corrupted value is greppable; `ParseX` and `UnmarshalText` never produce one.
 - **Closed sets reject unknown text; open sets keep it.** Decoding `"yolo"` into an [`Autonomy`](ds:block?id=autonomy-unmarshaltext-ves9gtjm) fails; decoding `"mise"` into an [`InstallMethod`](ds:block?id=installmethod-isknown-yqgegrt9) succeeds and `IsKnown()` is false. Do not treat an unknown open value as an error: a newer vendor version may have added it.
 - **Values are append-only.** New values are added at the end, so the wire names are stable; never persist the numeric value, use the name.
-- **[`Capability`](ds:block?id=capabilitynames-pdt7huwg) has 28 values**, one per shared capability; `agentio.Supported(a)` and the accessors are on [Shared capabilities and accessors](../capabilities/accessors.md).
+- **[`Capability`](ds:block?id=capabilitynames-pdt7huwg) has 32 values**, one per shared capability; `agentio.Supported(a)` and the accessors are on [Shared capabilities and accessors](../capabilities/accessors.md).
 
 ## Related
 

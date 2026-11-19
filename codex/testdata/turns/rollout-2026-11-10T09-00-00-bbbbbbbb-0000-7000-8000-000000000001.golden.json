@@ -1,0 +1,55 @@
+[
+  {
+    "role": "user",
+    "time": "2026-11-10T09:00:02.1Z",
+    "conversation_id": "bbbbbbbb-0000-7000-8000-000000000001",
+    "dir": "/work/fake-old",
+    "model": "gpt-fake-1",
+    "agent_version": "0.130.0",
+    "text": "fake old prompt"
+  },
+  {
+    "interim": true,
+    "role": "assistant",
+    "time": "2026-11-10T09:00:03Z",
+    "conversation_id": "bbbbbbbb-0000-7000-8000-000000000001",
+    "dir": "/work/fake-old",
+    "model": "gpt-fake-1",
+    "agent_version": "0.130.0",
+    "text": "fake commentary: reading files"
+  },
+  {
+    "role": "assistant",
+    "time": "2026-11-10T09:00:05Z",
+    "conversation_id": "bbbbbbbb-0000-7000-8000-000000000001",
+    "dir": "/work/fake-old",
+    "model": "gpt-fake-1",
+    "agent_version": "0.130.0",
+    "text": "fake old answer",
+    "tokens": {
+      "Input": 800,
+      "CachedInput": 400,
+      "CacheWrite": 0,
+      "Output": 30,
+      "Reasoning": 8
+    }
+  },
+  {
+    "role": "user",
+    "time": "2026-11-10T09:01:00Z",
+    "conversation_id": "bbbbbbbb-0000-7000-8000-000000000001",
+    "dir": "/work/fake-old",
+    "model": "gpt-fake-1",
+    "agent_version": "0.130.0",
+    "text": "fake old prompt two"
+  },
+  {
+    "role": "assistant",
+    "time": "2026-11-10T09:01:02Z",
+    "conversation_id": "bbbbbbbb-0000-7000-8000-000000000001",
+    "dir": "/work/fake-old",
+    "model": "gpt-fake-1",
+    "agent_version": "0.130.0",
+    "text": "fake answer without phase"
+  }
+]

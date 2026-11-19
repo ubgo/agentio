@@ -12,7 +12,7 @@
 # in `task check` keep proving the pinned versions themselves.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-modules=(. ./claude ./codex ./codex/state ./gemini ./pi ./builtin ./examples)
+modules=(. ./claude ./codex ./codex/state ./gemini ./pi ./opencode ./opencode/store ./builtin ./examples)
 rm -f go.work go.work.sum
 go work init "${modules[@]}"
 for m in "${modules[@]}"; do cat "$m/go.mod"; done |

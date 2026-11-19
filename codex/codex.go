@@ -46,6 +46,10 @@ const (
 	defaultHomeDir = ".codex"
 	// npmPackage is the npm launcher's package name (process matching).
 	npmPackage = "@openai/codex"
+	// npmScriptDir is the package directory the launcher script runs from
+	// (`node …/@openai/codex/bin/codex.js`); the trailing "/" keeps
+	// `npm install @openai/codex` out.
+	npmScriptDir = npmPackage + "/"
 )
 
 // spec placeholders understood by agentio templates.
@@ -84,9 +88,11 @@ func Spec() agentio.Spec {
 		// through a model provider whose env_key names it, which the doctor
 		// checks against config.toml (providerKeyCheck).
 		APIBillingEnv: []string{EnvCodexAPIKey},
+		// The native binary (also the launcher's child) is "codex"; the
+		// npm launcher is node or bun running the package's codex.js.
 		Process: agentio.ProcessMatch{
-			Basenames:    []string{Binary},
-			ArgvContains: []string{npmPackage},
+			Basenames:      []string{Binary},
+			ScriptContains: []string{npmScriptDir},
 		},
 	}
 }
@@ -226,9 +232,11 @@ func (a *Agent) InstallationID(h Home) (agentio.Personal, error) {
 	return agentio.NewPersonal(strings.TrimSpace(string(b))), nil
 }
 
-// Writer is the Disk · Write door. Codex v0.1 writes no Codex-owned file
-// (Codex rewrites them itself, so an edit could race it): config changes are vendor Commands (FeatureCommand,
-// MCPAddCommand), so the door exists but has no methods yet.
+// Writer is the Disk · Write door. Its only target is <home>/hooks.json
+// (RemoveHooks, EnsureHook, and the neutral HookInstaller), a file Codex
+// reads but never writes. Files Codex rewrites itself stay read-only, since
+// an edit could race it: config changes are vendor Commands
+// (FeatureCommand, MCPAddCommand).
 type Writer struct{ a *Agent }
 
 // Writer returns the write door. Pure.

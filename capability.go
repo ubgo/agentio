@@ -396,7 +396,13 @@ type ProcessClassifier interface {
 	ClassifyProcess(p Process) (ProcessInfo, bool)
 }
 
-// Offset is the byte offset just after the last complete line read.
+// Offset is a resume cursor for an incremental read (TurnReader,
+// TurnFileReader): store the value a read returns and pass it back
+// unchanged. It is opaque and agent-defined: for a JSONL transcript it is
+// the byte offset just after the last record that was fully emitted (which
+// can be before a complete line, when a turn's usage arrives on a later
+// line), for a database-backed store a row cursor. Never compute one, and
+// never compare cursors of different files. 0 starts at the beginning.
 type Offset int64
 
 // TokenCounts is a neutral token tally (also RunEvent.Tokens).
@@ -414,6 +420,15 @@ func (t TokenCounts) Add(o TokenCounts) TokenCounts {
 
 // Turn is one normalized turn per side.
 type Turn struct {
+	// ID is the vendor's stable id for this message (Claude record uuid,
+	// Codex item id, Gemini message id, pi entry id, opencode message id),
+	// so a caller can dedup a message an agent rewrites or re-appends;
+	// "" when the format has none.
+	ID string
+	// Interim marks an assistant message the agent showed while still
+	// working (Codex phase "commentary"), not its answer to the prompt. A
+	// caller that stores answers skips Interim turns; a viewer shows them.
+	Interim                                bool
 	Role                                   Role
 	Time                                   time.Time
 	ConversationID, Dir, Model, StopReason string

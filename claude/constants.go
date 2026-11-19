@@ -228,3 +228,8 @@ const (
 	excludeChromeHost     = "claude-in-chrome"
 	excludeDesktopSupport = "Application Support/Claude"
 )
+
+// npmScriptDir is the package directory an npm install's script lives
+// in (`node …/node_modules/@anthropic-ai/claude-code/cli.js`); the
+// trailing "/" keeps `npm install @anthropic-ai/claude-code` out.
+const npmScriptDir = NPMPackage + "/"

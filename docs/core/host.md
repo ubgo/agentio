@@ -39,7 +39,7 @@ Build it once at program start and pass it down; every agent constructor (`claud
 | `Now` | `func() time.Time` | expiry checks, backup names, `Retry-After` dates | [zero time](ds:block?id=claude-agent-now-xsb7g62h) |
 | `HTTP` | `*http.Client` | usage, subscription and probe calls | [every network call returns `ErrUnsupported`](ds:block?id=claude-agent-httpclient-e4beyzpg) |
 | `Secrets` | `SecretStore` | keychain / keyring reads (`Get(ctx, service, account)`) | [no secret is ever found](ds:block?id=claude-agent-keychainget-uj32ktdh) |
-| `Processes` | `ProcessLister` | live sessions, process classification (`Processes`, `Cwd`) | no process is alive |
+| `Processes` | `ProcessLister` | live sessions, process classification and process sessions (`Processes`, `Cwd`; optionally `Env`) | no process is alive |
 | `Exec` | `ProcessRunner` | running the vendor binary, only from Runner doors (`Run` returns a `ProcessResult`) | [Runner calls return an error](ds:block?id=runner-run-5rn5nerj) |
 | `GOOS` | `string` | which OS's rules apply (`linux`, `darwin`, `windows`): system and managed locations, `PATH`/`PATHEXT` lookup, env name case, which credential stores a vendor reads | [no system locations], and the `PATH` and env rules of the OS the program was built for(ds:block?id=host-systempath-7azvt62d) |
 | `SystemRoot` | `string` | the root system and managed paths resolve under (`/etc/claude-code`, `/etc/codex`); [`Host.SystemPath(rel)`](ds:block?id=host-systempath-7azvt62d) joins it | no system locations: managed settings, managed `CLAUDE.md` and MCP files and `/etc/codex` layers are never read |
@@ -84,6 +84,8 @@ func hostEnv(p printer, h agentio.Host) {
 ```
 
 The three interfaces are small enough to implement yourself (for example over a secrets manager), but for tests the `agenttest` package already has fakes for each one (`FakeSecrets`, `FakeProcesses`, `FakeExec`) and [`agenttest.NewHost`](ds:block?id=agenttest-newhost-ep2mcqr8) builds a fixture Host whose network and exec fail loudly. See [agenttest fakes](../testing/agenttest.md).
+
+One `Processes` call is one read of the whole table. Each `agentio.Process` row carries `PID`, `PPID`, `Start` (the pid-reuse guard), `Exe`, `Argv`, the unsplit `CommandLine`, `RSS` in bytes, the controlling terminal `TTY` without `/dev/` and the `CPUTime` used so far; a zero value means unknown. `Process.CommandString()` is the raw line, or `Argv` joined when the table gave none. What each OS fills, and how a row is joined to a conversation, is in [Process sessions and stop plans](../capabilities/process-sessions.md).
 
 [`ProcessRunner.Run`](ds:block?id=osrunner-run-hm7czx3q) reports a non-zero exit in `ProcessResult.ExitCode` with a nil error; its error is only for "could not run at all" (missing binary, cancelled context). [`SecretStore.Get`](ds:block?id=ossecrets-get-ux5ua2mu) returns `found == false` with a nil error when there is no entry.
 
@@ -160,7 +162,7 @@ empty PATH: agentio: binary not found on PATH: claude
 - **System locations need `GOOS` and `SystemRoot`.** [Only `HostFromOS` fills them](ds:block?id=hostfromos-yvmqkxwe), so a Host you build yourself never reads `/etc/claude-code` or `/etc/codex` and fixture output cannot change with the machine. To test managed files, put them under a temp dir and pass [`agenttest.WithSystem("linux", dir)`](ds:block?id=agenttest-withsystem-dpvygedy).
 - **[`Exec` is only reached through a Runner door.](ds:block?id=runner-run-5rn5nerj)** Building a launch command never runs anything; holding a Runner is the explicit opt-in to process calls ([Doors](../capabilities/doors.md)).
 - **A nil `HTTP` means "no network".** Every vendor network call (Claude usage, profile and probe, Codex usage) returns `ErrUnsupported` with the reason [`Host.HTTP is nil`](ds:block?id=claude-reasonnohttp-mb8pg2zh); the library never builds a client of its own, `HostFromOS` is the one place that does. In a test, prefer [`agenttest.FailingHTTP`](ds:block?id=agenttest-failinghttp-8vye27y9) so an unexpected request fails loudly instead of returning a quiet `ErrUnsupported`.
-- **On macOS the process table comes from `ps`.** [Arguments are split on spaces](ds:block?id=darwinprocesses-h9y8tzsg), so an argument that contains a space shows up as two.
+- **On macOS the process table comes from `ps`.** [Arguments are split on spaces](ds:block?id=darwinprocesses-h9y8tzsg), so an argument that contains a space shows up as two in `Argv`; `CommandLine` keeps the unsplit line, and process matching tests it.
 
 ## Related
 

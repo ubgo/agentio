@@ -372,101 +372,15 @@ func usageFromSnapshot(r Record) Usage {
 	return u
 }
 
-// Turns reads conversation id from offset from to the last complete line,
-// calling fn once per user or agent message, and returns the new offset
-// so a viewer can follow a live conversation by passing it back. Both the 0.15x+ item_completed items and the older
-// user_message / agent_message events are read; when a file has both,
-// item_completed wins so a message is not reported twice. Disk · Read.
+// Turns reads conversation id from offset from, calling fn once per user
+// or agent message, and returns the cursor to pass back so a viewer can
+// follow a live conversation (the rules are TurnsAt's). It finds the
+// rollout by id first (Conversation); a caller that holds the path calls
+// TurnsAt. Disk · Read.
 func (a *Agent) Turns(h Home, id string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {
 	c, err := a.Conversation(h, id)
 	if err != nil {
 		return from, err
 	}
 	return turnsFromPath(c.Path, id, from, fn)
-}
-
-func turnsFromPath(path, id string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {
-	r, err := openRolloutAt(path, from)
-	if err != nil {
-		return from, err
-	}
-	// Read-only file: a close error cannot lose data.
-	defer func() { _ = r.Close() }()
-	var (
-		dir, model, version string
-		pending             *agentio.Turn
-		sawItems            bool
-	)
-	flush := func() error {
-		if pending == nil {
-			return nil
-		}
-		t := *pending
-		pending = nil
-		return fn(t)
-	}
-	for {
-		rec, err := r.Next()
-		if errors.Is(err, io.EOF) {
-			break
-		}
-		if err != nil {
-			return r.Offset(), err
-		}
-		switch {
-		case rec.SessionMeta != nil:
-			dir, version = rec.SessionMeta.Cwd, rec.SessionMeta.CLIVersion
-		case rec.TurnContext != nil:
-			model = rec.TurnContext.Model
-			if rec.TurnContext.Cwd != "" {
-				dir = rec.TurnContext.Cwd
-			}
-		case rec.Event != nil:
-			ev := rec.Event
-			base := agentio.Turn{Time: rec.Time, ConversationID: id, Dir: dir, Model: model, AgentVersion: version, Raw: rec.Raw}
-			switch {
-			case ev.Type == EventItemCompleted && ev.Item != nil:
-				role, ok := itemRole(ev.Item.Type)
-				if !ok {
-					continue
-				}
-				sawItems = true
-				if err := flush(); err != nil {
-					return r.Offset(), err
-				}
-				base.Role, base.Text = role, ev.Item.Text()
-				pending = &base
-			case (ev.Type == EventUserMessage || ev.Type == EventAgentMessage) && !sawItems:
-				if err := flush(); err != nil {
-					return r.Offset(), err
-				}
-				base.Role = agentio.RoleUser
-				if ev.Type == EventAgentMessage {
-					base.Role = agentio.RoleAssistant
-				}
-				base.Text = ev.Message
-				pending = &base
-			case ev.Type == EventTokenCount && ev.Info != nil && ev.Info.LastTokenUsage != nil:
-				// token counts follow the assistant message of the same turn
-				if pending != nil && pending.Role == agentio.RoleAssistant && pending.Tokens == nil {
-					n := ev.Info.LastTokenUsage.Neutral()
-					pending.Tokens = &n
-				}
-			}
-		}
-	}
-	if err := flush(); err != nil {
-		return r.Offset(), err
-	}
-	return r.Offset(), nil
-}
-
-func itemRole(t ItemType) (agentio.Role, bool) {
-	switch t {
-	case ItemUserMessage:
-		return agentio.RoleUser, true
-	case ItemAgentMessage:
-		return agentio.RoleAssistant, true
-	}
-	return 0, false
 }

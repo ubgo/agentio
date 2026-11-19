@@ -1,0 +1,12 @@
+{
+  "id": "prt_0f0000000003AAAAAAAAAAAA02",
+  "sessionID": "ses_0f0000000001ffeFixtureAAAA",
+  "messageID": "msg_0f0000000003AAAAAAAAAAAA03",
+  "type": "text",
+  "text": "System reminder inserted by opencode.",
+  "synthetic": true,
+  "time": {
+    "start": 1760100579901,
+    "end": 1760100579901
+  }
+}

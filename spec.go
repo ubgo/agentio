@@ -124,18 +124,46 @@ type TokenEnv struct {
 
 // ProcessMatch is how a process row is recognised as an agent.
 type ProcessMatch struct {
-	// Basenames match argv[0] or Exe basename: "claude", "codex".
+	// Basenames match argv[0] or Exe basename: "claude", "codex". A
+	// Windows executable extension (.exe, .cmd, .bat) is ignored, case
+	// insensitively, so "claude" matches "claude.exe".
 	Basenames []string `json:"basenames,omitempty"`
-	// ArgvContains match a substring of any argv element: "@openai/codex".
+	// ArgvContains match a substring of any argv element or of the raw
+	// command line (Process.CommandString): "@openai/codex". It matches
+	// any row naming the string, an `npm install` of the package too;
+	// ScriptContains is the narrower test for an npm package.
 	ArgvContains []string `json:"argv_contains,omitempty"`
-	// Exclude substrings of Exe or any argv element veto a match:
-	// "Claude.app", "claude-in-chrome".
+	// Exclude substrings of Exe, any argv element or the raw command line
+	// veto a match: "Claude.app", "claude-in-chrome",
+	// "Application Support/Claude" (a path with a space, so it is only
+	// found in the raw command line on darwin).
 	Exclude []string `json:"exclude,omitempty"`
+	// ScriptBasenames match the script an interpreter runs (ScriptIndex):
+	// `node /opt/bin/claude` is an npm install run through its
+	// interpreter. Keep them specific: a generic name such as "cli.js"
+	// belongs in ScriptContains with its package path.
+	ScriptBasenames []string `json:"script_basenames,omitempty"`
+	// ScriptContains match a substring of the script an interpreter runs,
+	// with a backslash read as "/": "@anthropic-ai/claude-code/" matches
+	// `node …/node_modules/@anthropic-ai/claude-code/cli.js` and its
+	// Windows spelling, but not `npm install @anthropic-ai/claude-code`
+	// (there the script is npm's own).
+	ScriptContains []string `json:"script_contains,omitempty"`
+	// Interpreters are the argv[0] basenames that run a script; nil =
+	// DefaultInterpreters. Only read when ScriptBasenames or
+	// ScriptContains is set.
+	Interpreters []string `json:"interpreters,omitempty"`
+}
+
+// DefaultInterpreters are the script runners an npm-installed agent is
+// started through ("nodejs" is Debian's older name for node). Pure.
+func DefaultInterpreters() []string {
+	return []string{"node", "node.exe", "nodejs", "bun", "bun.exe", "deno", "deno.exe"}
 }
 
 // IsZero reports an empty matcher (the agent classifies nothing). Pure.
 func (m ProcessMatch) IsZero() bool {
-	return len(m.Basenames) == 0 && len(m.ArgvContains) == 0
+	return len(m.Basenames) == 0 && len(m.ArgvContains) == 0 && len(m.ScriptBasenames) == 0 && len(m.ScriptContains) == 0
 }
 
 // Match reports whether p is this agent's process. Pure.
@@ -143,7 +171,8 @@ func (m ProcessMatch) Match(p Process) bool {
 	if m.IsZero() {
 		return false
 	}
-	fields := append([]string{p.Exe}, p.Argv...)
+	line := p.CommandString()
+	fields := append([]string{p.Exe, line}, p.Argv...)
 	for _, ex := range m.Exclude {
 		for _, f := range fields {
 			if ex != "" && strings.Contains(f, ex) {
@@ -151,26 +180,101 @@ func (m ProcessMatch) Match(p Process) bool {
 			}
 		}
 	}
-	var names []string
-	if p.Exe != "" {
-		names = append(names, filepath.Base(p.Exe))
+	if m.MatchesBasename(p) {
+		return true
 	}
-	if len(p.Argv) > 0 && p.Argv[0] != "" {
-		names = append(names, filepath.Base(p.Argv[0]))
-	}
-	for _, n := range names {
-		if slices.Contains(m.Basenames, n) {
+	if i, ok := m.ScriptIndex(p); ok {
+		script := p.Argv[i]
+		if slices.ContainsFunc(m.ScriptBasenames, func(n string) bool { return nameMatches(n, ProcessBase(script)) }) {
+			return true
+		}
+		slashed := strings.ReplaceAll(script, `\`, "/")
+		if slices.ContainsFunc(m.ScriptContains, func(sub string) bool { return sub != "" && strings.Contains(slashed, sub) }) {
 			return true
 		}
 	}
 	for _, sub := range m.ArgvContains {
-		for _, a := range p.Argv {
-			if sub != "" && strings.Contains(a, sub) {
-				return true
-			}
+		if sub == "" {
+			continue
+		}
+		if strings.Contains(line, sub) || slices.ContainsFunc(p.Argv, func(a string) bool { return strings.Contains(a, sub) }) {
+			return true
 		}
 	}
 	return false
+}
+
+// MatchesBasename reports whether argv[0] or Exe has one of Basenames
+// (exclusions are not applied; Match does that). Pure.
+func (m ProcessMatch) MatchesBasename(p Process) bool {
+	var names []string
+	if p.Exe != "" {
+		names = append(names, ProcessBase(p.Exe))
+	}
+	if len(p.Argv) > 0 && p.Argv[0] != "" {
+		names = append(names, ProcessBase(p.Argv[0]))
+	}
+	for _, n := range names {
+		if slices.ContainsFunc(m.Basenames, func(b string) bool { return nameMatches(b, n) }) {
+			return true
+		}
+	}
+	return false
+}
+
+// ScriptIndex returns the index in p.Argv of the script an interpreter
+// row runs: the first argument after argv[0] that is not a flag, when
+// argv[0] (or Exe) is one of the interpreters. A flag that takes a
+// separate value (`node --require x`) is not modelled: real launchers put
+// flags in the `--flag=value` form or none at all, and a miss only means
+// no match. The arguments after the index are the agent's own. Pure.
+func (m ProcessMatch) ScriptIndex(p Process) (int, bool) {
+	if len(p.Argv) < 2 {
+		return 0, false
+	}
+	interp := m.Interpreters
+	if interp == nil {
+		interp = DefaultInterpreters()
+	}
+	isInterp := func(path string) bool {
+		return path != "" && slices.ContainsFunc(interp, func(n string) bool { return nameMatches(n, ProcessBase(path)) })
+	}
+	if !isInterp(p.Argv[0]) && !isInterp(p.Exe) {
+		return 0, false
+	}
+	for i := 1; i < len(p.Argv); i++ {
+		if !strings.HasPrefix(p.Argv[i], "-") {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
+// ProcessBase is the last element of a process path split on "/" and
+// a backslash, whatever OS the table came from (a Windows row read in a test on
+// unix too). Pure.
+func ProcessBase(p string) string {
+	if i := strings.LastIndexAny(p, `/\`); i >= 0 {
+		return p[i+1:]
+	}
+	return p
+}
+
+// windowsExecExts are the extensions a Windows command name may carry.
+func windowsExecExts() []string { return []string{".exe", ".cmd", ".bat"} }
+
+// nameMatches compares a wanted name with a row's basename: equal, or
+// equal case insensitively once a Windows executable extension is cut
+// from got ("claude" matches "Claude.EXE"). Pure.
+func nameMatches(want, got string) bool {
+	if want == got {
+		return true
+	}
+	ext := filepath.Ext(got)
+	if !slices.ContainsFunc(windowsExecExts(), func(e string) bool { return strings.EqualFold(e, ext) }) {
+		return false
+	}
+	return strings.EqualFold(want, strings.TrimSuffix(got, ext)) || strings.EqualFold(want, got)
 }
 
 // Template placeholders.

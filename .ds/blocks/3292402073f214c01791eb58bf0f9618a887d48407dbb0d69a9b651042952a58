@@ -1,0 +1,36 @@
+func (m ProcessMatch) Match(p Process) bool {
+	if m.IsZero() {
+		return false
+	}
+	line := p.CommandString()
+	fields := append([]string{p.Exe, line}, p.Argv...)
+	for _, ex := range m.Exclude {
+		for _, f := range fields {
+			if ex != "" && strings.Contains(f, ex) {
+				return false
+			}
+		}
+	}
+	if m.MatchesBasename(p) {
+		return true
+	}
+	if i, ok := m.ScriptIndex(p); ok {
+		script := p.Argv[i]
+		if slices.ContainsFunc(m.ScriptBasenames, func(n string) bool { return nameMatches(n, ProcessBase(script)) }) {
+			return true
+		}
+		slashed := strings.ReplaceAll(script, `\`, "/")
+		if slices.ContainsFunc(m.ScriptContains, func(sub string) bool { return sub != "" && strings.Contains(slashed, sub) }) {
+			return true
+		}
+	}
+	for _, sub := range m.ArgvContains {
+		if sub == "" {
+			continue
+		}
+		if strings.Contains(line, sub) || slices.ContainsFunc(p.Argv, func(a string) bool { return strings.Contains(a, sub) }) {
+			return true
+		}
+	}
+	return false
+}

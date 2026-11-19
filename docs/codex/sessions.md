@@ -102,6 +102,8 @@ func listProcesses(w io.Writer, a *codex.Agent, h codex.Home, table []agentio.Pr
 }
 ```
 
+To tie one Codex process to its conversation, `a.ProcessSession(ctx, p)` (the neutral `ProcessSessionReader`) reads `codex resume <id>` or `codex exec resume <id>` from argv (confidence `argv`), else infers the rollout whose `session_meta` cwd is the process cwd (or its `-C` dir) and whose creation is the closest after the process start, from the date folders around the start only (confidence `inferred`, a guess never to act on); the home comes from the process's `CODEX_HOME` where its environment is readable. `a.StopPlan(p, table, s)` refuses `app-server` (it serves many threads and the TUI reattaches) and `mcp-server`, and plans the npm launcher as its native child first, then the launcher. See [Process sessions and stop plans](../capabilities/process-sessions.md).
+
 ## Try it
 
 ```sh

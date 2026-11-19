@@ -1,0 +1,40 @@
+[
+  {
+    "id": "item-user-1",
+    "role": "user",
+    "time": "2026-11-11T10:00:01.3Z",
+    "conversation_id": "bbbbbbbb-0000-7000-8000-000000000002",
+    "dir": "/work/fake-new",
+    "model": "gpt-fake-2",
+    "agent_version": "0.162.1",
+    "text": "fake new prompt"
+  },
+  {
+    "id": "item-agent-1",
+    "interim": true,
+    "role": "assistant",
+    "time": "2026-11-11T10:00:03Z",
+    "conversation_id": "bbbbbbbb-0000-7000-8000-000000000002",
+    "dir": "/work/fake-new",
+    "model": "gpt-fake-2",
+    "agent_version": "0.162.1",
+    "text": "fake commentary: running tests"
+  },
+  {
+    "id": "item-agent-2",
+    "role": "assistant",
+    "time": "2026-11-11T10:00:06Z",
+    "conversation_id": "bbbbbbbb-0000-7000-8000-000000000002",
+    "dir": "/work/fake-new",
+    "model": "gpt-fake-2",
+    "agent_version": "0.162.1",
+    "text": "fake final answer: tests pass",
+    "tokens": {
+      "Input": 1000,
+      "CachedInput": 800,
+      "CacheWrite": 0,
+      "Output": 25,
+      "Reasoning": 10
+    }
+  }
+]

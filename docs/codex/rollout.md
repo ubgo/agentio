@@ -69,6 +69,10 @@ func openRollout(w io.Writer, a *codex.Agent, h codex.Home) error {
 }
 ```
 
+An agent message has a `Phase` (`EventMsg.Phase` on an older `agent_message` event, `TurnItem.Phase` on an `item_completed` `AgentMessage` item): `PhaseCommentary` for a message Codex shows while it keeps working, `PhaseFinalAnswer` for the answer that ends the turn. The set is open: an unknown value is kept as written and `IsKnown` reports false. `Phase.Interim()` is true for any phase other than `final_answer`; an absent phase (older rollouts wrote none) is an answer.
+
+Within a turn, Codex writes the answer first, then a `response_item` copy, a `token_usage_record`, and only then the `token_count` event that carries the answer's `last_token_usage`, followed by `task_complete`. A `token_count` also follows every intermediate model response, so the one written after a commentary message and a tool call belongs to that response, not to the commentary.
+
 ## Step 2 — Read the tail
 
 `RolloutTail(path, maxBytes)` decodes the complete lines within the last `maxBytes` of the file. The first, possibly cut, line is dropped. Use it for "what happened last" without reading the whole transcript.
@@ -144,7 +148,7 @@ neutral reasoning=20 cache-write=0
 - **Unknown data degrades, it does not fail.** A new record kind keeps `Kind` and `Raw` with no typed payload (`IsKnown()` is false); a payload that does not fit its kind's model keeps `Raw` only. Unknown `session_meta` keys go to `SessionMeta.Unknown`. Only a line that is not a JSON object is an error.
 - **Lines are bounded.** A line longer than the reader's limit returns `codex.ErrLineTooLong` instead of growing memory without bound.
 - **`world_state` stays raw.** It is large and rarely needed; decode `Record.WorldState` yourself if you must.
-- **Never read a rollout whole to find one thing.** Use `Conversations` (head read) for metadata, `RolloutTail` for the end, and `Turns` with a stored offset to follow messages.
+- **Never read a rollout whole to find one thing.** Use `Conversations` (head read) for metadata, `RolloutTail` for the end, and `Turns` or `TurnsAt` with a stored cursor to follow messages.
 
 ## Related
 

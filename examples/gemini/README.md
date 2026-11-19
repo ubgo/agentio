@@ -55,7 +55,7 @@ launch: gemini --approval-mode yolo --output-format stream-json --include-direct
 token launch sets GEMINI_API_KEY (value redacted in output: true)
 full without AllowDangerous: agentio: full autonomy needs explicit consent
 == capabilities
-supported: [installer binary-version identity token-login conversations history-checker process-classifier home-linker instruction-files mcp-servers skills plugins config doctor]
+supported: [installer binary-version identity token-login conversations history-checker process-classifier home-linker instruction-files mcp-servers skills plugins config doctor process-sessions stop-planner turn-files hooks]
 usage: Gemini CLI quota and tier come from a logged-in Code Assist API call (retrieveUserQuota, loadCodeAssist) whose responses are not recorded yet
 login-commander: Gemini CLI has no login subcommand; it asks for the auth method in its first interactive run
 run-events: the --output-format stream-json event shape is not recorded from a real run yet

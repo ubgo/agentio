@@ -1,0 +1,77 @@
+[
+  {
+    "id": "e0000002",
+    "role": "user",
+    "time": "2026-11-14T10:00:01Z",
+    "conversation_id": "dddddddd-0000-7000-8000-000000000001",
+    "dir": "/work/fake-pi",
+    "text": "fake pi prompt"
+  },
+  {
+    "id": "e0000003",
+    "role": "assistant",
+    "time": "2026-11-14T10:00:03Z",
+    "conversation_id": "dddddddd-0000-7000-8000-000000000001",
+    "dir": "/work/fake-pi",
+    "model": "fakeprov/fake-model-1",
+    "stop_reason": "stop",
+    "text": "fake pi answer",
+    "tokens": {
+      "Input": 200,
+      "CachedInput": 50,
+      "CacheWrite": 5,
+      "Output": 9,
+      "Reasoning": 2
+    }
+  },
+  {
+    "id": "e0000004",
+    "role": "user",
+    "time": "2026-11-14T10:00:10Z",
+    "conversation_id": "dddddddd-0000-7000-8000-000000000001",
+    "dir": "/work/fake-pi",
+    "text": "fake first branch prompt"
+  },
+  {
+    "id": "e0000005",
+    "role": "assistant",
+    "time": "2026-11-14T10:00:12Z",
+    "conversation_id": "dddddddd-0000-7000-8000-000000000001",
+    "dir": "/work/fake-pi",
+    "model": "fakeprov/fake-model-1",
+    "stop_reason": "toolUse",
+    "text": "",
+    "tokens": {
+      "Input": 200,
+      "CachedInput": 50,
+      "CacheWrite": 5,
+      "Output": 9,
+      "Reasoning": 2
+    }
+  },
+  {
+    "id": "e0000008",
+    "role": "user",
+    "time": "2026-11-14T10:01:01Z",
+    "conversation_id": "dddddddd-0000-7000-8000-000000000001",
+    "dir": "/work/fake-pi",
+    "text": "fake second branch prompt"
+  },
+  {
+    "id": "e0000009",
+    "role": "assistant",
+    "time": "2026-11-14T10:01:04Z",
+    "conversation_id": "dddddddd-0000-7000-8000-000000000001",
+    "dir": "/work/fake-pi",
+    "model": "fakeprov/fake-model-2",
+    "stop_reason": "stop",
+    "text": "fake second branch answer",
+    "tokens": {
+      "Input": 200,
+      "CachedInput": 50,
+      "CacheWrite": 5,
+      "Output": 9,
+      "Reasoning": 2
+    }
+  }
+]

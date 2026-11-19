@@ -215,7 +215,7 @@ func TestSupportedAndGates(t *testing.T) {
 	t.Parallel()
 	a, _ := newToy(t)
 	got := agentio.Supported(a)
-	want := []agentio.Capability{agentio.CapInstaller, agentio.CapBinaryVersion, agentio.CapLoginCommander, agentio.CapProcessClassifier, agentio.CapHomeLinker, agentio.CapDoctor}
+	want := []agentio.Capability{agentio.CapInstaller, agentio.CapBinaryVersion, agentio.CapLoginCommander, agentio.CapProcessClassifier, agentio.CapHomeLinker, agentio.CapDoctor, agentio.CapStopPlanner}
 	if !slices.Equal(got, want) {
 		t.Errorf("Supported = %v, want %v", got, want)
 	}
@@ -233,7 +233,7 @@ func TestSupportedAndGates(t *testing.T) {
 	}
 	// Every capability has a non-zero cost row except the pure ones.
 	for _, c := range agentio.CapabilityValues() {
-		if c.Cost().Class == agentio.CostPure && c != agentio.CapTokenLogin && c != agentio.CapLoginCommander && c != agentio.CapProcessClassifier && c != agentio.CapRunEvents && c != agentio.CapLiveCredential {
+		if c.Cost().Class == agentio.CostPure && c != agentio.CapTokenLogin && c != agentio.CapLoginCommander && c != agentio.CapProcessClassifier && c != agentio.CapRunEvents && c != agentio.CapLiveCredential && c != agentio.CapStopPlanner {
 			t.Errorf("%s: missing cost row", c)
 		}
 	}

@@ -1,0 +1,27 @@
+{
+  "id": "msg_0f0000000014BBBBBBBBBBBB04",
+  "sessionID": "ses_0f0000000002ffeFixtureBBBB",
+  "role": "assistant",
+  "time": {
+    "created": 1775100733514
+  },
+  "parentID": "msg_0f0000000013BBBBBBBBBBBB03",
+  "modelID": "gemma4",
+  "providerID": "ollama",
+  "mode": "build",
+  "agent": "build",
+  "path": {
+    "cwd": "/home/alice/other",
+    "root": "/"
+  },
+  "cost": 0,
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "reasoning": 0,
+    "cache": {
+      "read": 0,
+      "write": 0
+    }
+  }
+}
