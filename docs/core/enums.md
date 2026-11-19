@@ -81,7 +81,7 @@ The open sets, each with `XValues()` listing the names the library knows and `Is
 |---|---|
 | [`InstallMethod`](ds:block?id=installmethodvalues-ru5s5eaq) | `npm`, `bun`, `pnpm`, `brew`, `native`, `standalone`, `volta`, `unknown` (vendor packages add their own, such as [`claude.InstallNPMGlobal`](ds:block?id=claude-installnpmglobal-rnn85kq2)) |
 | [`MCPTransport`](ds:block?id=mcptransportvalues-gvqnntsb) | `stdio`, `http`, `sse`, `ws` |
-| [`ProcessKind`](ds:block?id=processkindvalues-vjn5j6xg) | `cli`, `exec`, `app-server`, `mcp-server`, `desktop`, `bridge`, `launcher` |
+| [`ProcessKind`](ds:block?id=processkindvalues-vjn5j6xg) | `cli`, `exec`, `app-server`, `mcp-server`, `desktop`, `bridge`, `launcher`, `command` (a short subcommand such as `claude mcp list`, never a session) |
 | [`SessionKind`](ds:block?id=sessionkindvalues-dz2kaxw9) | `interactive`, `bg` |
 | [`SkillScope`](ds:block?id=skillscopevalues-43djff4u) | `user`, `project`, `plugin`, `managed`, `system` |
 | [`CheckID`](ds:block?id=checkidvalues-rw58qvqg) | `binary-found`, `home`, `home-env`, `api-billing-env`, `version-tested`, `login` |
@@ -122,7 +122,7 @@ install method npm: known=true
 install method mise: known=false
 autonomy values: [default read-only ask accept-edits full]
 cost classes: [pure disk process network quota]
-process kinds: [cli exec app-server mcp-server desktop bridge launcher]
+process kinds: [cli exec app-server mcp-server desktop bridge launcher command]
 capabilities: 32, first installer
 ```
 

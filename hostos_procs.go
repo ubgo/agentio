@@ -69,6 +69,91 @@ func (osProcesses) Env(ctx context.Context, pid int) ([]string, error) {
 	return nil, UnsupportedError("", "process env", "no reader for "+runtime.GOOS)
 }
 
+// EnvBatch is Process · Read: Env for many pids in one read. linux reads
+// /proc/{pid}/environ per pid (file reads, no process run); darwin runs
+// `ps -E` once for every pid; windows is ErrUnsupported (PEB, as Env).
+// A pid whose environment cannot be read is left out of the map.
+func (osProcesses) EnvBatch(ctx context.Context, pids []int) (map[int][]string, error) {
+	switch runtime.GOOS {
+	case goosLinux:
+		return linuxEnvsAt(procRoot, pids), nil
+	case goosDarwin:
+		return darwinEnvs(ctx, pids)
+	case goosWindows:
+		return nil, UnsupportedError("", "process env", reasonWindowsEnv)
+	}
+	return nil, UnsupportedError("", "process env", "no reader for "+runtime.GOOS)
+}
+
+// linuxEnvsAt reads root/{pid}/environ for each pid, leaving out a pid
+// whose file cannot be read (ended, another user's). Disk · Read.
+func linuxEnvsAt(root string, pids []int) map[int][]string {
+	out := make(map[int][]string, len(pids))
+	for _, pid := range pids {
+		if env, err := linuxEnvAt(root, pid); err == nil && len(env) > 0 {
+			out[pid] = env
+		}
+	}
+	return out
+}
+
+// pidListSep joins pids for `ps -p`.
+const pidListSep = ","
+
+// darwinEnvs runs `ps -E -ww -o pid=,command= -p p1,p2,…` once and splits
+// the rows by their leading pid. ps exits 1 when none of the pids runs
+// any more; with no output that is an empty map, not an error. Process ·
+// Read (one run).
+func darwinEnvs(ctx context.Context, pids []int) (map[int][]string, error) {
+	if len(pids) == 0 {
+		return map[int][]string{}, nil
+	}
+	list := make([]string, len(pids))
+	for i, pid := range pids {
+		list[i] = strconv.Itoa(pid)
+	}
+	cmd := exec.CommandContext(ctx, psBin, "-E", "-ww", "-o", "pid=,command=", "-p", strings.Join(list, pidListSep))
+	cmd.Env = []string{envLocaleC}
+	out, err := cmd.Output()
+	var exitErr *exec.ExitError
+	noneRuns := errors.As(err, &exitErr) && len(bytes.TrimSpace(out)) == 0
+	if err != nil && !noneRuns {
+		return nil, fmt.Errorf("agentio: ps -E: %w", err)
+	}
+	return darwinEnvsFrom(pids, string(out)), nil
+}
+
+// darwinEnvsFrom splits `ps -E -o pid=,command=` output into one
+// environment per requested pid. A row starts with a requested pid not
+// seen yet; any other line continues the row before it (an env value
+// holding a newline). A pid whose row shows no NAME=value field (darwin
+// hides a protected process's environment) is left out, never reported
+// as an empty environment. Pure.
+func darwinEnvsFrom(pids []int, out string) map[int][]string {
+	rows := make(map[int]string, len(pids))
+	cur := 0
+	for _, line := range strings.Split(out, "\n") {
+		first, rest, _ := strings.Cut(strings.TrimLeft(line, " "), " ")
+		if pid, err := strconv.Atoi(first); err == nil && slices.Contains(pids, pid) {
+			if _, seen := rows[pid]; !seen {
+				cur = pid
+				rows[pid] = rest
+				continue
+			}
+		}
+		if cur != 0 {
+			rows[cur] += "\n" + line
+		}
+	}
+	envs := make(map[int][]string, len(rows))
+	for pid, row := range rows {
+		if env := envFields(row); len(env) > 0 {
+			envs[pid] = env
+		}
+	}
+	return envs
+}
+
 // reasonWindowsEnv is why Env is unsupported on windows.
 const reasonWindowsEnv = "windows exposes another process's environment only in its memory (PEB)"
 

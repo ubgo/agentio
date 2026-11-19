@@ -131,13 +131,12 @@ func resumeID(argv []string) (string, bool) {
 
 // sessionCwd is the folder the session runs in: the -C/--cd value
 // (relative to the process cwd), else the process cwd; "" when neither
-// is known. cost: Process · Read.
+// is known. The process cwd is p.Cwd when the caller filled it, else one
+// lookup. cost: Process · Read (none when p.Cwd is set).
 func (a *Agent) sessionCwd(ctx context.Context, p agentio.Process) string {
 	cwd := ""
-	if a.host.Processes != nil {
-		if d, err := a.host.Processes.Cwd(ctx, p.PID); err == nil {
-			cwd = d
-		}
+	if d, err := a.host.ProcessCwd(ctx, p); err == nil {
+		cwd = d
 	}
 	if dir, ok := agentio.ArgValue(p.Argv, flagCd, flagCdLong); ok && dir != "" {
 		if filepath.IsAbs(dir) {

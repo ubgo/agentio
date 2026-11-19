@@ -372,11 +372,14 @@ const (
 	ProcessDesktop   ProcessKind = "desktop"
 	ProcessBridge    ProcessKind = "bridge"
 	ProcessLauncher  ProcessKind = "launcher"
+	// ProcessCommand is a short-lived subcommand that is not a
+	// conversation (`claude mcp list`, `codex mcp add`): never a session.
+	ProcessCommand ProcessKind = "command"
 )
 
 // ProcessKindValues lists known kinds. Pure.
 func ProcessKindValues() []ProcessKind {
-	return []ProcessKind{ProcessCLI, ProcessExec, ProcessAppServer, ProcessMCPServer, ProcessDesktop, ProcessBridge, ProcessLauncher}
+	return []ProcessKind{ProcessCLI, ProcessExec, ProcessAppServer, ProcessMCPServer, ProcessDesktop, ProcessBridge, ProcessLauncher, ProcessCommand}
 }
 
 // IsKnown reports a named kind. Pure.

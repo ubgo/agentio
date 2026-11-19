@@ -6,7 +6,7 @@ Start from a row of the process table and ask what it is: which agent, which hom
 
 - Modules: `github.com/ubgo/agentio` plus the agents (`claude`, `codex`, `gemini`, `pi`).
 - `Host.Processes` must be set: `HostFromOS` reads the real table; tests use `agenttest.FakeProcesses` (with `Cwds` and `Envs`) or a fixed list like [`examples/processsessions`](../../examples/processsessions/).
-- A lister that also implements `agentio.ProcessEnvReader` lets agentio read the home variable a process started with (`CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `GEMINI_CLI_HOME`, `PI_CODING_AGENT_DIR`); `HostFromOS` does on Linux and macOS.
+- A lister that also implements `agentio.ProcessEnvReader` lets agentio read the home variable a process started with (`CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `GEMINI_CLI_HOME`, `PI_CODING_AGENT_DIR`); `HostFromOS` does on Linux and macOS. `agentio.ProcessEnvBatchReader` reads the environments of many pids in one call (one `ps -E` run on macOS); `HostFromOS` implements it too.
 
 The example reads a fixed table: a Claude session started from a shell in a terminal, a background Claude session, `claude mcp serve`, the Codex npm launcher with its native child resuming a recorded thread, and a Codex app-server.
 
@@ -65,6 +65,8 @@ Classification ([Live sessions](live-sessions.md#step-2--classify-a-process)) te
 
 Only `exact` is evidence about the process. Show `argv` and `inferred` joins with a marker; never kill on them.
 
+For a whole table, `agentio.FindProcessSessions(ctx, agents, table)` returns the sessions by pid. It groups the session rows per agent and asks an agent that implements `agentio.ProcessSessionBatchReader` (`agentio.ProcessSessionBatchOf(a)`; Claude Code does) once for all of its rows, so the start environments are read in one call instead of one `ps -E` run per row; other agents are asked row by row. When you already looked up a row's working directory, set `Process.Cwd` and no reader looks it up again (`Host.ProcessCwd(ctx, p)` is that rule). `Core.ProcessHomes(ctx, pids)` is the batch form of `ProcessHome`.
+
 <!-- snippet: examples/processsessions/main.go#sessions -->
 ```go
 // sessionsAndPlans joins each agent row to its conversation and asks the
@@ -108,8 +110,8 @@ func describePlan(plan agentio.StopPlan) string {
 	if plan.Command != nil {
 		out += ", run instead: " + plan.Command.Path + " " + strings.Join(plan.Command.Args, " ")
 	}
-	if plan.Resume != nil {
-		out += ", resume: " + plan.Resume.Path + " " + strings.Join(plan.Resume.Args, " ")
+	if line := plan.ResumeLine(); line != "" {
+		out += ", resume: " + line
 	}
 	return out
 }
@@ -130,11 +132,13 @@ Per agent:
 
 | Agent | Plan |
 |---|---|
-| Claude Code | `claude mcp serve` refused; a session gets SIGTERM and a 4 s grace; a background session (`Kind` `bg`) is ended with `claude stop <id>` in its home, because its supervisor respawns a killed worker, and `Force` is false |
-| Codex | `app-server` refused (it serves many threads and the TUI reattaches), `mcp-server` refused; the npm launcher targets its native child from the table, then itself, and is refused when the child is not in the table; the CLI and `exec` get SIGTERM |
+| Claude Code | every `claude mcp …` row refused (`mcp serve` is an MCP server, `mcp list` and the other subcommands are short commands); a session gets SIGTERM and a 4 s grace; a background session (`Kind` `bg`) is ended with `claude stop <id>` in its home, because its supervisor respawns a killed worker, and `Force` is false |
+| Codex | `app-server` refused (it serves many threads and the TUI reattaches), `mcp-server` and every `codex mcp …` row refused; the npm launcher targets its native child from the table, then itself, and is refused when the child is not in the table; the CLI and `exec` get SIGTERM |
 | Gemini CLI | the relaunch child, then its parent, whichever of the two `p` is; a management subcommand (`gemini mcp list`) refused |
 | pi | SIGTERM |
 | config agents | a non-session kind refused, else SIGTERM with `DefaultStopGrace` |
+
+`StopPlan.ResumeLine()` (`Command.ShellLine()` of `Resume`) is the resume line to print for a person: `cd <dir> && CLAUDE_CONFIG_DIR=<home> claude --resume <id>` for a non-default home, without the variable for the default home. It never prints a token or any env entry other than the home variable.
 
 On a Windows Host every plan has `Graceful` `none` and `Force` true: Windows has no SIGTERM, and a console control event reaches only processes on the sender's own console, so another console's agent can only be forced. The turn in flight is lost; the transcript up to it is kept.
 
@@ -156,40 +160,43 @@ func showAncestors(w io.Writer, table []agentio.Process) {
 
 ## Step 5 — Re-check right before signalling
 
-A table read is a snapshot: by the time a user confirms, a pid can have ended and been reused by an unrelated program. Right before signalling each target, call `Host.ProcessAlive(ctx, pid, start, "", "")` with the start time from the read the plan came from, and act only on `LivenessAlive`. `LivenessEnded` means the process is gone or the pid was reused; `LivenessUnknown` is a reason to skip, never to force. Re-check again before forcing the targets still running after `Grace`.
+A table read is a snapshot: by the time a user confirms, a pid can have ended and been reused by an unrelated program. Right before signalling each target, call `Host.ProcessAlive(ctx, pid, start, "", "")` with the start time from the read the plan came from, and act only on `LivenessAlive`. `LivenessEnded` means the process is gone or the pid was reused; `LivenessUnknown` is a reason to skip, never to force. Re-check again before forcing the targets still running after `Grace`. `Host.ProcessesAlive(ctx, refs)` re-checks every target with one table read: each `ProcessRef{PID, Start}` gets `LivenessAlive`, `LivenessEnded`, or `LivenessUnknown` when either side has no start time.
 
 <!-- snippet: examples/processsessions/main.go#safety -->
 ```go
-// recheck is the step a caller runs right before it signals a target:
+// recheck is the step a caller runs right before it signals its targets:
 // the start time it saw in the table read must still match, so a pid that
-// ended and was reused by another process is never signalled. Act only on
-// LivenessAlive; LivenessUnknown is a reason to skip, never to force.
+// ended and was reused by another process is never signalled. One
+// ProcessesAlive call re-checks every target with one table read. Act
+// only on LivenessAlive; LivenessUnknown is a reason to skip, never to
+// force.
 func recheck(ctx context.Context, w io.Writer, h agentio.Host, table []agentio.Process) error {
 	seen := map[int]time.Time{}
 	for _, p := range table {
 		seen[p.PID] = p.Start
 	}
-	// The second entry is a start time recorded an hour before the pid's
+	// The second ref is a start time recorded an hour before the pid's
 	// current process started: the pid was reused.
-	for _, c := range []struct {
-		pid   int
-		start time.Time
-	}{{codexChildPID, seen[codexChildPID]}, {codexChildPID, seen[codexChildPID].Add(-time.Hour)}} {
-		l, err := h.ProcessAlive(ctx, c.pid, c.start, "", "")
-		if err != nil {
-			return err
-		}
+	refs := []agentio.ProcessRef{
+		{PID: codexChildPID, Start: seen[codexChildPID]},
+		{PID: codexChildPID, Start: seen[codexChildPID].Add(-time.Hour)},
+	}
+	lives, err := h.ProcessesAlive(ctx, refs)
+	if err != nil {
+		return err
+	}
+	for i, r := range refs {
 		action := "skip"
-		if l == agentio.LivenessAlive {
+		if lives[i] == agentio.LivenessAlive {
 			action = "signal"
 		}
-		fmt.Fprintf(w, "pid %d started %s: %s, %s\n", c.pid, c.start.UTC().Format(time.TimeOnly), l, action)
+		fmt.Fprintf(w, "pid %d started %s: %s, %s\n", r.PID, r.Start.UTC().Format(time.TimeOnly), lives[i], action)
 	}
 	return nil
 }
 ```
 
-The full recipe: classify, keep `Session` rows, join (`FindProcessSession`), plan (`StopPlan`); when `Refuse` is set, show it; when `Command` is set, run it instead of signalling; else re-check each target, send `Graceful` (none on Windows), wait up to `Grace`, re-check, force the survivors when `Force` is true; then offer `Resume`.
+The full recipe: classify, keep `Session` rows, join (`FindProcessSession`), plan (`StopPlan`); when `Refuse` is set, show it; when `Command` is set, run it instead of signalling; else re-check the targets (`ProcessesAlive`), send `Graceful` (none on Windows), wait up to `Grace`, re-check, force the survivors when `Force` is true; then print `ResumeLine()`.
 
 ## Try it
 
@@ -209,15 +216,15 @@ pid 6001 codex cli session=true rss=140MiB tty=ttys005 cpu=3s cmd="/usr/lib/node
 pid 6100 codex app-server session=false rss=80MiB tty=- cpu=0s cmd="codex app-server"
 == sessions and stop plans ==
 pid 4242: claude home personal conversation 6d50c0ec confidence exact status busy kind "interactive"
-  stop: targets [4242], terminate then wait 4s, force true, resume: claude --resume 6d50c0ec-647e-18aa-84c7-04170288be89
+  stop: targets [4242], terminate then wait 4s, force true, resume: cd /work/proj4 && claude --resume 6d50c0ec-647e-18aa-84c7-04170288be89
 pid 4500: claude home personal conversation aaaaaaaa confidence exact status busy kind "bg"
-  stop: targets [4500], terminate then wait 4s, force false, run instead: claude stop aaaaaaaa-0000-4000-8000-000000000045, resume: claude --resume aaaaaaaa-0000-4000-8000-000000000045
+  stop: targets [4500], terminate then wait 4s, force false, run instead: claude stop aaaaaaaa-0000-4000-8000-000000000045, resume: cd /work/bg && claude --resume aaaaaaaa-0000-4000-8000-000000000045
 pid 5001: claude mcp-server, no session of its own
   stop: refused: claude mcp serve is an MCP server for another client, not a conversation
 pid 6000: codex launcher, no session of its own
   stop: targets [6001 6000], terminate then wait 4s, force true
 pid 6001: codex home personal conversation 0199e1a0 confidence argv status unknown kind ""
-  stop: targets [6001], terminate then wait 4s, force true, resume: codex resume 0199e1a0-0000-7000-8000-000000000001
+  stop: targets [6001], terminate then wait 4s, force true, resume: cd /work/proj && codex resume 0199e1a0-0000-7000-8000-000000000001
 pid 6100: codex app-server, no session of its own
   stop: refused: codex app-server serves many threads and the TUI reattaches to it; stop the sessions, not the daemon
 == ancestors ==
@@ -240,7 +247,7 @@ pid 6001 started 18:10:25: ended, skip
 ## Related
 
 - [Live sessions and processes](live-sessions.md): sessions listed per home, process classification.
-- [Host](../core/host.md): `Host.Processes`, `ProcessEnvReader`, `ProcessAlive`.
+- [Host](../core/host.md): `Host.Processes`, `ProcessEnvReader`, `ProcessEnvBatchReader`, `ProcessAlive`, `ProcessesAlive`.
 - [Platforms](../platforms.md): what each OS can read.
 - Vendor pages: [Claude sessions](../claude/sessions.md), [Codex sessions](../codex/sessions.md), [Gemini CLI](../gemini/README.md), [pi](../pi/README.md).
 - Example: [`examples/processsessions`](../../examples/processsessions/).

@@ -251,19 +251,24 @@ type LiveProcess struct {
 	Cwd string
 }
 
-// argv markers of `claude mcp serve` (Claude Code acting as an MCP server
-// for another client, documented subcommand): not a conversation.
+// argMCPServe is the `claude mcp serve` subcommand: Claude Code acting as
+// an MCP server for another client (documented), not a conversation.
 const argMCPServe = "serve"
 
 // ClassifyProcess says whether p is Claude Code, from Spec().Process
-// (agentop's production rules). `claude mcp serve` is an MCP server, not a
-// session; every other match is a CLI conversation. cost: Pure.
+// (agentop's production rules). No `claude mcp …` row is a session:
+// `claude mcp serve` is an MCP server, every other `mcp` subcommand
+// (list, add, remove, get, …) a short config command. Every other match
+// is a CLI conversation. cost: Pure.
 func ClassifyProcess(p agentio.Process) (agentio.ProcessInfo, bool) {
 	if !Spec().Process.Match(p) {
 		return agentio.ProcessInfo{}, false
 	}
-	if i := slices.Index(p.Argv, subMCP); i >= 0 && i+1 < len(p.Argv) && p.Argv[i+1] == argMCPServe {
-		return agentio.ProcessInfo{Agent: ID, Kind: agentio.ProcessMCPServer}, true
+	if i := slices.Index(p.Argv, subMCP); i >= 0 {
+		if i+1 < len(p.Argv) && p.Argv[i+1] == argMCPServe {
+			return agentio.ProcessInfo{Agent: ID, Kind: agentio.ProcessMCPServer}, true
+		}
+		return agentio.ProcessInfo{Agent: ID, Kind: agentio.ProcessCommand}, true
 	}
 	return agentio.ProcessInfo{Agent: ID, Kind: agentio.ProcessCLI, Session: true}, true
 }

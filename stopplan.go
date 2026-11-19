@@ -41,6 +41,17 @@ type StopPlan struct {
 	Resume *Command
 }
 
+// ResumeLine is the line a person types to bring the conversation back
+// after the stop (Resume.ShellLine): the home variable for a non-default
+// home, never a token or any other env value; "" when Resume is nil.
+// Pure.
+func (p StopPlan) ResumeLine() string {
+	if p.Resume == nil {
+		return ""
+	}
+	return p.Resume.ShellLine()
+}
+
 // StopPlanner plans how to stop one of the agent's processes (an
 // optional capability; StopPlannerOf).
 type StopPlanner interface {

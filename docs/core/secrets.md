@@ -144,7 +144,7 @@ The example's test also checks that neither the token nor the shell's API key ap
 - **Set a secret with `EnvSetSecret`, not `EnvSet`.** [`Redacted` and the JSON form judge a value by its source](ds:block?id=command-redacted-qbsw6442): a plain `EnvSet` value prints as written whatever its name, unless it sets a credential variable the launch scrubbed. Only values inherited unchanged from the base env are masked by name.
 - **A token never travels on argv.** Builders put it in `Command.Env` only; if you need to pass one to a child process, use [`EnvSetSecret`](ds:block?id=envsetsecret-tf8w23qe).
 - **Never refresh an OAuth token yourself.** The library never does: refreshing rotates the refresh token and logs the vendor CLI out. An expired login is reported as [`ErrExpired`](ds:block?id=claude-agent-usablecredential-e8k4sjep); one interactive run of the vendor CLI refreshes it ([Errors](errors.md)).
-- **[`Command.Env` is the one place with the real value.](ds:block?id=command-c4wdgewr)** Print commands with `Redacted()`, `String()` or JSON.
+- **[`Command.Env` is the one place with the real value.](ds:block?id=command-c4wdgewr)** Print commands with `Redacted()`, `String()`, `ShellLine()` (it adds only the home variable) or JSON.
 - **[A token kind the agent does not take is refused.](ds:block?id=claude-agent-tokenenv-tatsnfw8)** Claude accepts `oauth-token`, `api-key` and `api-key-helper`; any other `TokenKind` returns `ErrUnsupported` from `Launch`.
 
 ## Related

@@ -2,6 +2,7 @@ package agentio
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -66,7 +67,86 @@ type ProcessSessionReader interface {
 // false when no agent claims p, the agent has no reader, or the reader
 // finds nothing. Disk · Read + Process · Read.
 func FindProcessSession(ctx context.Context, agents []Agent, p Process) (ProcessSession, bool, error) {
-	for _, a := range agents {
+	i, ok := sessionAgent(agents, p)
+	if !ok {
+		return ProcessSession{}, false, nil
+	}
+	r, ok := ProcessSessionsOf(agents[i])
+	if !ok {
+		return ProcessSession{}, false, nil
+	}
+	return r.ProcessSession(ctx, p)
+}
+
+// ProcessSessionBatchReader is the batch form of ProcessSessionReader,
+// for joining a whole process table at once: the start environments are
+// read once for every row (ProcessEnvBatchReader) instead of once per row.
+// An agent that implements it also implements ProcessSessionReader, with
+// the same results row by row (ProcessSessionBatchOf).
+type ProcessSessionBatchReader interface {
+	// ProcessSessions is ProcessSession for every row of ps: the result
+	// holds, by pid, each row a session was found for; rows that are not
+	// this agent's session processes are skipped. The error joins the
+	// rows whose read failed (the other rows are still in the map).
+	// Disk · Read + Process · Read (one environment read for all rows,
+	// plus a cwd lookup for a row without Process.Cwd that needs one).
+	ProcessSessions(ctx context.Context, ps []Process) (map[int]ProcessSession, error)
+}
+
+// FindProcessSessions is FindProcessSession for a whole process table:
+// each row is classified against agents (first match wins), the session
+// rows are grouped per agent, and each group is read with one
+// ProcessSessionBatchReader call when the agent has one, else row by row.
+// The result holds, by pid, every row a session was found for. The error
+// joins the failed reads; the rows read before and after are still
+// returned. Set Process.Cwd on rows whose cwd the caller already looked
+// up, so no reader looks it up again. Disk · Read + Process · Read.
+func FindProcessSessions(ctx context.Context, agents []Agent, ps []Process) (map[int]ProcessSession, error) {
+	groups := make([][]Process, len(agents))
+	for _, p := range ps {
+		if i, ok := sessionAgent(agents, p); ok {
+			groups[i] = append(groups[i], p)
+		}
+	}
+	out := map[int]ProcessSession{}
+	var errs []error
+	for i, rows := range groups {
+		if len(rows) == 0 {
+			continue
+		}
+		if b, ok := ProcessSessionBatchOf(agents[i]); ok {
+			found, err := b.ProcessSessions(ctx, rows)
+			for pid, s := range found {
+				out[pid] = s
+			}
+			if err != nil {
+				errs = append(errs, err)
+			}
+			continue
+		}
+		r, ok := ProcessSessionsOf(agents[i])
+		if !ok {
+			continue
+		}
+		for _, p := range rows {
+			s, found, err := r.ProcessSession(ctx, p)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			if found {
+				out[p.PID] = s
+			}
+		}
+	}
+	return out, errors.Join(errs...)
+}
+
+// sessionAgent returns the index of the first agent that claims p as a
+// session process (FindProcessSession's rule); false when the first
+// claimant calls it a non-session kind or no agent claims it. Pure.
+func sessionAgent(agents []Agent, p Process) (int, bool) {
+	for i, a := range agents {
 		c, ok := ProcessClassifierOf(a)
 		if !ok {
 			continue
@@ -75,16 +155,21 @@ func FindProcessSession(ctx context.Context, agents []Agent, p Process) (Process
 		if !ok {
 			continue
 		}
-		if !info.Session {
-			return ProcessSession{}, false, nil
-		}
-		r, ok := ProcessSessionsOf(a)
-		if !ok {
-			return ProcessSession{}, false, nil
-		}
-		return r.ProcessSession(ctx, p)
+		return i, info.Session
 	}
-	return ProcessSession{}, false, nil
+	return 0, false
+}
+
+// ProcessCwd is p.Cwd when the caller filled it, else the lister's Cwd
+// lookup. Process · Read (none when p.Cwd is set).
+func (h Host) ProcessCwd(ctx context.Context, p Process) (string, error) {
+	if p.Cwd != "" {
+		return p.Cwd, nil
+	}
+	if h.Processes == nil {
+		return "", UnsupportedError("", "process cwd", "the host has no process lister")
+	}
+	return h.Processes.Cwd(ctx, p.PID)
 }
 
 // Ancestors returns the parent chain of pid in table, nearest parent
@@ -132,17 +217,45 @@ func (c *Core) ProcessHome(ctx context.Context, pid int) (Home, error) {
 	if err != nil {
 		return Home{}, err
 	}
+	return c.homeFromProcessEnv(env), nil
+}
+
+// ProcessHomes is ProcessHome for many pids with one environment read
+// (ProcessEnvBatchReader when the lister has it). The map holds the pids
+// whose environment was read; a missing pid's home is unknown, never
+// "the default" (it ended, darwin hides its environment, or the read is
+// unsupported). The error is set only when nothing could be read (no
+// lister or env reader, windows, a batch read that failed). Process ·
+// Read (one environment read for all pids).
+func (c *Core) ProcessHomes(ctx context.Context, pids []int) (map[int]Home, error) {
+	if c.host.Processes == nil {
+		return nil, UnsupportedError(c.spec.ID, "process env", "the host has no process lister")
+	}
+	envs, err := c.host.processEnvs(ctx, pids)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[int]Home, len(envs))
+	for pid, env := range envs {
+		out[pid] = c.homeFromProcessEnv(env)
+	}
+	return out, nil
+}
+
+// homeFromProcessEnv is the home a start environment selects: the home
+// Spec.HomeEnv names (resolved like HomeFromEnv), else the default. Pure.
+func (c *Core) homeFromProcessEnv(env []string) Home {
 	if c.spec.HomeEnv == "" {
-		return c.DefaultHome(), nil
+		return c.DefaultHome()
 	}
 	v, ok := EnvLookupFor(c.host.hostOS(), env, c.spec.HomeEnv)
 	if !ok || v == "" {
-		return c.DefaultHome(), nil
+		return c.DefaultHome()
 	}
 	if c.spec.HomeEnvNamesParent {
 		v = filepath.Join(resolveHomeDir(c.host.hostOS(), c.host.UserHome, v), c.spec.DefaultHome)
 	}
-	return c.HomeAt(v), nil
+	return c.HomeAt(v)
 }
 
 // flagValueSep joins a long flag and its value in one argument.

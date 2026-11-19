@@ -1,0 +1,9 @@
+func HomeEnvChange(homeEnv string, h Home) (EnvChange, bool) {
+	if homeEnv == "" {
+		return EnvChange{}, false
+	}
+	if h.IsDefault() {
+		return EnvUnset(homeEnv), true
+	}
+	return envSetHome(homeEnv, h.Dir()), true
+}

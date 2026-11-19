@@ -328,7 +328,7 @@ func (c *Core) homeEnvChange(h Home) (EnvChange, bool) {
 	if !c.spec.HomeEnvNamesParent || h.IsDefault() || c.spec.HomeEnv == "" {
 		return HomeEnvChange(c.spec.HomeEnv, h)
 	}
-	return EnvSet(c.spec.HomeEnv, filepath.Dir(h.Dir())), true
+	return envSetHome(c.spec.HomeEnv, filepath.Dir(h.Dir())), true
 }
 
 // checkHomeSelectable refuses a home the home variable cannot select: with

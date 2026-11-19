@@ -1,0 +1,27 @@
+func (h Host) ProcessAlive(ctx context.Context, pid int, startedAt time.Time, envKey, envValue string) (Liveness, error) {
+	lives, err := h.ProcessesAlive(ctx, []ProcessRef{{PID: pid, Start: startedAt}})
+	if err != nil {
+		return LivenessUnknown, err
+	}
+	live := lives[0]
+	if live == LivenessEnded {
+		return LivenessEnded, nil
+	}
+	startKnown := live == LivenessAlive
+	if envKey == "" {
+		if startKnown {
+			return LivenessAlive, nil
+		}
+		return LivenessUnknown, errors.New("agentio: pid runs but neither a start time nor an env key can confirm it")
+	}
+	env, envErr := h.processEnv(ctx, pid)
+	switch {
+	case envErr == nil && slices.Contains(env, envKey+"="+envValue):
+		return LivenessAlive, nil
+	case envErr == nil:
+		return LivenessEnded, nil
+	case startKnown:
+		return LivenessAlive, nil
+	}
+	return LivenessUnknown, fmt.Errorf("agentio: pid %d runs, start time unknown, env unreadable: %w", pid, envErr)
+}

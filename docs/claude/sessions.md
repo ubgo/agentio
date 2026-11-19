@@ -49,7 +49,7 @@ func liveSessions(w io.Writer, a *claude.Agent, h claude.Home) error {
 
 ## Step 2 — List agent processes
 
-`claude.ClassifyProcess(p)` says whether one process-table row is Claude Code: it matches the `claude` basename of the executable or `argv[0]`, an npm install run through node or bun (its `bin/claude` shim or a script inside `@anthropic-ai/claude-code/`, never an `npm install` of the package), excludes the desktop app, its bundled copy under `Application Support/Claude` and the browser extension host, and reports `claude mcp serve` as `agentio.ProcessMCPServer` (Claude Code serving MCP to another client, not a conversation) and every other match as a CLI session. `a.Processes(ctx)` applies it to `Host.Processes` and returns `[]claude.LiveProcess` with a best-effort `Cwd` each; it never runs `claude`.
+`claude.ClassifyProcess(p)` says whether one process-table row is Claude Code: it matches the `claude` basename of the executable or `argv[0]`, an npm install run through node or bun (its `bin/claude` shim or a script inside `@anthropic-ai/claude-code/`, never an `npm install` of the package), excludes the desktop app, its bundled copy under `Application Support/Claude` and the browser extension host, and reports `claude mcp serve` as `agentio.ProcessMCPServer` (Claude Code serving MCP to another client, not a conversation), every other `claude mcp …` subcommand (`list`, `add`, `remove`, `get`) as `agentio.ProcessCommand`, and every other match as a CLI session. No `claude mcp` row is a session. `a.Processes(ctx)` applies it to `Host.Processes` and returns `[]claude.LiveProcess` with a best-effort `Cwd` each; it never runs `claude`.
 
 <!-- snippet: examples/claudesessions/main.go#processes -->
 ```go

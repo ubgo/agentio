@@ -25,7 +25,7 @@ func TestRun(t *testing.T) {
 	for _, want := range []string{
 		`pid 4242 claude cli session=true rss=512MiB tty=ttys004 cpu=1h12m6s cmd="claude"`,
 		"pid 4242: claude home personal conversation 6d50c0ec confidence exact status busy",
-		"stop: targets [4242], terminate then wait 4s, force true, resume: claude --resume 6d50c0ec-647e-18aa-84c7-04170288be89",
+		"stop: targets [4242], terminate then wait 4s, force true, resume: cd /work/proj4 && claude --resume 6d50c0ec-647e-18aa-84c7-04170288be89",
 		"run instead: claude stop aaaaaaaa-0000-4000-8000-000000000045",
 		"stop: refused: claude mcp serve is an MCP server for another client, not a conversation",
 		"pid 6000: codex launcher, no session of its own",

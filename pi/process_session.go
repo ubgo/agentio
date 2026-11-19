@@ -53,7 +53,7 @@ func (a *Agent) ProcessSession(ctx context.Context, p agentio.Process) (agentio.
 		homes = hs
 	}
 	env := a.processEnv(ctx, p.PID)
-	base := agentio.ProcessSession{Agent: ID, PID: p.PID, Dir: a.processCwd(ctx, p.PID)}
+	base := agentio.ProcessSession{Agent: ID, PID: p.PID, Dir: a.processCwd(ctx, p)}
 	if envErr == nil {
 		base.Home = envHome
 	}
@@ -202,13 +202,11 @@ func (a *Agent) processEnv(ctx context.Context, pid int) []string {
 	return env
 }
 
-// processCwd is the process's working directory, "" when unreadable.
-// cost: Process · Read.
-func (a *Agent) processCwd(ctx context.Context, pid int) string {
-	if a.host.Processes == nil {
-		return ""
-	}
-	cwd, err := a.host.Processes.Cwd(ctx, pid)
+// processCwd is the process's working directory: p.Cwd when the caller
+// filled it, else one lookup; "" when unreadable. cost: Process · Read
+// (none when p.Cwd is set).
+func (a *Agent) processCwd(ctx context.Context, p agentio.Process) string {
+	cwd, err := a.host.ProcessCwd(ctx, p)
 	if err != nil {
 		return ""
 	}

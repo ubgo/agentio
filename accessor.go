@@ -147,6 +147,13 @@ func ProcessSessionsOf(a Agent) (ProcessSessionReader, bool) {
 	return capabilityOf[ProcessSessionReader](a, CapProcessSessions)
 }
 
+// ProcessSessionBatchOf returns the batch form of the agent's
+// ProcessSessionReader (Disk · Read + Process · Read), gated by the same
+// capability. Pure.
+func ProcessSessionBatchOf(a Agent) (ProcessSessionBatchReader, bool) {
+	return capabilityOf[ProcessSessionBatchReader](a, CapProcessSessions)
+}
+
 // StopPlannerOf returns the StopPlanner (Pure). Pure.
 func StopPlannerOf(a Agent) (StopPlanner, bool) {
 	return capabilityOf[StopPlanner](a, CapStopPlanner)

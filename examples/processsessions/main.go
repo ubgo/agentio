@@ -130,8 +130,8 @@ func describePlan(plan agentio.StopPlan) string {
 	if plan.Command != nil {
 		out += ", run instead: " + plan.Command.Path + " " + strings.Join(plan.Command.Args, " ")
 	}
-	if plan.Resume != nil {
-		out += ", resume: " + plan.Resume.Path + " " + strings.Join(plan.Resume.Args, " ")
+	if line := plan.ResumeLine(); line != "" {
+		out += ", resume: " + line
 	}
 	return out
 }
@@ -161,30 +161,33 @@ func showAncestors(w io.Writer, table []agentio.Process) {
 // snippet:end ancestors
 
 // snippet:start safety
-// recheck is the step a caller runs right before it signals a target:
+// recheck is the step a caller runs right before it signals its targets:
 // the start time it saw in the table read must still match, so a pid that
-// ended and was reused by another process is never signalled. Act only on
-// LivenessAlive; LivenessUnknown is a reason to skip, never to force.
+// ended and was reused by another process is never signalled. One
+// ProcessesAlive call re-checks every target with one table read. Act
+// only on LivenessAlive; LivenessUnknown is a reason to skip, never to
+// force.
 func recheck(ctx context.Context, w io.Writer, h agentio.Host, table []agentio.Process) error {
 	seen := map[int]time.Time{}
 	for _, p := range table {
 		seen[p.PID] = p.Start
 	}
-	// The second entry is a start time recorded an hour before the pid's
+	// The second ref is a start time recorded an hour before the pid's
 	// current process started: the pid was reused.
-	for _, c := range []struct {
-		pid   int
-		start time.Time
-	}{{codexChildPID, seen[codexChildPID]}, {codexChildPID, seen[codexChildPID].Add(-time.Hour)}} {
-		l, err := h.ProcessAlive(ctx, c.pid, c.start, "", "")
-		if err != nil {
-			return err
-		}
+	refs := []agentio.ProcessRef{
+		{PID: codexChildPID, Start: seen[codexChildPID]},
+		{PID: codexChildPID, Start: seen[codexChildPID].Add(-time.Hour)},
+	}
+	lives, err := h.ProcessesAlive(ctx, refs)
+	if err != nil {
+		return err
+	}
+	for i, r := range refs {
 		action := "skip"
-		if l == agentio.LivenessAlive {
+		if lives[i] == agentio.LivenessAlive {
 			action = "signal"
 		}
-		fmt.Fprintf(w, "pid %d started %s: %s, %s\n", c.pid, c.start.UTC().Format(time.TimeOnly), l, action)
+		fmt.Fprintf(w, "pid %d started %s: %s, %s\n", r.PID, r.Start.UTC().Format(time.TimeOnly), lives[i], action)
 	}
 	return nil
 }
