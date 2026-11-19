@@ -109,7 +109,6 @@ const (
 // package).
 const (
 	argvPackage    = "@google/gemini-cli"
-	nodeBase       = "node"
 	argPromptShort = "-p"
 )
 

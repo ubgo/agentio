@@ -244,6 +244,7 @@ func launch(p printer, a *gemini.Agent) error {
 | Capability | Gemini |
 |---|---|
 | install, binary version, process classifier | yes |
+| process sessions, stop planner | yes: the relaunch child joined to a chat by `--resume <id>` (argv) or by the newest chat of the cwd's project started after it (inferred); stop the child, then the relaunch parent |
 | identity, token login (API key) | yes |
 | conversations, history checker | yes |
 | instruction files, MCP servers, skills, plugins (extensions), config, doctor, home linker | yes |
@@ -261,7 +262,7 @@ func launch(p printer, a *gemini.Agent) error {
 ## Pitfalls
 
 - **`GEMINI_CLI_HOME` is the parent.** Setting it to a `.gemini` dir makes Gemini use `<that dir>/.gemini`.
-- **Two processes per session.** Gemini relaunches itself as a child with `GEMINI_CLI_NO_RELAUNCH=true`; `ClassifyProcess` matches both, so keep the child when you count sessions.
+- **Two processes per session.** Gemini relaunches itself as a child with `GEMINI_CLI_NO_RELAUNCH=true`; `ClassifyProcess` matches both, so keep the child when you count sessions (`RelaunchChild(p, table)` finds it). `ProcessSession` answers only for the child, and `StopPlan` targets the child first, then the parent ([Process sessions](../capabilities/process-sessions.md)).
 - **Old chats disappear.** `general.sessionRetention` deletes chats older than 30 days at the CLI's startup by default.
 - **The keychain is shared.** With `GEMINI_FORCE_ENCRYPTED_FILE_STORAGE`, the Google login lives in a keychain entry with a fixed name, shared by every home, and `Identity` (which reads `oauth_creds.json`) reports logged out.
 - **`.env` files inject keys.** Gemini reads `GEMINI_API_KEY` from `.env` files in the project and the home when it is not in the environment, which agentio does not model.

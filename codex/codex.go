@@ -46,6 +46,10 @@ const (
 	defaultHomeDir = ".codex"
 	// npmPackage is the npm launcher's package name (process matching).
 	npmPackage = "@openai/codex"
+	// npmScriptDir is the package directory the launcher script runs from
+	// (`node …/@openai/codex/bin/codex.js`); the trailing "/" keeps
+	// `npm install @openai/codex` out.
+	npmScriptDir = npmPackage + "/"
 )
 
 // spec placeholders understood by agentio templates.
@@ -84,9 +88,11 @@ func Spec() agentio.Spec {
 		// through a model provider whose env_key names it, which the doctor
 		// checks against config.toml (providerKeyCheck).
 		APIBillingEnv: []string{EnvCodexAPIKey},
+		// The native binary (also the launcher's child) is "codex"; the
+		// npm launcher is node or bun running the package's codex.js.
 		Process: agentio.ProcessMatch{
-			Basenames:    []string{Binary},
-			ArgvContains: []string{npmPackage},
+			Basenames:      []string{Binary},
+			ScriptContains: []string{npmScriptDir},
 		},
 	}
 }

@@ -1,8 +1,6 @@
 package gemini
 
 import (
-	"path"
-	"path/filepath"
 	"slices"
 	"strings"
 
@@ -15,17 +13,17 @@ func managementCommands() []string {
 	return []string{"mcp", "extensions", "extension", "skills", "skill", "hooks", "hook", "gemma", "models"}
 }
 
-// ClassifyProcess recognises a Gemini CLI process. It runs as node with
-// the bin path as argv[1]: a path inside @google/gemini-cli (the bundle,
-// a Homebrew libexec) or the npm shim as invoked (.../bin/gemini), or as
-// the standalone binary named gemini. Kind is exec for a headless run
-// (-p/--prompt), launcher for a management subcommand (mcp, extensions,
-// ...), cli otherwise.
+// ClassifyProcess recognises a Gemini CLI process from Spec().Process: the
+// standalone binary or shim named gemini (gemini.cmd, gemini.exe), or
+// node running the npm shim as invoked (.../bin/gemini) or a path inside
+// @google/gemini-cli (the bundle, a Homebrew libexec). Kind is exec for a
+// headless run (-p/--prompt), launcher for a management subcommand (mcp,
+// extensions, ...), cli otherwise.
 //
 // Every session is two processes: the parent relaunches itself as a child
 // (with GEMINI_CLI_NO_RELAUNCH=true and, when it raises the heap,
 // --max-old-space-size). Both match; a caller counting sessions keeps the
-// child (the row whose parent is also a match). cost: Pure.
+// child (the row whose parent is also a match; RelaunchChild). cost: Pure.
 func (a *Agent) ClassifyProcess(p agentio.Process) (agentio.ProcessInfo, bool) {
 	args, ok := geminiArgs(p)
 	if !ok {
@@ -44,37 +42,14 @@ func (a *Agent) ClassifyProcess(p agentio.Process) (agentio.ProcessInfo, bool) {
 // geminiArgs returns the CLI's own args (after the script or binary) when
 // p is Gemini CLI. cost: Pure.
 func geminiArgs(p agentio.Process) ([]string, bool) {
-	if len(p.Argv) == 0 {
+	m := Spec().Process
+	if !m.Match(p) || len(p.Argv) == 0 {
 		return nil, false
 	}
-	if isGeminiBase(p.Argv[0]) {
-		return p.Argv[1:], true
+	if i, ok := m.ScriptIndex(p); ok && !m.MatchesBasename(p) {
+		return p.Argv[i+1:], true
 	}
-	if !strings.HasPrefix(baseName(p.Argv[0]), nodeBase) && !strings.HasPrefix(baseName(p.Exe), nodeBase) {
-		return nil, false
-	}
-	for i, arg := range p.Argv[1:] {
-		if strings.HasPrefix(arg, "-") {
-			continue // node options such as --max-old-space-size
-		}
-		if strings.Contains(filepath.ToSlash(arg), argvPackage) || isGeminiBase(arg) {
-			return p.Argv[i+2:], true
-		}
-		return nil, false // another script
-	}
-	return nil, false
-}
-
-// isGeminiBase reports a path whose base name is the gemini binary or shim
-// (gemini, gemini.cmd, gemini.exe). cost: Pure.
-func isGeminiBase(p string) bool {
-	b := strings.ToLower(baseName(p))
-	return strings.TrimSuffix(b, path.Ext(b)) == Binary
-}
-
-// baseName is the last element of a slash or backslash path. cost: Pure.
-func baseName(p string) string {
-	return path.Base(strings.ReplaceAll(p, `\`, "/"))
+	return p.Argv[1:], true
 }
 
 // hasPrefixArg reports an arg starting with prefix. cost: Pure.

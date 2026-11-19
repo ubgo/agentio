@@ -13,7 +13,7 @@ The snippets come from [`examples/claudesessions`](../../examples/claudesessions
 
 `a.LiveSessions(h)` reads every `sessions/<pid>.json` (never the `*.key` files next to them) and returns `[]claude.LiveSession` sorted by pid: `PID`, `SessionID` (the conversation), `Cwd`, `Name`, `Version`, `Kind`, `Entrypoint`, `Status` (a `claude.SessionStatus`: `StatusIdle`, `StatusBusy`, `StatusShell`, `StatusWaiting`), `WaitingFor` (the vendor's reason text while waiting, such as `dialog open`), `StartedAt`, `UpdatedAt`, `StatusUpdatedAt`, `JobID`, `BridgeSessionID`, peer fields, `Path` and `Unknown`. `Alive` is true only when the pid is in the process table and its start time is within two minutes of `StartedAt`: a pid reused by another program reads as not alive.
 
-`a.LiveSessionsIn(h, dir)` keeps the entries whose `Cwd` is `dir`; `a.IsLive(h, conversationID)` reports an alive session running that conversation. `LiveSession.Neutral(h)` and `SessionStatus.Neutral()` project onto `agentio.LiveSession` and `agentio.SessionStatus` (`shell` counts as busy: it is running a command, not waiting for input).
+`a.LiveSessionsIn(h, dir)` keeps the entries whose `Cwd` is `dir`; `a.IsLive(h, conversationID)` reports an alive session running that conversation. `LiveSession.Neutral(h)` and `SessionStatus.Neutral()` project onto `agentio.LiveSession` and `agentio.SessionStatus` (`shell` counts as busy: it is running a command, not waiting for input; `waiting` is `agentio.SessionWaiting`: a dialog or permission prompt waits on the user).
 
 <!-- snippet: examples/claudesessions/main.go#live -->
 ```go
@@ -49,7 +49,7 @@ func liveSessions(w io.Writer, a *claude.Agent, h claude.Home) error {
 
 ## Step 2 — List agent processes
 
-`claude.ClassifyProcess(p)` says whether one process-table row is Claude Code: it matches the `claude` basename of the executable or `argv[0]`, excludes the desktop app and the browser extension host, and reports `claude mcp serve` as `agentio.ProcessMCPServer` (Claude Code serving MCP to another client, not a conversation) and every other match as a CLI session. `a.Processes(ctx)` applies it to `Host.Processes` and returns `[]claude.LiveProcess` with a best-effort `Cwd` each; it never runs `claude`.
+`claude.ClassifyProcess(p)` says whether one process-table row is Claude Code: it matches the `claude` basename of the executable or `argv[0]`, an npm install run through node or bun (its `bin/claude` shim or a script inside `@anthropic-ai/claude-code/`, never an `npm install` of the package), excludes the desktop app, its bundled copy under `Application Support/Claude` and the browser extension host, and reports `claude mcp serve` as `agentio.ProcessMCPServer` (Claude Code serving MCP to another client, not a conversation) and every other match as a CLI session. `a.Processes(ctx)` applies it to `Host.Processes` and returns `[]claude.LiveProcess` with a best-effort `Cwd` each; it never runs `claude`.
 
 <!-- snippet: examples/claudesessions/main.go#processes -->
 ```go
@@ -79,6 +79,8 @@ func processes(ctx context.Context, w io.Writer, a *claude.Agent) error {
 	return nil
 }
 ```
+
+To go from a process row to its conversation, `a.ProcessSession(ctx, p)` (the neutral `ProcessSessionReader`) reads `sessions/<pid>.json` directly in the home the process's `CLAUDE_CONFIG_DIR` names, checks its `startedAt` against the row's start time, and returns an `agentio.ProcessSession` with the conversation, status (`waiting` included), `LastActivity` from `statusUpdatedAt` / `updatedAt`, version, kind, entrypoint and transcript path, at confidence `exact`; without a registry file it falls back to a `--resume <id>` in argv (`argv`). `a.StopPlan(p, table, s)` refuses `claude mcp serve`, gives a session SIGTERM with a 4 s grace, and ends a background session with `claude stop <id>` in its home, because the supervisor respawns a killed worker. Both are covered in [Process sessions and stop plans](../capabilities/process-sessions.md).
 
 ## Step 3 — Read jobs and the daemon
 

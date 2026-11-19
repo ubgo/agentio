@@ -142,9 +142,14 @@ func Spec() agentio.Spec {
 		Packages:           []string{PackageName, legacyPackageName},
 		// pi sets process.title = "pi" (PKG/dist/cli/setup.js:4), which
 		// overwrites argv on linux: the row's argv0 is "pi" and its exe is
-		// node, so only the basename can match; the package path never
-		// appears in argv.
-		Process: agentio.ProcessMatch{Basenames: []string{Binary}},
+		// node, so only the basename can match there; the package path
+		// never appears in argv. On windows the title is the console's
+		// and the row stays node running the package's cli.js.
+		// ClassifyProcess narrows the short basename (see titleRow).
+		Process: agentio.ProcessMatch{
+			Basenames:      []string{Binary},
+			ScriptContains: []string{PackageName + "/", legacyPackageName + "/"},
+		},
 	}
 }
 

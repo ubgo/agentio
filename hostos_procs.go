@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -26,7 +27,7 @@ type osProcesses struct{}
 func (osProcesses) Processes(ctx context.Context) ([]Process, error) {
 	switch runtime.GOOS {
 	case goosLinux:
-		return linuxProcessesAt(procRoot)
+		return linuxProcessesAt(procRoot, os.Getpagesize())
 	case goosDarwin:
 		return darwinProcesses(ctx)
 	case goosWindows:
@@ -129,20 +130,35 @@ const reasonWindowsCwd = "windows exposes another process's working directory on
 // Linux /proc layout.
 const (
 	procRoot = "/proc"
-	// procStatPPIDField and procStatStartField are 0-based indexes into
-	// the fields after the ")" that ends comm in /proc/{pid}/stat
-	// (proc(5): field 4 ppid, field 22 starttime).
+	// procStat*Field are 0-based indexes into the fields after the ")"
+	// that ends comm in /proc/{pid}/stat (proc(5) numbers fields from 1
+	// and comm is field 2, so index = field - 3): field 4 ppid, 14 utime,
+	// 15 stime, 22 starttime, 24 rss (pages).
 	procStatPPIDField  = 1
+	procStatUTimeField = 11
+	procStatSTimeField = 12
 	procStatStartField = 19
+	procStatRSSField   = 21
 	// clockTicks is USER_HZ, 100 on every linux ABI Go supports.
 	clockTicks = 100
 	procBtime  = "btime "
+	// procStdinFD is the fd whose link names the controlling terminal:
+	// stat's tty_nr is a device number that needs a device map to name.
+	procStdinFD = "fd/0"
+	devPrefix   = "/dev/"
 )
 
+// ttyLinkPrefixes are the terminal devices a stdin link may point at
+// (pseudo terminals and virtual consoles); /dev/null, pipes and sockets
+// are not terminals. Pure.
+func ttyLinkPrefixes() []string { return []string{"/dev/pts/", "/dev/tty"} }
+
 // linuxProcessesAt reads every <root>/{pid} (root is /proc; a test passes a
-// fixture tree). Rows that vanish mid-read or are unreadable are skipped:
-// the table changes while it is read.
-func linuxProcessesAt(root string) ([]Process, error) {
+// fixture tree; pageSize converts stat's rss pages to bytes). Rows that
+// vanish mid-read or are unreadable are skipped: the table changes while
+// it is read. Each row is stat, cmdline and two links (exe, fd/0); an
+// unreadable fd/0 (another user's process) leaves TTY "". Disk · Read.
+func linuxProcessesAt(root string, pageSize int) ([]Process, error) {
 	boot, err := linuxBootTime(root)
 	if err != nil {
 		return nil, err
@@ -163,22 +179,17 @@ func linuxProcessesAt(root string) ([]Process, error) {
 			continue
 		}
 		p := Process{PID: pid}
-		if i := bytes.LastIndexByte(stat, ')'); i >= 0 {
-			f := strings.Fields(string(stat[i+1:]))
-			if len(f) > procStatStartField {
-				p.PPID, _ = strconv.Atoi(f[procStatPPIDField])
-				if ticks, err := strconv.ParseInt(f[procStatStartField], 10, 64); err == nil {
-					p.Start = boot.Add(time.Duration(ticks) * time.Second / clockTicks)
-				}
-			}
-		}
+		applyLinuxStat(&p, stat, boot, pageSize)
 		if cmdline, err := os.ReadFile(filepath.Join(dir, "cmdline")); err == nil {
-			for _, a := range bytes.Split(bytes.TrimRight(cmdline, "\x00"), []byte{0}) {
+			raw := bytes.TrimRight(cmdline, "\x00")
+			p.CommandLine = string(bytes.ReplaceAll(raw, []byte{0}, []byte{' '}))
+			for _, a := range bytes.Split(raw, []byte{0}) {
 				if len(a) > 0 {
 					p.Argv = append(p.Argv, string(a))
 				}
 			}
 		}
+		p.TTY = linuxTTY(filepath.Join(dir, procStdinFD))
 		if exe, err := os.Readlink(filepath.Join(dir, "exe")); err == nil {
 			p.Exe = exe
 		} else if len(p.Argv) > 0 {
@@ -187,6 +198,55 @@ func linuxProcessesAt(root string) ([]Process, error) {
 		out = append(out, p)
 	}
 	return out, nil
+}
+
+// applyLinuxStat fills PPID, Start, CPUTime and RSS from one
+// /proc/{pid}/stat body. comm (field 2) may hold spaces and parentheses,
+// so the fields are counted after its last ")". Pure.
+func applyLinuxStat(p *Process, stat []byte, boot time.Time, pageSize int) {
+	i := bytes.LastIndexByte(stat, ')')
+	if i < 0 {
+		return
+	}
+	f := strings.Fields(string(stat[i+1:]))
+	if len(f) <= procStatStartField {
+		return
+	}
+	p.PPID, _ = strconv.Atoi(f[procStatPPIDField])
+	if ticks, err := strconv.ParseInt(f[procStatStartField], 10, 64); err == nil {
+		p.Start = boot.Add(ticksDuration(ticks))
+	}
+	utime, uerr := strconv.ParseInt(f[procStatUTimeField], 10, 64)
+	stime, serr := strconv.ParseInt(f[procStatSTimeField], 10, 64)
+	if uerr == nil && serr == nil {
+		p.CPUTime = ticksDuration(utime + stime)
+	}
+	if len(f) > procStatRSSField {
+		if pages, err := strconv.ParseUint(f[procStatRSSField], 10, 64); err == nil && pageSize > 0 {
+			p.RSS = pages * uint64(pageSize)
+		}
+	}
+}
+
+// ticksDuration converts USER_HZ clock ticks to a duration. Pure.
+func ticksDuration(ticks int64) time.Duration {
+	return time.Duration(ticks) * time.Second / clockTicks
+}
+
+// linuxTTY names the terminal fdLink (a /proc/{pid}/fd/0 link) points at,
+// without "/dev/" ("pts/3", "tty1"); "" when the link is unreadable or
+// is not a terminal. Disk · Read.
+func linuxTTY(fdLink string) string {
+	target, err := os.Readlink(fdLink)
+	if err != nil {
+		return ""
+	}
+	for _, pre := range ttyLinkPrefixes() {
+		if strings.HasPrefix(target, pre) {
+			return strings.TrimPrefix(target, devPrefix)
+		}
+	}
+	return ""
 }
 
 // linuxBootTime reads btime from <root>/stat.
@@ -218,11 +278,27 @@ const (
 	lsofBin        = "/usr/sbin/lsof"
 	lsofNamePrefix = "n"
 	envLocaleC     = "LC_ALL=C"
+	// psColumns is the one table read: everything a row needs, with the
+	// unsplit command last so it can hold spaces.
+	psColumns = "pid=,ppid=,lstart=,rss=,tty=,time=,command="
+	// psFixedFields is the count of whitespace-separated fields before
+	// the command: pid, ppid, five lstart words, rss, tty, time.
+	psFixedFields = 2 + psLstartFields + 3
+	psRSSField    = 2 + psLstartFields
+	psTTYField    = psRSSField + 1
+	psTimeField   = psTTYField + 1
+	// psRSSUnit is the unit of ps's rss column (KiB).
+	psRSSUnit = 1024
 )
 
-// darwinProcesses runs one `ps -axww -o pid=,ppid=,lstart=,command=`.
+// psNoTTY are the tty column values that mean "no controlling terminal"
+// (darwin prints "??", procps "?", some BSDs "-"). Pure.
+func psNoTTY() []string { return []string{"??", "?", "-"} }
+
+// darwinProcesses runs one `ps -axww -o pid=,ppid=,lstart=,rss=,tty=,time=,command=`.
+// Process · Read.
 func darwinProcesses(ctx context.Context) ([]Process, error) {
-	cmd := exec.CommandContext(ctx, psBin, "-axww", "-o", "pid=,ppid=,lstart=,command=")
+	cmd := exec.CommandContext(ctx, psBin, "-axww", "-o", psColumns)
 	cmd.Env = []string{envLocaleC}
 	out, err := cmd.Output()
 	if err != nil {
@@ -231,13 +307,18 @@ func darwinProcesses(ctx context.Context) ([]Process, error) {
 	return parseDarwinPS(out, time.Local), nil
 }
 
-// parseDarwinPS parses `ps -axww -o pid=,ppid=,lstart=,command=` output
-// (lstart in the C locale, read in loc). Pure.
+// parseDarwinPS parses `ps -axww -o pid=,ppid=,lstart=,rss=,tty=,time=,command=`
+// output (lstart in the C locale, read in loc). CommandLine is the rest of
+// the line after the fixed columns, cut from the line itself so runs of
+// spaces inside it survive; Argv is that rest split on whitespace. A row
+// whose rss, tty or time column does not parse keeps the zero value for
+// it. Pure.
 func parseDarwinPS(out []byte, loc *time.Location) []Process {
 	var procs []Process
 	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.TrimRight(line, "\r")
 		f := strings.Fields(line)
-		if len(f) < 2+psLstartFields+1 {
+		if len(f) < psFixedFields+1 {
 			continue
 		}
 		pid, err1 := strconv.Atoi(f[0])
@@ -245,14 +326,79 @@ func parseDarwinPS(out []byte, loc *time.Location) []Process {
 		if err1 != nil || err2 != nil {
 			continue
 		}
-		p := Process{PID: pid, PPID: ppid, Argv: f[2+psLstartFields:]}
+		p := Process{PID: pid, PPID: ppid, Argv: f[psFixedFields:], CommandLine: skipFields(line, psFixedFields)}
 		if t, err := time.ParseInLocation(psLstartLayout, strings.Join(f[2:2+psLstartFields], " "), loc); err == nil {
 			p.Start = t
+		}
+		if kib, err := strconv.ParseUint(f[psRSSField], 10, 64); err == nil {
+			p.RSS = kib * psRSSUnit
+		}
+		if tty := f[psTTYField]; !slices.Contains(psNoTTY(), tty) {
+			p.TTY = tty
+		}
+		if d, ok := parsePSTime(f[psTimeField]); ok {
+			p.CPUTime = d
 		}
 		p.Exe = p.Argv[0]
 		procs = append(procs, p)
 	}
 	return procs
+}
+
+// skipFields returns line after its first n whitespace-separated fields,
+// with the whitespace before the rest removed and the rest untouched. Pure.
+func skipFields(line string, n int) string {
+	rest := line
+	for range n {
+		rest = strings.TrimLeft(rest, " \t")
+		i := strings.IndexAny(rest, " \t")
+		if i < 0 {
+			return ""
+		}
+		rest = rest[i:]
+	}
+	return strings.TrimLeft(rest, " \t")
+}
+
+// ps time column separators: "[[dd-]hh:]mm:ss[.cc]". darwin prints
+// minutes past 59 without hours ("462:03.95"); procps prints hours and a
+// day count ("1-02:03:04").
+const (
+	psTimeDaySep = "-"
+	psTimeSep    = ":"
+	psTimeParts  = 3
+)
+
+// parsePSTime parses a ps cumulative CPU time: "0:01.23", "12:34.56",
+// "462:03.95", "1:02:03", "1-02:03:04". false for anything else. Pure.
+func parsePSTime(s string) (time.Duration, bool) {
+	var total time.Duration
+	if d, rest, ok := strings.Cut(s, psTimeDaySep); ok {
+		days, err := strconv.ParseUint(d, 10, 32)
+		if err != nil {
+			return 0, false
+		}
+		total = time.Duration(days) * 24 * time.Hour
+		s = rest
+	}
+	parts := strings.Split(s, psTimeSep)
+	if len(parts) < 2 || len(parts) > psTimeParts {
+		return 0, false
+	}
+	secs, err := strconv.ParseFloat(parts[len(parts)-1], 64)
+	if err != nil || secs < 0 {
+		return 0, false
+	}
+	total += time.Duration(secs * float64(time.Second))
+	units := []time.Duration{time.Minute, time.Hour}
+	for i, j := len(parts)-2, 0; i >= 0; i, j = i-1, j+1 {
+		n, err := strconv.ParseUint(parts[i], 10, 32)
+		if err != nil {
+			return 0, false
+		}
+		total += time.Duration(n) * units[j]
+	}
+	return total, true
 }
 
 // darwinCwd asks lsof for the cwd of pid (`-Fn` prints "n<path>").
@@ -275,8 +421,10 @@ func darwinCwd(ctx context.Context, pid int) (string, error) {
 // command line; tasklist has no command line or start time.
 const (
 	powershellBin  = "powershell.exe"
-	psWin32Command = "Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,CreationDate,ExecutablePath,CommandLine | ConvertTo-Json -Compress"
-	psTimeout      = 20 * time.Second
+	psWin32Command = "Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,CreationDate,ExecutablePath,CommandLine,WorkingSetSize,UserModeTime,KernelModeTime | ConvertTo-Json -Compress"
+	// win32TimeUnit is the unit of UserModeTime and KernelModeTime.
+	win32TimeUnit = 100 * time.Nanosecond
+	psTimeout     = 20 * time.Second
 	// psDatePrefix and psDateSuffix wrap Windows PowerShell 5.1's JSON
 	// DateTime ("\/Date(1794639376159)\/" decodes to "/Date(ms)/").
 	psDatePrefix = "/Date("
@@ -306,6 +454,11 @@ type win32Process struct {
 	CreationDate    psDate  `json:"CreationDate"`
 	ExecutablePath  *string `json:"ExecutablePath"`
 	CommandLine     *string `json:"CommandLine"`
+	// WorkingSetSize is bytes; UserModeTime and KernelModeTime are 100 ns
+	// units. All three are null for a process the caller may not inspect.
+	WorkingSetSize *uint64 `json:"WorkingSetSize"`
+	UserModeTime   *uint64 `json:"UserModeTime"`
+	KernelModeTime *uint64 `json:"KernelModeTime"`
 }
 
 // psDate is a CreationDate in either PowerShell shape: Windows PowerShell
@@ -338,8 +491,10 @@ func (d *psDate) UnmarshalJSON(b []byte) error {
 
 // parseWin32Processes decodes ConvertTo-Json output: an array, or a bare
 // object when only one process is visible. Argv is split from CommandLine
-// with the Windows rules (splitWindowsCommandLine); Exe is ExecutablePath,
-// else Argv[0]. Pure.
+// with the Windows rules (splitWindowsCommandLine) and CommandLine keeps
+// the raw string; Exe is ExecutablePath, else Argv[0]; RSS is the working
+// set; CPUTime is user plus kernel time; TTY stays "" (Windows has no
+// controlling terminal). Pure.
 func parseWin32Processes(out []byte) ([]Process, error) {
 	trimmed := bytes.TrimSpace(StripBOM(out))
 	if len(trimmed) == 0 {
@@ -359,7 +514,20 @@ func parseWin32Processes(out []byte) ([]Process, error) {
 	for _, r := range rows {
 		p := Process{PID: r.ProcessID, PPID: r.ParentProcessID, Start: r.CreationDate.t}
 		if r.CommandLine != nil {
+			p.CommandLine = *r.CommandLine
 			p.Argv = splitWindowsCommandLine(*r.CommandLine)
+		}
+		if r.WorkingSetSize != nil {
+			p.RSS = *r.WorkingSetSize
+		}
+		if r.UserModeTime != nil || r.KernelModeTime != nil {
+			var units uint64
+			for _, v := range []*uint64{r.UserModeTime, r.KernelModeTime} {
+				if v != nil {
+					units += *v
+				}
+			}
+			p.CPUTime = time.Duration(units) * win32TimeUnit
 		}
 		switch {
 		case r.ExecutablePath != nil && *r.ExecutablePath != "":

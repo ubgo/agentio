@@ -147,9 +147,13 @@ func Spec() agentio.Spec {
 		SharedHomeFiles:    sharedHomeFiles(),
 		CredentialEnv:      credentialEnv(),
 		APIBillingEnv:      apiBillingEnv(),
+		// The standalone binary or npm shim is "gemini"; an npm install
+		// runs as node with the shim (…/bin/gemini) or a path inside the
+		// package (the bundle, a Homebrew libexec) as its script.
 		Process: agentio.ProcessMatch{
-			Basenames:    []string{Binary},
-			ArgvContains: []string{argvPackage},
+			Basenames:       []string{Binary},
+			ScriptBasenames: []string{Binary},
+			ScriptContains:  []string{argvPackage},
 		},
 	}
 }
