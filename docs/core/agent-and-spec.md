@@ -34,7 +34,7 @@ func describe(p printer, a agentio.Agent) error {
 }
 ```
 
-[The interface has nine methods.](ds:block?id=agent-476xnza7) All are Pure except `LookPath`, `Homes` and `IsHome`, which read the disk:
+[The interface has ten methods.](ds:block?id=agent-476xnza7) All are Pure except `LookPath`, `Homes` and `IsHome`, which read the disk:
 
 | Method | Returns | Cost |
 |---|---|---|
@@ -44,6 +44,7 @@ func describe(p printer, a agentio.Agent) error {
 | `LookPath()` | binary path from `Host.Env`'s PATH, or `ErrNotInstalled` | Disk |
 | `DefaultHome()` | the default `Home` | Pure |
 | `HomeFromEnv()` | the home the home variable selects, if set | Pure |
+| `HomeAt(dir)` | the `Home` for a folder you name (a `--home` flag): the default home for the default dir, else a non-default home named from the folder; it does not check the folder is a home | Pure |
 | `Homes()` | every home on disk, default first | Disk |
 | `IsHome(dir)` | whether `dir` is a home of this agent | Disk |
 | `Launch(t, r)` | a `Command` for one invocation | Pure |

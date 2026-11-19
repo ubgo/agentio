@@ -63,6 +63,7 @@ func HookMerge(t *testing.T, a agentio.Agent, h agentio.Home, seed string, comme
 			t.Fatalf("plan entry without a vendor event: %+v", e)
 		}
 	}
+	checkExisting(t, p, seed, opt)
 	b, err := inst.ApplyHooks(p)
 	if err != nil || len(b.Entries) != 1 {
 		t.Fatalf("apply: %+v %v", b, err)
@@ -81,6 +82,9 @@ func HookMerge(t *testing.T, a agentio.Agent, h agentio.Home, seed string, comme
 	again, err := inst.PlanHooks(h, want)
 	if err != nil || !again.IsNoop() || len(again.Present) != len(want) {
 		t.Fatalf("second plan: add=%d present=%d err=%v", len(again.Add), len(again.Present), err)
+	}
+	if installed := again.Matching(func(c string) bool { return c == hookMergeCommand }); len(installed) != len(want) {
+		t.Fatalf("Matching after install: %d of our entries, want %d (%+v)", len(installed), len(want), again.Existing)
 	}
 	if b, err := inst.ApplyHooks(again); err != nil || !b.IsEmpty() || readFile(t, p.File) != after {
 		t.Fatalf("second apply wrote: %+v %v", b, err)
@@ -163,4 +167,31 @@ func readFile(t *testing.T, path string) string {
 		t.Fatal(err)
 	}
 	return string(b)
+}
+
+// checkExisting: a plan's Existing lists every command hook of the seed
+// file, in file order, with its event, and nothing of the plan's own.
+func checkExisting(t *testing.T, p agentio.HookPlan, seed string, opt hookjson.Options) {
+	t.Helper()
+	hs, err := hookjson.Handlers([]byte(seed), opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var want []agentio.HookEntry
+	for _, h := range hs {
+		if h.IsCommand {
+			want = append(want, agentio.HookEntry{Event: h.Event, Command: h.Command})
+		}
+	}
+	if len(want) == 0 || len(p.Existing) != len(want) {
+		t.Fatalf("Existing = %+v, want the seed's %d command hooks", p.Existing, len(want))
+	}
+	for i, e := range p.Existing {
+		if e.Event != want[i].Event || e.Command != want[i].Command {
+			t.Fatalf("Existing[%d] = %+v, want %+v", i, e, want[i])
+		}
+	}
+	if len(p.Matching(func(c string) bool { return c == hookMergeCommand })) != 0 {
+		t.Fatal("Matching found our command before the install")
+	}
 }

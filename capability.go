@@ -437,7 +437,11 @@ type Turn struct {
 	ConversationID, Dir, Model, StopReason string
 	AgentVersion, Text                     string
 	Tokens                                 *TokenCounts
-	Raw                                    Raw
+	// Raw is the record the turn came from, as the agent wrote it: for a
+	// line-based transcript (Claude, Codex, Gemini JSONL, pi) the line
+	// without its terminator ("\n" or "\r\n", TrimLineEnd), so the same
+	// bytes for every agent; for opencode the message JSON.
+	Raw Raw
 }
 
 // TurnReader reads turns incrementally.

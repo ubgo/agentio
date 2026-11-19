@@ -34,10 +34,29 @@ type HookPlan struct {
 	// Present are requested entries the file already holds (same event,
 	// same command), so a second install changes nothing.
 	Present []HookEntry
+	// Existing is every command hook the file holds before the change, in
+	// file order (Kind is HookUnknown for an event without a neutral
+	// kind): a dry run shows with Matching which of them a RemoveHooks
+	// call would drop, such as an older entry of the same tool with
+	// another binary path.
+	Existing []HookEntry
 	// Manual are steps the library does not take for the hooks to run
 	// (Codex: a feature flag in config.toml, which agentio keeps
 	// read-only), each one line for the user.
 	Manual []string
+}
+
+// Matching returns the Existing entries whose command match reports
+// true: what RemoveHooks(p.Home, match) would remove from p.File now.
+// Pure.
+func (p HookPlan) Matching(match func(command string) bool) []HookEntry {
+	var out []HookEntry
+	for _, e := range p.Existing {
+		if match(e.Command) {
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 // IsNoop reports a plan with nothing to write. Pure.
