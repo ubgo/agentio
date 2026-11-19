@@ -59,11 +59,15 @@ func (a *Agent) ID() agentio.ID { return ID }
 func (a *Agent) Name() string { return displayName }
 
 // homeMarkers are entries opencode writes into its data dir: the database
-// (every start since 1.2.0) and the legacy storage/ tree. Neither name is
-// written by another agent into its home, so no marker is generic.
-// auth.json is left out: Codex and pi homes hold one too, and a data dir
-// that has run opencode at all holds the database.
+// (every start since 1.2.0) and the legacy storage/ tree. auth.json is
+// left out: Codex and pi homes hold one too, and a data dir that has run
+// opencode at all holds one of these.
 func homeMarkers() []string { return []string{dbFile, storageDir} }
+
+// genericHomeMarkers are the markers other programs write too: a storage/
+// dir is common. Alone it marks a home only in the data dir the Host env
+// selects; a folder found elsewhere needs opencode.db.
+func genericHomeMarkers() []string { return []string{storageDir} }
 
 // HomeMarkers lists the marker entries of a data dir. cost: Pure.
 func HomeMarkers() []string { return homeMarkers() }
@@ -89,15 +93,16 @@ func autonomyArgs() map[agentio.Autonomy][]string {
 func Spec() agentio.Spec {
 	return agentio.Spec{
 		ID: ID, Name: displayName, Binary: Binary,
-		DefaultHome:  filepath.Join(defaultDataBase, appDir),
-		HomeMarkers:  homeMarkers(),
-		NewArgs:      []string{placeholderArgs},
-		ResumeArgs:   []string{flagSession, placeholderID, placeholderArgs},
-		ModelArgs:    []string{flagModel, placeholderModel},
-		PromptArgs:   []string{flagPrompt, placeholderPrompt},
-		AutonomyArgs: autonomyArgs(),
-		VersionArgs:  []string{flagVersion},
-		Packages:     []string{Package},
+		DefaultHome:        filepath.Join(defaultDataBase, appDir),
+		HomeMarkers:        homeMarkers(),
+		GenericHomeMarkers: genericHomeMarkers(),
+		NewArgs:            []string{placeholderArgs},
+		ResumeArgs:         []string{flagSession, placeholderID, placeholderArgs},
+		ModelArgs:          []string{flagModel, placeholderModel},
+		PromptArgs:         []string{flagPrompt, placeholderPrompt},
+		AutonomyArgs:       autonomyArgs(),
+		VersionArgs:        []string{flagVersion},
+		Packages:           []string{Package},
 		Process: agentio.ProcessMatch{
 			Basenames:       []string{Binary, Binary + exeSuffix},
 			ScriptBasenames: []string{Binary},
@@ -225,8 +230,15 @@ func (a *Agent) Homes() ([]Home, error) {
 	return []Home{def}, nil
 }
 
-// IsHome reports whether dir holds opencode.db or storage/. cost: Disk · Read.
-func (a *Agent) IsHome(dir string) (bool, error) { return a.core.HasHomeMarker(dir) }
+// IsHome reports whether dir is a data dir: it holds opencode.db, or it
+// is the data dir the Host env selects (or ~/.local/share/opencode) and
+// holds storage/. cost: Disk · Read.
+func (a *Agent) IsHome(dir string) (bool, error) {
+	if filepath.Clean(dir) == a.DataDir() {
+		return a.core.HasHomeMarker(dir)
+	}
+	return a.core.IsHome(dir)
+}
 
 // LookPath finds opencode by walking PATH from Host.Env, never a shell.
 // cost: Disk · Read.

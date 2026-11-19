@@ -748,3 +748,24 @@ func TestBasicsAndVersion(t *testing.T) {
 		_ = FeatureSource(f)
 	}
 }
+
+func TestIsHomeMarkers(t *testing.T) {
+	t.Parallel()
+	a, host := newAgent(t)
+	found := filepath.Join(host.UserHome, "found")
+	agenttest.WriteFile(t, filepath.Join(found, "storage"), ".keep", "")
+	if ok, err := a.IsHome(found); ok || err != nil {
+		t.Fatalf("storage/ alone elsewhere: %v %v", ok, err)
+	}
+	agenttest.WriteFile(t, found, "opencode.db", "")
+	if ok, err := a.IsHome(found); !ok || err != nil {
+		t.Fatalf("opencode.db elsewhere: %v %v", ok, err)
+	}
+	// The XDG-selected data dir counts with storage/ alone.
+	xdg := filepath.Join(host.UserHome, "xdg")
+	agenttest.WriteFile(t, filepath.Join(xdg, "opencode", "storage"), ".keep", "")
+	b, _ := newAgent(t, XDGDataHomeEnv+"="+xdg)
+	if ok, err := b.IsHome(filepath.Join(xdg, "opencode")); !ok || err != nil {
+		t.Fatalf("xdg data dir with storage/: %v %v", ok, err)
+	}
+}
