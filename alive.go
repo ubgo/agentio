@@ -31,22 +31,15 @@ const startTolerance = 2 * time.Second
 // comparison uses. Process · Read (one process-table read, plus one env
 // read when the start time does not decide).
 func (h Host) ProcessAlive(ctx context.Context, pid int, startedAt time.Time, envKey, envValue string) (Liveness, error) {
-	if h.Processes == nil {
-		return LivenessUnknown, errors.New("agentio: no process lister in host")
-	}
-	procs, err := h.Processes.Processes(ctx)
+	lives, err := h.ProcessesAlive(ctx, []ProcessRef{{PID: pid, Start: startedAt}})
 	if err != nil {
-		return LivenessUnknown, fmt.Errorf("agentio: process table: %w", err)
+		return LivenessUnknown, err
 	}
-	i := slices.IndexFunc(procs, func(p Process) bool { return p.PID == pid })
-	if i < 0 {
+	live := lives[0]
+	if live == LivenessEnded {
 		return LivenessEnded, nil
 	}
-	p := procs[i]
-	startKnown := !startedAt.IsZero() && !p.Start.IsZero()
-	if startKnown && p.Start.Sub(startedAt).Abs() > startTolerance {
-		return LivenessEnded, nil
-	}
+	startKnown := live == LivenessAlive
 	if envKey == "" {
 		if startKnown {
 			return LivenessAlive, nil
@@ -65,6 +58,56 @@ func (h Host) ProcessAlive(ctx context.Context, pid int, startedAt time.Time, en
 	return LivenessUnknown, fmt.Errorf("agentio: pid %d runs, start time unknown, env unreadable: %w", pid, envErr)
 }
 
+// ProcessRef names one process a caller recorded: its pid and the start
+// time read with it (Process.Start), which tells it from a later process
+// that reused the pid.
+type ProcessRef struct {
+	PID   int
+	Start time.Time
+}
+
+// ProcessesAlive re-checks many recorded processes with one
+// process-table read (a reaper re-checking every row right before it
+// signals). The result has one answer per ref, in the order of refs (a
+// pid asked twice with two start times gets two answers):
+//   - LivenessEnded: the pid is gone, or runs with a start time more than
+//     startTolerance from the recorded one (the pid was reused);
+//   - LivenessAlive: the pid runs with the recorded start time;
+//   - LivenessUnknown: the pid runs but the ref or the table has no start
+//     time, so nothing confirms it is the same process.
+//
+// Record Start from Host.Processes: it is the clock the comparison uses.
+// The error is for a table that cannot be read (then the result is nil).
+// Process · Read (one process-table read).
+func (h Host) ProcessesAlive(ctx context.Context, refs []ProcessRef) ([]Liveness, error) {
+	if h.Processes == nil {
+		return nil, errors.New("agentio: no process lister in host")
+	}
+	procs, err := h.Processes.Processes(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("agentio: process table: %w", err)
+	}
+	starts := make(map[int]time.Time, len(procs))
+	for _, p := range procs {
+		starts[p.PID] = p.Start
+	}
+	out := make([]Liveness, len(refs))
+	for i, r := range refs {
+		start, runs := starts[r.PID]
+		switch {
+		case !runs:
+			out[i] = LivenessEnded
+		case r.Start.IsZero() || start.IsZero():
+			out[i] = LivenessUnknown
+		case start.Sub(r.Start).Abs() > startTolerance:
+			out[i] = LivenessEnded
+		default:
+			out[i] = LivenessAlive
+		}
+	}
+	return out, nil
+}
+
 // processEnv reads pid's start env through ProcessEnvReader. Process · Read.
 func (h Host) processEnv(ctx context.Context, pid int) ([]string, error) {
 	r, ok := h.Processes.(ProcessEnvReader)
@@ -72,4 +115,26 @@ func (h Host) processEnv(ctx context.Context, pid int) ([]string, error) {
 		return nil, UnsupportedError("", "process env", "the host's process lister cannot read a process environment")
 	}
 	return r.Env(ctx, pid)
+}
+
+// processEnvs reads the start env of every pid: one ProcessEnvBatchReader
+// read when the lister has it, else Env per pid. A pid whose env cannot
+// be read is missing from the map; the error is set only when nothing
+// could be asked (no env reader, or the batch read failed as a whole).
+// Process · Read.
+func (h Host) processEnvs(ctx context.Context, pids []int) (map[int][]string, error) {
+	if r, ok := h.Processes.(ProcessEnvBatchReader); ok {
+		return r.EnvBatch(ctx, pids)
+	}
+	r, ok := h.Processes.(ProcessEnvReader)
+	if !ok {
+		return nil, UnsupportedError("", "process env", "the host's process lister cannot read a process environment")
+	}
+	out := make(map[int][]string, len(pids))
+	for _, pid := range pids {
+		if env, err := r.Env(ctx, pid); err == nil {
+			out[pid] = env
+		}
+	}
+	return out, nil
 }

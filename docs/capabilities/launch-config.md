@@ -142,7 +142,7 @@ func codexConfig(w io.Writer) error {
 
 ## Step 5 — Clean up run files only after the agent ended
 
-A launcher that writes per-run files (the settings file above, a run record) deletes them once the agent has ended. [`Host.ProcessAlive`](ds:block?id=host-processalive-r6a8s4df) takes the recorded pid, start time and an env entry you set at launch (`AGX_RUN_ID=<id>`): a gone pid, another start time, or a start env without the entry is `ended` (the pid was reused); a matching start time or env is `alive`; anything it cannot verify is `unknown` with the reason, so keep those files. `HostFromOS` reads a process's start env [on Linux and macOS](ds:block?id=processenvreader-r6g2h9jk); on Windows it reports unsupported and the start time decides.
+A launcher that writes per-run files (the settings file above, a run record) deletes them once the agent has ended. [`Host.ProcessAlive`](ds:block?id=host-processalive-r6a8s4df) takes the recorded pid, start time and an env entry you set at launch (`AGX_RUN_ID=<id>`): a gone pid, another start time, or a start env without the entry is `ended` (the pid was reused); a matching start time or env is `alive`; anything it cannot verify is `unknown` with the reason, so keep those files. `HostFromOS` reads a process's start env [on Linux and macOS](ds:block?id=processenvreader-r6g2h9jk); on Windows it reports unsupported and the start time decides. To re-check many recorded processes at once, `Host.ProcessesAlive(ctx, []ProcessRef{{PID, Start}})` reads the table once and answers per pid by start time alone (`ProcessAlive` uses it).
 
 <!-- snippet: examples/launchconfig/main.go#alive -->
 ```go

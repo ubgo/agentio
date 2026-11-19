@@ -86,16 +86,38 @@ type FakeProcesses struct {
 	Envs map[int][]string
 	// Err, when set, is returned by Processes.
 	Err error
+	// Call counts, for tests that bound how often a reader asks the host
+	// (a batch join reads the environments once, not once per row). Not
+	// safe for concurrent calls, like the rest of the fake.
+	TableReads, CwdCalls, EnvCalls, EnvBatchCalls int
 }
 
 var (
-	_ agentio.ProcessLister    = (*FakeProcesses)(nil)
-	_ agentio.ProcessEnvReader = (*FakeProcesses)(nil)
+	_ agentio.ProcessLister         = (*FakeProcesses)(nil)
+	_ agentio.ProcessEnvReader      = (*FakeProcesses)(nil)
+	_ agentio.ProcessEnvBatchReader = (*FakeProcesses)(nil)
 )
+
+// EnvBatch returns Envs for each listed pid in one call; pids without an
+// entry are left out; ErrUnsupported when Envs is nil. Pure.
+func (f *FakeProcesses) EnvBatch(_ context.Context, pids []int) (map[int][]string, error) {
+	f.EnvBatchCalls++
+	if f.Envs == nil {
+		return nil, agentio.UnsupportedError("", "process env", "fake without envs")
+	}
+	out := make(map[int][]string, len(pids))
+	for _, pid := range pids {
+		if e, ok := f.Envs[pid]; ok {
+			out[pid] = append([]string(nil), e...)
+		}
+	}
+	return out, nil
+}
 
 // Env returns Envs[pid]; ErrUnsupported when Envs is nil, fs.ErrNotExist
 // for a pid without an entry. Pure.
 func (f *FakeProcesses) Env(_ context.Context, pid int) ([]string, error) {
+	f.EnvCalls++
 	if f.Envs == nil {
 		return nil, agentio.UnsupportedError("", "process env", "fake without envs")
 	}
@@ -107,6 +129,7 @@ func (f *FakeProcesses) Env(_ context.Context, pid int) ([]string, error) {
 
 // Processes returns List. Pure.
 func (f *FakeProcesses) Processes(context.Context) ([]agentio.Process, error) {
+	f.TableReads++
 	if f.Err != nil {
 		return nil, f.Err
 	}
@@ -115,6 +138,7 @@ func (f *FakeProcesses) Processes(context.Context) ([]agentio.Process, error) {
 
 // Cwd returns Cwds[pid]. Pure.
 func (f *FakeProcesses) Cwd(_ context.Context, pid int) (string, error) {
+	f.CwdCalls++
 	if d, ok := f.Cwds[pid]; ok {
 		return d, nil
 	}

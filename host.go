@@ -85,6 +85,12 @@ type Process struct {
 	// CPUTime is the user plus system CPU time used so far; 0 = unknown.
 	// A CPU percentage needs two samples, which is the caller's job.
 	CPUTime time.Duration
+	// Cwd is the working directory when the caller already looked it up
+	// (ProcessLister.Cwd); Host.Processes leaves it "" because reading it
+	// costs a run per process on darwin. Readers that need a cwd
+	// (ProcessSessionReader) use it instead of a second lookup. "" = not
+	// looked up.
+	Cwd string
 }
 
 // CommandString is CommandLine, or Argv joined with spaces when the
@@ -116,6 +122,20 @@ type ProcessEnvReader interface {
 	// output, mixed with the command line, so match a whole NAME=value
 	// entry, never parse values with spaces.
 	Env(ctx context.Context, pid int) ([]string, error)
+}
+
+// ProcessEnvBatchReader is an optional extension of ProcessLister: the start
+// environments of many processes in one read, for joining a whole process
+// table to sessions (FindProcessSessions) without a run per process.
+// HostFromOS's lister implements it on linux (one /proc read per pid, no
+// process run) and darwin (one `ps -E` run for every pid).
+type ProcessEnvBatchReader interface {
+	// EnvBatch is Process · Read: the start environment of each pid whose
+	// environment is readable, same entry format as Env. A pid that has
+	// ended or whose environment is hidden (a protected darwin process)
+	// is missing from the map; the error is for a read that failed as a
+	// whole (windows: ErrUnsupported).
+	EnvBatch(ctx context.Context, pids []int) (map[int][]string, error)
 }
 
 // SecretStore reads the keychain or keyring.

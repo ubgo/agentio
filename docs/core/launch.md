@@ -67,6 +67,7 @@ The `Command` you get back:
 | `Warnings` | drift notes from building (unknown or untested version) |
 | `String()` | [the POSIX shell-quoted argv for display, env never included; not PowerShell or cmd.exe quoting](ds:block?id=command-string-uxssqggr) |
 | `Redacted()` | a copy whose secret env values read [`[redacted]`](ds:block?id=command-redacted-qbsw6442) |
+| `ShellLine()` | the line a person types to run it: `cd <Dir> && ` when `Dir` is set, the home variable of a non-default home (`CLAUDE_CONFIG_DIR=<home>`; nothing for the default home), then `String()`. No other env entry is ever printed, so a token cannot leak through it |
 | `SecretEnvNames()` | [env names whose values came from a `Token`](ds:block?id=command-secretenvnames-72t7wfqg) |
 | `MarshalJSON` | [always the redacted form](ds:block?id=command-marshaljson-gy7a7qs2) |
 

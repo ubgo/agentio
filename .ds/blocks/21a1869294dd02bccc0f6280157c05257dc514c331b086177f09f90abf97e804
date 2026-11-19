@@ -1,0 +1,3 @@
+func ProcessKindValues() []ProcessKind {
+	return []ProcessKind{ProcessCLI, ProcessExec, ProcessAppServer, ProcessMCPServer, ProcessDesktop, ProcessBridge, ProcessLauncher, ProcessCommand}
+}

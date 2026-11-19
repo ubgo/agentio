@@ -34,6 +34,9 @@ type Command struct {
 	// never scrubbed: their source chose to show them, so Redacted prints
 	// them whatever the name (CLAUDE_CODE_API_KEY_HELPER_TTL_MS).
 	plainNames []string
+	// homeNames are names the home rule set (HomeEnvChange: the home
+	// variable of a non-default home), the only env ShellLine prints.
+	homeNames []string
 }
 
 // sensitiveNameParts mark an env name as secret-bearing for Redacted, for
@@ -72,6 +75,7 @@ func (c Command) Redacted() Command {
 	out.secretNames = slices.Clone(c.secretNames)
 	out.credentialNames = slices.Clone(c.credentialNames)
 	out.plainNames = slices.Clone(c.plainNames)
+	out.homeNames = slices.Clone(c.homeNames)
 	out.Env = make([]string, len(c.Env))
 	for i, kv := range c.Env {
 		name, val, ok := strings.Cut(kv, envSep)
@@ -97,6 +101,46 @@ func (c Command) String() string {
 		parts = append(parts, shellQuote(a))
 	}
 	return strings.Join(parts, " ")
+}
+
+// shellLineDirSep joins the cd prefix to the command in ShellLine.
+const shellLineDirSep = " && "
+
+// shellLineCd starts the directory prefix of ShellLine.
+const shellLineCd = "cd "
+
+// ShellLine renders the line a person types to run the command, for
+// printing (agentop's "resume with" hint): "cd <Dir> && " when Dir is
+// set, then the home variable the build set for a non-default home
+// ("CLAUDE_CONFIG_DIR=<home>"; nothing for the default home, whose rule
+// removes the variable), then the path and args as String quotes them.
+// The home variable is the only env entry it prints: a token, an API key
+// or any other env value never appears, whatever its name. The quoting is
+// POSIX sh only, like String. Pure.
+func (c Command) ShellLine() string {
+	var parts []string
+	if c.Dir != "" {
+		parts = append(parts, shellLineCd+shellQuote(c.Dir)+shellLineDirSep)
+	}
+	for _, name := range c.homeNames {
+		if slices.Contains(c.secretNames, name) || slices.Contains(c.credentialNames, name) {
+			continue
+		}
+		if v, ok := envValue(c.Env, name); ok && v != "" {
+			parts = append(parts, name+envSep+shellQuote(v)+" ")
+		}
+	}
+	return strings.Join(parts, "") + c.String()
+}
+
+// envValue returns the value of the last name= entry of env. Pure.
+func envValue(env []string, name string) (string, bool) {
+	for i := len(env) - 1; i >= 0; i-- {
+		if n, v, ok := strings.Cut(env[i], envSep); ok && n == name {
+			return v, true
+		}
+	}
+	return "", false
 }
 
 // commandJSON is the JSON shape of a Command; Env is always redacted.
@@ -166,6 +210,9 @@ type EnvChange struct {
 	name   string
 	value  string
 	secret Token
+	// home marks the home rule's set (HomeEnvChange), which
+	// Command.ShellLine may print.
+	home bool
 }
 
 // EnvSet sets name to a plain value. Pure.
@@ -262,7 +309,28 @@ func HomeEnvChange(homeEnv string, h Home) (EnvChange, bool) {
 	if h.IsDefault() {
 		return EnvUnset(homeEnv), true
 	}
-	return EnvSet(homeEnv, h.Dir()), true
+	return envSetHome(homeEnv, h.Dir()), true
+}
+
+// envSetHome is EnvSet marked as the home rule's variable (the one env
+// entry Command.ShellLine prints). Pure.
+func envSetHome(name, value string) EnvChange {
+	c := EnvSet(name, value)
+	c.home = true
+	return c
+}
+
+// homeSources lists the names whose last change is a home-rule set: a
+// later plain, secret or unset change of the same name takes it out. Pure.
+func homeSources(changes []EnvChange) []string {
+	var out []string
+	for _, c := range changes {
+		out = slices.DeleteFunc(out, func(n string) bool { return n == c.name })
+		if c.op == EnvSetOp && c.home {
+			out = append(out, c.name)
+		}
+	}
+	return out
 }
 
 // ScrubEnv returns unset changes for names (every launch removes the
@@ -330,5 +398,6 @@ func NewCommand(path string, args []string, base []string, dir string, changes .
 		secretNames:     secret,
 		credentialNames: credential,
 		plainNames:      plain,
+		homeNames:       homeSources(changes),
 	}
 }

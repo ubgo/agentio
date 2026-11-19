@@ -69,7 +69,7 @@ func readThreadLocks(w io.Writer, a *codex.Agent, h codex.Home) error {
 
 ## Step 3 — List processes and chat processes
 
-`Processes(ctx)` lists running Codex processes with one process-table read (plus one cwd lookup per match) as `LiveProcess` values with a `Kind`: `cli`, `exec`, `app-server` (daemon or proxy), `mcp-server`, or `launcher` (the npm `node …/codex.js` wrapper). `ClassifyProcess(p)` classifies one row; `Session` is true for `cli` and `exec`, the processes that own a conversation. `ChatProcesses(h)` reads `process_manager/chat_processes.json`, the background commands a chat started. `DaemonSocket(h)` reports the app-server socket path when it exists.
+`Processes(ctx)` lists running Codex processes with one process-table read (plus one cwd lookup per match) as `LiveProcess` values with a `Kind`: `cli`, `exec`, `app-server` (daemon or proxy), `mcp-server` (also `codex mcp serve` and a bare `codex mcp`, which older Codex ran as its MCP server), `command` (`codex mcp list|add|remove|get|login|logout`, short config commands), or `launcher` (the npm `node …/codex.js` wrapper). `ClassifyProcess(p)` classifies one row; `Session` is true for `cli` and `exec`, the processes that own a conversation, so no `codex mcp …` row is ever a session. `ChatProcesses(h)` reads `process_manager/chat_processes.json`, the background commands a chat started. `DaemonSocket(h)` reports the app-server socket path when it exists.
 
 <!-- snippet: examples/codexsessions/main.go#processes -->
 ```go
