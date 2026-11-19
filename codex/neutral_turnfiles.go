@@ -3,11 +3,19 @@ package codex
 import "github.com/ubgo/agentio"
 
 // Codex reads turns from a rollout path a caller holds (CapTurnFiles).
-var _ agentio.TurnFileReader = neutral{}
+var (
+	_ agentio.TurnFileReader  = neutral{}
+	_ agentio.BadLineReporter = neutral{}
+)
 
 // TurnsAt is Agent.TurnsAt. Disk · Read.
 func (n neutral) TurnsAt(path string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {
 	return n.a.TurnsAt(path, from, fn)
+}
+
+// TurnsAtReporting is Agent.TurnsAtReporting. Disk · Read.
+func (n neutral) TurnsAtReporting(path string, from agentio.Offset, fn func(agentio.Turn) error, bad func(agentio.BadLine)) (agentio.Offset, error) {
+	return n.a.TurnsAtReporting(path, from, fn, bad)
 }
 
 // TranscriptOwner is Agent.RolloutOwner. Disk · Read.

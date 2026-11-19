@@ -67,6 +67,7 @@ func listConversations(w io.Writer, a *codex.Agent, h codex.Home) error {
 - A commentary message (`Phase` `commentary`) is emitted at once with `Interim` set and no tokens. A caller that stores answers skips it; a viewer shows it.
 - An answer waits for its `token_count`, which Codex writes a few lines later: the `token_count` attaches `last_token_usage` and releases it; `task_complete`, `turn_aborted`, `task_started`, `turn_context`, `session_meta`, `compacted` or the next message release it without tokens. `response_item`, `token_usage_record` and `world_state` lines do not, because Codex writes them between the answer and its `token_count`.
 - When a read reaches the end of the file while an answer waits, the answer is not emitted and the returned cursor is the offset of the answer's line, so a live reader (a Stop hook, a file watcher) gets it on its next read, once and with tokens. A session that crashed right after its answer and never writes another line keeps that answer held back.
+- A line that is not valid JSON (`codex.ErrInvalidLine`) is skipped and the read goes on; `TurnsAtReporting(path, from, fn, bad)` (the neutral `BadLineReporter`) reports each one.
 - A read that starts past 0 takes the folder and CLI version from the `session_meta` head and the model from the last `turn_context` within 256 KiB before the cursor.
 
 <!-- snippet: examples/codexconversations/main.go#turns -->

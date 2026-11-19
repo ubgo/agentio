@@ -27,7 +27,8 @@ import (
 //     line, so no message waits for a later line.
 //   - ConversationID and Dir come from the session header (first line),
 //     read on every call. AgentVersion is "": a session file records its
-//     format version, not pi's.
+//     format version, not pi's, and no message records pi's version.
+//   - Turn.Raw is the line without its terminator ("\n" or "\r\n").
 //
 // Disk · Read (streaming, plus a bounded header read).
 func (a *Agent) TurnsAt(path string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {
@@ -94,7 +95,7 @@ func turnsFile(path string, hdr SessionHeader, from agentio.Offset, fn func(agen
 			return off, err
 		}
 		off += agentio.Offset(len(line))
-		t, ok := turnOf(line, hdr)
+		t, ok := turnOf(agentio.TrimLineEnd(line), hdr)
 		if !ok {
 			continue
 		}

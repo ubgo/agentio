@@ -28,7 +28,7 @@ pi has no `HookInstaller`: its extensions are TypeScript modules loaded into the
 
 ## Step 1 — Plan, apply, and apply again
 
-`PlanHooks(home, want)` reads the hook file and returns a `HookPlan`: `File` (the file it would change), `Add` (the entries it would append), `Present` (requested entries the file already has: a command hook with the same event and the same command, in any group) and `Manual` (steps the library does not take for the hooks to run, one line each). `ApplyHooks(plan)` appends `Add` after backing the file up and returns the `agentio.Backup`. A plan whose `IsNoop()` is true writes nothing and returns an empty backup.
+`PlanHooks(home, want)` reads the hook file and returns a `HookPlan`: `File` (the file it would change), `Add` (the entries it would append), `Present` (requested entries the file already has: a command hook with the same event and the same command, in any group) `Existing` (every command hook the file already holds, in file order, with its neutral `Kind`) and `Manual` (steps the library does not take for the hooks to run, one line each). `plan.Matching(match)` returns the `Existing` entries a `RemoveHooks` call with the same `match` would drop, so a dry run can show that an older entry of your tool (another binary path) will be replaced; `PlanHooks(home, nil)` only lists. `ApplyHooks(plan)` appends `Add` after backing the file up and returns the `agentio.Backup`. A plan whose `IsNoop()` is true writes nothing and returns an empty backup.
 
 <!-- snippet: examples/hooks/main.go#install -->
 ```go

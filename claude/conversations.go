@@ -287,11 +287,22 @@ func (a *Agent) Turns(h Home, id string, from agentio.Offset, fn func(agentio.Tu
 
 // TurnsFile is Turns over a transcript path, for callers that hold a path
 // (a file watcher, a hook's transcript_path) rather than a home and id; the
-// neutral TurnFileReader.TurnsAt. cost: Disk · Read.
+// neutral TurnFileReader.TurnsAt. A line that is not JSON is skipped.
+// cost: Disk · Read.
 func TurnsFile(path string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {
+	return TurnsFileReporting(path, from, fn, nil)
+}
+
+// TurnsFileReporting is TurnsFile that also reports each skipped non-JSON
+// line to bad (nil = silent); the neutral BadLineReporter. cost: Disk ·
+// Read.
+func TurnsFileReporting(path string, from agentio.Offset, fn func(agentio.Turn) error, bad func(agentio.BadLine)) (agentio.Offset, error) {
 	r, err := openTranscriptFile(path, from)
 	if err != nil {
 		return from, err
+	}
+	if bad != nil {
+		r.onBad = func(at agentio.Offset, err error) { bad(agentio.BadLine{Path: path, Offset: at, Err: err}) }
 	}
 	// Read-only: a close error cannot lose data.
 	defer func() { _ = r.Close() }()

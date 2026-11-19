@@ -58,6 +58,23 @@ func Split(b []byte, entries []agentio.HookEntry, opt Options) (present, missing
 	return present, missing, nil
 }
 
+// Existing lists every command hook b holds as entries, in file order,
+// with Kind from kindOf (agentio.HookUnknown for an event without one).
+// Pure.
+func Existing(b []byte, opt Options, kindOf func(event string) agentio.HookKind) ([]agentio.HookEntry, error) {
+	hs, err := Handlers(b, opt)
+	if err != nil {
+		return nil, err
+	}
+	var out []agentio.HookEntry
+	for _, h := range hs {
+		if h.IsCommand {
+			out = append(out, agentio.HookEntry{Kind: kindOf(h.Event), Event: h.Event, Command: h.Command})
+		}
+	}
+	return out, nil
+}
+
 // AppendEntries appends one matcher group with one command handler per
 // entry, in order. Pure.
 func AppendEntries(b []byte, entries []agentio.HookEntry, opt Options) ([]byte, error) {

@@ -3,15 +3,15 @@ module github.com/ubgo/agentio/examples
 go 1.26.4
 
 require (
-	github.com/ubgo/agentio v0.1.1-0.20261119151320-9eb99ac9e9b4
+	github.com/ubgo/agentio v0.1.1-0.20261119154620-5afb1fdf5ca6
 	github.com/ubgo/agentio/builtin v0.1.1-0.20261119141737-6296fea0a470
-	github.com/ubgo/agentio/claude v0.1.1-0.20261119151411-7042e3ee810e
-	github.com/ubgo/agentio/codex v0.1.1-0.20261119151411-7042e3ee810e
+	github.com/ubgo/agentio/claude v0.1.1-0.20261119154714-2e02b49dc296
+	github.com/ubgo/agentio/codex v0.1.1-0.20261119154714-2e02b49dc296
 	github.com/ubgo/agentio/codex/state v0.1.1-0.20261119141737-6296fea0a470
-	github.com/ubgo/agentio/gemini v0.1.1-0.20261119151411-7042e3ee810e
-	github.com/ubgo/agentio/opencode v0.0.0-20261119141737-6296fea0a470
+	github.com/ubgo/agentio/gemini v0.1.1-0.20261119154714-2e02b49dc296
+	github.com/ubgo/agentio/opencode v0.0.0-20261119154714-2e02b49dc296
 	github.com/ubgo/agentio/opencode/store v0.0.0-20261119141737-6296fea0a470
-	github.com/ubgo/agentio/pi v0.1.1-0.20261119151411-7042e3ee810e
+	github.com/ubgo/agentio/pi v0.1.1-0.20261119154714-2e02b49dc296
 )
 
 require (

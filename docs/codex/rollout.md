@@ -12,7 +12,7 @@ The snippets come from [`examples/codexconversations`](../../examples/codexconve
 
 ## Step 1 — Open a rollout
 
-`OpenRollout(path)` opens a file for streaming from the start; `OpenRolloutAt(path, offset)` resumes after an offset you stored. `RolloutReader.Next` returns the next complete `Record` (`io.EOF` at the end), `Offset` is the byte offset just after the last complete line returned, `Close` releases the file. Exactly one typed payload pointer is set for a known kind (`SessionMeta`, `TurnContext`, `Response`, `Event`, `TokenUsage`, `Compacted`); `Raw` always holds the original line. `ParseRecord` decodes a single line you hold. `SessionMeta.Created()` and `Version()` parse its timestamp and CLI version.
+`OpenRollout(path)` opens a file for streaming from the start; `OpenRolloutAt(path, offset)` resumes after an offset you stored. `RolloutReader.Next` returns the next complete `Record` (`io.EOF` at the end), `Offset` is the byte offset just after the last complete line returned, `Close` releases the file. Exactly one typed payload pointer is set for a known kind (`SessionMeta`, `TurnContext`, `Response`, `Event`, `TokenUsage`, `Compacted`); `Raw` always holds the original line without its terminator. `ParseRecord` decodes a single line you hold; a line that is not valid JSON is an error matching `codex.ErrInvalidLine`. `TurnContext` carries `Personality` (`pragmatic`, a `codex.Personality`) and keeps every key it does not model in `Unknown`. `SessionMeta.Created()` and `Version()` parse its timestamp and CLI version.
 
 <!-- snippet: examples/codexconversations/main.go#open -->
 ```go

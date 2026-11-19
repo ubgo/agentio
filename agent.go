@@ -20,6 +20,12 @@ type Agent interface {
 	DefaultHome() Home
 	// HomeFromEnv is the home Host.Env selects through Spec.HomeEnv. Pure.
 	HomeFromEnv() (Home, bool)
+	// HomeAt is the Home value for a folder the caller names (a --home
+	// flag): the default home when dir is the default dir, else a
+	// non-default home named from the folder; relative dirs resolve
+	// against Host.UserHome. It does not check the folder exists or is
+	// a home (IsHome does). Pure.
+	HomeAt(dir string) Home
 	// Homes lists homes on disk, default first, only dirs with markers. Disk · Read.
 	Homes() ([]Home, error)
 	// IsHome reports whether dir is a home of this agent. Disk · Read.
