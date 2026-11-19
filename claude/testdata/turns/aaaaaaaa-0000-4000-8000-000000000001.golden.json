@@ -1,0 +1,92 @@
+[
+  {
+    "id": "u0000000-0000-4000-8000-000000000001",
+    "role": "user",
+    "time": "2026-11-10T09:00:00Z",
+    "conversation_id": "aaaaaaaa-0000-4000-8000-000000000001",
+    "dir": "/work/fake",
+    "agent_version": "2.1.325",
+    "text": "fake prompt one"
+  },
+  {
+    "id": "a0000000-0000-4000-8000-000000000001",
+    "role": "assistant",
+    "time": "2026-11-10T09:00:02Z",
+    "conversation_id": "aaaaaaaa-0000-4000-8000-000000000001",
+    "dir": "/work/fake",
+    "model": "claude-fake-1",
+    "stop_reason": "tool_use",
+    "agent_version": "2.1.325",
+    "text": "",
+    "tokens": {
+      "Input": 3,
+      "CachedInput": 2000,
+      "CacheWrite": 100,
+      "Output": 40,
+      "Reasoning": 0
+    }
+  },
+  {
+    "id": "a0000000-0000-4000-8000-000000000002",
+    "role": "assistant",
+    "time": "2026-11-10T09:00:03Z",
+    "conversation_id": "aaaaaaaa-0000-4000-8000-000000000001",
+    "dir": "/work/fake",
+    "model": "claude-fake-1",
+    "stop_reason": "tool_use",
+    "agent_version": "2.1.325",
+    "text": "",
+    "tokens": {
+      "Input": 3,
+      "CachedInput": 2000,
+      "CacheWrite": 100,
+      "Output": 40,
+      "Reasoning": 0
+    }
+  },
+  {
+    "id": "a0000000-0000-4000-8000-000000000003",
+    "role": "assistant",
+    "time": "2026-11-10T09:00:06Z",
+    "conversation_id": "aaaaaaaa-0000-4000-8000-000000000001",
+    "dir": "/work/fake",
+    "model": "claude-fake-1",
+    "stop_reason": "end_turn",
+    "agent_version": "2.1.325",
+    "text": "fake answer one",
+    "tokens": {
+      "Input": 5,
+      "CachedInput": 2100,
+      "CacheWrite": 0,
+      "Output": 12,
+      "Reasoning": 0
+    }
+  },
+  {
+    "id": "u0000000-0000-4000-8000-000000000003",
+    "role": "user",
+    "time": "2026-11-10T09:01:00Z",
+    "conversation_id": "aaaaaaaa-0000-4000-8000-000000000001",
+    "dir": "/work/fake",
+    "agent_version": "2.1.326",
+    "text": "fake prompt two\nsecond block"
+  },
+  {
+    "id": "a0000000-0000-4000-8000-000000000004",
+    "role": "assistant",
+    "time": "2026-11-10T09:01:03Z",
+    "conversation_id": "aaaaaaaa-0000-4000-8000-000000000001",
+    "dir": "/work/fake",
+    "model": "claude-fake-1",
+    "stop_reason": "end_turn",
+    "agent_version": "2.1.326",
+    "text": "fake answer two",
+    "tokens": {
+      "Input": 7,
+      "CachedInput": 2200,
+      "CacheWrite": 50,
+      "Output": 20,
+      "Reasoning": 0
+    }
+  }
+]

@@ -105,6 +105,8 @@ func sessions(p printer, a *pi.Agent) error {
 }
 ```
 
+`TurnsAt(path, from, fn)` reads a session file the caller already holds (`Session.Path`, the neutral `TurnFileReader`), with the same rules as `Turns`; `SessionOwner(path)` maps a path to its agent dir and the header's session id, for a file in the default tree or in a flat custom session dir of the `PI_CODING_AGENT_DIR` or default home (no other dir is searched). Each turn's `ID` is the entry id. pi keeps every branch in one file (each entry names its `parentId`; `/tree` adds a `branch_summary` where a new branch starts), so turns of every branch arrive in file order; to show one branch, follow `parentId` in `Raw` from the leaf. `AgentVersion` is empty: a session file records its format version (3), not pi's. A file whose header line is still being written reads as empty, not as an error.
+
 ## Step 4 — Settings, trust and defaults
 
 `settings.json` (global in the agent dir, project in `.pi/settings.json`) has about 80 keys and pi accepts unknown ones. `pi.Settings` types the keys a launcher needs (`defaultProvider`, `defaultModel`, `defaultThinkingLevel`, `defaultTools`, `sessionDir`, `cacheWarming`, the resource lists) and keeps every other key raw in `Unknown`; `MarshalJSON` writes them back, so a round trip loses nothing. A modelled key whose value changed type moves to `Unknown` with a `type-changed` warning instead of failing the file. `SettingsKeys` lists the typed keys.

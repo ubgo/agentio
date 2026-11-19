@@ -1,6 +1,6 @@
 # Conversations, turns and prompt history
 
-Every coding agent keeps resumable conversations (transcripts) and a history of the prompts the user typed. agentio exposes them through five capabilities: `ConversationLister` lists and looks up conversations, `TurnReader` reads a conversation's turns incrementally from a byte offset, `PromptHistoryReader` reads typed prompts, `HistoryChecker` answers "was this agent ever used in this folder?", and two write doors move history: `HistoryMover` (after a folder rename) and `ConversationMover` (between two homes of one agent). Use them for a resume picker, a transcript viewer that follows a live session, or a tool that moves work from a personal home to a work home.
+Every coding agent keeps resumable conversations (transcripts) and a history of the prompts the user typed. agentio exposes them through these capabilities: `ConversationLister` lists and looks up conversations, `TurnReader` reads a conversation's turns incrementally from a cursor, `TurnFileReader` does the same for a transcript path the caller already holds, `PromptHistoryReader` reads typed prompts, `HistoryChecker` answers "was this agent ever used in this folder?", and two write doors move history: `HistoryMover` (after a folder rename) and `ConversationMover` (between two homes of one agent). Use them for a resume picker, a transcript viewer that follows a live session, or a tool that moves work from a personal home to a work home.
 
 ## Before you start
 
@@ -55,7 +55,7 @@ An `agentio.Conversation` has `Agent`, `Home`, `ID` (what you pass to `LaunchReq
 
 ## Step 2 — Read turns from an offset
 
-`Turns(home, id, from, fn)` reads the transcript from byte offset `from` to the last complete line, calls `fn` once per normalized turn and returns the new `Offset`. Keep the offset and pass it next time: a viewer that follows a running session re-reads nothing, and a half-written last line is left for the next call.
+`Turns(home, id, from, fn)` reads the transcript from cursor `from` (0 = the start), calls `fn` once per normalized turn and returns the next cursor. Keep the cursor and pass it next time: a viewer that follows a running session re-reads nothing, and a half-written last line is left for the next call.
 
 <!-- snippet: examples/conversations/main.go#turns -->
 ```go
@@ -99,7 +99,68 @@ func readTurns(ctx context.Context, w io.Writer, agents []agentio.Agent) error {
 }
 ```
 
-An `agentio.Turn` has `Role` (`user` or `assistant`), `Time`, `ConversationID`, `Dir`, `Model`, `StopReason`, `AgentVersion`, `Text`, `Tokens` (a `*TokenCounts`, nil when the turn carries none) and `Raw` (the vendor line). `TokenCounts` has `Input`, `CachedInput`, `CacheWrite`, `Output` and `Reasoning`; `Add` sums two tallies. Returning an error from `fn` stops the read and returns that error.
+An `agentio.Turn` has `ID`, `Interim`, `Role` (`user` or `assistant`), `Time`, `ConversationID`, `Dir`, `Model`, `StopReason`, `AgentVersion`, `Text`, `Tokens` (a `*TokenCounts`, nil when the turn carries none) and `Raw` (the vendor line). `TokenCounts` has `Input`, `CachedInput`, `CacheWrite`, `Output` and `Reasoning`; `Add` sums two tallies. Returning an error from `fn` stops the read and returns that error.
+
+- **`ID`** is the vendor's stable id for the message: the Claude record uuid, the Codex item id (0.15x+ rollouts; older events have none), the Gemini message id, the pi entry id. It is `""` when the format has none. Store turns keyed by `(agent, conversation, ID)`: an agent that re-appends or rewrites a message (Gemini adds tokens and tool results to a message by appending it again) sends the same `ID` again, and the later turn replaces the earlier one.
+- **`Interim`** marks an assistant message the agent showed while still working (Codex phase `commentary`), not its answer. A viewer shows it; a caller that stores answers skips it. Interim turns never carry tokens.
+
+### The cursor contract
+
+`agentio.Offset` is an opaque cursor: store the value a read returns and pass it back unchanged, never compute one, and never use one cursor for another file. For a JSONL transcript it is the byte offset after the last record that was fully emitted; a database-backed store may use a row cursor, and Gemini's legacy single-object chat uses the count of messages read.
+
+A returned cursor never passes an incomplete trailing line, and never passes a turn whose usage has not been written yet. Codex writes an answer's `token_count` a few lines after the answer: when a read reaches the end of the file before it, the answer is not emitted and the cursor stays on the answer's line, so the next read emits it once, with its tokens. A session that crashed right after an answer and never writes another line keeps that answer held back. Claude, Gemini and pi write usage on the message line itself (Gemini re-appends a message with its tokens under the same `ID`), so nothing waits there.
+
+### Read turns from a transcript path
+
+`TurnFilesOf(agent)` returns a `TurnFileReader` for callers that already hold a transcript path: a listing's `Conversation.Path`, a hook payload's `transcript_path`, a file watcher. `TurnsAt(path, from, fn)` has the same contract as `Turns` without finding the file again per call (Claude scans every project folder for an id, Codex walks its sessions tree). `TranscriptOwner(path)` maps the path to a `TranscriptRef` (`Agent`, `Home`, `ConversationID`) from the path itself, plus the file head when the name does not hold the id; it never scans other homes, and a path that is not one of the agent's transcripts is `ErrNotFound`.
+
+<!-- snippet: examples/conversations/main.go#turnfiles -->
+```go
+// readTurnFiles reads turns from a transcript path the caller already
+// holds (a listing's Path, a hook's transcript_path): TranscriptOwner says
+// which home and conversation the path belongs to, TurnsAt reads it from a
+// cursor without finding the file again. Turn.ID dedups a message an agent
+// re-appends; Interim marks a progress message that is not the answer.
+// Keep the returned cursor and pass it back to read only what was written
+// since; it never passes a turn whose usage is still to come.
+func readTurnFiles(ctx context.Context, w io.Writer, agents []agentio.Agent) error {
+	for _, a := range agents {
+		tf, ok := agentio.TurnFilesOf(a)
+		if !ok {
+			continue
+		}
+		conv, found, err := newestConversation(ctx, a)
+		if err != nil || !found {
+			return err
+		}
+		ref, err := tf.TranscriptOwner(conv.Path)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(w, "%s owner: home=%s conversation=%s\n", a.ID(), ref.Home.Name(), ref.ConversationID)
+		var answers, interim, seen int
+		cursor, err := tf.TurnsAt(conv.Path, 0, func(t agentio.Turn) error {
+			if seen++; seen <= shownTurns {
+				fmt.Fprintf(w, "%s %-9s id=%q interim=%t\n", a.ID(), t.Role, t.ID, t.Interim)
+			}
+			switch {
+			case t.Interim:
+				interim++
+			case t.Role == agentio.RoleAssistant:
+				answers++
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(w, "%s: %d answers, %d interim, cursor %d\n", a.ID(), answers, interim, cursor)
+	}
+	return nil
+}
+```
+
+Claude, Codex, Gemini and pi support `TurnFileReader`. Gemini supports it without `TurnReader`: a Gemini chat can rewind (`$rewindTo`) or patch away (`$patch` `removeIds`) messages it already wrote, and a turn callback cannot take back a turn it reported, so `TurnsAt` documents what a caller sees instead of hiding it (the [Gemini page](../gemini/README.md#turns) has the rules).
 
 ## Step 3 — Read prompt history
 
@@ -231,6 +292,15 @@ codex user      model="gpt-5.5" text="list the files"
 codex assistant model="gpt-5.5" text="There is one file: a.txt"
 codex: 2 turns, offset 4236, tokens in=1200 cached=1000 out=80
 codex: 0 new turns after offset 4236
+== turn files ==
+claude owner: home=personal conversation=3f474440-903e-5410-8bfb-d537b89f9547
+claude user      id="bc1f91aa-a3bc-aa0c-cb17-62baedc066b2" interim=false
+claude assistant id="68dbd90d-d459-9ab1-5f25-8887d9a00057" interim=false
+claude: 11 answers, 0 interim, cursor 46441
+codex owner: home=personal conversation=0199e1a0-0000-7000-8000-000000000001
+codex user      id="i1" interim=false
+codex assistant id="i2" interim=false
+codex: 1 answers, 0 interim, cursor 4236
 == prompt history ==
 claude 2026-11-13 19:35 dir="/work/proj13" "fixture text 139"
 claude 2026-11-13 19:10 dir="/work/proj4" "fixture text 138"
@@ -260,7 +330,8 @@ codex cannot move history: Codex indexes conversations in its own SQLite databas
 - **`MoveHistory` with no history moves nothing.** The neutral method returns an `agentio.HistoryMove` with `Moved` false (and an empty `Backup`) and a nil error when `from` has no history; check `Moved`. A live session in `from` is refused with an error matching `agentio.ErrMoveBlocked`. An existing destination is an error (Claude: `claude.ErrHistoryExists`); two histories are never merged.
 - **Codex history cannot move.** Codex indexes conversations in its SQLite database with absolute paths, so it has neither `HistoryMover` nor `ConversationMover`; `agentio.Unsupported` gives the reason. Continue Codex work in the original home.
 - **`PlanMove` blockers stop `ApplyMove`.** A running session in the folder (in either home) or a conversation already present in the target makes `ApplyMove` return `ErrMoveBlocked` before touching a file. Moves rename, so both homes must be on one filesystem; a cross-device move fails and rolls back.
-- **Offsets are bytes into one transcript.** Do not reuse an offset across conversations or after the vendor rewrote the file.
+- **Cursors belong to one transcript.** Do not reuse a cursor across conversations or after the vendor rewrote the file (Gemini rewrites a legacy `.json` chat as `.jsonl` when it is resumed).
+- **A Codex answer can lag one read.** A live reader that runs between the answer and its `token_count` sees the answer on its next read, not this one (see the cursor contract above).
 
 ## Related
 

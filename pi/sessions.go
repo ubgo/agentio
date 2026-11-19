@@ -1,10 +1,8 @@
 package pi
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -146,7 +144,10 @@ func (s Session) Title() string {
 
 // entryWire is the part of a session line read here.
 type entryWire struct {
-	Type     string       `json:"type"`
+	Type string `json:"type"`
+	// ID is the entry's id in the session tree (version 2+); "" in a
+	// version 1 file, which pi migrates on load.
+	ID       string       `json:"id"`
 	Name     string       `json:"name"`
 	Provider string       `json:"provider"`
 	ModelID  string       `json:"modelId"`
@@ -435,52 +436,24 @@ func (a *Agent) HasHistory(h Home, dir string) (bool, error) {
 }
 
 // Turns reads user and assistant messages of a session from offset from
-// to the last complete line, calling fn per message; it returns the offset
-// after the last complete line read. Tokens come from an assistant
-// message's usage. Disk · Read.
+// to the last complete line, calling fn per message; it finds the file by
+// id first (FindSession) and then reads it as TurnsAt does. Disk · Read.
 func (a *Agent) Turns(h Home, id string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {
 	s, err := a.FindSession(h, id)
 	if err != nil {
 		return from, err
 	}
-	f, err := os.Open(s.Path)
-	if err != nil {
-		return from, fmt.Errorf("pi: open %s: %w", s.Path, err)
-	}
-	// Read-only: a close error cannot lose data.
-	defer func() { _ = f.Close() }()
-	if _, err := f.Seek(int64(from), io.SeekStart); err != nil {
-		return from, err
-	}
-	r := bufio.NewReaderSize(f, scanStartBytes)
-	off := from
-	for {
-		line, err := r.ReadBytes('\n')
-		if errors.Is(err, io.EOF) {
-			return off, nil // a partial trailing line is left for the next read
-		}
-		if err != nil {
-			return off, err
-		}
-		off += agentio.Offset(len(line))
-		t, ok := turnOf(line, s)
-		if !ok {
-			continue
-		}
-		if err := fn(t); err != nil {
-			return off, err
-		}
-	}
+	return turnsFile(s.Path, s.SessionHeader, from, fn)
 }
 
 // turnOf converts a message line to a neutral turn. Pure.
-func turnOf(line []byte, s Session) (agentio.Turn, bool) {
+func turnOf(line []byte, s SessionHeader) (agentio.Turn, bool) {
 	var e entryWire
 	if json.Unmarshal(line, &e) != nil || e.Type != entryMessage || e.Message == nil {
 		return agentio.Turn{}, false
 	}
 	m := e.Message
-	t := agentio.Turn{ConversationID: s.ID, Dir: s.Cwd, Time: m.Timestamp.Time(), Text: m.text(), StopReason: m.StopReason, Raw: agentio.Raw(append([]byte(nil), line...))}
+	t := agentio.Turn{ID: e.ID, ConversationID: s.ID, Dir: s.Cwd, Time: m.Timestamp.Time(), Text: m.text(), StopReason: m.StopReason, Raw: agentio.Raw(append([]byte(nil), line...))}
 	switch m.Role {
 	case roleUser:
 		t.Role = agentio.RoleUser

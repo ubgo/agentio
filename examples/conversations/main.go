@@ -1,5 +1,6 @@
 // Command conversations lists resumable conversations, reads their turns
-// incrementally from a byte offset, reads typed prompt history, checks
+// incrementally from a cursor (by id and by transcript path), reads typed
+// prompt history, checks
 // whether a folder has history and moves history after a folder rename and
 // between two homes, for every agent that supports each step. It works on
 // temporary copies of the recorded fixture homes.
@@ -24,6 +25,7 @@ const (
 	emptyDir    = "/work/never-used"
 	listLimit   = 5
 	promptLimit = 3
+	shownTurns  = 2
 )
 
 func main() {
@@ -57,6 +59,7 @@ func run(ctx context.Context, w io.Writer, h agentio.Host) error {
 	}{
 		{"conversations", func() error { return listConversations(ctx, w, h, agents) }},
 		{"turns", func() error { return readTurns(ctx, w, agents) }},
+		{"turn files", func() error { return readTurnFiles(ctx, w, agents) }},
 		{"prompt history", func() error { return readPrompts(w, agents) }},
 		{"check and move", func() error { return checkAndMove(w, h, agents) }},
 	}
@@ -161,6 +164,52 @@ func readTurns(ctx context.Context, w io.Writer, agents []agentio.Agent) error {
 }
 
 // snippet:end turns
+
+// snippet:start turnfiles
+// readTurnFiles reads turns from a transcript path the caller already
+// holds (a listing's Path, a hook's transcript_path): TranscriptOwner says
+// which home and conversation the path belongs to, TurnsAt reads it from a
+// cursor without finding the file again. Turn.ID dedups a message an agent
+// re-appends; Interim marks a progress message that is not the answer.
+// Keep the returned cursor and pass it back to read only what was written
+// since; it never passes a turn whose usage is still to come.
+func readTurnFiles(ctx context.Context, w io.Writer, agents []agentio.Agent) error {
+	for _, a := range agents {
+		tf, ok := agentio.TurnFilesOf(a)
+		if !ok {
+			continue
+		}
+		conv, found, err := newestConversation(ctx, a)
+		if err != nil || !found {
+			return err
+		}
+		ref, err := tf.TranscriptOwner(conv.Path)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(w, "%s owner: home=%s conversation=%s\n", a.ID(), ref.Home.Name(), ref.ConversationID)
+		var answers, interim, seen int
+		cursor, err := tf.TurnsAt(conv.Path, 0, func(t agentio.Turn) error {
+			if seen++; seen <= shownTurns {
+				fmt.Fprintf(w, "%s %-9s id=%q interim=%t\n", a.ID(), t.Role, t.ID, t.Interim)
+			}
+			switch {
+			case t.Interim:
+				interim++
+			case t.Role == agentio.RoleAssistant:
+				answers++
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(w, "%s: %d answers, %d interim, cursor %d\n", a.ID(), answers, interim, cursor)
+	}
+	return nil
+}
+
+// snippet:end turnfiles
 
 // snippet:start prompts
 // readPrompts reads the newest typed prompts, scanning history from its

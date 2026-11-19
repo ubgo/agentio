@@ -274,7 +274,9 @@ func (a *Agent) HasHistory(h Home, dir string) (bool, error) {
 // Turns reads user and assistant turns of a conversation from an offset to
 // the last complete line, calling fn per turn, and returns the new offset.
 // Tool-result user lines and assistant lines without text or usage are
-// skipped (they are not turns a person typed or read). cost: Disk · Read.
+// skipped (they are not turns a person typed or read). Turn.ID is the
+// record uuid. Claude Code writes an assistant record with its usage on
+// the same line, so no turn waits for a later line. cost: Disk · Read.
 func (a *Agent) Turns(h Home, id string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {
 	p, err := a.findTranscript(h, id)
 	if err != nil {
@@ -284,7 +286,8 @@ func (a *Agent) Turns(h Home, id string, from agentio.Offset, fn func(agentio.Tu
 }
 
 // TurnsFile is Turns over a transcript path, for callers that hold a path
-// (a file watcher) rather than a home and id. cost: Disk · Read.
+// (a file watcher, a hook's transcript_path) rather than a home and id; the
+// neutral TurnFileReader.TurnsAt. cost: Disk · Read.
 func TurnsFile(path string, from agentio.Offset, fn func(agentio.Turn) error) (agentio.Offset, error) {
 	r, err := openTranscriptFile(path, from)
 	if err != nil {
@@ -312,7 +315,7 @@ func TurnsFile(path string, from agentio.Offset, fn func(agentio.Turn) error) (a
 
 // turnOf normalizes a user or assistant record.
 func turnOf(rec Record) (agentio.Turn, bool) {
-	t := agentio.Turn{ConversationID: rec.SessionID, Dir: rec.Cwd, AgentVersion: rec.Version, Raw: rec.Raw}
+	t := agentio.Turn{ID: rec.UUID, ConversationID: rec.SessionID, Dir: rec.Cwd, AgentVersion: rec.Version, Raw: rec.Raw}
 	if rec.Timestamp != nil {
 		t.Time = *rec.Timestamp
 	}
