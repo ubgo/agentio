@@ -5,7 +5,7 @@ Hooks are programs Claude Code runs on events (before a tool call, when a sessio
 ## Before you start
 
 - `go get github.com/ubgo/agentio/claude`; for listing, an agent, a home and optionally a project (see [The Claude agent](agent.md)). A hook program needs no agent or Host: it only reads stdin and writes stdout.
-- To add or remove hooks in a settings file, see [Claude writer](writer.md).
+- To add or remove hooks in a settings file, see [Claude writer](writer.md) (`AddHook`, the idempotent `EnsureHook`, `RemoveHooks`). To install one command into Claude Code, Codex and Gemini CLI alike, see [Hooks: install and decode](../capabilities/hooks.md).
 
 The snippets come from [`examples/claudehooks`](../../examples/claudehooks/). Its `hook` mode is a complete hook program.
 
@@ -90,7 +90,7 @@ func showMatchers(p printer, _ *claude.Agent) error {
 
 ## Step 2 — Decode hook input
 
-`claude.DecodeHookInput(os.Stdin)` returns a `HookInput`: the common fields (`SessionID`, `TranscriptPath`, `Cwd`, `PermissionMode`, `HookEventName`, `Effort`) plus the per-event ones (`ToolName`, `ToolInput`, `ToolResponse`, `Prompt`, `LastAssistantMessage`, `Source`, `Reason`, model switch fields, …). Keys the library does not model are kept in `Unknown`. `ToolInput` is raw JSON; decode it into the shape of the tool you gate.
+`claude.DecodeHookInput(os.Stdin)` returns a `HookInput`: the common fields (`SessionID`, `TranscriptPath`, `Cwd`, `PermissionMode`, `HookEventName`, `Effort`) plus the per-event ones (`ToolName`, `ToolInput`, `ToolResponse`, `Prompt`, `LastAssistantMessage`, `Source`, `Reason`, model switch fields, …). Keys the library does not model are kept in `Unknown`, and the whole payload in `Raw`. `ToolInput` is raw JSON; decode it into the shape of the tool you gate. `HookInput.Call()` maps the input onto the neutral `agentio.HookCall` (what `HookInstaller.DecodeHook` returns), and `claude.HookKindOf(event)` names the neutral kind of an event.
 
 <!-- snippet: examples/claudehooks/main.go#showhook -->
 ```go
@@ -210,6 +210,6 @@ cd examples && go run ./claudehooks hook < claudehooks/testdata/pretooluse.json
 
 ## Related
 
-- [Claude writer](writer.md) (add and remove hooks), [Claude status line](statusline.md), [Claude settings](settings.md), [Claude permissions](permissions.md)
+- [Claude writer](writer.md) (add and remove hooks), [Hooks: install and decode](../capabilities/hooks.md), [Claude status line](statusline.md), [Claude settings](settings.md), [Claude permissions](permissions.md)
 - Example: [`examples/claudehooks`](../../examples/claudehooks/)
 - [Feature index](../reference/features.md), [Choosing guides](../choosing/README.md)

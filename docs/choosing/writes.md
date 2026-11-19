@@ -7,7 +7,7 @@ agentio is read-only by default. When your program has to change something a ven
 | Change | How | Claude Code | Codex | Guide | Example |
 |---|---|---|---|---|---|
 | A top-level key of `settings.json` (user, project or local) | Writer: [`SetUserSetting`](ds:block?id=claude-writer-setusersetting-hfm5v3t7), [`SetProjectSetting`](ds:block?id=claude-writer-setprojectsetting-9xh95gnh) | ✅ | ❌ | [Claude writer](../claude/writer.md#step-1--patch-a-settings-file) | [claudehooks](../../examples/claudehooks/), [doors](../../examples/doors/) |
-| Add or remove a hook | Writer: `AddHook`, [`RemoveHooks`](ds:block?id=claude-writer-removehooks-x8p95azs) | ✅ | ❌ | [Claude writer](../claude/writer.md#step-2--add-a-hook) | [claudehooks](../../examples/claudehooks/) |
+| Add or remove a hook | Writer: `AddHook`, `EnsureHook`, [`RemoveHooks`](ds:block?id=claude-writer-removehooks-x8p95azs); for every agent the neutral `HooksOf` (Gemini CLI too) | ✅ `settings.json` | ✅ `hooks.json` only (`EnsureHook`, `RemoveHooks`) | [Hooks: install and decode](../capabilities/hooks.md), [Claude writer](../claude/writer.md#step-2--add-a-hook) | [hooks](../../examples/hooks/), [claudehooks](../../examples/claudehooks/) |
 | Re-key a folder's history after the folder moved | Writer: [`MoveHistory`](ds:block?id=claude-writer-movehistory-3n8zhjz3), or `HistoryMoverOf` | ✅ | ❌ conversations stay in their home | [Claude writer](../claude/writer.md#step-4--move-history) | [claudehooks](../../examples/claudehooks/) |
 | Move conversations to another home | `PlanMove`, then Writer [`ApplyMove`](ds:block?id=claude-writer-applymove-tpwp98h7), or `ConversationMoverOf` | ✅ | ❌ | [Backups, moves and home links](../core/backup-move-link.md#step-2--plan-a-move) | [backupmove](../../examples/backupmove/) |
 | Link shared files into a new home | `HomeLinkerOf`, or Writer `ApplyHomeLinks` | ✅ | nothing to link | [Doors](../capabilities/doors.md#step-4--link-shared-home-files) | [doors](../../examples/doors/) |
@@ -21,11 +21,11 @@ agentio is read-only by default. When your program has to change something a ven
 ## If this, then that
 
 - If the file is a Claude Code `settings.json` (any scope), use the Writer. It backs the file up, [writes atomically](ds:block?id=claude-writer-writerawsettings-6sjvkkgu), [refuses a file that does not parse instead of overwriting it](ds:block?id=claude-readrawsettings-peagek4s), and returns an `agentio.Backup`.
-- If the file is `~/.claude.json`, a project `.mcp.json`, or anything in a Codex home, build the vendor command. Claude Code rewrites `.claude.json` constantly while it runs, and Codex keeps its own SQLite index consistent with its files, so [only the vendor may change them](ds:block?id=claude-writer-t5gq26t8).
+- If the file is `~/.claude.json`, a project `.mcp.json`, or anything in a Codex home except `hooks.json`, build the vendor command. Claude Code rewrites `.claude.json` constantly while it runs, and Codex keeps its own SQLite index consistent with its files, so [only the vendor may change them](ds:block?id=claude-writer-t5gq26t8).
 - If you build a vendor command, decide how to run it: `exec.Cmd` with the `Command`'s `Env` and `Dir`, a terminal, or print it for the user. agentio never runs one for you.
 - If the change carries a secret (an MCP server's env value), it cannot go on argv. [`claude.Agent.MCPAddCommand`](ds:block?id=claude-agent-mcpaddcommand-p8k42k84) refuses a server with env values; ask the user to add that server in the CLI.
 - If several homes need the same settings, link them (`HomeLinkerOf`) instead of writing each copy; a later edit then reaches every home.
-- If your installer may run twice, read first (`a.Hooks`, `a.UserSettings`) and skip what is already there: [`AddHook` appends a new group on every call](ds:block?id=claude-writer-addhook-y3s8tkg6).
+- If your installer may run twice, use `EnsureHook` or the neutral `PlanHooks` / `ApplyHooks`, which skip what is already there: [`AddHook` appends a new group on every call](ds:block?id=claude-writer-addhook-y3s8tkg6).
 
 ## A file write and a vendor command
 
@@ -84,12 +84,12 @@ The command it runs is [`codex features enable web_search`](ds:block?id=codex-ag
 
 ## Pitfalls
 
-- **The Writer rewrites the file's layout.** Keys it does not touch keep their values, but not [byte for byte](ds:block?id=claude-writer-writerawsettings-6sjvkkgu): the file is written back indented with its keys sorted, nested values are re-indented, and `<`, `>`, `&` inside strings come back as `\u003c`-style escapes. Do not rely on hand formatting surviving a write.
+- **The settings patch rewrites the file's layout.** `SetUserSetting` and `SetProjectSetting` keep the values of the keys they do not touch, but not [byte for byte](ds:block?id=claude-writer-writerawsettings-6sjvkkgu): the file is written back indented with its keys sorted, nested values are re-indented, and `<`, `>`, `&` inside strings come back as `\u003c`-style escapes. Do not rely on hand formatting surviving a settings patch. The hook methods (`AddHook`, `EnsureHook`, `RemoveHooks`, `HooksOf`) splice instead and keep every other byte.
 - **Backups pile up.** [Each Writer call](ds:block?id=backupfile-bxsxzm67) that changes an existing file leaves `<file>.agentio-bak-<UTC stamp>` (`ApplyMove`: one `<from home>.agentio-bak-<UTC stamp>/` folder; [a `-N` suffix if that name is taken](ds:block?id=backuppath-tfjr5hjr)); nothing deletes them.
 - **[`SettingsPatch.Set`](ds:block?id=claude-writer-applypatch-utnp7z3r) takes raw JSON.** Marshal Go values with `encoding/json`; the string `opus` must be `"opus"` in the patch.
 - **`MoveHistory` refuses while the agent runs in the folder.** A live session in `from` (or of one of its conversations) is [`*claude.LiveSessionError`](ds:block?id=claude-writer-movehistory-3n8zhjz3), matching [`agentio.ErrMoveBlocked`](ds:block?id=claude-livesessionerror-unwrap-parprkp9), with the blocker text `PlanMove` uses.
 - **`MoveHistory` moves only the history folder.** The folder's state entry in `.claude.json` (trust, last session) [stays under the old path](ds:block?id=claude-writer-movehistory-3n8zhjz3).
-- **[`codex.Agent.Writer()`](ds:block?id=codex-writer-tax23vch) has no methods.** It exists so the door is in place; every Codex change is a vendor command.
+- **[`codex.Agent.Writer()`](ds:block?id=codex-writer-tax23vch) writes only `hooks.json`.** Codex reads that file but never writes it; every other Codex change is a vendor command.
 - **Running a vendor command is a Process cost and may touch the login**, like any Runner call. Run it on a user action, never in a loop.
 
 ## Related
