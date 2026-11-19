@@ -75,7 +75,7 @@ func TestLiveSessionsNoProcessLister(t *testing.T) {
 }
 
 func TestSessionStatusNeutral(t *testing.T) {
-	cases := map[SessionStatus]agentio.SessionStatus{StatusIdle: agentio.SessionIdle, StatusBusy: agentio.SessionBusy, StatusShell: agentio.SessionBusy, StatusWaiting: agentio.SessionIdle, "new": agentio.SessionStatusUnknown}
+	cases := map[SessionStatus]agentio.SessionStatus{StatusIdle: agentio.SessionIdle, StatusBusy: agentio.SessionBusy, StatusShell: agentio.SessionBusy, StatusWaiting: agentio.SessionWaiting, "new": agentio.SessionStatusUnknown}
 	for in, want := range cases {
 		if got := in.Neutral(); got != want {
 			t.Errorf("%s → %v, want %v", in, got, want)
