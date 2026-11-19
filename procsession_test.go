@@ -266,3 +266,21 @@ func TestBaseStopPlan(t *testing.T) {
 		t.Errorf("StopPlan = %+v %v", plan, err)
 	}
 }
+
+// TestIsUUID accepts both cases and refuses anything else.
+func TestIsUUID(t *testing.T) {
+	t.Parallel()
+	for in, want := range map[string]bool{
+		"6d50c0ec-647e-18aa-84c7-04170288be89": true,
+		"6D50C0EC-647E-18AA-84C7-04170288BE89": true,
+		"6d50c0ec-647e-18aa-84c7-04170288be8":  false,
+		"6d50c0ec0647e-18aa-84c7-04170288be89": false,
+		"6d50c0ec-647e-18aa-84c7-04170288be8g": false,
+		"fix the bug":                          false,
+		"":                                     false,
+	} {
+		if got := agentio.IsUUID(in); got != want {
+			t.Errorf("IsUUID(%q) = %v, want %v", in, got, want)
+		}
+	}
+}

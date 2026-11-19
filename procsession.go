@@ -3,6 +3,7 @@ package agentio
 import (
 	"context"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 )
@@ -169,4 +170,34 @@ func ArgValue(argv []string, flags ...string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// uuidHyphens are the byte offsets of the '-' in a hyphenated UUID.
+func uuidHyphens() []int { return []int{8, 13, 18, 23} }
+
+// uuidLen is the length of a hyphenated UUID.
+const uuidLen = 36
+
+// IsUUID reports a hyphenated UUID in either case
+// ("6d50c0ec-647e-18aa-84c7-04170288be89"): the shape Claude, Codex and
+// Gemini conversation ids take, so an argv value such as a search term
+// after `claude --resume` is not taken for an id. Pure.
+func IsUUID(s string) bool {
+	if len(s) != uuidLen {
+		return false
+	}
+	hyphens := uuidHyphens()
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if slices.Contains(hyphens, i) {
+			if c != '-' {
+				return false
+			}
+			continue
+		}
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') && (c < 'A' || c > 'F') {
+			return false
+		}
+	}
+	return true
 }
