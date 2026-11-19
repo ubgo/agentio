@@ -66,12 +66,29 @@ type ProcessRef struct {
 	Start time.Time
 }
 
+// AliveOption changes how ProcessesAlive compares start times.
+type AliveOption func(*aliveOptions)
+
+// aliveOptions is what the AliveOptions set.
+type aliveOptions struct {
+	// exact requires the table's start time to equal the recorded one.
+	exact bool
+}
+
+// ExactStart makes ProcessesAlive call a pid alive only when its start
+// time in the table equals the recorded one exactly, instead of within
+// startTolerance: right for a caller that recorded Start from the same
+// reader moments before (a reaper re-checking a table it just read),
+// where any difference means another process. Pure.
+func ExactStart() AliveOption { return func(o *aliveOptions) { o.exact = true } }
+
 // ProcessesAlive re-checks many recorded processes with one
 // process-table read (a reaper re-checking every row right before it
 // signals). The result has one answer per ref, in the order of refs (a
 // pid asked twice with two start times gets two answers):
 //   - LivenessEnded: the pid is gone, or runs with a start time more than
-//     startTolerance from the recorded one (the pid was reused);
+//     startTolerance from the recorded one (with ExactStart: any other
+//     start time), so the pid was reused;
 //   - LivenessAlive: the pid runs with the recorded start time;
 //   - LivenessUnknown: the pid runs but the ref or the table has no start
 //     time, so nothing confirms it is the same process.
@@ -79,7 +96,11 @@ type ProcessRef struct {
 // Record Start from Host.Processes: it is the clock the comparison uses.
 // The error is for a table that cannot be read (then the result is nil).
 // Process · Read (one process-table read).
-func (h Host) ProcessesAlive(ctx context.Context, refs []ProcessRef) ([]Liveness, error) {
+func (h Host) ProcessesAlive(ctx context.Context, refs []ProcessRef, opts ...AliveOption) ([]Liveness, error) {
+	var o aliveOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
 	if h.Processes == nil {
 		return nil, errors.New("agentio: no process lister in host")
 	}
@@ -99,6 +120,8 @@ func (h Host) ProcessesAlive(ctx context.Context, refs []ProcessRef) ([]Liveness
 			out[i] = LivenessEnded
 		case r.Start.IsZero() || start.IsZero():
 			out[i] = LivenessUnknown
+		case o.exact && !start.Equal(r.Start):
+			out[i] = LivenessEnded
 		case start.Sub(r.Start).Abs() > startTolerance:
 			out[i] = LivenessEnded
 		default:

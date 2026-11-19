@@ -77,7 +77,10 @@ func (f *FakeSecrets) Get(_ context.Context, service, account string) (agentio.T
 	return agentio.Token{}, false, nil
 }
 
-// FakeProcesses is a fixed process table.
+// FakeProcesses is a fixed process table. Its methods are safe for
+// concurrent use (a reader may look cwds up in parallel); set the fields
+// before the calls start, and read the counts with Counts while calls
+// may still run.
 type FakeProcesses struct {
 	List []agentio.Process
 	Cwds map[int]string
@@ -87,9 +90,24 @@ type FakeProcesses struct {
 	// Err, when set, is returned by Processes.
 	Err error
 	// Call counts, for tests that bound how often a reader asks the host
-	// (a batch join reads the environments once, not once per row). Not
-	// safe for concurrent calls, like the rest of the fake.
+	// (a batch join reads the environments once, not once per row). The
+	// methods update them under the fake's lock; read them directly once
+	// the calls are done, or through Counts while they run.
 	TableReads, CwdCalls, EnvCalls, EnvBatchCalls int
+	// mu guards the counters and the reads of the fields above.
+	mu sync.Mutex
+}
+
+// ProcessCalls is a snapshot of FakeProcesses' call counts.
+type ProcessCalls struct {
+	TableReads, CwdCalls, EnvCalls, EnvBatchCalls int
+}
+
+// Counts returns the call counts under the fake's lock. Pure.
+func (f *FakeProcesses) Counts() ProcessCalls {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return ProcessCalls{TableReads: f.TableReads, CwdCalls: f.CwdCalls, EnvCalls: f.EnvCalls, EnvBatchCalls: f.EnvBatchCalls}
 }
 
 var (
@@ -101,6 +119,8 @@ var (
 // EnvBatch returns Envs for each listed pid in one call; pids without an
 // entry are left out; ErrUnsupported when Envs is nil. Pure.
 func (f *FakeProcesses) EnvBatch(_ context.Context, pids []int) (map[int][]string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.EnvBatchCalls++
 	if f.Envs == nil {
 		return nil, agentio.UnsupportedError("", "process env", "fake without envs")
@@ -117,6 +137,8 @@ func (f *FakeProcesses) EnvBatch(_ context.Context, pids []int) (map[int][]strin
 // Env returns Envs[pid]; ErrUnsupported when Envs is nil, fs.ErrNotExist
 // for a pid without an entry. Pure.
 func (f *FakeProcesses) Env(_ context.Context, pid int) ([]string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.EnvCalls++
 	if f.Envs == nil {
 		return nil, agentio.UnsupportedError("", "process env", "fake without envs")
@@ -129,6 +151,8 @@ func (f *FakeProcesses) Env(_ context.Context, pid int) ([]string, error) {
 
 // Processes returns List. Pure.
 func (f *FakeProcesses) Processes(context.Context) ([]agentio.Process, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.TableReads++
 	if f.Err != nil {
 		return nil, f.Err
@@ -138,6 +162,8 @@ func (f *FakeProcesses) Processes(context.Context) ([]agentio.Process, error) {
 
 // Cwd returns Cwds[pid]. Pure.
 func (f *FakeProcesses) Cwd(_ context.Context, pid int) (string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.CwdCalls++
 	if d, ok := f.Cwds[pid]; ok {
 		return d, nil

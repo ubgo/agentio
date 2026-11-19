@@ -106,7 +106,7 @@ func TestFakeSecrets(t *testing.T) {
 }
 ```
 
-`FakeProcesses` is a fixed process table: `List` is what `Processes` returns, `Cwds` maps a pid to its working directory (an unknown pid returns `ErrFakeNotFound`), and `Err` makes `Processes` fail. Live-session readers match a session file to a process by pid and start time, so give the fake process a `Start` that agrees with the file.
+`FakeProcesses` is a fixed process table: `List` is what `Processes` returns, `Cwds` maps a pid to its working directory (an unknown pid returns `ErrFakeNotFound`), `Envs` holds start environments, and `Err` makes `Processes` fail. Its methods are safe for concurrent use and count their calls (`TableReads`, `CwdCalls`, `EnvCalls`, `EnvBatchCalls`); read the counts with `Counts()` while calls may still run. Live-session readers match a session file to a process by pid and start time, so give the fake process a `Start` that agrees with the file.
 
 <!-- snippet: examples/testing/main_test.go#processes -->
 ```go
