@@ -8,13 +8,13 @@
   },
   "system": [
     "You are a fixture assistant.",
-    "Working directory: /Users/alice/proj"
+    "Working directory: /home/alice/proj"
   ],
   "modelID": "gpt-5-nano",
   "providerID": "openai",
   "mode": "build",
   "path": {
-    "cwd": "/Users/alice/proj",
+    "cwd": "/home/alice/proj",
     "root": "/"
   },
   "cost": 0.0021,

@@ -8,7 +8,7 @@
   "state": {
     "status": "completed",
     "input": {
-      "filePath": "/Users/alice/proj/login.ts"
+      "filePath": "/home/alice/proj/login.ts"
     },
     "output": "edited",
     "title": "login.ts",

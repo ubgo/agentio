@@ -11,7 +11,7 @@
   "mode": "build",
   "agent": "build",
   "path": {
-    "cwd": "/Users/alice/other",
+    "cwd": "/home/alice/other",
     "root": "/"
   },
   "cost": 0,

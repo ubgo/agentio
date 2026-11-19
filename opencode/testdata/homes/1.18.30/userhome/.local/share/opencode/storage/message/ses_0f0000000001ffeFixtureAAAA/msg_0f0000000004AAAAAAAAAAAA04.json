@@ -13,7 +13,7 @@
   "providerID": "openai",
   "mode": "build",
   "path": {
-    "cwd": "/Users/alice/proj",
+    "cwd": "/home/alice/proj",
     "root": "/"
   },
   "cost": 0.0027,

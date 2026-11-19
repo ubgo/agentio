@@ -24,8 +24,8 @@ const fixtureUserHome = "testdata/homes/1.18.30/userhome"
 const (
 	sessionA = "ses_0f0000000001ffeFixtureAAAA"
 	sessionB = "ses_0f0000000002ffeFixtureBBBB"
-	dirA     = "/Users/alice/proj"
-	dirB     = "/Users/alice/other"
+	dirA     = "/home/alice/proj"
+	dirB     = "/home/alice/other"
 )
 
 // newAgent copies the fixture into a temp user home.
@@ -556,8 +556,8 @@ func TestClassifyProcess(t *testing.T) {
 		kind    agentio.ProcessKind
 		session bool
 	}{
-		{[]string{"/Users/alice/.opencode/bin/opencode"}, agentio.ProcessCLI, true},
-		{[]string{"opencode", "/Users/alice/proj"}, agentio.ProcessCLI, true},
+		{[]string{"/home/alice/.opencode/bin/opencode"}, agentio.ProcessCLI, true},
+		{[]string{"opencode", "/home/alice/proj"}, agentio.ProcessCLI, true},
 		{[]string{"opencode", "--model", "run", "-s", "ses_1"}, agentio.ProcessCLI, true},
 		{[]string{"opencode", "run", "hello"}, agentio.ProcessExec, true},
 		{[]string{"opencode", "--print-logs", "run", "hello"}, agentio.ProcessExec, true},
@@ -567,7 +567,7 @@ func TestClassifyProcess(t *testing.T) {
 		{[]string{"opencode", "providers", "list"}, agentio.ProcessLauncher, false},
 		{[]string{"opencode", "session", "list"}, agentio.ProcessLauncher, false},
 		{[]string{"node", "/usr/local/lib/node_modules/opencode-ai/bin/opencode"}, agentio.ProcessLauncher, false},
-		{[]string{"bun", "/Users/alice/.bun/bin/opencode", "run", "x"}, agentio.ProcessLauncher, false},
+		{[]string{"bun", "/home/alice/.bun/bin/opencode", "run", "x"}, agentio.ProcessLauncher, false},
 	} {
 		info, ok := a.ClassifyProcess(agentio.Process{PID: 7, Argv: tc.argv})
 		if !ok || info.Agent != ID || info.Kind != tc.kind || info.Session != tc.session {
@@ -586,7 +586,7 @@ func TestClassifyProcess(t *testing.T) {
 
 func TestProcessSession(t *testing.T) {
 	t.Parallel()
-	procs := &agenttest.FakeProcesses{Cwds: map[int]string{11: "/Users/alice/cwd", 12: "/w"}}
+	procs := &agenttest.FakeProcesses{Cwds: map[int]string{11: "/home/alice/cwd", 12: "/w"}}
 	host := agenttest.NewHost(t, agenttest.WithProcesses(procs))
 	agenttest.CopyFixture(t, fixtureUserHome, host.UserHome)
 	a := New(host)
@@ -596,7 +596,7 @@ func TestProcessSession(t *testing.T) {
 		t.Fatalf("session -s = %+v %v %v", s, found, err)
 	}
 	s, _, _ = a.ProcessSession(ctx, agentio.Process{PID: 11, Argv: []string{"opencode", "run", "--session=ses_new", "x"}})
-	if s.ConversationID != "ses_new" || s.Path != "" || s.Dir != "/Users/alice/cwd" {
+	if s.ConversationID != "ses_new" || s.Path != "" || s.Dir != "/home/alice/cwd" {
 		t.Fatalf("session= %+v", s)
 	}
 	s, _, _ = a.ProcessSession(ctx, agentio.Process{PID: 12, Argv: []string{"opencode", "--session", sessionA, "--fork"}})

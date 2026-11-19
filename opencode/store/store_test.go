@@ -28,21 +28,21 @@ INSERT INTO project (id, worktree, time_created, time_updated, sandboxes) VALUES
 INSERT INTO session (id, project_id, parent_id, slug, directory, title, version, share_url, time_created, time_updated, time_archived,
   workspace_id, path, agent, model, cost, tokens_input, tokens_output, tokens_reasoning, tokens_cache_read, tokens_cache_write, summary_additions)
 VALUES
- ('ses_A', 'global', NULL, 'brave-otter', '/Users/alice/proj', 'Fix the login form', '1.18.16', NULL, 1789000100000, 1789000190000, NULL,
-  NULL, 'Users/alice/proj', 'build', '{"id":"kimi-k3","providerID":"moonshotai","variant":"high"}', 0.11, 29884, 409, 599, 25344, 0, 3),
- ('ses_child', 'global', 'ses_A', 'quiet-fox', '/Users/alice/proj', 'Subtask', '1.18.16', NULL, 1789000120000, 1789000130000, NULL,
+ ('ses_A', 'global', NULL, 'brave-otter', '/home/alice/proj', 'Fix the login form', '1.18.16', NULL, 1789000100000, 1789000190000, NULL,
+  NULL, 'home/alice/proj', 'build', '{"id":"kimi-k3","providerID":"moonshotai","variant":"high"}', 0.11, 29884, 409, 599, 25344, 0, 3),
+ ('ses_child', 'global', 'ses_A', 'quiet-fox', '/home/alice/proj', 'Subtask', '1.18.16', NULL, 1789000120000, 1789000130000, NULL,
   NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, NULL),
- ('ses_old', 'global', NULL, 'old-owl', '/Users/alice/other', 'Archived one', '1.3.13', 'https://opencode.ai/s/FIXTURE', 1775000100000, 1775000900000, 1775001000000,
+ ('ses_old', 'global', NULL, 'old-owl', '/home/alice/other', 'Archived one', '1.3.13', 'https://opencode.ai/s/FIXTURE', 1775000100000, 1775000900000, 1775001000000,
   NULL, NULL, NULL, NULL, 0, 0, 0, 0, 0, 0, NULL);
 INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES
  ('msg_01', 'ses_A', 100, 100, '{"role":"user","time":{"created":100},"agent":"build","model":{"providerID":"moonshotai","modelID":"kimi-k3","variant":"high"},"summary":{"diffs":[]}}'),
- ('msg_02', 'ses_A', 101, 120, '{"role":"assistant","time":{"created":101,"completed":120},"parentID":"msg_01","modelID":"kimi-k3","providerID":"moonshotai","mode":"build","agent":"build","path":{"cwd":"/Users/alice/proj","root":"/Users/alice/proj"},"cost":0.05,"tokens":{"total":1300,"input":1000,"output":200,"reasoning":100,"cache":{"read":800,"write":0}},"finish":"tool-calls"}'),
- ('msg_03', 'ses_A', 121, 140, '{"role":"assistant","time":{"created":121,"completed":140},"parentID":"msg_01","modelID":"kimi-k3","providerID":"moonshotai","mode":"build","agent":"build","path":{"cwd":"/Users/alice/proj","root":"/Users/alice/proj"},"cost":0.06,"tokens":{"total":1500,"input":1200,"output":250,"reasoning":50,"cache":{"read":900,"write":5}},"finish":"stop"}'),
+ ('msg_02', 'ses_A', 101, 120, '{"role":"assistant","time":{"created":101,"completed":120},"parentID":"msg_01","modelID":"kimi-k3","providerID":"moonshotai","mode":"build","agent":"build","path":{"cwd":"/home/alice/proj","root":"/home/alice/proj"},"cost":0.05,"tokens":{"total":1300,"input":1000,"output":200,"reasoning":100,"cache":{"read":800,"write":0}},"finish":"tool-calls"}'),
+ ('msg_03', 'ses_A', 121, 140, '{"role":"assistant","time":{"created":121,"completed":140},"parentID":"msg_01","modelID":"kimi-k3","providerID":"moonshotai","mode":"build","agent":"build","path":{"cwd":"/home/alice/proj","root":"/home/alice/proj"},"cost":0.06,"tokens":{"total":1500,"input":1200,"output":250,"reasoning":50,"cache":{"read":900,"write":5}},"finish":"stop"}'),
  ('msg_04', 'ses_A', 150, 150, '{"role":"user","time":{"created":150},"agent":"build","model":{"providerID":"moonshotai","modelID":"kimi-k3"}}'),
- ('msg_05', 'ses_A', 151, 151, '{"role":"assistant","time":{"created":151},"parentID":"msg_04","modelID":"kimi-k3","providerID":"moonshotai","mode":"build","agent":"build","path":{"cwd":"/Users/alice/proj","root":"/Users/alice/proj"},"cost":0,"tokens":{"input":0,"output":0,"reasoning":0,"cache":{"read":0,"write":0}}}'),
+ ('msg_05', 'ses_A', 151, 151, '{"role":"assistant","time":{"created":151},"parentID":"msg_04","modelID":"kimi-k3","providerID":"moonshotai","mode":"build","agent":"build","path":{"cwd":"/home/alice/proj","root":"/home/alice/proj"},"cost":0,"tokens":{"input":0,"output":0,"reasoning":0,"cache":{"read":0,"write":0}}}'),
  ('msg_11', 'ses_old', 10, 10, '{"role":"user","time":{"created":10},"agent":"build","model":{"providerID":"ollama","modelID":"gemma4"}}'),
- ('msg_12', 'ses_old', 11, 30, '{"role":"assistant","time":{"created":11,"completed":30},"modelID":"gemma4","providerID":"ollama","mode":"build","agent":"build","path":{"cwd":"/Users/alice/other","root":"/"},"cost":0,"tokens":{"input":5,"output":1,"reasoning":0,"cache":{"read":0,"write":0}},"error":{"name":"MessageAbortedError","data":{"message":"Aborted"}}}'),
- ('msg_13', 'ses_old', 31, 40, '{"role":"assistant","time":{"created":31,"completed":40},"modelID":"gemma4","providerID":"ollama","mode":"compaction","agent":"compaction","summary":true,"path":{"cwd":"/Users/alice/other","root":"/"},"cost":0,"tokens":{"input":9,"output":3,"reasoning":0,"cache":{"read":0,"write":0}},"finish":"stop"}');
+ ('msg_12', 'ses_old', 11, 30, '{"role":"assistant","time":{"created":11,"completed":30},"modelID":"gemma4","providerID":"ollama","mode":"build","agent":"build","path":{"cwd":"/home/alice/other","root":"/"},"cost":0,"tokens":{"input":5,"output":1,"reasoning":0,"cache":{"read":0,"write":0}},"error":{"name":"MessageAbortedError","data":{"message":"Aborted"}}}'),
+ ('msg_13', 'ses_old', 31, 40, '{"role":"assistant","time":{"created":31,"completed":40},"modelID":"gemma4","providerID":"ollama","mode":"compaction","agent":"compaction","summary":true,"path":{"cwd":"/home/alice/other","root":"/"},"cost":0,"tokens":{"input":9,"output":3,"reasoning":0,"cache":{"read":0,"write":0}},"finish":"stop"}');
 INSERT INTO part (id, message_id, session_id, time_created, time_updated, data) VALUES
  ('prt_01', 'msg_01', 'ses_A', 100, 100, '{"type":"text","text":"fix the login form"}'),
  ('prt_02', 'msg_01', 'ses_A', 100, 100, '{"type":"text","text":"Plan mode reminder.","synthetic":true,"time":{"start":100,"end":100}}'),
@@ -139,8 +139,8 @@ func TestSessions(t *testing.T) {
 	}
 	s := ss[0]
 	want := opencode.Tokens{Input: 29884, Output: 409, Reasoning: 599, Cache: opencode.CacheTokens{Read: 25344}}
-	if s.Version != "1.18.16" || s.Directory != "/Users/alice/proj" || s.Title != "Fix the login form" || s.Tokens != want || s.Cost != 0.11 ||
-		s.Model == nil || s.Model.ID != "kimi-k3" || s.Model.Variant != "high" || s.Agent != "build" || s.Slug != "brave-otter" || s.Path != "Users/alice/proj" ||
+	if s.Version != "1.18.16" || s.Directory != "/home/alice/proj" || s.Title != "Fix the login form" || s.Tokens != want || s.Cost != 0.11 ||
+		s.Model == nil || s.Model.ID != "kimi-k3" || s.Model.Variant != "high" || s.Agent != "build" || s.Slug != "brave-otter" || s.Path != "home/alice/proj" ||
 		s.SummaryAdditions != 3 || !s.Archived.IsZero() || s.Created.IsZero() || !s.Updated.After(s.Created) {
 		t.Fatalf("session A = %+v", s)
 	}
@@ -150,7 +150,7 @@ func TestSessions(t *testing.T) {
 	if roots, _ := db.Sessions(ctx, SessionQuery{Roots: true, Active: true}); len(roots) != 1 || roots[0].ID != "ses_A" {
 		t.Fatalf("roots = %+v", roots)
 	}
-	if byDir, _ := db.Sessions(ctx, SessionQuery{Dir: "/Users/alice/other/"}); len(byDir) != 1 || byDir[0].ID != "ses_old" {
+	if byDir, _ := db.Sessions(ctx, SessionQuery{Dir: "/home/alice/other/"}); len(byDir) != 1 || byDir[0].ID != "ses_old" {
 		t.Fatalf("dir = %+v", byDir)
 	}
 	if lim, _ := db.Sessions(ctx, SessionQuery{Limit: 2}); len(lim) != 2 {
@@ -180,7 +180,7 @@ func TestTurns(t *testing.T) {
 		t.Fatalf("turns %d off %d", len(ts), off)
 	}
 	u, step, answer := ts[0], ts[1], ts[2]
-	if u.Role != agentio.RoleUser || u.ID != "msg_01" || u.Text != "fix the login form" || u.Model != "moonshotai/kimi-k3" || u.ConversationID != "ses_A" || u.Dir != "/Users/alice/proj" || u.AgentVersion != "1.18.16" {
+	if u.Role != agentio.RoleUser || u.ID != "msg_01" || u.Text != "fix the login form" || u.Model != "moonshotai/kimi-k3" || u.ConversationID != "ses_A" || u.Dir != "/home/alice/proj" || u.AgentVersion != "1.18.16" {
 		t.Fatalf("user %+v", u)
 	}
 	if !step.Interim || step.Text != "Let me read the file." || step.StopReason != "tool-calls" || step.Tokens.Reasoning != 100 || step.Tokens.CachedInput != 800 {
