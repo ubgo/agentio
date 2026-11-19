@@ -1,0 +1,17 @@
+{"sessionId":"cccccccc-0000-4000-8000-000000000001","projectHash":"0000000000000000000000000000000000000000000000000000000000000000","startTime":"2026-11-12T08:00:00.000Z","lastUpdated":"2026-11-12T08:00:00.000Z","kind":"main"}
+{"id":"g-user-1","timestamp":"2026-11-12T08:00:01.000Z","type":"user","content":[{"text":"fake gemini prompt"}]}
+{"":{"lastUpdated":"2026-11-12T08:00:01.000Z"}}
+{"id":"g-model-1","timestamp":"2026-11-12T08:00:03.000Z","type":"gemini","content":"fake reading the file","thoughts":[{"subject":"Plan","description":"fake thought","timestamp":"2026-11-12T08:00:02.000Z"}],"model":"gemini-fake-pro","toolCalls":[{"id":"call-1","name":"read_file","args":{"absolute_path":"fake.go"},"status":"executing","timestamp":"2026-11-12T08:00:03.000Z","displayName":"ReadFile","description":"Read fake.go","renderOutputAsMarkdown":false}]}
+{"":{"lastUpdated":"2026-11-12T08:00:03.000Z"}}
+{"id":"g-model-1","timestamp":"2026-11-12T08:00:03.000Z","type":"gemini","content":"fake reading the file","thoughts":[{"subject":"Plan","description":"fake thought","timestamp":"2026-11-12T08:00:02.000Z"}],"tokens":{"input":1200,"output":30,"cached":200,"thoughts":40,"tool":10,"total":1280},"model":"gemini-fake-pro","toolCalls":[{"id":"call-1","name":"read_file","args":{"absolute_path":"fake.go"},"result":[],"status":"success","timestamp":"2026-11-12T08:00:04.000Z","resultDisplay":"","displayName":"ReadFile","description":"Read fake.go","renderOutputAsMarkdown":false}]}
+{"id":"g-model-2","timestamp":"2026-11-12T08:00:06.000Z","type":"gemini","content":"fake gemini answer","thoughts":[],"tokens":{"input":1500,"output":12,"cached":1000,"thoughts":0,"tool":0,"total":1512},"model":"gemini-fake-pro"}
+{"":{"lastUpdated":"2026-11-12T08:00:06.000Z"}}
+{"id":"g-info-1","timestamp":"2026-11-12T08:00:07.000Z","type":"info","content":"fake info notice"}
+{"":{"updates":[{"id":"g-model-2","content":[{"text":"fake rewritten history"}]}]}}
+{"id":"g-user-2","timestamp":"2026-11-12T08:01:00.000Z","type":"user","content":"fake prompt that gets rewound"}
+{"id":"g-model-3","timestamp":"2026-11-12T08:01:02.000Z","type":"gemini","content":"fake answer that gets rewound","thoughts":[],"tokens":{"input":1600,"output":9,"cached":1400,"thoughts":0,"tool":0,"total":1609},"model":"gemini-fake-flash"}
+{"":"g-user-2"}
+{"id":"g-user-3","timestamp":"2026-11-12T08:02:00.000Z","type":"user","content":"fake prompt after the rewind"}
+{"id":"g-model-4","timestamp":"2026-11-12T08:02:02.000Z","type":"gemini","content":[{"text":"fake answer "},{"text":"after the rewind"}],"thoughts":[],"tokens":{"input":1700,"output":11,"cached":1500,"thoughts":3,"tool":0,"total":1714},"model":"gemini-fake-flash"}
+{"":{"removeIds":["g-model-4"]}}
+{"":{"summary":"Fake chat summary","lastUpdated":"2026-11-12T08:02:03.000Z"}}

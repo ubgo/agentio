@@ -1,0 +1,24 @@
+[
+  {
+    "id": "l-user-1",
+    "role": "user",
+    "time": "2026-10-01T07:00:01Z",
+    "conversation_id": "cccccccc-0000-4000-8000-000000000002",
+    "text": "fake legacy prompt"
+  },
+  {
+    "id": "l-model-1",
+    "role": "assistant",
+    "time": "2026-10-01T07:00:05Z",
+    "conversation_id": "cccccccc-0000-4000-8000-000000000002",
+    "model": "gemini-fake-pro",
+    "text": "fake legacy answer",
+    "tokens": {
+      "Input": 300,
+      "CachedInput": 0,
+      "CacheWrite": 0,
+      "Output": 7,
+      "Reasoning": 0
+    }
+  }
+]
