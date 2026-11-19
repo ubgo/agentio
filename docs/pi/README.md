@@ -233,7 +233,7 @@ The full output is in [`examples/pi/README.md`](../../examples/pi/README.md).
 ## Pitfalls
 
 - **Never call `pi auth check` without `--no-refresh`.** It refreshes OAuth tokens and rewrites `auth.json`; `pi auth print-bearer-token` refreshes too. This module never builds either.
-- **`pi` in the process table hides its argv.** pi sets its process title to `pi`, so on Linux the command line is just `pi` and the executable is `node`; only the basename matches.
+- **`pi` in the process table hides its argv.** pi sets its process title to `pi`, so on Linux the command line is just `pi` and the executable is `node`. The short basename is matched only for such a row (argv exactly `pi`, or a node executable), so another program named `pi` with arguments is not pi; on Windows the row is node running the package's `cli.js` and matches by that path. With argv hidden, `ProcessSession` infers the session from the cwd (the newest session file started after the process) and labels it `inferred`; `--session` is read only where argv survives ([Process sessions](../capabilities/process-sessions.md)).
 - **A relative session dir is refused.** pi resolves `PI_CODING_AGENT_SESSION_DIR` or `sessionDir` against its own working directory, which a reader cannot know.
 - **Read-only is a tool allowlist, not a sandbox.** pi runs with the process's permissions; `--tools read,grep,find,ls` only removes the tools that write. Isolate pi in a container when that matters.
 - **Every provider has its own key variable.** A token login without `TokenCredential.Provider` is refused rather than guessed.

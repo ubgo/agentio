@@ -108,6 +108,7 @@ Concepts both vendors share, each a small interface reached through a typed acce
 | [Logins and tokens](capabilities/logins.md) | Build a login command; launch with a token; probe a token | [usage](../examples/usage/) |
 | [Conversations, turns and prompt history](capabilities/conversations.md) | List conversations; read turns from an offset; read prompt history; check and move history | [conversations](../examples/conversations/) |
 | [Live sessions and processes](capabilities/live-sessions.md) | List live sessions; classify a process; find the session of a PID | [livesessions](../examples/livesessions/) |
+| [Process sessions and stop plans](capabilities/process-sessions.md) | Read the process table once; join a process to its conversation; plan the stop; walk the launcher chain; re-check right before signalling | [processsessions](../examples/processsessions/) |
 | [Config, MCP, instructions, skills, plugins and models](capabilities/config.md) | Read config layers; list MCP servers; list instruction files; list skills and plugins; list models | [accessors](../examples/accessors/) |
 | [Run events](capabilities/run-events.md) | Decode a headless run | [runevents](../examples/runevents/) |
 | [Doctor checks](capabilities/doctor.md) | Run the checks for a home; check the installed version | [accessors](../examples/accessors/) |
@@ -241,6 +242,7 @@ Every example lives in its own folder under [`examples/`](../examples/) with a R
 | [usage](../examples/usage/) | cached and live usage, the subscription, login commands, a token launch, against a local test server | [Usage and subscription](capabilities/usage.md) |
 | [conversations](../examples/conversations/) | conversations, turns from an offset, prompt history, history checks and moves | [Conversations](capabilities/conversations.md) |
 | [livesessions](../examples/livesessions/) | live sessions with the PID-reuse guard, process classification, PID to session | [Live sessions](capabilities/live-sessions.md) |
+| [processsessions](../examples/processsessions/) | process rows with RSS, tty and CPU time, process-to-conversation joins with their confidence, stop plans, ancestors, the start-time re-check | [Process sessions](capabilities/process-sessions.md) |
 | [runevents](../examples/runevents/) | the neutral run-event decoder over a recorded Claude Code and Codex run | [Run events](capabilities/run-events.md) |
 | [doors](../examples/doors/) | the Runner, the Prober, the Writer and home links, with fakes | [Doors](capabilities/doors.md) |
 | [fromspec](../examples/fromspec/) | a made-up agent as a `Spec`: validation, homes, capabilities, launch, token login, doctor | [Config-defined agents](capabilities/fromspec.md) |

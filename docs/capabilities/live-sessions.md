@@ -151,11 +151,12 @@ pid 6001: no live session found
 - **Listed is not running.** A Claude `sessions/*.json` entry stays after a crash; it is listed with `Alive` false (pid 4243 above). Filter on `Alive`.
 - **No process table, nothing alive.** A Host without `Processes`, or a failed table read, leaves every `Alive` false without an error.
 - **Homes that `Homes()` does not discover are missed** by `FindLiveSession`. A Codex home outside `~/.codex` and `CODEX_HOME`, for example, must be checked with that agent's lister directly.
-- **Desktop apps are not the CLI.** The Claude desktop app and the browser extension host are excluded by the Spec's process match, so they classify as "not an agent". On macOS, `Argv` comes from `ps` split on spaces, so an argument containing a space is split too.
-- **Status mapping is coarse.** Vendor statuses beyond idle and busy map onto the nearest neutral value (a Claude `shell` status reads as `busy`, a Claude `waiting` status, which means a dialog waits on the user, reads as `idle`); read the vendor type for the exact one.
+- **Desktop apps are not the CLI.** The Claude desktop app and the browser extension host are excluded by the Spec's process match, so they classify as "not an agent". On macOS, `Argv` comes from `ps` split on spaces, so an argument containing a space is split too; `Process.CommandLine` keeps the unsplit line and exclusions test it.
+- **Status mapping is coarse.** Vendor statuses beyond idle and busy map onto the nearest neutral value (a Claude `shell` status reads as `busy`; a Claude `waiting` status, which means a dialog waits on the user, reads as `waiting`); read the vendor type for the exact one.
 
 ## Related
 
+- [Process sessions and stop plans](process-sessions.md): start from a process row, for every agent, with a join confidence and a plan to stop it.
 - [Conversations, turns and prompt history](conversations.md): resume or move what you found.
 - [Shared capabilities and accessors](accessors.md).
 - [Host](../core/host.md): `Host.Processes` and `agentio.Process`.
