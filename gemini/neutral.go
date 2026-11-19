@@ -42,7 +42,7 @@ func supported() []agentio.Capability {
 		agentio.CapInstaller, agentio.CapBinaryVersion, agentio.CapIdentity, agentio.CapTokenLogin,
 		agentio.CapConversations, agentio.CapHistoryChecker, agentio.CapProcessClassifier,
 		agentio.CapHomeLinker, agentio.CapInstructionFiles, agentio.CapMCPServers, agentio.CapSkills,
-		agentio.CapPlugins, agentio.CapConfig, agentio.CapDoctor,
+		agentio.CapPlugins, agentio.CapConfig, agentio.CapDoctor, agentio.CapHooks,
 	}
 }
 
