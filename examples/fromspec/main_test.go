@@ -28,7 +28,7 @@ func TestRun(t *testing.T) {
 	for _, want := range []string{
 		"agentio: invalid spec: acme: resume args [--resume] lack {id}",
 		"home work default=false ~/.acme-work",
-		"supported: [installer binary-version token-login login-commander process-classifier home-linker doctor]",
+		"supported: [installer binary-version token-login login-commander process-classifier home-linker doctor stop-planner]",
 		"usage: config-only agent: a spec describes L1 only; this needs code",
 		"without login args: login commander false (spec has no login args)",
 		`personal: acme --model acme-large --message "fix the build" (ACME_HOME set=false )`,

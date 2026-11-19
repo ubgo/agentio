@@ -1,0 +1,15 @@
+func (w *Writer) AddHook(h Home, p *Project, s SettingsScope, ev HookEvent, m HookMatcher) (agentio.Backup, error) {
+	path, err := w.a.settingsPath(h, p, s)
+	if err != nil {
+		return agentio.Backup{}, err
+	}
+	data, _, err := readFileBounded(path, maxJSONFileBytes)
+	if err != nil {
+		return agentio.Backup{}, err
+	}
+	out, err := appendMatcher(data, ev, m)
+	if err != nil {
+		return agentio.Backup{}, fmt.Errorf("claude: %s: not rewriting it: %w", path, err)
+	}
+	return w.writeSettingsBytes(path, out)
+}

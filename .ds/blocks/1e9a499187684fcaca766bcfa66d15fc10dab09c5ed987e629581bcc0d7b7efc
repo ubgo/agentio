@@ -1,0 +1,7 @@
+func (w *Writer) writeRawSettings(path string, m map[string]json.RawMessage) (agentio.Backup, error) {
+	data, err := json.MarshalIndent(m, "", jsonIndent)
+	if err != nil {
+		return agentio.Backup{}, err
+	}
+	return w.writeSettingsBytes(path, append(data, '\n'))
+}

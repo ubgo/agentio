@@ -14,10 +14,11 @@ cd examples && go run ./testing
 ```
 
 ```text
-claude homes=[personal work] conversations=3 capabilities=26
-codex homes=[0.162.1] conversations=2 capabilities=22
-gemini homes=[] conversations=0 capabilities=14
-pi homes=[] conversations=0 capabilities=13
+claude homes=[personal work] conversations=3 capabilities=31
+codex homes=[0.162.1] conversations=2 capabilities=27
+gemini homes=[] conversations=0 capabilities=18
+pi homes=[] conversations=0 capabilities=16
+opencode homes=[] conversations=0 capabilities=10
 ```
 
 ```sh

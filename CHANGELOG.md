@@ -4,6 +4,29 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 
 ## [Unreleased]
 
+### Added
+
+- Process table facts in the same single read on macOS, Linux and Windows (module root): `Process.CommandLine` (the raw, unsplit command line), `RSS`, `TTY` (none on Windows) and `CPUTime`, plus `Process.CommandString`.
+- Script matching for npm installs (module root): `ProcessMatch.ScriptBasenames`, `ScriptContains`, `Interpreters` (`DefaultInterpreters`: node, nodejs, bun, deno), `ScriptIndex`, `MatchesBasename` and `ProcessBase`; exclusions and substring matches also test the raw command line, so a path with a space (`Application Support/Claude`) is excluded on macOS; a Windows `.exe`/`.cmd`/`.bat` ending is ignored when matching a basename.
+- Process sessions (modules root, `claude`, `codex`, `gemini`, `pi`, `opencode`): `ProcessSessionReader`, `ProcessSessionsOf`, `FindProcessSession` and `ProcessSession` join a running process to its home, conversation, transcript, version, status and last activity, with a `JoinConfidence` (exact from Claude's `sessions/<pid>.json`, argv from a resume flag, inferred from the working directory and start time). Helpers `Core.ProcessHome`, `ArgValue`, `IsUUID` and `Ancestors` (the parent chain of a pid).
+- Stop plans (modules root and every agent): `StopPlanner`, `StopPlannerOf`, `StopPlan`, `StopSignal`, `DefaultStopGrace` and `Core.BaseStopPlan` say which pids to signal, the grace period, whether forcing is safe, the resume command, and refuse non-session processes (Codex app-server and mcp-server, `claude mcp serve`); Claude background sessions stop through `claude stop <id>`, Gemini CLI's relaunch pair is stopped child first, and a Windows host gets no graceful signal. Data only: agentio sends no signal.
+- Turn files (modules root, `claude`, `codex`, `gemini`, `pi`, `opencode`): `TurnFileReader`, `TurnFilesOf` and `TranscriptRef` read turns from a transcript path (`TurnsAt`) and map a path to its home and conversation (`TranscriptOwner`); `codex.Agent.TurnsAt`/`RolloutOwner`, `gemini.Agent.TurnsAt`/`ChatOwner`/`MessageTokens` (Gemini chats get a turn reader for the first time), `pi.Agent.TurnsAt`/`SessionOwner`.
+- `Turn.ID` (the vendor's stable message id) on every turn reader, and `Turn.Interim` for progress messages; Codex `Phase` (`PhaseCommentary`, `PhaseFinalAnswer`) on `EventMsg` and `TurnItem` (module `codex`).
+- Command hooks (modules root, `claude`, `codex`, `gemini`): `HookInstaller`, `HooksOf`, `HookKind`, `HookEntry`, `HookPlan`, `HookCall` and `ErrInvalidHook`; Claude writes the home's `settings.json`, Codex `hooks.json` (never `config.toml`; feature flags are reported as manual steps), Gemini CLI the `hooks` key of `settings.json`. Installing only appends its own entries, keeps every other byte of the file (other hooks, keys, order, comments), backs the file up first and is idempotent; removing drops only matching commands. `claude.Writer.EnsureHook`, `codex.Writer.EnsureHook`/`RemoveHooks`, a new `gemini.Writer`, typed `codex.HookInput` and `gemini.HookInput` (from the vendors' documented shapes, not yet from a recorded run), `claude.HookInput.Raw`.
+- `agentio.SessionWaiting`: a session blocked on the user (a permission prompt or dialog).
+- Module `opencode` (opencode 1.18.30, stdlib only): data dir under `XDG_DATA_HOME`, install, legacy JSON sessions and turns with a message-count cursor, launch and resume, process classification and process sessions, stop plans, doctor; registered in `builtin` after pi. Guide `docs/opencode/README.md` and `examples/opencode`.
+- Module `opencode/store` (pure-Go SQLite): reads `opencode.db` read-only: sessions with token and cost totals, conversations, messages and turns in a stable order.
+- `agenttest`: golden turn helpers (`GoldenTurn`, `Golden`, `CheckTurns` with `-update`, `ReadTurns`, `GrowingTurns`) and `HookMerge`, which checks every merge guarantee against a hook installer.
+- Guides `docs/capabilities/process-sessions.md` and `docs/capabilities/hooks.md`; examples `examples/processsessions` and `examples/hooks`.
+
+### Changed
+
+- `claude.SessionStatus.Neutral` maps `waiting` to `agentio.SessionWaiting` (it was `SessionIdle`) (module `claude`).
+- `Offset` is documented as an opaque, agent-defined cursor (a byte offset for JSONL transcripts, a message count for opencode); store and pass back the value a read returns.
+- Codex turn readers emit commentary as `Interim` turns without tokens, pair `token_count` with the final answer, and hold back an answer whose usage has not been written yet: the returned cursor stays on its line, so a live reader gets the turn once, with tokens. A session that crashes before writing another line keeps its last answer held back (module `codex`).
+- `claude.Writer.AddHook` and `RemoveHooks` keep every other byte of `settings.json` instead of re-marshalling it (module `claude`).
+- `npm install @openai/codex` and `npm install @anthropic-ai/claude-code` are no longer classified as agent processes; the pi basename matches only a process titled `pi` or run by node (modules `codex`, `claude`, `pi`).
+
 ## [0.1.0] - 2026-11-18
 
 First release of every module: `github.com/ubgo/agentio` (`v0.1.0`), `claude/v0.1.0`, `codex/v0.1.0`, `codex/state/v0.1.0`, `gemini/v0.1.0`, `pi/v0.1.0` and `builtin/v0.1.0`.

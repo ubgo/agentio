@@ -74,7 +74,7 @@ func validate(w io.Writer) {
 
 ## Step 2 — Build it with FromSpec
 
-`agentio.FromSpec(spec, h)` validates the Spec and returns the agent. Its capabilities follow the data: `BinaryVersion` needs `VersionArgs`, `LoginCommander` needs `LoginArgs`, `HomeLinker` needs `SharedHomeFiles`, [`TokenLogin` needs `TokenEnv`](ds:block?id=specagent-hascapability-tzc86rcg), `ProcessClassifier` needs a non-empty `Process`, and `Doctor` is always there. Everything else is missing, and `agentio.Unsupported` says why.
+`agentio.FromSpec(spec, h)` validates the Spec and returns the agent. Its capabilities follow the data: `BinaryVersion` needs `VersionArgs`, `LoginCommander` needs `LoginArgs`, `HomeLinker` needs `SharedHomeFiles`, [`TokenLogin` needs `TokenEnv`](ds:block?id=specagent-hascapability-tzc86rcg), `ProcessClassifier` and `StopPlanner` need a non-empty `Process`, and `Doctor` is always there. Everything else is missing, and `agentio.Unsupported` says why.
 
 <!-- snippet: examples/fromspec/main.go#build -->
 ```go
@@ -268,7 +268,7 @@ agentio: invalid spec: acme: default home "/etc/acme" must be relative to the us
 == build ==
 home personal default=true ~/.acme
 home work default=false ~/.acme-work
-supported: [installer binary-version token-login login-commander process-classifier home-linker doctor]
+supported: [installer binary-version token-login login-commander process-classifier home-linker doctor stop-planner]
 usage: config-only agent: a spec describes L1 only; this needs code
 without login args: login commander false (spec has no login args)
 == launch ==

@@ -63,7 +63,7 @@ install method mise: known=false
 autonomy values: [default read-only ask accept-edits full]
 cost classes: [pure disk process network quota]
 process kinds: [cli exec app-server mcp-server desktop bridge launcher]
-capabilities: 27, first installer
+capabilities: 32, first installer
 ```
 
 ## Test

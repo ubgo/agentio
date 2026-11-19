@@ -1,0 +1,36 @@
+func Spec() agentio.Spec {
+	return agentio.Spec{
+		ID:          ID,
+		Name:        displayName,
+		Binary:      Binary,
+		Packages:    []string{npmPackage},
+		HomeEnv:     EnvHome,
+		DefaultHome: defaultHomeDir,
+		HomeMarkers: []string{fileConfig, fileAuth, dirSessions, fileStateDB, fileVersionCache, fileInstallationID},
+		// Names other tools write too (pi: auth.json, sessions/; Claude
+		// Code: sessions/; config.toml and version.json are common): alone
+		// they mark a home only in ~/.codex or the CODEX_HOME folder, and
+		// HomeAt still takes them for a caller-named home. A folder found
+		// elsewhere needs state_5.sqlite or installation_id.
+		GenericHomeMarkers: []string{fileConfig, fileAuth, dirSessions, fileVersionCache},
+		NewArgs:            []string{tplArgs},
+		ResumeArgs:         []string{subResume, tplArgs, tplID},
+		VersionArgs:        []string{flagVersion},
+		LoginArgs:          []string{subLogin},
+		LogoutArgs:         []string{subLogout},
+		// Codex has no shared-file convention between homes; nothing to link.
+		SharedHomeFiles: nil,
+		// Only the variable that overrides a home login; see EnvAPIKey.
+		CredentialEnv: []string{EnvCodexAPIKey},
+		// Only what Codex auth reads; OPENAI_API_KEY bills per token only
+		// through a model provider whose env_key names it, which the doctor
+		// checks against config.toml (providerKeyCheck).
+		APIBillingEnv: []string{EnvCodexAPIKey},
+		// The native binary (also the launcher's child) is "codex"; the
+		// npm launcher is node or bun running the package's codex.js.
+		Process: agentio.ProcessMatch{
+			Basenames:      []string{Binary},
+			ScriptContains: []string{npmScriptDir},
+		},
+	}
+}

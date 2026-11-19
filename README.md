@@ -7,7 +7,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
 </p>
 
-agentio is an open-source Go library that tells a program everything it can know about the coding-agent CLIs on a machine: whether **Claude Code**, **OpenAI Codex**, **Gemini CLI** and **pi** are installed and at which version, where their homes (config directories) are, what is in their settings, `CLAUDE.md` / `AGENTS.md` instruction files, MCP servers, skills and plugins, which account is logged in, how much of the plan's usage is left, which conversations exist and which sessions are running right now. It also builds the exact `Command` that launches, resumes or runs an agent headless, with the right environment for each home. It reads local files through typed structs modelled on real vendor files, never runs a vendor binary or touches the network unless you ask, and never refreshes or prints a login token.
+agentio is an open-source Go library that tells a program everything it can know about the coding-agent CLIs on a machine: whether **Claude Code**, **OpenAI Codex**, **Gemini CLI**, **pi** and **opencode** are installed and at which version, where their homes (config directories) are, what is in their settings, `CLAUDE.md` / `AGENTS.md` instruction files, MCP servers, skills and plugins, which account is logged in, how much of the plan's usage is left, which conversations exist, which sessions are running right now and which conversation each running process serves. It also builds the exact `Command` that launches, resumes or runs an agent headless, with the right environment for each home. It reads local files through typed structs modelled on real vendor files, never runs a vendor binary or touches the network unless you ask, and never refreshes or prints a login token.
 
 ## Contents
 
@@ -60,7 +60,7 @@ If you only need one value from one file once, reading it yourself is fine. If y
 The library has three levels:
 
 - **L1 core** (`agentio.Agent`): what every agent has, including one described only by data: identity, homes, binary lookup and building a launch `Command`.
-- **L2 shared capabilities**: concepts both vendors share (install, identity, usage, cached usage, subscription, conversations, prompt history, live sessions, turns, instruction files, MCP servers, skills, plugins, config layers, run events, doctor checks), each a small interface with a typed accessor such as `agentio.UsageOf(a)`.
+- **L2 shared capabilities**: concepts both vendors share (install, identity, usage, cached usage, subscription, conversations, prompt history, live sessions, turns, turns by transcript path, process sessions, stop plans, command hooks, instruction files, MCP servers, skills, plugins, config layers, run events, doctor checks), each a small interface with a typed accessor such as `agentio.UsageOf(a)`.
 - **L3 vendor API**: everything else, typed per vendor: Claude Code settings, hooks, subagents, transcripts and stream-json events; Codex `config.toml`, rollouts, SQLite threads and exec events.
 
 ## Install
@@ -75,7 +75,9 @@ agentio is a set of Go modules. Import only the ones you need:
 | `github.com/ubgo/agentio/codex/state` | Codex's SQLite stores (threads, turns, goals, memories, logs), read-only | `modernc.org/sqlite` (pure Go, no CGO) |
 | `github.com/ubgo/agentio/gemini` | Gemini CLI: homes, install, settings, conversations, MCP, extensions, launch | none |
 | `github.com/ubgo/agentio/pi` | pi: agent dir, install, sessions, settings, trust, MCP, skills, launch | none |
-| `github.com/ubgo/agentio/builtin` | every built-in agent at once, plus config-defined agents | whatever `claude`, `codex`, `gemini` and `pi` pull |
+| `github.com/ubgo/agentio/opencode` | opencode: data dir, install, legacy JSON sessions and turns, launch, process sessions | none |
+| `github.com/ubgo/agentio/opencode/store` | opencode's `opencode.db` (sessions and turns since opencode 1.2), read-only | `modernc.org/sqlite` (pure Go, no CGO) |
+| `github.com/ubgo/agentio/builtin` | every built-in agent at once, plus config-defined agents | whatever `claude`, `codex`, `gemini`, `pi` and `opencode` pull |
 
 ```sh
 # Claude Code only
@@ -89,9 +91,12 @@ go get github.com/ubgo/agentio/builtin
 
 # Codex SQLite stores: only if you read threads or logs from SQLite
 go get github.com/ubgo/agentio/codex/state
+
+# opencode's database: only if you read sessions opencode 1.2+ keeps in opencode.db
+go get github.com/ubgo/agentio/opencode/store
 ```
 
-`codex/state` is its own module because it pulls a full SQLite driver. Most programs never need it: `codex` already reads Codex's rollouts, config and usage. `builtin` does not import `codex/state` either.
+`codex/state` is its own module because it pulls a full SQLite driver. Most programs never need it: `codex` already reads Codex's rollouts, config and usage. `builtin` does not import `codex/state` either. The same holds for `opencode/store`.
 
 agentio needs Go 1.26.4 or newer and builds with `CGO_ENABLED=0` on linux, macOS and windows (amd64 and arm64).
 
@@ -183,21 +188,24 @@ A Claude-only program skips `builtin` and uses `claude.New(host)` directly; [`c.
 
 ## What you can read and build
 
-| Area | Claude Code | Codex | Gemini CLI | pi |
-|---|---|---|---|---|
-| Install, version, tested range, binary lookup | ✅ | ✅ | ✅ | ✅ |
-| Homes: default, env-selected, extra dirs | ✅ | ✅ | ✅ `GEMINI_CLI_HOME` names the parent | ✅ `PI_CODING_AGENT_DIR` |
-| Settings and config layers | ✅ `settings.json` scopes, hooks, env, policy limits | ✅ `config.toml`, profiles | ✅ `settings.json` layers, every key kept | ✅ `settings.json`, trust |
-| Instruction files | ✅ `CLAUDE.md`, imports, auto memory | ✅ `AGENTS.md` | ✅ `GEMINI.md` | ✅ `AGENTS.md`, `CLAUDE.md`, `SYSTEM.md` |
-| MCP servers, skills, plugins | ✅ | ✅ | ✅ (extensions) | ✅ MCP and skills |
-| Account identity and subscription | ✅ (personal values redacted) | ✅ (personal values redacted) | identity only | stored logins, never values |
-| Plan usage: cached on disk or live from the vendor | ✅ | ✅ | ❌ not recorded yet | ❌ no plan; per-session cost |
-| Pick the home with the most headroom (`agentio/pick`, across vendors with usage) | ✅ | ✅ | ❌ | ❌ |
-| Conversations, prompt history, turns | ✅ transcripts, read with bounded head and tail | ✅ rollouts, SQLite threads via `codex/state` | ✅ chats per project | ✅ sessions and turns |
-| Live sessions and process classification | ✅ | ✅ | processes only | processes only |
-| Launch, resume, headless commands | ✅ typed `LaunchOptions`, stream-json decoder | ✅ typed options, exec event decoder | ✅ approval modes, stream-json | ✅ typed options, JSON mode |
-| Typed launch config: option registry, settings check, live login | ✅ all three | ✅ option registry, `-c` key table | ❌ | ❌ |
-| Explicit writes with backup | ✅ settings, hooks, move history and conversations, link homes | ❌ by design: Codex keeps its own stores consistent, so changes go through Codex's own commands | ❌ read-only | ❌ read-only |
+| Area | Claude Code | Codex | Gemini CLI | pi | opencode |
+|---|---|---|---|---|---|
+| Install, version, tested range, binary lookup | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Homes: default, env-selected, extra dirs | ✅ | ✅ | ✅ `GEMINI_CLI_HOME` names the parent | ✅ `PI_CODING_AGENT_DIR` | ✅ data dir under `XDG_DATA_HOME` |
+| Settings and config layers | ✅ `settings.json` scopes, hooks, env, policy limits | ✅ `config.toml`, profiles | ✅ `settings.json` layers, every key kept | ✅ `settings.json`, trust | ❌ not modelled yet |
+| Instruction files | ✅ `CLAUDE.md`, imports, auto memory | ✅ `AGENTS.md` | ✅ `GEMINI.md` | ✅ `AGENTS.md`, `CLAUDE.md`, `SYSTEM.md` | ❌ |
+| MCP servers, skills, plugins | ✅ | ✅ | ✅ (extensions) | ✅ MCP and skills | ❌ |
+| Account identity and subscription | ✅ (personal values redacted) | ✅ (personal values redacted) | identity only | stored logins, never values | ❌ per-provider logins, never read |
+| Plan usage: cached on disk or live from the vendor | ✅ | ✅ | ❌ not recorded yet | ❌ no plan; per-session cost | ❌ no plan; per-message cost |
+| Pick the home with the most headroom (`agentio/pick`, across vendors with usage) | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Conversations, prompt history, turns | ✅ transcripts, read with bounded head and tail | ✅ rollouts, SQLite threads via `codex/state` | ✅ chats per project | ✅ sessions and turns | ✅ legacy JSON sessions; `opencode.db` via `opencode/store` |
+| Turns from a transcript path, stable message ids, live-safe cursor | ✅ | ✅ commentary marked interim | ✅ re-appended messages keep their id | ✅ | ✅ |
+| Live sessions and process classification | ✅ | ✅ | processes only | processes only | processes only |
+| Process sessions (which conversation a pid serves, with a confidence) and stop plans | ✅ exact from `sessions/<pid>.json` | ✅ argv or inferred | ✅ argv or inferred | ✅ argv or inferred | ✅ argv |
+| Command hooks: install (merge-only, backup, idempotent), remove, decode | ✅ `settings.json` | ✅ `hooks.json` | ✅ `settings.json` | ❌ extensions are code | ❌ plugins are code |
+| Launch, resume, headless commands | ✅ typed `LaunchOptions`, stream-json decoder | ✅ typed options, exec event decoder | ✅ approval modes, stream-json | ✅ typed options, JSON mode | ✅ resume, model, prompt, `run --format json` |
+| Typed launch config: option registry, settings check, live login | ✅ all three | ✅ option registry, `-c` key table | ❌ | ❌ | ❌ |
+| Explicit writes with backup | ✅ settings, hooks, move history and conversations, link homes | hooks in `hooks.json` only: Codex keeps its other stores consistent, so changes go through Codex's own commands | hooks in `settings.json` only | ❌ read-only | ❌ read-only |
 
 Each agent's reason for a capability it lacks is in the [capability matrix](docs/reference/capability-matrix.md).
 
@@ -213,7 +221,7 @@ Every feature works on each OS below or returns `agentio.ErrUnsupported` with th
 | Claude login | keychain + `.credentials.json` | `.credentials.json` | `.credentials.json` |
 | Codex keyring login | keychain | Secret Service (`secret-tool`) | `ErrUnsupported`; `auth.json` works |
 | Managed settings | files + plist | `/etc/claude-code`, `/etc/codex` | files + policy registry |
-| Process table, live sessions | `ps` | `/proc` (Alpine included) | PowerShell; no process cwd |
+| Process table (pid, parent, start, command line, RSS, CPU time, tty), live sessions | `ps` | `/proc` (Alpine included) | PowerShell; no process cwd, no tty |
 | Home links | ✅ | ✅ | needs Developer Mode, else a typed error |
 | Tested | owner's Mac | Ubuntu, and Debian, Alpine, Fedora, Arch containers (`task test:distros`) | compiled and fixture-tested; real runs through the manual `platforms` workflow |
 

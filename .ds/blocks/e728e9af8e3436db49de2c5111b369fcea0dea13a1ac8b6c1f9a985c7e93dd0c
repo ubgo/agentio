@@ -1,0 +1,29 @@
+func Spec() agentio.Spec {
+	return agentio.Spec{
+		ID: ID, Name: displayName, Binary: Binary,
+		HomeEnv: ConfigDirEnv, DefaultHome: defaultDirName, ExtraHomes: extraHomesGlob,
+		HomeMarkers:        homeMarkers(),
+		GenericHomeMarkers: genericHomeMarkers(),
+		NewArgs:            []string{placeholderArgs},
+		ResumeArgs:         []string{flagResume, placeholderID, placeholderArgs},
+		ModelArgs:          []string{flagModel, placeholderModel},
+		AddDirArgs:         []string{flagAddDir, placeholderDir},
+		PromptArgs:         []string{placeholderPrompt},
+		VersionArgs:        []string{flagVersion},
+		Packages:           []string{NPMPackage},
+		LoginArgs:          []string{subAuth, subLogin},
+		LogoutArgs:         []string{subAuth, subLogout},
+		SharedHomeFiles:    sharedHomeFiles(),
+		CredentialEnv:      credentialEnv(),
+		APIBillingEnv:      apiBillingEnv(),
+		// The native binary is argv[0] "claude"; an npm install runs
+		// through node or bun, as the bin shim (`node …/bin/claude`) or
+		// the package's cli.js.
+		Process: agentio.ProcessMatch{
+			Basenames:       []string{Binary},
+			ScriptBasenames: []string{Binary},
+			ScriptContains:  []string{npmScriptDir},
+			Exclude:         []string{excludeDesktopApp, excludeChromeHost, excludeDesktopSupport},
+		},
+	}
+}

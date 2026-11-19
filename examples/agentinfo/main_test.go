@@ -86,7 +86,7 @@ func TestRunJSON(t *testing.T) {
 	if strings.Contains(out.String(), "user@example.com") {
 		t.Error("email printed unredacted")
 	}
-	if len(rep.Agents) != 4 || rep.Agents[0].ID != "claude" || rep.Agents[1].ID != "codex" || rep.Agents[2].ID != "gemini" || rep.Agents[3].ID != "pi" {
+	if len(rep.Agents) != 5 || rep.Agents[0].ID != "claude" || rep.Agents[1].ID != "codex" || rep.Agents[2].ID != "gemini" || rep.Agents[3].ID != "pi" || rep.Agents[4].ID != "opencode" {
 		t.Fatalf("agents %+v", rep.Agents)
 	}
 	cl := rep.Agents[0]

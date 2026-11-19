@@ -133,7 +133,7 @@ CODEX_HOME set: false
 is a home: true
 project dir is not a home: true
 neutral round trip: true
-neutral id=codex capabilities=22
+neutral id=codex capabilities=27
 conversation mover unsupported: Codex indexes conversations in its own SQLite database with absolute paths (state_5.sqlite threads.rollout_path), so moving its files would break its index; continue Codex work in the original home
 doctor checks via the neutral view: 7
 ```

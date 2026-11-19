@@ -131,14 +131,16 @@ claude personal ~/.claude (cached usage 6%)
 claude work ~/.claude-work
 codex personal ~/.codex (cached usage 12%)
 == supported ==
-claude: 27 capabilities
-  [installer binary-version identity usage cached-usage subscription token-login token-prober login-commander conversations history-checker history-mover conversation-mover prompt-history live-sessions process-classifier turns home-linker instruction-files mcp-servers skills plugins config run-events doctor live-credential launch-config]
-codex: 23 capabilities
-  [installer binary-version identity usage cached-usage subscription login-commander conversations history-checker prompt-history live-sessions process-classifier turns home-linker instruction-files mcp-servers skills plugins config models run-events doctor launch-config]
-gemini: 14 capabilities
-  [installer binary-version identity token-login conversations history-checker process-classifier home-linker instruction-files mcp-servers skills plugins config doctor]
-pi: 13 capabilities
-  [installer binary-version identity token-login conversations history-checker process-classifier turns instruction-files mcp-servers skills config doctor]
+claude: 31 capabilities
+  [installer binary-version identity usage cached-usage subscription token-login token-prober login-commander conversations history-checker history-mover conversation-mover prompt-history live-sessions process-classifier turns home-linker instruction-files mcp-servers skills plugins config run-events doctor live-credential launch-config process-sessions stop-planner turn-files hooks]
+codex: 27 capabilities
+  [installer binary-version identity usage cached-usage subscription login-commander conversations history-checker prompt-history live-sessions process-classifier turns home-linker instruction-files mcp-servers skills plugins config models run-events doctor launch-config process-sessions stop-planner turn-files hooks]
+gemini: 18 capabilities
+  [installer binary-version identity token-login conversations history-checker process-classifier home-linker instruction-files mcp-servers skills plugins config doctor process-sessions stop-planner turn-files hooks]
+pi: 16 capabilities
+  [installer binary-version identity token-login conversations history-checker process-classifier turns instruction-files mcp-servers skills config doctor process-sessions stop-planner turn-files]
+opencode: 10 capabilities
+  [installer binary-version conversations history-checker process-classifier turns doctor process-sessions stop-planner turn-files]
 == unsupported ==
 claude lacks models: Claude Code keeps no model catalog on disk that has a recorded shape; a static list would rot
 codex lacks token-login: Codex has no token login: it logs in with `codex login` (ChatGPT, API key or access token on stdin)
@@ -175,6 +177,29 @@ pi lacks models: pi's model catalog (models-store.json) has no recorded shape ye
 pi lacks run-events: pi's --mode json event stream is recorded once but not yet modelled as a decoder
 pi lacks live-credential: pi can read a key from a !command in auth.json, but when it re-runs that command is not documented or recorded
 pi lacks launch-config: pi has no settings flag and no typed launch options in agentio; pass flags as raw args
+pi lacks hooks: pi has no shell-command hooks: its extensions are TypeScript modules loaded into the process, so there is no settings key to add a command to
+opencode lacks identity: opencode keeps one credential per model provider in auth.json; there is no single account identity to report, and this package never reads that file
+opencode lacks usage: opencode has no plan or quota of its own; it bills through each provider's key, and per-message tokens and cost are not plan usage
+opencode lacks cached-usage: opencode has no plan or quota of its own; it bills through each provider's key, and per-message tokens and cost are not plan usage
+opencode lacks subscription: opencode has no plan or quota of its own; it bills through each provider's key, and per-message tokens and cost are not plan usage
+opencode lacks token-login: opencode logins are per provider in auth.json (opencode providers login); a per-provider token variable is not modelled
+opencode lacks token-prober: opencode logins are per provider in auth.json (opencode providers login); a per-provider token variable is not modelled
+opencode lacks login-commander: opencode's login (opencode providers login) asks for a provider interactively; its flow is not modelled
+opencode lacks history-mover: opencode stores the session directory inside opencode.db rows (and legacy session files); rewriting them is not modelled
+opencode lacks conversation-mover: opencode stores the session directory inside opencode.db rows (and legacy session files); rewriting them is not modelled
+opencode lacks prompt-history: opencode keeps no prompt log apart from the sessions themselves
+opencode lacks live-sessions: opencode writes no lock or pid file per session; ProcessSessions joins a process by its command line instead
+opencode lacks home-linker: opencode's shareable files (opencode.json, agents, commands, plugins) live in the XDG config dir, apart from the data dir, so there is nothing to link between data dirs
+opencode lacks instruction-files: opencode's config (opencode.json with instructions, mcp, agents and plugins in the XDG config dir and the project) is not modelled yet
+opencode lacks mcp-servers: opencode's config (opencode.json with instructions, mcp, agents and plugins in the XDG config dir and the project) is not modelled yet
+opencode lacks skills: opencode's config (opencode.json with instructions, mcp, agents and plugins in the XDG config dir and the project) is not modelled yet
+opencode lacks plugins: opencode's config (opencode.json with instructions, mcp, agents and plugins in the XDG config dir and the project) is not modelled yet
+opencode lacks config: opencode's config (opencode.json with instructions, mcp, agents and plugins in the XDG config dir and the project) is not modelled yet
+opencode lacks models: opencode fetches its model catalog from models.dev at run time; no catalog file is modelled
+opencode lacks run-events: the opencode run --format json event shape is not recorded from a real run yet
+opencode lacks live-credential: opencode reads provider keys from auth.json and the environment at start; it has no setting that re-reads a key from a caller's command
+opencode lacks launch-config: opencode's launch options beyond the neutral request (agent, variant, port, attach) are not typed in agentio; pass them as raw args
+opencode lacks hooks: opencode has no shell-command hooks; its plugins are JavaScript or TypeScript modules
 == cost ==
 installer            disk read
 binary-version       process read (may touch login)
@@ -204,6 +229,10 @@ run-events           pure read
 doctor               disk read
 live-credential      pure read
 launch-config        disk write
+process-sessions     process read
+stop-planner         pure read
+turn-files           disk read
+hooks                disk write
 ```
 
 ## Pitfalls

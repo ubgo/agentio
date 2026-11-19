@@ -1,0 +1,14 @@
+func (w *Writer) RemoveHooks(h Home, p *Project, s SettingsScope, keep func(HookEvent, HookHandler) bool) (removed int, b agentio.Backup, err error) {
+	path, err := w.a.settingsPath(h, p, s)
+	if err != nil {
+		return 0, b, err
+	}
+	drop := func(hd hookjson.Handler) bool {
+		var hh HookHandler
+		if json.Unmarshal(hd.Raw, &hh) != nil {
+			return false
+		}
+		return !keep(HookEvent(hd.Event), hh)
+	}
+	return w.removeHookHandlers(path, drop)
+}

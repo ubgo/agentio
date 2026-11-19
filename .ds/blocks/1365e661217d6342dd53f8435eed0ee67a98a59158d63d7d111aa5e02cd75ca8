@@ -1,0 +1,16 @@
+func New(h agentio.Host, custom ...agentio.Spec) (Agents, error) {
+	out := Agents{Claude: claude.New(h), Codex: codex.New(h), Gemini: gemini.New(h), Pi: pi.New(h), Opencode: opencode.New(h)}
+	seen := map[agentio.ID]bool{claude.ID: true, codex.ID: true, gemini.ID: true, pi.ID: true, opencode.ID: true}
+	for _, s := range custom {
+		if seen[s.ID] {
+			return Agents{}, fmt.Errorf("builtin: agent id %q is already defined: %w", s.ID, agentio.ErrInvalidSpec)
+		}
+		a, err := agentio.FromSpec(s, h)
+		if err != nil {
+			return Agents{}, fmt.Errorf("builtin: custom agent %q: %w", s.ID, err)
+		}
+		seen[s.ID] = true
+		out.Custom = append(out.Custom, a)
+	}
+	return out, nil
+}
