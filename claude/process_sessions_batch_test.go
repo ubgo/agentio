@@ -107,7 +107,7 @@ func TestClaudeResumeLine(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := plan.ResumeLine(), ConfigDirEnv+"="+work.Dir()+" claude --resume "+fixtureWorkSession; got != want {
+	if got, want := plan.ResumeLine(), ConfigDirEnv+"="+(agentio.Command{Path: work.Dir()}).String()+" claude --resume "+fixtureWorkSession; got != want {
 		t.Errorf("work resume = %q, want %q", got, want)
 	}
 	plan, err = a.StopPlan(p, nil, agentio.ProcessSession{Agent: ID, PID: 9, ConversationID: fixtureSession4243, Home: a.DefaultHome().Neutral()})

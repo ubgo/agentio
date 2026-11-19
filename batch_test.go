@@ -243,7 +243,7 @@ func TestShellLine(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := cmd.ShellLine(), "TOY_HOME="+work.Dir()+" toy --resume abc"; got != want {
+	if got, want := cmd.ShellLine(), "TOY_HOME="+posixQuote(work.Dir())+" toy --resume abc"; got != want {
 		t.Errorf("non-default home: %q, want %q", got, want)
 	}
 	cmd, err = l.Launch(agentio.Target{Home: toy.DefaultHome()}, agentio.LaunchRequest{ResumeID: "abc", Dir: "/work/alice proj"})
@@ -280,3 +280,7 @@ func TestShellLine(t *testing.T) {
 		t.Errorf("ResumeLine = %q", got)
 	}
 }
+
+// posixQuote quotes s the way Command.String does (a Windows temp path
+// with backslashes is quoted, a unix one is not). Pure.
+func posixQuote(s string) string { return agentio.Command{Path: s}.String() }
