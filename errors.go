@@ -61,6 +61,13 @@ var (
 	ErrNotFound = errors.New("agentio: not found")
 )
 
+// NotThisAgentProcess is the error for a process row another agent (or
+// none) owns, from a per-agent process call such as StopPlan. It wraps
+// ErrNotFound. Pure.
+func NotThisAgentProcess(agent ID, p Process) error {
+	return fmt.Errorf("%w: pid %d is not a %s process", ErrNotFound, p.PID, agent)
+}
+
 // UnsupportedError wraps ErrUnsupported with what is missing and why, so a
 // caller can show the agent's own reason instead of a generic message.
 // Pure.

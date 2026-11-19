@@ -66,7 +66,7 @@ func FromSpec(s Spec, h Host) (Agent, error) {
 func (a specAgent) HasCapability(c Capability) bool {
 	s := a.spec
 	switch c {
-	case CapProcessClassifier:
+	case CapProcessClassifier, CapStopPlanner:
 		return !s.Process.IsZero()
 	case CapLoginCommander:
 		return len(s.LoginArgs) > 0
@@ -88,7 +88,7 @@ func (a specAgent) UnsupportedReason(c Capability) (string, bool) {
 		return "", false
 	}
 	switch c {
-	case CapProcessClassifier:
+	case CapProcessClassifier, CapStopPlanner:
 		return "spec has no process match", true
 	case CapLoginCommander:
 		return "spec has no login args", true

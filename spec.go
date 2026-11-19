@@ -126,16 +126,33 @@ type TokenEnv struct {
 type ProcessMatch struct {
 	// Basenames match argv[0] or Exe basename: "claude", "codex".
 	Basenames []string `json:"basenames,omitempty"`
-	// ArgvContains match a substring of any argv element: "@openai/codex".
+	// ArgvContains match a substring of any argv element or of the raw
+	// command line (Process.CommandString): "@openai/codex".
 	ArgvContains []string `json:"argv_contains,omitempty"`
-	// Exclude substrings of Exe or any argv element veto a match:
-	// "Claude.app", "claude-in-chrome".
+	// Exclude substrings of Exe, any argv element or the raw command line
+	// veto a match: "Claude.app", "claude-in-chrome",
+	// "Application Support/Claude" (a path with a space, so it is only
+	// found in the raw command line on darwin).
 	Exclude []string `json:"exclude,omitempty"`
+	// ScriptBasenames match the script an interpreter runs: the basename
+	// of the first argument after an interpreter (argv[0] whose basename
+	// is in Interpreters) that is not a flag. `node /opt/bin/claude` and
+	// `bun …/cli.js` are an npm install run through its interpreter.
+	ScriptBasenames []string `json:"script_basenames,omitempty"`
+	// Interpreters are the argv[0] basenames that run a script; nil =
+	// DefaultInterpreters. Only read when ScriptBasenames is set.
+	Interpreters []string `json:"interpreters,omitempty"`
+}
+
+// DefaultInterpreters are the script runners an npm-installed agent is
+// started through. Pure.
+func DefaultInterpreters() []string {
+	return []string{"node", "node.exe", "bun", "bun.exe", "deno", "deno.exe"}
 }
 
 // IsZero reports an empty matcher (the agent classifies nothing). Pure.
 func (m ProcessMatch) IsZero() bool {
-	return len(m.Basenames) == 0 && len(m.ArgvContains) == 0
+	return len(m.Basenames) == 0 && len(m.ArgvContains) == 0 && len(m.ScriptBasenames) == 0
 }
 
 // Match reports whether p is this agent's process. Pure.
@@ -143,7 +160,8 @@ func (m ProcessMatch) Match(p Process) bool {
 	if m.IsZero() {
 		return false
 	}
-	fields := append([]string{p.Exe}, p.Argv...)
+	line := p.CommandString()
+	fields := append([]string{p.Exe, line}, p.Argv...)
 	for _, ex := range m.Exclude {
 		for _, f := range fields {
 			if ex != "" && strings.Contains(f, ex) {
@@ -163,14 +181,42 @@ func (m ProcessMatch) Match(p Process) bool {
 			return true
 		}
 	}
+	if script, ok := m.script(p); ok && slices.Contains(m.ScriptBasenames, filepath.Base(script)) {
+		return true
+	}
 	for _, sub := range m.ArgvContains {
-		for _, a := range p.Argv {
-			if sub != "" && strings.Contains(a, sub) {
-				return true
-			}
+		if sub == "" {
+			continue
+		}
+		if strings.Contains(line, sub) || slices.ContainsFunc(p.Argv, func(a string) bool { return strings.Contains(a, sub) }) {
+			return true
 		}
 	}
 	return false
+}
+
+// script returns the script an interpreter row runs: the first argument
+// after argv[0] that is not a flag, when argv[0] (or Exe) is one of the
+// interpreters. A flag that takes a separate value (`node --require x`)
+// is not modelled: real launchers put flags in the `--flag=value` form or
+// none at all, and a miss only means no match. Pure.
+func (m ProcessMatch) script(p Process) (string, bool) {
+	if len(m.ScriptBasenames) == 0 || len(p.Argv) < 2 {
+		return "", false
+	}
+	interp := m.Interpreters
+	if interp == nil {
+		interp = DefaultInterpreters()
+	}
+	if !slices.Contains(interp, filepath.Base(p.Argv[0])) && (p.Exe == "" || !slices.Contains(interp, filepath.Base(p.Exe))) {
+		return "", false
+	}
+	for _, a := range p.Argv[1:] {
+		if !strings.HasPrefix(a, "-") {
+			return a, true
+		}
+	}
+	return "", false
 }
 
 // Template placeholders.

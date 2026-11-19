@@ -479,6 +479,8 @@ const (
 	SessionIdle
 	// SessionBusy: working on a turn.
 	SessionBusy
+	// SessionWaiting: blocked on the user (a permission prompt or dialog), not on the model.
+	SessionWaiting
 )
 
 // sessionStatusKind labels SessionStatus in errors.
@@ -486,7 +488,7 @@ const sessionStatusKind = "session status"
 
 // sessionStatusNames is the wire spelling of each SessionStatus, indexed by value. Pure.
 func sessionStatusNames() []string {
-	return []string{"unknown", "idle", "busy"}
+	return []string{"unknown", "idle", "busy", "waiting"}
 }
 
 // String returns the wire spelling. Pure.
@@ -827,6 +829,14 @@ const (
 	CapLiveCredential
 	// CapLaunchConfig: LaunchConfigurer · LaunchConfigOf (writes a settings file when asked).
 	CapLaunchConfig
+	// CapProcessSessions: ProcessSessionReader · ProcessSessionsOf.
+	CapProcessSessions
+	// CapStopPlanner: StopPlanner · StopPlannerOf.
+	CapStopPlanner
+	// CapTurnFiles: TurnFileReader · TurnFilesOf.
+	CapTurnFiles
+	// CapHooks: HookInstaller · HooksOf (writes the agent's hook settings when asked).
+	CapHooks
 )
 
 // capabilityKind labels Capability in errors.
@@ -834,7 +844,7 @@ const capabilityKind = "capability"
 
 // capabilityNames is the wire spelling of each Capability, indexed by value. Pure.
 func capabilityNames() []string {
-	return []string{"installer", "binary-version", "identity", "usage", "cached-usage", "subscription", "token-login", "token-prober", "login-commander", "conversations", "history-checker", "history-mover", "conversation-mover", "prompt-history", "live-sessions", "process-classifier", "turns", "home-linker", "instruction-files", "mcp-servers", "skills", "plugins", "config", "models", "run-events", "doctor", "live-credential", "launch-config"}
+	return []string{"installer", "binary-version", "identity", "usage", "cached-usage", "subscription", "token-login", "token-prober", "login-commander", "conversations", "history-checker", "history-mover", "conversation-mover", "prompt-history", "live-sessions", "process-classifier", "turns", "home-linker", "instruction-files", "mcp-servers", "skills", "plugins", "config", "models", "run-events", "doctor", "live-credential", "launch-config", "process-sessions", "stop-planner", "turn-files", "hooks"}
 }
 
 // String returns the wire spelling. Pure.
@@ -981,3 +991,127 @@ func ConcernValues() []Concern { return enumValues[Concern](concernNames()) }
 
 // ParseConcern parses a wire spelling. Pure.
 func ParseConcern(s string) (Concern, bool) { return enumParse[Concern](s, concernNames()) }
+
+// JoinConfidence says how a process was tied to a conversation (ProcessSession.Confidence): only an exact join is evidence for acting on the process.
+type JoinConfidence uint8
+
+// JoinConfidence values. Order is the wire order of names; append only.
+const (
+	// JoinUnknown: nothing ties the process to a conversation.
+	JoinUnknown JoinConfidence = iota
+	// JoinExact: a file the agent wrote for this pid names the conversation (Claude sessions/<pid>.json, start time checked).
+	JoinExact
+	// JoinArgv: the process's own command line names the conversation (a resume id or session path).
+	JoinArgv
+	// JoinInferred: matched by working directory and start time; a guess to show with a marker, never evidence for a kill.
+	JoinInferred
+)
+
+// joinConfidenceKind labels JoinConfidence in errors.
+const joinConfidenceKind = "join confidence"
+
+// joinConfidenceNames is the wire spelling of each JoinConfidence, indexed by value. Pure.
+func joinConfidenceNames() []string { return []string{"unknown", "exact", "argv", "inferred"} }
+
+// String returns the wire spelling. Pure.
+func (v JoinConfidence) String() string {
+	return enumString(v, joinConfidenceKind, joinConfidenceNames())
+}
+
+// MarshalText encodes the wire spelling, so JSON and YAML carry names, not numbers. Pure.
+func (v JoinConfidence) MarshalText() ([]byte, error) { return []byte(v.String()), nil }
+
+// UnmarshalText parses the wire spelling; an unknown name is an error (closed set). Pure.
+func (v *JoinConfidence) UnmarshalText(b []byte) error {
+	return enumUnmarshal(v, b, joinConfidenceKind, joinConfidenceNames())
+}
+
+// JoinConfidenceValues lists every JoinConfidence in order: the canonical iteration list. Pure.
+func JoinConfidenceValues() []JoinConfidence {
+	return enumValues[JoinConfidence](joinConfidenceNames())
+}
+
+// ParseJoinConfidence parses a wire spelling. Pure.
+func ParseJoinConfidence(s string) (JoinConfidence, bool) {
+	return enumParse[JoinConfidence](s, joinConfidenceNames())
+}
+
+// StopSignal is the graceful request a StopPlan asks the caller to send first; the caller maps it to its OS (agentio itself never signals).
+type StopSignal uint8
+
+// StopSignal values. Order is the wire order of names; append only.
+const (
+	// StopSignalNone: no graceful request exists (Windows console processes in another console); the caller can only force.
+	StopSignalNone StopSignal = iota
+	// StopSignalTerminate: SIGTERM on unix; the agent flushes its transcript and exits.
+	StopSignalTerminate
+	// StopSignalInterrupt: SIGINT on unix (ctrl-c), for agents that flush only on an interrupt.
+	StopSignalInterrupt
+)
+
+// stopSignalKind labels StopSignal in errors.
+const stopSignalKind = "stop signal"
+
+// stopSignalNames is the wire spelling of each StopSignal, indexed by value. Pure.
+func stopSignalNames() []string { return []string{"none", "terminate", "interrupt"} }
+
+// String returns the wire spelling. Pure.
+func (v StopSignal) String() string { return enumString(v, stopSignalKind, stopSignalNames()) }
+
+// MarshalText encodes the wire spelling, so JSON and YAML carry names, not numbers. Pure.
+func (v StopSignal) MarshalText() ([]byte, error) { return []byte(v.String()), nil }
+
+// UnmarshalText parses the wire spelling; an unknown name is an error (closed set). Pure.
+func (v *StopSignal) UnmarshalText(b []byte) error {
+	return enumUnmarshal(v, b, stopSignalKind, stopSignalNames())
+}
+
+// StopSignalValues lists every StopSignal in order: the canonical iteration list. Pure.
+func StopSignalValues() []StopSignal { return enumValues[StopSignal](stopSignalNames()) }
+
+// ParseStopSignal parses a wire spelling. Pure.
+func ParseStopSignal(s string) (StopSignal, bool) {
+	return enumParse[StopSignal](s, stopSignalNames())
+}
+
+// HookKind is the neutral moment a command hook runs at (HookInstaller); each agent maps it to its own event name.
+type HookKind uint8
+
+// HookKind values. Order is the wire order of names; append only.
+const (
+	// HookUnknown: a vendor event with no neutral kind (HookCall.Event still names it).
+	HookUnknown HookKind = iota
+	// HookPromptSubmit: the user submitted a prompt, before the model sees it (Claude UserPromptSubmit, Codex UserPromptSubmit, Gemini BeforeAgent).
+	HookPromptSubmit
+	// HookTurnEnd: the agent finished its answer to a prompt (Claude Stop, Codex Stop, Gemini AfterAgent).
+	HookTurnEnd
+	// HookSessionStart: a session started or resumed (Claude SessionStart, Codex SessionStart, Gemini SessionStart).
+	HookSessionStart
+	// HookSessionEnd: a session ended (Claude SessionEnd, Gemini SessionEnd).
+	HookSessionEnd
+)
+
+// hookKindKind labels HookKind in errors.
+const hookKindKind = "hook kind"
+
+// hookKindNames is the wire spelling of each HookKind, indexed by value. Pure.
+func hookKindNames() []string {
+	return []string{"unknown", "prompt-submit", "turn-end", "session-start", "session-end"}
+}
+
+// String returns the wire spelling. Pure.
+func (v HookKind) String() string { return enumString(v, hookKindKind, hookKindNames()) }
+
+// MarshalText encodes the wire spelling, so JSON and YAML carry names, not numbers. Pure.
+func (v HookKind) MarshalText() ([]byte, error) { return []byte(v.String()), nil }
+
+// UnmarshalText parses the wire spelling; an unknown name is an error (closed set). Pure.
+func (v *HookKind) UnmarshalText(b []byte) error {
+	return enumUnmarshal(v, b, hookKindKind, hookKindNames())
+}
+
+// HookKindValues lists every HookKind in order: the canonical iteration list. Pure.
+func HookKindValues() []HookKind { return enumValues[HookKind](hookKindNames()) }
+
+// ParseHookKind parses a wire spelling. Pure.
+func ParseHookKind(s string) (HookKind, bool) { return enumParse[HookKind](s, hookKindNames()) }

@@ -141,6 +141,26 @@ func LaunchConfigOf(a Agent) (LaunchConfigurer, bool) {
 	return capabilityOf[LaunchConfigurer](a, CapLaunchConfig)
 }
 
+// ProcessSessionsOf returns the ProcessSessionReader (Disk · Read +
+// Process · Read). Pure.
+func ProcessSessionsOf(a Agent) (ProcessSessionReader, bool) {
+	return capabilityOf[ProcessSessionReader](a, CapProcessSessions)
+}
+
+// StopPlannerOf returns the StopPlanner (Pure). Pure.
+func StopPlannerOf(a Agent) (StopPlanner, bool) {
+	return capabilityOf[StopPlanner](a, CapStopPlanner)
+}
+
+// TurnFilesOf returns the TurnFileReader (Disk · Read). Pure.
+func TurnFilesOf(a Agent) (TurnFileReader, bool) {
+	return capabilityOf[TurnFileReader](a, CapTurnFiles)
+}
+
+// HooksOf returns the HookInstaller; its worst case is Disk · Write (the
+// agent's hook settings, only when asked). Pure.
+func HooksOf(a Agent) (HookInstaller, bool) { return capabilityOf[HookInstaller](a, CapHooks) }
+
 // capabilityRow binds a Capability to its accessor and cost.
 type capabilityRow struct {
 	cap  Capability
@@ -191,6 +211,11 @@ func capabilityTable() []capabilityRow {
 		{CapDoctor, present(DoctorOf), diskR},
 		{CapLiveCredential, present(LiveCredentialOf), pure},
 		{CapLaunchConfig, present(LaunchConfigOf), diskW},
+		// Process sessions may read a process's cwd or start env (Process).
+		{CapProcessSessions, present(ProcessSessionsOf), Cost{Class: CostProcess, Access: Read}},
+		{CapStopPlanner, present(StopPlannerOf), pure},
+		{CapTurnFiles, present(TurnFilesOf), diskR},
+		{CapHooks, present(HooksOf), diskW},
 	}
 }
 
