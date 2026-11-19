@@ -193,7 +193,7 @@ func TestProcessHome(t *testing.T) {
 		t.Fatal(err)
 	}
 	ctx := context.Background()
-	if h, err := c.ProcessHome(ctx, 1); err != nil || h.Dir() != filepath.Clean("/work/toy-home") || h.IsDefault() {
+	if h, err := c.ProcessHome(ctx, 1); err != nil || h.Dir() != c.HomeAt("/work/toy-home").Dir() || h.IsDefault() {
 		t.Errorf("env home = %v %v", h, err)
 	}
 	for _, pid := range []int{2, 3} {
@@ -213,7 +213,7 @@ func TestProcessHome(t *testing.T) {
 	parent := sampleSpec()
 	parent.HomeEnvNamesParent = true
 	c3, _ := agentio.NewCore(parent, host)
-	if h, err := c3.ProcessHome(ctx, 1); err != nil || h.Dir() != filepath.Join(filepath.Clean("/work/toy-home"), ".toy") {
+	if h, err := c3.ProcessHome(ctx, 1); err != nil || h.Dir() != c3.HomeAt(filepath.Join("/work/toy-home", ".toy")).Dir() {
 		t.Errorf("parent-naming env home = %v %v", h, err)
 	}
 }

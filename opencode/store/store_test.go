@@ -150,8 +150,12 @@ func TestSessions(t *testing.T) {
 	if roots, _ := db.Sessions(ctx, SessionQuery{Roots: true, Active: true}); len(roots) != 1 || roots[0].ID != "ses_A" {
 		t.Fatalf("roots = %+v", roots)
 	}
-	if byDir, _ := db.Sessions(ctx, SessionQuery{Dir: "/home/alice/other/"}); len(byDir) != 1 || byDir[0].ID != "ses_old" {
-		t.Fatalf("dir = %+v", byDir)
+	// The fixture rows hold unix paths; on windows filepath.Clean turns
+	// the query into a native path that no unix row equals, as it should.
+	if filepath.Separator == '/' {
+		if byDir, _ := db.Sessions(ctx, SessionQuery{Dir: "/home/alice/other/"}); len(byDir) != 1 || byDir[0].ID != "ses_old" {
+			t.Fatalf("dir = %+v", byDir)
+		}
 	}
 	if lim, _ := db.Sessions(ctx, SessionQuery{Limit: 2}); len(lim) != 2 {
 		t.Fatalf("limit = %d", len(lim))
@@ -267,15 +271,21 @@ func TestErrors(t *testing.T) {
 	// A database without the tables, and one missing a required column.
 	empty := filepath.Join(t.TempDir(), "opencode.db")
 	buildDB(t, empty, "CREATE TABLE other (x integer)")
-	if _, err := Open(h, empty).Sessions(ctx, SessionQuery{}); err == nil || !strings.Contains(err.Error(), "no session table") {
+	// Every handle is closed before the test ends: windows refuses to
+	// delete a temp dir whose database file is still open.
+	emptyDB := Open(h, empty)
+	t.Cleanup(func() { _ = emptyDB.Close() })
+	if _, err := emptyDB.Sessions(ctx, SessionQuery{}); err == nil || !strings.Contains(err.Error(), "no session table") {
 		t.Fatalf("no table: %v", err)
 	}
-	if _, err := Open(h, empty).Messages(ctx, "x"); err == nil {
+	if _, err := emptyDB.Messages(ctx, "x"); err == nil {
 		t.Fatal("messages without tables")
 	}
 	thin := filepath.Join(t.TempDir(), "opencode.db")
 	buildDB(t, thin, "CREATE TABLE session (id text)")
-	if _, err := Open(h, thin).Session(ctx, "x"); err == nil || !strings.Contains(err.Error(), "no column") {
+	thinDB := Open(h, thin)
+	t.Cleanup(func() { _ = thinDB.Close() })
+	if _, err := thinDB.Session(ctx, "x"); err == nil || !strings.Contains(err.Error(), "no column") {
 		t.Fatalf("thin: %v", err)
 	}
 	// Broken JSON in a model column and in a message row.

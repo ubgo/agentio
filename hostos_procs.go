@@ -241,6 +241,9 @@ func linuxTTY(fdLink string) string {
 	if err != nil {
 		return ""
 	}
+	// Slash form: a fixture tree read on windows reports the link target
+	// with backslashes; on linux this changes nothing.
+	target = filepath.ToSlash(target)
 	for _, pre := range ttyLinkPrefixes() {
 		if strings.HasPrefix(target, pre) {
 			return strings.TrimPrefix(target, devPrefix)
