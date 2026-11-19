@@ -226,9 +226,11 @@ func (a *Agent) InstallationID(h Home) (agentio.Personal, error) {
 	return agentio.NewPersonal(strings.TrimSpace(string(b))), nil
 }
 
-// Writer is the Disk · Write door. Codex v0.1 writes no Codex-owned file
-// (Codex rewrites them itself, so an edit could race it): config changes are vendor Commands (FeatureCommand,
-// MCPAddCommand), so the door exists but has no methods yet.
+// Writer is the Disk · Write door. Its only target is <home>/hooks.json
+// (RemoveHooks, EnsureHook, and the neutral HookInstaller), a file Codex
+// reads but never writes. Files Codex rewrites itself stay read-only, since
+// an edit could race it: config changes are vendor Commands
+// (FeatureCommand, MCPAddCommand).
 type Writer struct{ a *Agent }
 
 // Writer returns the write door. Pure.
