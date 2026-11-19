@@ -1,6 +1,6 @@
 # Conversations example
 
-Lists conversations newest first and looks one up by ID (`agentio.ConversationsOf`), reads a conversation's turns from a byte offset and again from the returned offset (`agentio.TurnsOf`), reads typed prompt history (`agentio.PromptHistoryOf`), asks whether a folder has history (`agentio.HistoryCheckerOf`), re-keys Claude history after a folder rename (`agentio.HistoryMoverOf`) and plans and applies a move between two Claude homes (`agentio.ConversationMoverOf`). Codex declares why it cannot move history.
+Lists conversations newest first and looks one up by ID (`agentio.ConversationsOf`), reads a conversation's turns from a byte offset and again from the returned offset (`agentio.TurnsOf`), reads turns from a transcript path and maps the path to its home and conversation (`agentio.TurnFilesOf`), reads typed prompt history (`agentio.PromptHistoryOf`), asks whether a folder has history (`agentio.HistoryCheckerOf`), re-keys Claude history after a folder rename (`agentio.HistoryMoverOf`) and plans and applies a move between two Claude homes (`agentio.ConversationMoverOf`). Codex declares why it cannot move history.
 
 It works on temp copies of the Claude and Codex fixture homes, so the moves never touch the checked-in files.
 
@@ -39,6 +39,15 @@ codex user      model="gpt-5.5" text="list the files"
 codex assistant model="gpt-5.5" text="There is one file: a.txt"
 codex: 2 turns, offset 4236, tokens in=1200 cached=1000 out=80
 codex: 0 new turns after offset 4236
+== turn files ==
+claude owner: home=personal conversation=3f474440-903e-5410-8bfb-d537b89f9547
+claude user      id="bc1f91aa-a3bc-aa0c-cb17-62baedc066b2" interim=false
+claude assistant id="68dbd90d-d459-9ab1-5f25-8887d9a00057" interim=false
+claude: 11 answers, 0 interim, cursor 46441
+codex owner: home=personal conversation=0199e1a0-0000-7000-8000-000000000001
+codex user      id="i1" interim=false
+codex assistant id="i2" interim=false
+codex: 1 answers, 0 interim, cursor 4236
 == prompt history ==
 claude 2026-11-13 19:35 dir="/work/proj13" "fixture text 139"
 claude 2026-11-13 19:10 dir="/work/proj4" "fixture text 138"

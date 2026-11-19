@@ -61,7 +61,13 @@ func listConversations(w io.Writer, a *codex.Agent, h codex.Home) error {
 
 ## Step 2 — Read turns
 
-`Turns(h, id, from, fn)` reads from byte offset `from` to the last complete line and calls `fn` once per user or agent message (an `agentio.Turn` with role, text, model and tokens on agent turns), then returns the new offset. Store it and pass it next time to get only new turns.
+`Turns(h, id, from, fn)` reads from cursor `from` and calls `fn` once per user or agent message (an `agentio.Turn` with role, text, model and tokens on agent turns), then returns the next cursor. Store it and pass it next time to get only new turns. `TurnsAt(path, from, fn)` does the same for a rollout path you already hold, and `RolloutOwner(path)` maps that path to the home whose `sessions/` or `archived_sessions/` tree holds it and to its conversation id (from the file name, else the `session_meta` head); the neutral view offers both as `TurnFileReader` (`agentio.TurnFilesOf`).
+
+- `Turn.ID` is the item id of an `item_completed` message; the older `user_message` / `agent_message` events carry none, so it is empty there.
+- A commentary message (`Phase` `commentary`) is emitted at once with `Interim` set and no tokens. A caller that stores answers skips it; a viewer shows it.
+- An answer waits for its `token_count`, which Codex writes a few lines later: the `token_count` attaches `last_token_usage` and releases it; `task_complete`, `turn_aborted`, `task_started`, `turn_context`, `session_meta`, `compacted` or the next message release it without tokens. `response_item`, `token_usage_record` and `world_state` lines do not, because Codex writes them between the answer and its `token_count`.
+- When a read reaches the end of the file while an answer waits, the answer is not emitted and the returned cursor is the offset of the answer's line, so a live reader (a Stop hook, a file watcher) gets it on its next read, once and with tokens. A session that crashed right after its answer and never writes another line keeps that answer held back.
+- A read that starts past 0 takes the folder and CLI version from the `session_meta` head and the model from the last `turn_context` within 256 KiB before the cursor.
 
 <!-- snippet: examples/codexconversations/main.go#turns -->
 ```go
@@ -185,6 +191,7 @@ parsed models=1 warnings=1
 - **The title falls back to the first user message.** Without a `session_index.jsonl` entry, `Title` is the first user message from the head read, truncated.
 - **Codex records no folder in `history.jsonl`.** A `PromptQuery.Dir` cannot match and returns nothing.
 - **`HasHistory` builds its cwd index per call.** There is no global cache; call it once per decision, not per row.
+- **The cursor can stay put.** While an answer waits for its `token_count`, the returned cursor does not move past it; pass it back unchanged and do not treat "same cursor" as "nothing will come".
 - **Both rollout generations are read.** Codex 0.15x and later write `item_completed` items; older versions wrote `user_message` / `agent_message` events. When a file has both, `item_completed` wins so a message is not reported twice.
 - **`models_cache.json` is a cache** written by Codex; it can lag behind the server. `Runner.BundledModels` reads the catalog compiled into the binary ([install](install.md#step-3--run-the-binary-through-the-runner)).
 

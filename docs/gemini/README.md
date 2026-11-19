@@ -127,6 +127,17 @@ func conversations(ctx context.Context, p printer, a *gemini.Agent, m machine) e
 }
 ```
 
+### Turns
+
+`TurnsAt(path, from, fn)` reads the user and model messages of one chat file (the neutral `TurnFileReader`, `agentio.TurnFilesOf`), and `ChatOwner(path)` maps a chat path to its home and full session id (the file name holds only the first 8 characters, so the id comes from the metadata line). What a caller sees:
+
+- Each turn's `ID` is the message id. Gemini appends a whole message again with the same id when it adds tokens or tool results to it, so the same `ID` can arrive twice; keep the later turn.
+- A `user` message with text and a `gemini` message with text or tokens are turns; `info`, `error` and `warning` records are not. `tokens` map to `Input` (input plus tool-use prompt tokens), `CachedInput`, `Output` and `Reasoning` (thoughts); `Model` is the message's model. `Dir` is empty: a chat records its project only as a hash.
+- `$set`, `$rewindTo` and `$patch` records emit nothing. After a rewind (or a patch with `removeIds`) the CLI no longer shows the removed messages, but turns already read stay with the caller, and the messages that follow carry new ids. A patch that rewrites a message's content (model history edits) is not re-emitted.
+- For a `.jsonl` chat the cursor is the byte offset after the last complete line. A legacy `.json` chat has no lines: it is read whole and its cursor counts messages; the CLI rewrites it as `.jsonl` when it is resumed.
+
+Because a rewind cannot be reported through a turn callback, Gemini supports turn files but not `TurnReader` (`Turns` by id).
+
 ## Step 5 — Instructions, MCP servers, skills and extensions
 
 `InstructionFiles(h, dir)` lists the files the CLI loads, in order: `<home>/GEMINI.md` (or the `context.fileName` names), the project memory `tmp/<slug>/memory/MEMORY.md`, then every context file from the git root down to `dir`. A folder `trustedFolders.json` marks `DO_NOT_TRUST` loads no project file. Files in subdirectories the CLI loads only when a tool touches them are not listed.
@@ -254,7 +265,8 @@ func launch(p printer, a *gemini.Agent) error {
 | history and conversation movers | no: chats are keyed by the slug registry |
 | prompt history | no: `logs.json` is recorded only from source |
 | live sessions | no: no session lock or pid file |
-| turns | no: chats rewrite earlier records (`$rewindTo`, `$patch`) |
+| turn files | yes: `TurnsAt` over a chat path, see [Turns](#turns) |
+| turns | no: chats rewrite earlier records (`$rewindTo`, `$patch`); read a chat by path with turn files |
 | models | no: the catalog lives in the CLI's own defaults |
 | run events | no: the stream-json event shape is not recorded yet |
 
