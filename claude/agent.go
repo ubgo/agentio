@@ -109,9 +109,14 @@ func Spec() agentio.Spec {
 		SharedHomeFiles:    sharedHomeFiles(),
 		CredentialEnv:      credentialEnv(),
 		APIBillingEnv:      apiBillingEnv(),
+		// The native binary is argv[0] "claude"; an npm install runs
+		// through node or bun, as the bin shim (`node …/bin/claude`) or
+		// the package's cli.js.
 		Process: agentio.ProcessMatch{
-			Basenames: []string{Binary},
-			Exclude:   []string{excludeDesktopApp, excludeChromeHost, excludeDesktopSupport},
+			Basenames:       []string{Binary},
+			ScriptBasenames: []string{Binary},
+			ScriptContains:  []string{npmScriptDir},
+			Exclude:         []string{excludeDesktopApp, excludeChromeHost, excludeDesktopSupport},
 		},
 	}
 }

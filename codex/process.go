@@ -16,14 +16,6 @@ import (
 	"github.com/ubgo/agentio"
 )
 
-// argv words that refine a Codex process's kind.
-const (
-	nodeBinary   = "node"
-	launcherFile = "codex.js"
-	argDaemon    = "daemon"
-	argProxy     = "proxy"
-)
-
 // LiveProcess is one running Codex process from Host.Processes.
 type LiveProcess struct {
 	agentio.Process
@@ -47,13 +39,12 @@ func (a *Agent) ClassifyProcess(p agentio.Process) (agentio.ProcessInfo, bool) {
 	return agentio.ProcessInfo{Agent: ID, Kind: kind, Session: session}, true
 }
 
+// classifyArgs names the kind of a matched Codex row: an interpreter
+// running a script is the npm launcher, else the first subcommand word
+// decides. Pure.
 func classifyArgs(p agentio.Process) agentio.ProcessKind {
 	argv := p.Argv
-	base := ""
-	if len(argv) > 0 {
-		base = filepath.Base(argv[0])
-	}
-	if base == nodeBinary || (len(argv) > 1 && strings.HasSuffix(argv[1], launcherFile)) {
+	if _, ok := Spec().Process.ScriptIndex(p); ok && !Spec().Process.MatchesBasename(p) {
 		return agentio.ProcessLauncher
 	}
 	for _, arg := range argv[min(1, len(argv)):] {
