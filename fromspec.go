@@ -47,6 +47,10 @@ const specTokenLoginReason = "spec has no token_env"
 // only; it names no typed options and no settings flag.
 const specLaunchConfigReason = "config-only agent: a spec has no typed launch options and no settings flag; pass vendor flags as raw args"
 
+// specHooksReason is why a config-only agent installs no hooks: a spec
+// names no hook settings file, events or payload shape.
+const specHooksReason = "config-only agent: a spec names no hook settings file, events or payload shape"
+
 // FromSpec builds a config-only agent from s (SPEC §5.6). Validation:
 // Spec.Validate. A spec whose ID equals a built-in's is refused by
 // builtin.New, not here. Pure.
@@ -100,6 +104,8 @@ func (a specAgent) UnsupportedReason(c Capability) (string, bool) {
 		return specTokenLoginReason, true
 	case CapLaunchConfig:
 		return specLaunchConfigReason, true
+	case CapHooks:
+		return specHooksReason, true
 	}
 	return configOnlyReason, true
 }

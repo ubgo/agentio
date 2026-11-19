@@ -1087,7 +1087,7 @@ const (
 	HookTurnEnd
 	// HookSessionStart: a session started or resumed (Claude SessionStart, Codex SessionStart, Gemini SessionStart).
 	HookSessionStart
-	// HookSessionEnd: a session ended (Claude SessionEnd, Gemini SessionEnd).
+	// HookSessionEnd: a session ended (Claude SessionEnd, Codex SessionEnd, Gemini SessionEnd).
 	HookSessionEnd
 )
 

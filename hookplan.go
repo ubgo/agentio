@@ -1,6 +1,13 @@
 package agentio
 
-import "io"
+import (
+	"errors"
+	"io"
+)
+
+// ErrInvalidHook means a hook entry or plan PlanHooks / ApplyHooks refuses:
+// an empty command, or a plan made for another agent's file.
+var ErrInvalidHook = errors.New("agentio: invalid hook entry")
 
 // HookEntry is one command hook: the neutral kind, the vendor event it
 // maps to, and the shell command the agent runs.
