@@ -1,0 +1,13 @@
+{
+  "id": "msg_0f0000000013BBBBBBBBBBBB03",
+  "sessionID": "ses_0f0000000002ffeFixtureBBBB",
+  "role": "user",
+  "time": {
+    "created": 1775100733511
+  },
+  "agent": "build",
+  "model": {
+    "providerID": "ollama",
+    "modelID": "gemma4"
+  }
+}

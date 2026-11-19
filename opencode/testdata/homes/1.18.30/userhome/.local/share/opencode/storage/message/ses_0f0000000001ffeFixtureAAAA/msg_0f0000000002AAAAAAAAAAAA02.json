@@ -1,0 +1,30 @@
+{
+  "id": "msg_0f0000000002AAAAAAAAAAAA02",
+  "sessionID": "ses_0f0000000001ffeFixtureAAAA",
+  "role": "assistant",
+  "time": {
+    "created": 1760100550253,
+    "completed": 1760100572839
+  },
+  "system": [
+    "You are a fixture assistant.",
+    "Working directory: /home/alice/proj"
+  ],
+  "modelID": "gpt-5-nano",
+  "providerID": "openai",
+  "mode": "build",
+  "path": {
+    "cwd": "/home/alice/proj",
+    "root": "/"
+  },
+  "cost": 0.0021,
+  "tokens": {
+    "input": 1200,
+    "output": 300,
+    "reasoning": 120,
+    "cache": {
+      "read": 1000,
+      "write": 0
+    }
+  }
+}

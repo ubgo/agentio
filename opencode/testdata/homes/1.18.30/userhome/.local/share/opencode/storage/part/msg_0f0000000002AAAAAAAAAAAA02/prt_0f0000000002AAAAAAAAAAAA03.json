@@ -1,0 +1,22 @@
+{
+  "id": "prt_0f0000000002AAAAAAAAAAAA03",
+  "sessionID": "ses_0f0000000001ffeFixtureAAAA",
+  "messageID": "msg_0f0000000002AAAAAAAAAAAA02",
+  "type": "tool",
+  "callID": "call_fixture01",
+  "tool": "edit",
+  "state": {
+    "status": "completed",
+    "input": {
+      "filePath": "/home/alice/proj/login.ts"
+    },
+    "output": "edited",
+    "title": "login.ts",
+    "metadata": {},
+    "time": {
+      "start": 1760100553000,
+      "end": 1760100554000
+    }
+  },
+  "metadata": {}
+}

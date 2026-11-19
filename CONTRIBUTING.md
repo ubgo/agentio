@@ -13,7 +13,7 @@ The repository holds several Go modules. A `go.work` ties them together for loca
 ```sh
 git clone https://github.com/ubgo/agentio.git
 cd agentio
-go work init . claude codex codex/state builtin examples
+go work init . claude codex codex/state gemini pi opencode opencode/store builtin examples
 ```
 
 | Module | Directory | Holds |
@@ -22,10 +22,14 @@ go work init . claude codex codex/state builtin examples
 | `github.com/ubgo/agentio/claude` | `claude/` | Claude Code |
 | `github.com/ubgo/agentio/codex` | `codex/` | Codex (adds go-toml for `config.toml`) |
 | `github.com/ubgo/agentio/codex/state` | `codex/state/` | Codex SQLite stores (adds pure-Go `modernc.org/sqlite`) |
+| `github.com/ubgo/agentio/gemini` | `gemini/` | Gemini CLI |
+| `github.com/ubgo/agentio/pi` | `pi/` | pi |
+| `github.com/ubgo/agentio/opencode` | `opencode/` | opencode, with its legacy JSON session storage; stdlib only |
+| `github.com/ubgo/agentio/opencode/store` | `opencode/store/` | opencode's SQLite database `opencode.db` (adds pure-Go `modernc.org/sqlite`) |
 | `github.com/ubgo/agentio/builtin` | `builtin/` | the typed set of built-in and config-defined agents |
 | `github.com/ubgo/agentio/examples` | `examples/` | runnable examples; never imported by a library module |
 
-The dependency direction is fixed: the root imports no vendor module and no third-party package; `claude` never imports `codex` or the reverse; `builtin` imports `claude` and `codex` but never `codex/state`. `internal/archtest` fails the build when a change breaks this.
+The dependency direction is fixed: the root imports no vendor module and no third-party package; vendor modules never import each other (`claude` never imports `codex` or the reverse), except a store module importing its own agent (`codex/state` imports `codex`, `opencode/store` imports `opencode`); `builtin` imports every vendor module but never `codex/state` or `opencode/store`. `internal/archtest` fails the build when a change breaks this.
 
 ## Checks
 

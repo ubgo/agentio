@@ -7,6 +7,7 @@ require (
 	github.com/ubgo/agentio/claude v0.1.0
 	github.com/ubgo/agentio/codex v0.1.0
 	github.com/ubgo/agentio/gemini v0.1.0
+	github.com/ubgo/agentio/opencode v0.1.0
 	github.com/ubgo/agentio/pi v0.1.0
 )
 

@@ -1,0 +1,16 @@
+{
+  "id": "prt_0f0000000004AAAAAAAAAAAA03",
+  "sessionID": "ses_0f0000000001ffeFixtureAAAA",
+  "messageID": "msg_0f0000000004AAAAAAAAAAAA04",
+  "type": "step-finish",
+  "cost": 0.0027,
+  "tokens": {
+    "input": 1500,
+    "output": 400,
+    "reasoning": 0,
+    "cache": {
+      "read": 1200,
+      "write": 10
+    }
+  }
+}
