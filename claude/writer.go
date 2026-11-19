@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/ubgo/agentio"
+	"github.com/ubgo/agentio/internal/hookjson"
 )
 
 // ErrHistoryExists means the destination already has a history folder;
@@ -103,13 +104,20 @@ func readRawSettings(path string) (map[string]json.RawMessage, error) {
 	return m, nil
 }
 
-// writeRawSettings backs path up, then writes m atomically (temp + rename).
+// writeRawSettings backs path up, then writes m indented with sorted keys
+// (writeSettingsBytes).
 func (w *Writer) writeRawSettings(path string, m map[string]json.RawMessage) (agentio.Backup, error) {
-	b, err := agentio.BackupFile(path, w.a.now())
-	if err != nil {
-		return b, err
-	}
 	data, err := json.MarshalIndent(m, "", jsonIndent)
+	if err != nil {
+		return agentio.Backup{}, err
+	}
+	return w.writeSettingsBytes(path, append(data, '\n'))
+}
+
+// writeSettingsBytes backs path up, then writes data atomically (temp +
+// rename), keeping the file's mode (settingsPerm for a new file).
+func (w *Writer) writeSettingsBytes(path string, data []byte) (agentio.Backup, error) {
+	b, err := agentio.BackupFile(path, w.a.now())
 	if err != nil {
 		return b, err
 	}
@@ -121,7 +129,7 @@ func (w *Writer) writeRawSettings(path string, m map[string]json.RawMessage) (ag
 		perm = info.Mode().Perm()
 	}
 	tmp := path + tmpSuffix
-	if err := os.WriteFile(tmp, append(data, '\n'), perm); err != nil {
+	if err := os.WriteFile(tmp, data, perm); err != nil {
 		return b, err
 	}
 	if err := os.Rename(tmp, path); err != nil {
@@ -170,92 +178,44 @@ func (w *Writer) SetProjectSetting(p Project, local bool, patch SettingsPatch) (
 	return w.applyPatch(path, patch)
 }
 
-// readHooks decodes the hooks key of a raw settings map.
-func readHooks(m map[string]json.RawMessage) (Hooks, error) {
-	hooks := Hooks{}
-	if raw, ok := m[keyHooks]; ok && len(raw) > 0 && string(raw) != jsonNull {
-		if err := json.Unmarshal(raw, &hooks); err != nil {
-			return nil, fmt.Errorf("claude: hooks do not decode; not rewriting them: %w", err)
-		}
-	}
-	return hooks, nil
-}
-
-// AddHook appends a matcher group for ev to the settings file of scope s
-// (user: h; project/local: p, which must be set). Existing hooks and keys
-// are kept. cost: Disk · Write.
+// AddHook appends matcher group m as the last group of ev in the settings
+// file of scope s (user: h; project/local: p, which must be set). The
+// group is spliced into the file's bytes: every other hook, group and key
+// keeps its exact bytes and order. It always appends; EnsureHook skips a
+// handler that is already there. cost: Disk · Write.
 func (w *Writer) AddHook(h Home, p *Project, s SettingsScope, ev HookEvent, m HookMatcher) (agentio.Backup, error) {
 	path, err := w.a.settingsPath(h, p, s)
 	if err != nil {
 		return agentio.Backup{}, err
 	}
-	raw, err := readRawSettings(path)
+	data, _, err := readFileBounded(path, maxJSONFileBytes)
 	if err != nil {
 		return agentio.Backup{}, err
 	}
-	hooks, err := readHooks(raw)
+	out, err := appendMatcher(data, ev, m)
 	if err != nil {
-		return agentio.Backup{}, err
+		return agentio.Backup{}, fmt.Errorf("claude: %s: not rewriting it: %w", path, err)
 	}
-	hooks[ev] = append(hooks[ev], m)
-	enc, err := json.Marshal(hooks)
-	if err != nil {
-		return agentio.Backup{}, err
-	}
-	raw[keyHooks] = enc
-	return w.writeRawSettings(path, raw)
+	return w.writeSettingsBytes(path, out)
 }
 
 // RemoveHooks drops every handler in the scope's settings file for which
-// keep returns false; empty matcher groups and events are removed. Nothing
-// is written (and no backup made) when nothing matches. cost: Disk · Write.
+// keep returns false; a matcher group left empty is removed, then an event
+// left empty, then a "hooks" key left empty. Every other byte of the file
+// is kept. A handler that does not decode as a HookHandler is kept.
+// Nothing is written (and no backup made) when nothing matches.
+// cost: Disk · Write.
 func (w *Writer) RemoveHooks(h Home, p *Project, s SettingsScope, keep func(HookEvent, HookHandler) bool) (removed int, b agentio.Backup, err error) {
 	path, err := w.a.settingsPath(h, p, s)
 	if err != nil {
 		return 0, b, err
 	}
-	raw, err := readRawSettings(path)
-	if err != nil {
-		return 0, b, err
-	}
-	hooks, err := readHooks(raw)
-	if err != nil {
-		return 0, b, err
-	}
-	for ev, groups := range hooks {
-		var keptGroups []HookMatcher
-		for _, g := range groups {
-			var kept []HookHandler
-			for _, hh := range g.Hooks {
-				if keep(ev, hh) {
-					kept = append(kept, hh)
-				} else {
-					removed++
-				}
-			}
-			if len(kept) > 0 {
-				g.Hooks = kept
-				keptGroups = append(keptGroups, g)
-			}
+	drop := func(hd hookjson.Handler) bool {
+		var hh HookHandler
+		if json.Unmarshal(hd.Raw, &hh) != nil {
+			return false
 		}
-		if len(keptGroups) == 0 {
-			delete(hooks, ev)
-		} else {
-			hooks[ev] = keptGroups
-		}
+		return !keep(HookEvent(hd.Event), hh)
 	}
-	if removed == 0 {
-		return 0, b, nil
-	}
-	if len(hooks) == 0 {
-		delete(raw, keyHooks)
-	} else {
-		enc, err := json.Marshal(hooks)
-		if err != nil {
-			return 0, b, err
-		}
-		raw[keyHooks] = enc
-	}
-	b, err = w.writeRawSettings(path, raw)
-	return removed, b, err
+	return w.removeHookHandlers(path, drop)
 }
