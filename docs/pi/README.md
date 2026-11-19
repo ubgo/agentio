@@ -239,6 +239,7 @@ The full output is in [`examples/pi/README.md`](../../examples/pi/README.md).
 - **A relative session dir is refused.** pi resolves `PI_CODING_AGENT_SESSION_DIR` or `sessionDir` against its own working directory, which a reader cannot know.
 - **Read-only is a tool allowlist, not a sandbox.** pi runs with the process's permissions; `--tools read,grep,find,ls` only removes the tools that write. Isolate pi in a container when that matters.
 - **Every provider has its own key variable.** A token login without `TokenCredential.Provider` is refused rather than guessed.
+- **No hooks to install.** pi has no `HookInstaller`: its extensions are TypeScript modules loaded into the process, not shell commands named in a settings key, so there is nothing for agentio to add or remove. `agentio.Unsupported(n, agentio.CapHooks)` returns that reason; a hook-based tool falls back to reading pi's session files. See [Hooks: install and decode](../capabilities/hooks.md).
 
 ## Related
 

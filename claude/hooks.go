@@ -295,6 +295,8 @@ type HookInput struct {
 	FromModel            string           `json:"from_model,omitempty"`
 	ToModel              string           `json:"to_model,omitempty"`
 	Unknown              agentio.Unknown  `json:"-"`
+	// Raw is the whole payload as received.
+	Raw agentio.Raw `json:"-"`
 }
 
 // DecodeHookInput decodes a hook's stdin. cost: Pure.
@@ -308,7 +310,7 @@ func DecodeHookInput(r io.Reader) (HookInput, error) {
 	if err != nil {
 		return HookInput{}, err
 	}
-	in.Unknown = unknown
+	in.Unknown, in.Raw = unknown, agentio.Raw(b)
 	return in, nil
 }
 

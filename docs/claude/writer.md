@@ -54,7 +54,9 @@ func patchSettings(p printer, a *claude.Agent) error {
 
 ## Step 2 — Add a hook
 
-[`AddHook(h, p, scope, event, matcher)`](ds:block?id=claude-writer-addhook-y3s8tkg6) appends a matcher group for the event to the settings file of the scope (`ScopeUser` uses `h`; [`ScopeProject` and `ScopeLocal` need `p`](ds:block?id=claude-agent-settingspath-g6smumdx)). Existing hooks and keys stay.
+[`AddHook(h, p, scope, event, matcher)`](ds:block?id=claude-writer-addhook-y3s8tkg6) appends a matcher group for the event to the settings file of the scope (`ScopeUser` uses `h`; [`ScopeProject` and `ScopeLocal` need `p`](ds:block?id=claude-agent-settingspath-g6smumdx)). The group is spliced into the file's bytes: every other hook, group, handler and top-level key keeps its exact bytes and order, and the new group follows the file's indentation.
+
+`EnsureHook(h, p, scope, event, matcher)` is the idempotent form. It leaves out every handler of the matcher that the event already has (a command handler with the same command, whatever its timeout; any other handler with the same JSON) and writes nothing when none is left. It returns `added` (false: nothing written, empty `Backup`), so an installer can run on every start. To install the same command into every agent's file, use the neutral [`HookInstaller`](../capabilities/hooks.md) instead.
 
 <!-- snippet: examples/claudehooks/main.go#addhook -->
 ```go
@@ -80,7 +82,7 @@ func addHook(p printer, a *claude.Agent) error {
 
 ## Step 3 — Remove hooks
 
-[`RemoveHooks(h, p, scope, keep)`](ds:block?id=claude-writer-removehooks-x8p95azs) drops every handler for which `keep` returns false, then drops matcher groups and events left empty. It returns how many handlers it removed. When nothing matches, nothing is written and the backup is empty.
+[`RemoveHooks(h, p, scope, keep)`](ds:block?id=claude-writer-removehooks-x8p95azs) drops every handler for which `keep` returns false, then drops matcher groups, events and a `hooks` key left empty; a group that keeps another handler stays, and every other byte of the file is kept. A handler that does not decode as a `HookHandler` is kept. It returns how many handlers it removed. When nothing matches, nothing is written and the backup is empty.
 
 <!-- snippet: examples/claudehooks/main.go#removehooks -->
 ```go
@@ -236,8 +238,9 @@ The first `settings.json` backup (stamp without a suffix) was taken earlier in t
 
 - **[Backups pile up.](ds:block?id=backuppath-tfjr5hjr)** Each call leaves a `<file>.agentio-bak-<stamp>` next to the file (a `-N` suffix when the stamp is taken); nothing cleans them. Tell your users where they are, or remove them yourself once a change is confirmed.
 - **Values in `SettingsPatch.Set` are raw JSON.** A string needs its quotes (`"sonnet"`, not `sonnet`); [an invalid value is refused before anything is written](ds:block?id=claude-writer-applypatch-utnp7z3r).
-- A settings file that is not a JSON object, or whose `hooks` key does not decode, [is refused rather than rewritten](ds:block?id=claude-readrawsettings-peagek4s), so a hand-edited file with a mistake is never clobbered.
-- [`AddHook` appends a new group every call](ds:block?id=claude-writer-addhook-y3s8tkg6); calling it twice installs the hook twice. Check `a.Hooks` first if your installer may run again.
+- A settings file that is not a JSON object [is refused rather than rewritten](ds:block?id=claude-readrawsettings-peagek4s), so a hand-edited file with a mistake is never clobbered. The hook methods also refuse a `hooks` key or event of another shape (an array where an object belongs).
+- [`AddHook` appends a new group every call](ds:block?id=claude-writer-addhook-y3s8tkg6); calling it twice installs the hook twice. Use `EnsureHook` when your installer may run again.
+- `SetUserSetting` and `SetProjectSetting` rewrite the whole file indented with sorted keys; the hook methods splice and keep the file's layout. Prefer the hook methods for hooks.
 - [`MoveHistory` moves only the history folder for that path in that home](ds:block?id=claude-writer-movehistory-3n8zhjz3); the folder's state entry in `.claude.json` (trust, last session) stays under the old path.
 - [`ApplyMove` refuses a plan made for another agent with `agentio.ErrForeignHome`.](ds:block?id=claude-writer-applymove-tpwp98h7) [`ApplyHomeLinks` returns no `Backup`](ds:block?id=claude-writer-applyhomelinks-39hcpw7p) because it never overwrites.
 - `MoveHistory` and `PlanMove` both refuse while a Claude Code session uses the folder: `MoveHistory` returns `*claude.LiveSessionError` (`errors.Is(err, agentio.ErrMoveBlocked)`), [`PlanMove` lists the same text in `Blockers`](ds:block?id=claude-agent-liveblockers-apwxxpeb). [The check reads `Host.Processes`; a Host without a process lister sees no live session.](ds:block?id=claude-agent-processtable-c26mufrf)
@@ -245,7 +248,7 @@ The first `settings.json` backup (stamp without a suffix) was taken earlier in t
 
 ## Related
 
-- [Claude hooks](hooks.md), [Claude settings](settings.md), [Claude paths](paths.md), [Claude conversations](conversations.md)
+- [Claude hooks](hooks.md), [Hooks: install and decode](../capabilities/hooks.md), [Claude settings](settings.md), [Claude paths](paths.md), [Claude conversations](conversations.md)
 - Neutral view: [The doors](../capabilities/doors.md), [Moves, backups and links](../core/backup-move-link.md)
 - Example: [`examples/claudehooks`](../../examples/claudehooks/)
 - [Feature index](../reference/features.md), [Choosing guides](../choosing/README.md)

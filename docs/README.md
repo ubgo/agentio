@@ -50,6 +50,7 @@ After step 14 you have the shape of a production tool: one `HostFromOS()` in `ma
 | Read hooks | [Claude hooks](claude/hooks.md#step-1--list-configured-hooks), [Codex hooks](codex/hooks-rules.md#step-1--read-hook-config) | [claudehooks](../examples/claudehooks/), [codexconfig](../examples/codexconfig/) |
 | Write a hook or status-line program | [Decode hook input](claude/hooks.md#step-2--decode-hook-input), [Decode status line input](claude/statusline.md#step-2--decode-status-line-input) | [claudehooks](../examples/claudehooks/) |
 | Install a hook safely, with a backup | [Add a hook](claude/writer.md#step-2--add-a-hook), [Writes: file or vendor command](choosing/writes.md) | [claudehooks](../examples/claudehooks/) |
+| Install one capture hook into Claude Code, Codex and Gemini CLI, and decode its payload | [Hooks: install and decode](capabilities/hooks.md) | [hooks](../examples/hooks/) |
 | Read effective settings and where each key came from | [Claude effective settings](claude/settings.md#step-2--read-the-effective-settings), [Codex effective config](codex/config.md#step-2--read-the-effective-config) | [claudesettings](../examples/claudesettings/), [codexconfig](../examples/codexconfig/) |
 | List MCP servers, skills and plugins across agents | [Config, MCP, skills and plugins](capabilities/config.md#step-2--list-mcp-servers) | [accessors](../examples/accessors/), [claudeextensions](../examples/claudeextensions/) |
 | Add an MCP server or plugin the vendor's way | [Claude MCP commands](claude/mcp.md#step-3--build-add-and-remove-commands), [Codex MCP commands](codex/mcp.md#step-2--build-add-and-remove-commands) | [claudeextensions](../examples/claudeextensions/), [codexconfig](../examples/codexconfig/) |
@@ -113,6 +114,7 @@ Concepts both vendors share, each a small interface reached through a typed acce
 | [Run events](capabilities/run-events.md) | Decode a headless run | [runevents](../examples/runevents/) |
 | [Doctor checks](capabilities/doctor.md) | Run the checks for a home; check the installed version | [accessors](../examples/accessors/) |
 | [Typed launch configuration](capabilities/launch-config.md) | Validate typed options with the registry; type-check settings and hand them to Claude; plan a switchable login; check Codex overrides; clean up run files | [launchconfig](../examples/launchconfig/) |
+| [Hooks: install and decode](capabilities/hooks.md) | Plan, apply, and apply again; what the merge keeps; decode the payload; remove | [hooks](../examples/hooks/) |
 | [Doors: Runner, Prober and Writer](capabilities/doors.md) | Run the vendor binary through a Runner; spend quota through a Prober; write through a Writer; link shared home files | [doors](../examples/doors/) |
 | [Config-defined agents](capabilities/fromspec.md) | Describe the agent as a Spec; build it with FromSpec; launch it; launch with a token login | [fromspec](../examples/fromspec/) |
 
@@ -245,6 +247,7 @@ Every example lives in its own folder under [`examples/`](../examples/) with a R
 | [processsessions](../examples/processsessions/) | process rows with RSS, tty and CPU time, process-to-conversation joins with their confidence, stop plans, ancestors, the start-time re-check | [Process sessions](capabilities/process-sessions.md) |
 | [runevents](../examples/runevents/) | the neutral run-event decoder over a recorded Claude Code and Codex run | [Run events](capabilities/run-events.md) |
 | [doors](../examples/doors/) | the Runner, the Prober, the Writer and home links, with fakes | [Doors](capabilities/doors.md) |
+| [hooks](../examples/hooks/) | one capture hook installed into Claude Code, Codex and Gemini CLI homes, a no-op second install, payload decoding, a byte-for-byte uninstall | [Hooks: install and decode](capabilities/hooks.md) |
 | [fromspec](../examples/fromspec/) | a made-up agent as a `Spec`: validation, homes, capabilities, launch, token login, doctor | [Config-defined agents](capabilities/fromspec.md) |
 | [claudesettings](../examples/claudesettings/) | the Claude agent and homes, install, paths, settings layers and merge, global config, permissions, policy | [Claude settings](claude/settings.md) |
 | [claudehooks](../examples/claudehooks/) | hooks, a hook program, a status-line program, the Writer (settings, hooks, history moves) | [Claude hooks](claude/hooks.md), [Claude writer](claude/writer.md) |

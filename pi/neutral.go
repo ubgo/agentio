@@ -53,6 +53,7 @@ const (
 	reasonPlugins     = "pi packages and extensions are code loaded into the process, not plugins with a manifest this library models"
 	reasonModels      = "pi's model catalog (models-store.json) has no recorded shape yet"
 	reasonRunEvents   = "pi's --mode json event stream is recorded once but not yet modelled as a decoder"
+	reasonHooks       = "pi has no shell-command hooks: its extensions are TypeScript modules loaded into the process, so there is no settings key to add a command to"
 )
 
 // Neutral returns the L1/L2 view. Pure.
@@ -88,6 +89,8 @@ func (n neutral) UnsupportedReason(c agentio.Capability) (string, bool) {
 		return reasonLiveCredential, true
 	case agentio.CapLaunchConfig:
 		return reasonLaunchConfig, true
+	case agentio.CapHooks:
+		return reasonHooks, true
 	}
 	return "", false
 }

@@ -1,6 +1,6 @@
 # Codex hooks and rules
 
-Read Codex's hook configuration (the `[hooks]` table of `config.toml`, its `hooks.state` trust records, and `<home>/hooks.json`), decode the JSON Codex hands a hook program or a `notify` program, and parse execpolicy `*.rules` files into typed prefix rules without executing them.
+Read Codex's hook configuration (the `[hooks]` table of `config.toml`, its `hooks.state` trust records, and `<home>/hooks.json`), decode the JSON Codex hands a hook program or a `notify` program, parse execpolicy `*.rules` files into typed prefix rules without executing them, and install or remove command hooks in `hooks.json`.
 
 ## Before you start
 
@@ -71,7 +71,7 @@ func readHooks(w io.Writer, m machine) error {
 
 ## Step 2 — Decode hook input and notify payloads
 
-A hook program reads one JSON object on stdin; `DecodeHookInput` returns its `Event` and the full `Raw` payload. The `notify` program configured in `config.toml` gets a JSON object as its last argument; `DecodeNotify` returns its `Type` and `Raw`.
+A hook program reads one JSON object on stdin; `DecodeHookInput` returns its `Event`, the typed fields (`SessionID`, `TranscriptPath`, `Cwd`, `Model`, `PermissionMode`, `TurnID`, `Prompt`, `LastAssistantMessage`, `StopHookActive`, `Source`, `Reason`, `AgentID`, `AgentType`), every other key in `Unknown`, and the full `Raw` payload. These fields are unverified: they come from the command-hook input schemas embedded in the Codex 0.162.1 binary, not from a recorded run, so read them defensively and keep `Raw`. `HookInput.Call()` maps the input onto the neutral `agentio.HookCall`. The `notify` program configured in `config.toml` gets a JSON object as its last argument; `DecodeNotify` returns its `Type` and `Raw`.
 
 <!-- snippet: examples/codexconfig/hooks.go#payloads -->
 ```go
@@ -129,6 +129,12 @@ func readRules(w io.Writer, m machine) error {
 }
 ```
 
+## Step 4 — Install and remove hooks
+
+`<home>/hooks.json` is the one Codex file the `Writer` edits: Codex reads it but never writes it. `a.Writer().EnsureHook(h, event, command)` appends a command hook unless one with the same command is already on that event (then nothing is written), and `a.Writer().RemoveHooks(h, match)` removes the command hooks whose command `match` reports true, dropping a group, event or `hooks` key only when it is left empty. Both splice into the file's bytes and back it up first; the `description`, other tools' hooks and unknown keys keep their exact bytes.
+
+The neutral `agentio.HooksOf(a.Neutral())` does the same through kinds (prompt-submit `UserPromptSubmit`, turn-end `Stop`, session-start `SessionStart`, session-end `SessionEnd`) with a plan you can show first; see [Hooks: install and decode](../capabilities/hooks.md). `config.toml` stays read-only, so its plan reports two steps as `Manual` instead of taking them: Codex asks you to review a new or changed hook before it runs it (the trust is recorded in `config.toml` `hooks.state`), and a `[features] hooks = false` must be set back to true (hooks are stable and on by default in 0.162.1).
+
 ## Try it
 
 ```sh
@@ -167,10 +173,11 @@ source cli subagent
 - **`mcp_tool` handlers have no `Command`.** Read `Server`, `Tool` and `Input` (TOML source text) or `InputJSON` (from `hooks.json`).
 - **A bad handler degrades, the file still reads.** `ParseHooksFile` keeps an undecodable handler's raw keys in `UnknownJSON` with a warning.
 - **Rules are never executed.** `load(...)` and any other Starlark statement is an issue, so a rule set that builds rules programmatically reads as issues only. Do not treat `Rules` as Codex's final policy decision.
-- **No hook writer yet.** `codex.Writer` has no methods; there is no `AddHook` for Codex as there is for Claude.
+- **Only `hooks.json` is written.** Hooks in the `[hooks]` table of `config.toml` are read, never changed; `RemoveHooks` does not see them.
+- **A new hook does not run until it is trusted.** After an install, start Codex on that home and review the hooks once.
 
 ## Related
 
-- [Codex config.toml](config.md), [Codex instructions, skills and plugins](instructions-skills.md)
+- [Codex config.toml](config.md), [Codex instructions, skills and plugins](instructions-skills.md), [Hooks: install and decode](../capabilities/hooks.md)
 - [Claude hooks](../claude/hooks.md), [Claude permissions](../claude/permissions.md)
 - [Choosing guides](../choosing/README.md), [feature index](../reference/features.md)
