@@ -2,6 +2,8 @@ package agentio
 
 import (
 	"context"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -113,3 +115,58 @@ func Ancestors(table []Process, pid, maxHops int) []Process {
 // initPID is the first user process (launchd, init, systemd); the chain
 // stops below it because every process descends from it.
 const initPID = 1
+
+// ProcessHome returns the home the process pid runs in, read from its
+// start environment: the home Spec.HomeEnv names there (resolved like
+// HomeFromEnv), else the default home, because a vendor CLI started
+// without the variable uses its default. The error is set, and the home
+// zero, when the environment cannot be read (windows, a protected darwin
+// process, a host lister without ProcessEnvReader): then the home is
+// unknown, never "the default". Process · Read (one environment read).
+func (c *Core) ProcessHome(ctx context.Context, pid int) (Home, error) {
+	if c.host.Processes == nil {
+		return Home{}, UnsupportedError(c.spec.ID, "process env", "the host has no process lister")
+	}
+	env, err := c.host.processEnv(ctx, pid)
+	if err != nil {
+		return Home{}, err
+	}
+	if c.spec.HomeEnv == "" {
+		return c.DefaultHome(), nil
+	}
+	v, ok := EnvLookupFor(c.host.hostOS(), env, c.spec.HomeEnv)
+	if !ok || v == "" {
+		return c.DefaultHome(), nil
+	}
+	if c.spec.HomeEnvNamesParent {
+		v = filepath.Join(resolveHomeDir(c.host.hostOS(), c.host.UserHome, v), c.spec.DefaultHome)
+	}
+	return c.HomeAt(v), nil
+}
+
+// flagValueSep joins a long flag and its value in one argument.
+const flagValueSep = "="
+
+// ArgValue returns the value of the first of flags present in argv, in
+// either spelling a CLI parser accepts: "--resume id" (the next
+// argument) or "--resume=id". A flag that is the last argument has no
+// value (false). Only argv after argv[0] is searched. Pure.
+func ArgValue(argv []string, flags ...string) (string, bool) {
+	for i := 1; i < len(argv); i++ {
+		for _, f := range flags {
+			if f == "" {
+				continue
+			}
+			if argv[i] == f {
+				if i+1 < len(argv) {
+					return argv[i+1], true
+				}
+				return "", false
+			}
+			if v, ok := strings.CutPrefix(argv[i], f+flagValueSep); ok {
+				return v, true
+			}
+		}
+	}
+	return "", false
+}

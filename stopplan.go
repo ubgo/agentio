@@ -75,7 +75,12 @@ func (c *Core) StopPlan(p Process, _ []Process, s ProcessSession) (StopPlan, err
 // BaseStopPlan is the shared part of every agent's plan: a non-session
 // kind is refused with its kind as the reason; a session is one target,
 // StopSignalTerminate, DefaultStopGrace, Force, and a Resume built with
-// Launch when s names a conversation and a home this agent owns. Pure.
+// Launch when s names a conversation and a home this agent owns. On a
+// windows host (Host.GOOS) Graceful is StopSignalNone: Windows has no
+// SIGTERM, and a console control event reaches only processes attached
+// to the sender's own console, so another console's agent can only be
+// forced (the turn in flight is lost; the transcript up to it is kept).
+// Pure.
 func (c *Core) BaseStopPlan(info ProcessInfo, p Process, s ProcessSession) StopPlan {
 	plan := StopPlan{Agent: c.spec.ID}
 	if !info.Session {
@@ -84,6 +89,9 @@ func (c *Core) BaseStopPlan(info ProcessInfo, p Process, s ProcessSession) StopP
 	}
 	plan.Targets = []int{p.PID}
 	plan.Graceful = StopSignalTerminate
+	if c.host.GOOS == OSWindows {
+		plan.Graceful = StopSignalNone
+	}
 	plan.Grace = DefaultStopGrace
 	plan.Force = true
 	plan.KeepsConversation = true
