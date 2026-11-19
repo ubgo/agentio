@@ -51,11 +51,79 @@ func (a *Agent) ProcessSession(ctx context.Context, p agentio.Process) (agentio.
 		return agentio.ProcessSession{}, false, nil
 	}
 	envHome, envErr := a.core.ProcessHome(ctx, p.PID)
+	return a.processSession(ctx, p, envHome, envErr == nil, &homeList{a: a})
+}
+
+// ProcessSessions is ProcessSession for every Claude session row of ps
+// with one start-environment read for all of them (agentio
+// ProcessEnvBatchReader: one `ps -E` run on darwin) and the discovered homes
+// listed at most once, instead of once per row. Rows that are not Claude
+// session processes are skipped; the result holds, by pid, every row a
+// session was found for. A row's Process.Cwd is used when set, so an
+// argv join looks nothing up. The error is the home discovery failure
+// (only rows whose environment was unreadable need it). cost: Disk · Read
+// (as ProcessSession, per row) + Process · Read (one environment read; a
+// cwd lookup per row without Process.Cwd that needs one).
+func (a *Agent) ProcessSessions(ctx context.Context, ps []agentio.Process) (map[int]agentio.ProcessSession, error) {
+	var rows []agentio.Process
+	var pids []int
+	for _, p := range ps {
+		if info, ok := ClassifyProcess(p); ok && info.Session {
+			rows = append(rows, p)
+			pids = append(pids, p.PID)
+		}
+	}
+	out := make(map[int]agentio.ProcessSession, len(rows))
+	if len(rows) == 0 {
+		return out, nil
+	}
+	// An error means no environment was readable: every row's home is
+	// unknown and every discovered home is tried, as ProcessSession does.
+	envHomes, _ := a.core.ProcessHomes(ctx, pids)
+	homes := &homeList{a: a}
+	var homesErr error
+	for _, p := range rows {
+		h, known := envHomes[p.PID]
+		s, found, err := a.processSession(ctx, p, h, known, homes)
+		if err != nil {
+			homesErr = err
+			continue
+		}
+		if found {
+			out[p.PID] = s
+		}
+	}
+	return out, homesErr
+}
+
+// homeList lists the discovered homes once and reuses the result (a batch
+// join tries them for every row whose environment is unreadable).
+type homeList struct {
+	a     *Agent
+	homes []Home
+	err   error
+	done  bool
+}
+
+// get returns the discovered homes, reading them on the first call.
+// cost: Disk · Read (first call only).
+func (l *homeList) get() ([]Home, error) {
+	if !l.done {
+		l.homes, l.err = l.a.Homes()
+		l.done = true
+	}
+	return l.homes, l.err
+}
+
+// processSession is ProcessSession for a session row whose start
+// environment was already read: envKnown says whether it was, envHome is
+// the home it names. cost: as ProcessSession, without the env read.
+func (a *Agent) processSession(ctx context.Context, p agentio.Process, envHome agentio.Home, envKnown bool, homes *homeList) (agentio.ProcessSession, bool, error) {
 	var candidates []Home
-	if envErr == nil {
+	if envKnown {
 		candidates = []Home{wrap(envHome)}
 	} else {
-		hs, err := a.Homes()
+		hs, err := homes.get()
 		if err != nil {
 			return agentio.ProcessSession{}, false, err
 		}
@@ -66,14 +134,14 @@ func (a *Agent) ProcessSession(ctx context.Context, p agentio.Process) (agentio.
 			return s, true, nil
 		}
 	}
-	base := agentio.ProcessSession{Agent: ID, PID: p.PID, Dir: a.processCwd(ctx, p.PID)}
-	if envErr == nil {
+	base := agentio.ProcessSession{Agent: ID, PID: p.PID, Dir: a.processCwd(ctx, p)}
+	if envKnown {
 		base.Home = envHome
 	}
 	if id, ok := agentio.ArgValue(p.Argv, resumeFlags()...); ok && agentio.IsUUID(id) {
 		base.ConversationID = id
 		base.Confidence = agentio.JoinArgv
-		home, path := a.transcriptHome(candidates, envErr == nil, id)
+		home, path := a.transcriptHome(candidates, envKnown, id)
 		base.Home = home.Neutral()
 		if path != "" {
 			base.Path = path
@@ -83,7 +151,7 @@ func (a *Agent) ProcessSession(ctx context.Context, p agentio.Process) (agentio.
 		}
 		return base, true, nil
 	}
-	if envErr == nil {
+	if envKnown {
 		return base, true, nil
 	}
 	return agentio.ProcessSession{}, false, nil
@@ -138,13 +206,11 @@ func (a *Agent) transcriptHome(candidates []Home, envKnown bool, id string) (Hom
 	return a.DefaultHome(), ""
 }
 
-// processCwd is the process's working directory, "" when unreadable.
-// cost: Process · Read.
-func (a *Agent) processCwd(ctx context.Context, pid int) string {
-	if a.host.Processes == nil {
-		return ""
-	}
-	cwd, err := a.host.Processes.Cwd(ctx, pid)
+// processCwd is the process's working directory: p.Cwd when the caller
+// filled it, else one lookup; "" when unreadable. cost: Process · Read
+// (none when p.Cwd is set).
+func (a *Agent) processCwd(ctx context.Context, p agentio.Process) string {
+	cwd, err := a.host.ProcessCwd(ctx, p)
 	if err != nil {
 		return ""
 	}

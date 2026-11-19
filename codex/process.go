@@ -28,8 +28,11 @@ type LiveProcess struct {
 
 // ClassifyProcess reports whether p is a Codex process and of what kind:
 // the npm launcher (`node …/codex.js`), `exec`, `app-server` (daemon or
-// proxy), `mcp-server`, else the interactive CLI. Session is true for cli
-// and exec (conversation processes). Pure.
+// proxy), `mcp-server`, `mcp` (an MCP server for `mcp serve` or a bare
+// `mcp`, which older Codex ran as its server; a short config command for
+// `mcp list|add|remove|get|login|logout`), else the interactive CLI.
+// Session is true for cli and exec (conversation processes) only, so no
+// `codex mcp …` row is ever a session. Pure.
 func (a *Agent) ClassifyProcess(p agentio.Process) (agentio.ProcessInfo, bool) {
 	if !Spec().Process.Match(p) {
 		return agentio.ProcessInfo{}, false
@@ -47,17 +50,39 @@ func classifyArgs(p agentio.Process) agentio.ProcessKind {
 	if _, ok := Spec().Process.ScriptIndex(p); ok && !Spec().Process.MatchesBasename(p) {
 		return agentio.ProcessLauncher
 	}
-	for _, arg := range argv[min(1, len(argv)):] {
-		switch arg {
+	for i := min(1, len(argv)); i < len(argv); i++ {
+		switch argv[i] {
 		case subExec:
 			return agentio.ProcessExec
 		case subAppServer:
 			return agentio.ProcessAppServer
 		case subMCPServer:
 			return agentio.ProcessMCPServer
+		case subMCP:
+			return mcpKind(argv[i+1:])
 		}
 	}
 	return agentio.ProcessCLI
+}
+
+// argMCPServe is the `codex mcp serve` spelling of the MCP server.
+const argMCPServe = "serve"
+
+// mcpKind names a `codex mcp …` row from the words after "mcp": the MCP
+// server for "serve" or no subcommand (older Codex ran its server as a
+// bare `codex mcp`), else a config command (list, add, remove, …).
+// Neither is a session. Pure.
+func mcpKind(rest []string) agentio.ProcessKind {
+	for _, arg := range rest {
+		if strings.HasPrefix(arg, "-") {
+			continue
+		}
+		if arg == argMCPServe {
+			return agentio.ProcessMCPServer
+		}
+		return agentio.ProcessCommand
+	}
+	return agentio.ProcessMCPServer
 }
 
 // Processes lists running Codex processes through Host.Processes (one
@@ -176,12 +201,13 @@ func (a *Agent) ThreadLocks(h Home) ([]ThreadLock, error) {
 }
 
 // writerCandidate reports whether a process could own a thread lock taken
-// at lockTime: a Codex process other than the npm launcher (exec, the
+// at lockTime: a Codex process other than the npm launcher and a config
+// command (`codex mcp list`) (exec, the
 // interactive CLI, the app-server daemon the TUI attaches to, mcp-server
 // all write threads) that started no later than the lock. Pure.
 func (a *Agent) writerCandidate(p agentio.Process, lockTime time.Time) bool {
 	info, ok := a.ClassifyProcess(p)
-	if !ok || info.Kind == agentio.ProcessLauncher {
+	if !ok || info.Kind == agentio.ProcessLauncher || info.Kind == agentio.ProcessCommand {
 		return false
 	}
 	if p.Start.IsZero() || lockTime.IsZero() {
