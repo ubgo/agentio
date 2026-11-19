@@ -10,6 +10,7 @@ import (
 	"github.com/ubgo/agentio/claude"
 	"github.com/ubgo/agentio/codex"
 	"github.com/ubgo/agentio/gemini"
+	"github.com/ubgo/agentio/opencode"
 	"github.com/ubgo/agentio/pi"
 )
 
@@ -29,7 +30,7 @@ func TestNewOrderAndLookup(t *testing.T) {
 		t.Fatal(err)
 	}
 	all := a.All()
-	if want := []agentio.ID{claude.ID, codex.ID, gemini.ID, pi.ID, "sample"}; !slices.Equal(ids(all), want) {
+	if want := []agentio.ID{claude.ID, codex.ID, gemini.ID, pi.ID, opencode.ID, "sample"}; !slices.Equal(ids(all), want) {
 		t.Fatalf("order = %v, want %v", ids(all), want)
 	}
 	if _, ok := a.ByID("sample"); !ok {
@@ -42,7 +43,7 @@ func TestNewOrderAndLookup(t *testing.T) {
 
 func TestNewRejectsBuiltinAndDuplicateIDs(t *testing.T) {
 	h := agenttest.NewHost(t)
-	for _, id := range []agentio.ID{claude.ID, codex.ID, gemini.ID, pi.ID} {
+	for _, id := range []agentio.ID{claude.ID, codex.ID, gemini.ID, pi.ID, opencode.ID} {
 		if _, err := New(h, sampleSpec(id)); !errors.Is(err, agentio.ErrInvalidSpec) {
 			t.Fatalf("built-in id %s: err = %v", id, err)
 		}
@@ -58,4 +59,19 @@ func ids(as []agentio.Agent) []agentio.ID {
 		out = append(out, a.ID())
 	}
 	return out
+}
+
+// TestOpencodeConformance runs the shared agenttest checks on the opencode
+// agent as builtin assembles it.
+func TestOpencodeConformance(t *testing.T) {
+	h := agenttest.NewHost(t)
+	a, err := New(h)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n, ok := a.ByID(opencode.ID)
+	if !ok || a.Opencode == nil {
+		t.Fatal("opencode missing")
+	}
+	agenttest.Conformance(t, n, n.DefaultHome())
 }

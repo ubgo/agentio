@@ -16,7 +16,7 @@ repo="$(cd "$(dirname "$0")/.." && pwd)"
 # a read-only file:// proxy, falling back to the public proxy for anything
 # missing, so a run does not depend on what the proxy has fetched yet.
 modcache="$(go env GOMODCACHE)/cache/download"
-modules=". claude codex codex/state gemini pi builtin examples"
+modules=". claude codex codex/state gemini pi opencode opencode/store builtin examples"
 go_version="${GO_VERSION:-1.27.1}"
 
 # distro name | image | command that installs Go and git when the image

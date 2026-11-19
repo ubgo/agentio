@@ -11,6 +11,7 @@ import (
 	"github.com/ubgo/agentio/claude"
 	"github.com/ubgo/agentio/codex"
 	"github.com/ubgo/agentio/gemini"
+	"github.com/ubgo/agentio/opencode"
 	"github.com/ubgo/agentio/pi"
 )
 
@@ -47,6 +48,8 @@ func TestIsHome_SearchedFolders(t *testing.T) {
 		"gemini home":   {[]string{"projects.json", "settings.json", "tmp/"}, []agentio.ID{gemini.ID}},
 		"gemini oauth":  {[]string{"oauth_creds.json", "google_accounts.json"}, []agentio.ID{gemini.ID}},
 		"pi home":       {[]string{"auth.json", "models-store.json", "sessions/"}, []agentio.ID{pi.ID}},
+		"opencode home": {[]string{"opencode.db", "storage/", "auth.json", "log/"}, []agentio.ID{opencode.ID}},
+		"storage/ only": {[]string{"storage/"}, nil},
 		"two distinct":  {[]string{".claude.json", "models-store.json"}, []agentio.ID{claude.ID, pi.ID}},
 		"no marker":     {[]string{"README.md"}, nil},
 		"empty folder":  {nil, nil},
