@@ -2,8 +2,8 @@ github.com/pelletier/go-toml/v2 v2.4.3 h1:GTRvJQutkOSftxIFD5xw9aepkYNuPWmVJpffdD
 github.com/pelletier/go-toml/v2 v2.4.3/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
 github.com/ubgo/agentio v0.1.1 h1:IdSjLPHy3J1gYlKtPueLnjakrZHJywXhpoe16nN8NkU=
 github.com/ubgo/agentio v0.1.1/go.mod h1:258owB0YCn00NB5D12/x2MpB3cSAh63SYJVR1Iu9WZo=
-github.com/ubgo/agentio/claude v0.1.1 h1:/aGcmN0iQybTVHw0RRQYfT3tdY3AzrZRMi4470UTcEo=
-github.com/ubgo/agentio/claude v0.1.1/go.mod h1:jygVHidIRCH3Ue4Y5bpsI8guVPQIXqT8QsU5Jiv6hXU=
+github.com/ubgo/agentio/claude v0.1.2 h1:cX+qWNC/wTLFpDHYaF1hGYGRbJqu5fyaXllsYLupGpM=
+github.com/ubgo/agentio/claude v0.1.2/go.mod h1:jygVHidIRCH3Ue4Y5bpsI8guVPQIXqT8QsU5Jiv6hXU=
 github.com/ubgo/agentio/codex v0.1.1 h1:CJJ2WvSYc2RYZN+Y6tnCfBP9mK9zfVWQrodVDEs1oMo=
 github.com/ubgo/agentio/codex v0.1.1/go.mod h1:Y0XExk41ZaF6/I/pxfo58EYGM9l56XPRp6Rs0WSI3Qo=
 github.com/ubgo/agentio/gemini v0.1.1 h1:SdVRuhSeq424Yc3z66MPuuhfPToS1XVipjRviApBCxA=
