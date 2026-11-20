@@ -30,6 +30,7 @@ var (
 	_ agentio.SubscriptionReader  = neutral{}
 	_ agentio.TokenLogin          = neutral{}
 	_ agentio.TokenProber         = neutral{}
+	_ agentio.ModelTokenProber    = neutral{}
 	_ agentio.LoginCommander      = neutral{}
 	_ agentio.ConversationLister  = neutral{}
 	_ agentio.HistoryChecker      = neutral{}
@@ -168,6 +169,12 @@ func (n neutral) TokenSetupCommand(h agentio.Home) (agentio.Command, bool) {
 // TokenUsage is Quota · Read (the TokenProberOf door).
 func (n neutral) TokenUsage(ctx context.Context, c agentio.TokenCredential) (agentio.Usage, error) {
 	u, err := n.a.Prober().TokenUsage(ctx, c)
+	return u.Usage, err
+}
+
+// TokenUsageModel is Quota · Read (agentio.ModelTokenProber).
+func (n neutral) TokenUsageModel(ctx context.Context, c agentio.TokenCredential, model string) (agentio.Usage, error) {
+	u, err := n.a.Prober().TokenUsageModel(ctx, c, model)
 	return u.Usage, err
 }
 

@@ -335,16 +335,55 @@ type Prober struct{ a *Agent }
 // Prober returns the Quota door. cost: Pure.
 func (a *Agent) Prober() *Prober { return &Prober{a: a} }
 
+// Model aliases Claude Code accepts (--model, settings "model") and the
+// model id a probe sends for each: the current model of that family. A
+// suffix in brackets ("opus[1m]") picks a context size, not a model, and
+// is dropped. cost: Pure.
+func probeAliases() map[string]string {
+	return map[string]string{
+		"opus": "claude-opus-5-5", "opusplan": "claude-opus-5-5", "sonnet": "claude-sonnet-5-5",
+		"haiku": "claude-haiku-5-5", "fable": "claude-fable-5-2", "default": "",
+	}
+}
+
+// ProbeModel is the model id a probe sends for model: "" or "default" →
+// the default probe model (the cheapest), an alias → its model id, an id
+// as given; a "[…]" suffix is dropped. cost: Pure.
+func ProbeModel(model string) string {
+	m := strings.ToLower(strings.TrimSpace(model))
+	if i := strings.IndexByte(m, '['); i >= 0 {
+		m = strings.TrimSpace(m[:i])
+	}
+	if id, ok := probeAliases()[m]; ok {
+		m = id
+	}
+	if m == "" {
+		return probeModel
+	}
+	return m
+}
+
 // TokenUsage reads a token login's usage from one minimal /v1/messages call
-// and its rate-limit headers. An API key has no plan windows and is never
-// probed (ErrBilledPerToken). A 429 carrying the unified headers is parsed
-// as usage at its limit (invariant 7). cost: Quota · Read: spends a few
-// tokens; never loop.
+// on the default probe model and its rate-limit headers (TokenUsageModel).
+// cost: Quota · Read: spends a few tokens; never loop.
 func (p *Prober) TokenUsage(ctx context.Context, c agentio.TokenCredential) (Usage, error) {
+	return p.TokenUsageModel(ctx, c, "")
+}
+
+// TokenUsageModel reads a token login's usage from one minimal
+// /v1/messages call with model (ProbeModel: "" = the default probe model,
+// an alias = its model id) and its rate-limit headers, so a window that
+// applies to that model only (Fable 5.2's 7d_oi) shows up. An API key has
+// no plan windows and is never probed (ErrBilledPerToken). A 429 carrying
+// the unified headers is parsed as usage at its limit (invariant 7). A
+// model the API refuses (400 or 404 naming the model) is
+// agentio.ErrModelRefused. cost: Quota · Read: spends a few tokens; never
+// loop.
+func (p *Prober) TokenUsageModel(ctx context.Context, c agentio.TokenCredential, model string) (Usage, error) {
 	if c.Kind != agentio.TokenOAuthToken {
 		return Usage{Usage: agentio.Usage{Agent: ID, Billing: agentio.BillingPerToken}}, agentio.ErrBilledPerToken
 	}
-	body, err := json.Marshal(probeBody{Model: probeModel, MaxTokens: probeMaxTokens, System: probeSystem, Messages: []probeMessage{{Role: probeRole, Content: probeUserText}}})
+	body, err := json.Marshal(probeBody{Model: ProbeModel(model), MaxTokens: probeMaxTokens, System: probeSystem, Messages: []probeMessage{{Role: probeRole, Content: probeUserText}}})
 	if err != nil {
 		return Usage{}, fmt.Errorf("claude: encode probe: %w", err)
 	}
@@ -380,6 +419,8 @@ func (p *Prober) TokenUsage(ctx context.Context, c agentio.TokenCredential) (Usa
 			return p.a.probed(u), nil
 		}
 		return Usage{}, agentio.RateLimitError(resp.Header, p.a.now())
+	case modelRefused(resp.StatusCode, rb):
+		return Usage{}, fmt.Errorf("%w (HTTP %d%s)", agentio.ErrModelRefused, resp.StatusCode, apiMessage(rb, tok))
 	case resp.StatusCode != http.StatusOK:
 		return Usage{}, fmt.Errorf("claude: probe: unexpected HTTP %d: %s", resp.StatusCode, snippet([]byte(redactIn(string(rb), tok))))
 	}
@@ -389,6 +430,31 @@ func (p *Prober) TokenUsage(ctx context.Context, c agentio.TokenCredential) (Usa
 	}
 	return p.a.probed(u), nil
 }
+
+// modelRefused reports an answer that refuses the request's model: a 404
+// (not_found_error: no such model) or a 400 whose message names the
+// model.
+func modelRefused(status int, body []byte) bool {
+	if status != http.StatusNotFound && status != http.StatusBadRequest {
+		return false
+	}
+	var e struct {
+		Error struct {
+			Type    string `json:"type"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if json.Unmarshal(body, &e) != nil {
+		return false
+	}
+	return e.Error.Type == notFoundError || strings.Contains(strings.ToLower(e.Error.Message), modelWord)
+}
+
+// Words of a refused model in an API error body.
+const (
+	notFoundError = "not_found_error"
+	modelWord     = "model"
+)
 
 func (a *Agent) probed(u agentio.Usage) Usage {
 	u.ObservedAt = a.now()

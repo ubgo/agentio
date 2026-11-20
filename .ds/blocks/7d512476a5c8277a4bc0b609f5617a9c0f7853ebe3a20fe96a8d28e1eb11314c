@@ -1,0 +1,35 @@
+func ParseProbeHeaders(h http.Header) (agentio.Usage, error) {
+	claim := strings.ToLower(strings.TrimSpace(h.Get(hdrRepresentative)))
+	u := agentio.Usage{Agent: ID, Billing: agentio.BillingSubscription, Source: agentio.UsageProbe}
+	known := map[string]bool{probeInfix5h: true, probeInfix7d: true}
+	for _, id := range probeWindowIDs(h) {
+		base := hdrPrefix + id
+		utilRaw, resetRaw := h.Get(base+hdrUtilization), h.Get(base+hdrReset)
+		if utilRaw == "" || resetRaw == "" {
+			if known[id] {
+				return agentio.Usage{}, fmt.Errorf("%w: %s pair incomplete", ErrProbeHeaders, base)
+			}
+			continue
+		}
+		util, err := strconv.ParseFloat(utilRaw, 64)
+		if err != nil || util < 0 || math.IsNaN(util) || math.IsInf(util, 0) {
+			if !known[id] {
+				continue
+			}
+			return agentio.Usage{}, fmt.Errorf("%w: %s is not a fraction", ErrProbeHeaders, base+hdrUtilization)
+		}
+		secs, err := strconv.ParseInt(resetRaw, 10, 64)
+		if err != nil || secs <= 0 {
+			if !known[id] {
+				continue
+			}
+			return agentio.Usage{}, fmt.Errorf("%w: %s is not a unix time", ErrProbeHeaders, base+hdrReset)
+		}
+		reset := time.Unix(secs, 0).UTC()
+		u.Windows = append(u.Windows, probeWindow(id, util*percentPerFraction, &reset, h.Get(base+hdrStatus), claim))
+	}
+	if len(u.Windows) == 0 {
+		return agentio.Usage{}, fmt.Errorf("%w: %s missing", ErrProbeHeaders, strings.Join([]string{hdrPrefix + probeInfix5h + hdrUtilization, hdrPrefix + probeInfix7d + hdrUtilization}, ", "))
+	}
+	return u, nil
+}

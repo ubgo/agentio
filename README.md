@@ -417,7 +417,7 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), whi
 <!-- ds:def id=claude-parseversion-n4kvb682 file=claude/install.go pick=symbol:ParseVersion owner=@khanakia -->
 <!-- ds:def id=claude-planlabel-8fuqam6b file=claude/usage.go pick=symbol:PlanLabel owner=@khanakia -->
 <!-- ds:def id=claude-prober-door-bbbbbbbb file=claude/credential.go pick=symbol:Prober owner=@khanakia -->
-<!-- ds:def id=claude-quota-door-tokenusage-j2fw66uu file=claude/credential.go pick=symbol:Prober.TokenUsage owner=@khanakia -->
+<!-- ds:def id=claude-quota-door-tokenusage-j2fw66uu file=claude/credential.go pick=symbol:Prober.TokenUsageModel owner=@khanakia -->
 <!-- ds:def id=claude-project-localroot-rkts9std file=claude/agent.go pick=symbol:Agent.localRoot owner=@khanakia -->
 <!-- ds:def id=claude-ratelimitwindow-zmkhyjn8 file=claude/stream.go pick=symbol:RateLimitWindow owner=@khanakia -->
 <!-- ds:def id=claude-readrawsettings-peagek4s file=claude/writer.go pick=symbol:readRawSettings owner=@khanakia -->

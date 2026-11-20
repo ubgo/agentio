@@ -26,6 +26,9 @@ var (
 	ErrScopeLimited = errors.New("agentio: credential cannot read account or usage")
 	// ErrBilledPerToken means no usage windows exist; an answer, not a failure.
 	ErrBilledPerToken = errors.New("agentio: billed per token: no usage windows")
+	// ErrModelRefused means the vendor refused the model a call named (an
+	// unknown or retired model id); the login itself may be fine.
+	ErrModelRefused = errors.New("agentio: the vendor refused the model")
 	// ErrRateLimited means a transient 429; never a login problem. See RateLimitError.
 	ErrRateLimited = errors.New("agentio: rate-limited; try again shortly")
 	// ErrUnsupported means the agent lacks the capability or launch field;
