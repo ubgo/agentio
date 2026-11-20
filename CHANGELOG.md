@@ -4,6 +4,10 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-20
+
+Patch release of `claude/v0.1.2` (Claude Code 2.1.328 and 2.1.329 tested) and `builtin/v0.1.2` (requires `claude/v0.1.2`). The other modules are unchanged and keep their v0.1.1 / v0.1.0 tags.
+
 ### Added
 
 - Claude Code 2.1.329 (module `claude`): `TestedMax` is 2.1.329 with a fixture home at `claude/testdata/homes/2.1.329`, so 2.1.328 and 2.1.329 no longer warn `untested-version`. A drift run on real 2.1.328 and 2.1.329 homes found no new record type, enum value or file shape; the only transcript key not seen in earlier records, `apiErrorIsTransient` on an API-error assistant record (first written by 2.1.328), sits outside the typed views and the record still decodes. The fixture carries such a record.
@@ -137,6 +141,7 @@ First release of every module: `github.com/ubgo/agentio` (`v0.1.0`), `claude/v0.
 - A docs checker (`internal/docscheck`, run by `task docs:check`) that fails on broken links and anchors, hard-wrapped Markdown, local paths, attribution lines, and snippets that differ from the example source they are copied from; `task docs:snippets` rewrites snippet blocks from source.
 - Repository files: README, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, LICENSE, issue and pull request templates, and `llms.txt`.
 
-[Unreleased]: https://github.com/ubgo/agentio/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/ubgo/agentio/compare/claude/v0.1.2...HEAD
+[0.1.2]: https://github.com/ubgo/agentio/compare/claude/v0.1.1...claude/v0.1.2
 [0.1.1]: https://github.com/ubgo/agentio/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ubgo/agentio/releases/tag/v0.1.0
