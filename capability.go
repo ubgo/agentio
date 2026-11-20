@@ -109,7 +109,22 @@ type Window struct {
 	ResetsAt *time.Time
 	// VendorKind is the vendor's raw kind ("five_hour", "primary_window").
 	VendorKind string
+	// ID is the vendor's own name of the window when it has one, stable
+	// across readings ("5h", "7d", "7d_oi" in Claude's rate-limit
+	// headers); "" when the source names none.
+	ID string
+	// Status is the vendor's status of the window ("allowed",
+	// "allowed_warning", "rejected" in Claude's headers); "" when the
+	// source gives none. "rejected" means a request is refused now.
+	Status string
+	// Binding is true when the vendor names this window as the one that
+	// limits the account now (Claude's representative-claim).
+	Binding bool
 }
+
+// WindowRejected is the Window.Status of a window that refuses requests
+// now (Claude's "rejected").
+const WindowRejected = "rejected"
 
 // Window class boundaries.
 const (
@@ -210,6 +225,16 @@ type TokenLogin interface {
 // TokenProber probes a token's usage: Quota · Read; never loop.
 type TokenProber interface {
 	TokenUsage(ctx context.Context, c TokenCredential) (Usage, error)
+}
+
+// ModelTokenProber is an optional upgrade of a TokenProber (type-assert
+// the value TokenProberOf returns): the probe asks with the given model,
+// so windows that apply to that model only (a per-model weekly limit)
+// show up in the answer. model "" is the agent's own probe model; an
+// alias the agent knows ("opus", "fable") is resolved to its model id. A
+// model the vendor refuses is ErrModelRefused. Quota · Read; never loop.
+type ModelTokenProber interface {
+	TokenUsageModel(ctx context.Context, c TokenCredential, model string) (Usage, error)
 }
 
 // LoginCommander builds interactive login/logout commands (data; the caller runs them).

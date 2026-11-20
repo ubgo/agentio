@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -282,8 +283,12 @@ func ParseProfile(body []byte) (agentio.Subscription, error) {
 	}, nil
 }
 
-// Probe header names (verified on the real API 2026-10-16, agx probe.go).
-// Utilization is a fraction 0..1; reset is unix seconds.
+// Probe header names (verified on the real API 2026-10-16, agx probe.go;
+// the per-model 7d_oi window on 2026-11-20). Every window of the answer
+// comes as anthropic-ratelimit-unified-<window>-utilization (a fraction
+// 0..1), -reset (unix seconds) and -status; <window> is a length and a
+// unit (5h, 7d), plus _<scope> for a window that applies to one model
+// only (7d_oi, seen when the probe asks with Fable 5.2).
 const (
 	hdrPrefix          = "anthropic-ratelimit-unified-"
 	hdrUtilization     = "-utilization"
@@ -292,48 +297,157 @@ const (
 	hdrRepresentative  = hdrPrefix + "representative-claim"
 	probeInfix5h       = "5h"
 	probeInfix7d       = "7d"
-	claim5h            = "five_hour"
-	claim7d            = "seven_day"
 	percentPerFraction = 100
+	// scopeSep separates a window's length from its scope (7d_oi).
+	scopeSep = "_"
 )
 
-// ParseProbeHeaders maps anthropic-ratelimit-unified-* headers onto the
-// usage windows. A window whose utilization and reset are both absent is
-// one the account does not have and is omitted; half a pair or a malformed
-// value is an error naming the header. cost: Pure.
-func ParseProbeHeaders(h http.Header) (agentio.Usage, error) {
-	claim := h.Get(hdrRepresentative)
-	u := agentio.Usage{Agent: ID, Billing: agentio.BillingSubscription, Source: agentio.UsageProbe}
-	var absent []string
-	for _, pw := range []struct{ infix, kind, group, claim string }{
-		{probeInfix5h, kindSession, groupSession, claim5h},
-		{probeInfix7d, kindWeeklyAll, groupWeekly, claim7d},
-	} {
-		base := hdrPrefix + pw.infix
-		utilRaw, resetRaw := h.Get(base+hdrUtilization), h.Get(base+hdrReset)
-		if utilRaw == "" && resetRaw == "" {
-			absent = append(absent, base+hdrUtilization)
+// claimNumbers are the words of a window length's count in a
+// representative-claim ("five_hour", "seven_day"): the claim names a
+// window by words, the headers by digits. cost: Pure.
+func claimNumbers() map[string]string {
+	return map[string]string{"1": "one", "2": "two", "3": "three", "4": "four", "5": "five", "6": "six", "7": "seven",
+		"8": "eight", "9": "nine", "10": "ten", "12": "twelve", "14": "fourteen", "24": "twenty_four", "28": "twenty_eight", "30": "thirty"}
+}
+
+// claimUnits are the words of a window length's unit. cost: Pure.
+func claimUnits() map[string]string { return map[string]string{"h": "hour", "d": "day"} }
+
+// unitLength is the length of one window unit. cost: Pure.
+func unitLength() map[string]time.Duration {
+	return map[string]time.Duration{"h": time.Hour, "d": 24 * time.Hour}
+}
+
+// probeWindowID splits a header window name: its length ("7d" → 7 days;
+// 0 when the unit is unknown), its scope ("oi" in "7d_oi"; "" = every
+// model) and the length part ("7d").
+func probeWindowID(id string) (time.Duration, string, string) {
+	lengthPart, scope, _ := strings.Cut(id, scopeSep)
+	n := len(lengthPart)
+	if n < 2 {
+		return 0, scope, lengthPart
+	}
+	count, err := strconv.Atoi(lengthPart[:n-1])
+	unit, ok := unitLength()[lengthPart[n-1:]]
+	if err != nil || !ok || count <= 0 {
+		return 0, scope, lengthPart
+	}
+	return time.Duration(count) * unit, scope, lengthPart
+}
+
+// claimOf is the representative-claim wording of a header window name:
+// "5h" → "five_hour", "7d_oi" → "seven_day_oi"; "" when the length has
+// no known wording.
+func claimOf(id string) string {
+	_, scope, lengthPart := probeWindowID(id)
+	if len(lengthPart) < 2 {
+		return ""
+	}
+	num, okN := claimNumbers()[lengthPart[:len(lengthPart)-1]]
+	unit, okU := claimUnits()[lengthPart[len(lengthPart)-1:]]
+	if !okN || !okU {
+		return ""
+	}
+	if scope == "" {
+		return num + "_" + unit
+	}
+	return num + "_" + unit + scopeSep + scope
+}
+
+// probeWindowIDs are the window names of h: every header
+// anthropic-ratelimit-unified-<window>-utilization or -reset, 5h and 7d
+// first, then the rest by name.
+func probeWindowIDs(h http.Header) []string {
+	seen := map[string]bool{}
+	for key := range h {
+		k := strings.ToLower(key)
+		if !strings.HasPrefix(k, hdrPrefix) {
 			continue
 		}
+		rest := strings.TrimPrefix(k, hdrPrefix)
+		for _, suffix := range []string{hdrUtilization, hdrReset} {
+			if id, ok := strings.CutSuffix(rest, suffix); ok && id != "" && !strings.Contains(id, "-") {
+				seen[id] = true
+			}
+		}
+	}
+	ids := []string{}
+	for _, id := range []string{probeInfix5h, probeInfix7d} {
+		if seen[id] {
+			ids = append(ids, id)
+			delete(seen, id)
+		}
+	}
+	var rest []string
+	for id := range seen {
+		rest = append(rest, id)
+	}
+	sort.Strings(rest)
+	return append(ids, rest...)
+}
+
+// ParseProbeHeaders maps the anthropic-ratelimit-unified-* headers onto
+// the neutral usage: one window per <window> name, known or not (5h,
+// 7d, a per-model 7d_oi, any future one), each with its ID, length,
+// scope, percent, reset, Status and Binding (the representative-claim).
+// The 5h and 7d windows must come whole; an unknown window that lacks
+// its utilization or reset is skipped rather than failing the probe. No
+// window at all is ErrProbeHeaders. cost: Pure.
+func ParseProbeHeaders(h http.Header) (agentio.Usage, error) {
+	claim := strings.ToLower(strings.TrimSpace(h.Get(hdrRepresentative)))
+	u := agentio.Usage{Agent: ID, Billing: agentio.BillingSubscription, Source: agentio.UsageProbe}
+	known := map[string]bool{probeInfix5h: true, probeInfix7d: true}
+	for _, id := range probeWindowIDs(h) {
+		base := hdrPrefix + id
+		utilRaw, resetRaw := h.Get(base+hdrUtilization), h.Get(base+hdrReset)
 		if utilRaw == "" || resetRaw == "" {
-			return agentio.Usage{}, fmt.Errorf("%w: %s pair incomplete", ErrProbeHeaders, base)
+			if known[id] {
+				return agentio.Usage{}, fmt.Errorf("%w: %s pair incomplete", ErrProbeHeaders, base)
+			}
+			continue
 		}
 		util, err := strconv.ParseFloat(utilRaw, 64)
 		if err != nil || util < 0 || math.IsNaN(util) || math.IsInf(util, 0) {
+			if !known[id] {
+				continue
+			}
 			return agentio.Usage{}, fmt.Errorf("%w: %s is not a fraction", ErrProbeHeaders, base+hdrUtilization)
 		}
 		secs, err := strconv.ParseInt(resetRaw, 10, 64)
 		if err != nil || secs <= 0 {
+			if !known[id] {
+				continue
+			}
 			return agentio.Usage{}, fmt.Errorf("%w: %s is not a unix time", ErrProbeHeaders, base+hdrReset)
 		}
 		reset := time.Unix(secs, 0).UTC()
-		l := Limit{Kind: pw.kind, Group: pw.group, Percent: util * percentPerFraction, Severity: h.Get(base + hdrStatus), ResetsAt: &reset, IsActive: claim == pw.claim}
-		u.Windows = append(u.Windows, l.window())
+		u.Windows = append(u.Windows, probeWindow(id, util*percentPerFraction, &reset, h.Get(base+hdrStatus), claim))
 	}
 	if len(u.Windows) == 0 {
-		return agentio.Usage{}, fmt.Errorf("%w: %s missing", ErrProbeHeaders, strings.Join(absent, ", "))
+		return agentio.Usage{}, fmt.Errorf("%w: %s missing", ErrProbeHeaders, strings.Join([]string{hdrPrefix + probeInfix5h + hdrUtilization, hdrPrefix + probeInfix7d + hdrUtilization}, ", "))
 	}
 	return u, nil
+}
+
+// probeWindow is one header window as a neutral window. 5h and 7d keep
+// the usage endpoint's kinds and labels (session, weekly_all); a scoped
+// window is weekly_scoped (or its own name when it is not a week) with
+// the scope as its label's detail.
+func probeWindow(id string, percent float64, reset *time.Time, status, claim string) agentio.Window {
+	length, scope, _ := probeWindowID(id)
+	w := agentio.Window{Length: length, Scope: scope, Percent: percent, ResetsAt: reset, ID: id, Status: strings.ToLower(strings.TrimSpace(status)),
+		Binding: claim != "" && (claim == id || claim == claimOf(id))}
+	switch {
+	case id == probeInfix5h:
+		w.VendorKind, w.Label = kindSession, labelSession
+	case id == probeInfix7d:
+		w.VendorKind, w.Label = kindWeeklyAll, labelWeeklyAll
+	case scope != "" && length == weeklyLength:
+		w.VendorKind, w.Label = kindWeeklyScoped, labelScopedFallbk+" ("+scope+")"
+	default:
+		w.VendorKind, w.Label = id, id
+	}
+	return w
 }
 
 // scopeErrorCode is error.details.error_code on a 403 whose token is valid

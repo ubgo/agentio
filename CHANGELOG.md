@@ -4,6 +4,11 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 
 ## [Unreleased]
 
+### Added
+
+- Per-model windows in the token probe (modules root, `claude`): `ParseProbeHeaders` reads every `anthropic-ratelimit-unified-<window>-utilization/-reset/-status` header, not only `5h` and `7d`, so the per-model weekly window `7d_oi` (seen when the probe asks with Fable 5.2) and any future window come back; a broken unknown window is skipped. `agentio.Window` gains `ID` (the header name), `Status` (`agentio.WindowRejected` = refused now) and `Binding` (named by `representative-claim`).
+- `agentio.ModelTokenProber` and `claude.Prober.TokenUsageModel(ctx, cred, model)`: probe with the model a session uses, so its scoped windows show; `claude.ProbeModel` resolves Claude Code's aliases (`opus`, `sonnet`, `haiku`, `fable`, `[1m]` dropped). A refused model is the new `agentio.ErrModelRefused`.
+
 ## [0.1.2] - 2026-11-20
 
 Patch release of `claude/v0.1.2` (Claude Code 2.1.328 and 2.1.329 tested) and `builtin/v0.1.2` (requires `claude/v0.1.2`). The other modules are unchanged and keep their v0.1.1 / v0.1.0 tags.
