@@ -4,6 +4,10 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-11-20
+
+Patch release of the root module `v0.1.2` and `claude/v0.1.3` (requires root `v0.1.2`). The other modules are unchanged and keep their tags.
+
 ### Added
 
 - Per-model windows in the token probe (modules root, `claude`): `ParseProbeHeaders` reads every `anthropic-ratelimit-unified-<window>-utilization/-reset/-status` header, not only `5h` and `7d`, so the per-model weekly window `7d_oi` (seen when the probe asks with Fable 5.2) and any future window come back; a broken unknown window is skipped. `agentio.Window` gains `ID` (the header name), `Status` (`agentio.WindowRejected` = refused now) and `Binding` (named by `representative-claim`).
