@@ -1,0 +1,410 @@
+{
+  "numStartups": 1072,
+  "installMethod": "native",
+  "autoUpdates": false,
+  "tipsHistory": {},
+  "promptQueueUseCount": 16727,
+  "cachedFeatureFlags": {},
+  "cachedGrowthBookFeatures": {},
+  "firstStartTime": "2026-10-11T11:16:07.371Z",
+  "firstStartVersion": "2.1.296",
+  "machineID": "8b9d0533d4bc9ee6d583441acfcf8242cff789e972c56418130d7bf501b3652c",
+  "opusProMigrationComplete": true,
+  "sonnet1m45MigrationComplete": true,
+  "seenNotifications": {},
+  "hasResetAutoModeOptInForDefaultOffer": true,
+  "migrationVersion": 15,
+  "userID": "55dac195f316fa2c49ab1d76dad571886b89741da142ad41feb6668960502e4a",
+  "autoUpdatesProtectedForNative": true,
+  "changelogLastFetched": 1794543110292,
+  "claudeCodeFirstTokenDate": "2026-09-20T14:08:12.373043Z",
+  "cachedExperimentFeatures": [],
+  "cachedExperimentData": {},
+  "cachedGrowthBookFeaturesAt": 1794598500460,
+  "hasCompletedOnboarding": true,
+  "lastOnboardingVersion": "2.1.296",
+  "projects": {
+    "/work/proj1": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastGracefulShutdown": false,
+      "lastVersionBase": "2.1.329",
+      "hasUnseenTeamArtifacts": false,
+      "exampleFiles": [
+        "<s>",
+        "<s>",
+        "<s>",
+        "<s>",
+        "<s>"
+      ],
+      "exampleFilesGeneratedAt": 1794557127841
+    },
+    "/work/proj2": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastGracefulShutdown": true,
+      "lastVersionBase": "2.1.329",
+      "lastCost": 6.0652784,
+      "lastAPIDuration": 711512,
+      "lastAPIDurationWithoutRetries": 711323,
+      "lastToolDuration": 328098,
+      "lastDuration": 1083110,
+      "lastStartTime": 1794592590243,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 1939,
+      "lastTotalOutputTokens": 61918,
+      "lastTotalCacheCreationInputTokens": 187172,
+      "lastTotalCacheReadInputTokens": 16634594,
+      "lastTotalWebSearchRequests": 0,
+      "lastFpsAverage": 11.31,
+      "lastFpsLow1Pct": 746.08,
+      "lastModelUsage": {
+        "claude-haiku-5-5": {
+          "inputTokens": 1191,
+          "outputTokens": 25,
+          "thinkingTokens": 0,
+          "cacheReadInputTokens": 0,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.0001316
+        },
+        "claude-opus-5-5": {
+          "inputTokens": 748,
+          "outputTokens": 61893,
+          "thinkingTokens": 18666,
+          "cacheReadInputTokens": 16634594,
+          "cacheCreationInputTokens": 187172,
+          "webSearchRequests": 0,
+          "costUSD": 6.0651468
+        }
+      },
+      "lastSessionId": "a90dce0b-10ff-32ef-7b96-7b6549ec010d",
+      "lastSessionMetrics": {
+        "hook_duration_ms_count": 241,
+        "hook_duration_ms_min": 35,
+        "hook_duration_ms_max": 98,
+        "hook_duration_ms_avg": 54.058091286307054,
+        "hook_duration_ms_p50": 54,
+        "hook_duration_ms_p95": 73,
+        "hook_duration_ms_p99": 90.39999999999995,
+        "frame_duration_ms_count": 12231,
+        "frame_duration_ms_min": 0.04739199997857213,
+        "frame_duration_ms_max": 20.13105700002052,
+        "frame_duration_ms_avg": 0.5730023910557518,
+        "frame_duration_ms_p50": 0.51725949998945,
+        "frame_duration_ms_p95": 1.0722273999934253,
+        "frame_duration_ms_p99": 1.4275762399920493,
+        "pre_tool_hook_duration_ms_count": 121,
+        "pre_tool_hook_duration_ms_min": 43,
+        "pre_tool_hook_duration_ms_max": 106,
+        "pre_tool_hook_duration_ms_avg": 63.28099173553719,
+        "pre_tool_hook_duration_ms_p50": 63,
+        "pre_tool_hook_duration_ms_p95": 87,
+        "pre_tool_hook_duration_ms_p99": 103.19999999999999
+      }
+    },
+    "/work/proj3": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastGracefulShutdown": false,
+      "lastVersionBase": "2.1.329",
+      "hasUnseenTeamArtifacts": false
+    }
+  },
+  "githubRepoPaths": {},
+  "lastReleaseNotesSeen": "2.1.329",
+  "hasSeenAutoDefaultNotice": true,
+  "pluginUsage": {},
+  "closedIssuesLastChecked": 1794558679248,
+  "groveConfigCache": {},
+  "cachedExtraUsageDisabledReason": "<s>",
+  "passesEligibilityCache": {},
+  "officialMarketplaceAutoInstallAttempted": true,
+  "officialMarketplaceAutoInstalled": true,
+  "claudeAiMcpEverConnected": [
+    "<s>",
+    "<s>",
+    "<s>",
+    "<s>",
+    "<s>",
+    "<s>",
+    "<s>",
+    "<s>",
+    "<s>"
+  ],
+  "tipLifetimeShownCounts": {},
+  "lastClawdEntranceVersion": "<s>",
+  "announcementImpressions": {},
+  "remoteControlUpsellSeenCount": 3,
+  "skillUsage": {},
+  "hasSeenAutoDefaultNudge": true,
+  "tipsHistoryByCommand": {},
+  "passesUpsellSeenCount": 3,
+  "hasVisitedPasses": false,
+  "passesLastSeenRemaining": 3,
+  "apiCreditLinkStatusCache": {
+    "96d6d29e-ddf1-ab11-c73b-4c5ede66704a": {
+      "eligibleSince": null,
+      "nextAskAt": 1795169403490,
+      "asks": 6
+    },
+    "75836b26-397c-0bcd-7c70-0afe48a19b50": {
+      "eligibleSince": 1793053203954,
+      "nextAskAt": 1793226903080,
+      "asks": 2
+    }
+  },
+  "autoCompactOffer": {
+    "1f5b1d64-5521-602b-e13e-89d42b69d95e": {
+      "claude-opus-5-5": {
+        "eligibleLoggedAt": 1792806617295,
+        "escCount": 1,
+        "resolved": {
+          "choice": "<s>",
+          "tokens": 1000000
+        }
+      }
+    }
+  },
+  "oauthAccount": {
+    "accountUuid": "1f5b1d64-5521-602b-e13e-89d42b69d95e",
+    "emailAddress": "user@example.com",
+    "organizationUuid": "96d6d29e-ddf1-ab11-c73b-4c5ede66704a",
+    "hasExtraUsageEnabled": false,
+    "billingType": "stripe_subscription",
+    "accountCreatedAt": "2025-01-01T00:00:00.000000Z",
+    "subscriptionCreatedAt": "2025-01-02T00:00:00.000000Z",
+    "ccOnboardingFlags": {},
+    "claudeCodeTrialEndsAt": null,
+    "claudeCodeTrialDurationDays": null,
+    "seatTier": null,
+    "displayName": "Example displayName",
+    "fullName": "Example fullName",
+    "profileFetchedAt": 1794564602458,
+    "organizationRole": "admin",
+    "workspaceRole": null,
+    "organizationName": "Example organizationName",
+    "organizationType": "claude_max",
+    "organizationRateLimitTier": "default_claude_max_20x",
+    "userRateLimitTier": null,
+    "planDisplayName": "Ultra"
+  },
+  "clientDataCacheSlots": {},
+  "additionalModelOptionsCache": [],
+  "additionalModelOptionsAnsweredAt": 1794564603483,
+  "additionalModelCostsCache": {},
+  "modelAccessCache": [],
+  "orgModelDefaultCache": null,
+  "autoCompactWindowsCache": null,
+  "githubWebConnectionStatusCache": {
+    "accountUuid": "1f5b1d64-5521-602b-e13e-89d42b69d95e",
+    "orgUuid": "96d6d29e-ddf1-ab11-c73b-4c5ede66704a",
+    "status": "not_connected"
+  },
+  "cachedArtifactRoster": {},
+  "cachedUsageUtilization": {
+    "fetchedAtMs": 1793176717036,
+    "accountUuid": "1f5b1d64-5521-602b-e13e-89d42b69d95e",
+    "utilization": {
+      "five_hour": {
+        "utilization": 6,
+        "resets_at": "2026-10-28T12:59:59.902135+00:00",
+        "limit_dollars": null,
+        "used_dollars": null,
+        "remaining_dollars": null,
+        "locked_reason": null
+      },
+      "seven_day": {
+        "utilization": 2,
+        "resets_at": "2026-11-04T05:59:59.902151+00:00",
+        "limit_dollars": null,
+        "used_dollars": null,
+        "remaining_dollars": null,
+        "locked_reason": null
+      },
+      "seven_day_oauth_apps": null,
+      "seven_day_opus": null,
+      "seven_day_sonnet": null,
+      "seven_day_cowork": null,
+      "seven_day_omelette": null,
+      "tangelo": null,
+      "iguana_necktie": null,
+      "omelette_promotional": null,
+      "nimbus_quill": null,
+      "cinder_cove": null,
+      "copper_kite": null,
+      "brass_thimble": null,
+      "harbor_lantern": null,
+      "wattle_ember": null,
+      "amber_ladder": null,
+      "granite_teacup": null,
+      "amber_cistern": null,
+      "amber_cistern_offer": null,
+      "juniper_tide": null,
+      "cedar_ember": null,
+      "starry_waterfall": null,
+      "amber_gauge": null,
+      "pace": null,
+      "extra_usage": {
+        "is_enabled": false,
+        "monthly_limit": null,
+        "used_credits": null,
+        "utilization": null,
+        "currency": null,
+        "decimal_places": null,
+        "disabled_reason": null,
+        "user_disabled": false,
+        "spend_limit_reached": false,
+        "credits_ever_enabled": false,
+        "daily": null,
+        "weekly": null
+      },
+      "limits": [
+        {
+          "kind": "session",
+          "group": "session",
+          "percent": 6,
+          "severity": "normal",
+          "resets_at": "2026-10-28T12:59:59.902135+00:00",
+          "scope": null,
+          "is_active": true
+        },
+        {
+          "kind": "weekly_all",
+          "group": "weekly",
+          "percent": 2,
+          "severity": "normal",
+          "resets_at": "2026-11-04T05:59:59.902151+00:00",
+          "scope": null,
+          "is_active": false
+        },
+        {
+          "kind": "weekly_scoped",
+          "group": "weekly",
+          "percent": 0,
+          "severity": "normal",
+          "resets_at": "2026-11-04T06:00:00+00:00",
+          "scope": {
+            "model": {
+              "id": null,
+              "display_name": "Fable"
+            },
+            "surface": null
+          },
+          "is_active": false
+        }
+      ],
+      "spend": {
+        "used": {
+          "amount_minor": 0,
+          "currency": "USD",
+          "exponent": 2
+        },
+        "limit": null,
+        "percent": 0,
+        "severity": "normal",
+        "enabled": false,
+        "disabled_reason": null,
+        "cap": null,
+        "balance": null,
+        "auto_reload": null,
+        "disclaimer": "<s>",
+        "can_purchase_credits": false,
+        "can_toggle": false
+      },
+      "member_dashboard_available": false,
+      "seven_day_breakdown": {
+        "as_of": "2026-10-28T08:38:36.960626+00:00",
+        "window_started_at": "2026-10-28T05:59:59.902151+00:00",
+        "rows": [
+          {
+            "key": "claude_code",
+            "display_name": "Claude Code",
+            "percent": 100
+          },
+          {
+            "key": "chat",
+            "display_name": "Chats",
+            "percent": 0
+          },
+          {
+            "key": "cowork",
+            "display_name": "Cowork",
+            "percent": 0
+          },
+          {
+            "key": "other",
+            "display_name": "Other",
+            "percent": 0
+          }
+        ]
+      },
+      "weekly_scoped_shares": [
+        {
+          "limit_index": 2,
+          "used_percent_of_weekly": 0,
+          "allowance_percent_of_weekly": 50
+        }
+      ]
+    }
+  },
+  "metricsStatusCacheByPrincipal": {},
+  "groveChoiceSeenAt": {
+    "1f5b1d64-5521-602b-e13e-89d42b69d95e": 1794564602624
+  },
+  "hasUsedRemoteControl": true,
+  "remoteDialogSeen": true,
+  "replBridgePlaceholders": {},
+  "pushNotifUpsellSeenCount": 3,
+  "rcLongTurnNudgeSeenCount": 5,
+  "rcLongTurnNudgeSeenKey": "<s>",
+  "feedbackSurveyState": {
+    "lastShownTime": 1794578568816
+  },
+  "promptSuggestionUnusedStreak": 21,
+  "mcpNeedsAuthNoticed": [],
+  "cachedFeatureFlagsAt": 1794598500460,
+  "mcpServers": {
+    "fixture-stdio": {
+      "type": "stdio",
+      "command": "fixture-mcp",
+      "args": [
+        "serve"
+      ],
+      "env": {
+        "FIXTURE_TOKEN": "fixture-secret"
+      }
+    },
+    "fixture-http": {
+      "type": "http",
+      "url": "https://mcp.example.com/mcp",
+      "headers": {
+        "Authorization": "Bearer fixture-secret"
+      }
+    }
+  },
+  "hasSeenTasksHint": true,
+  "lspRecommendationIgnoredCount": 3,
+  "pluginUsageLspGraceAppliedIds": [
+    "demo-plugin@claude-plugins-official"
+  ]
+}

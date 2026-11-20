@@ -35,7 +35,7 @@ unknown version: claude --worktree
   warning version-unknown: installed Claude Code version unknown; flags not checked
 untested version: claude --worktree
   CLAUDE_CONFIG_DIR set: false, warnings: 1
-  warning untested-version: installed 2.1.400 is outside tested 2.1.323..2.1.327
+  warning untested-version: installed 2.1.400 is outside tested 2.1.323..2.1.329
 runner version: 2.1.325
 runner plugin demo@example-market v1.2.0 (user), enabled true, installed 2026-11-01
 runner marketplace example-market: github example/market

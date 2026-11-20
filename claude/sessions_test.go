@@ -353,3 +353,34 @@ func TestFixture2_1_327Deltas(t *testing.T) {
 		t.Errorf("plugin gitCommitSha not kept in Unknown: %+v", ps[0])
 	}
 }
+
+// TestFixture2_1_329Deltas reads what the 2.1.329 fixture adds over 2.1.327.
+// The drift run on real 2.1.328 and 2.1.329 homes found one transcript key
+// not seen in earlier records: apiErrorIsTransient on an API-error assistant
+// record (first written by 2.1.328). Record keeps top-level keys out of its
+// typed views, so the record must still decode as an assistant message and
+// the transcript tail must still read past it.
+func TestFixture2_1_329Deltas(t *testing.T) {
+	a, h := sessionsAgent(t, filepath.Join("testdata", "homes", "2.1.329", "userhome"), nil)
+	recs, err := a.TranscriptTail(h, "3f474440-903e-5410-8bfb-d537b89f9547", 1<<20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var apiErr, last *Record
+	for i := range recs {
+		if recs[i].UUID == "9a1c2e44-0d3b-4f6e-8a71-2b9c0e5d7f13" {
+			apiErr = &recs[i]
+		}
+		last = &recs[i]
+	}
+	if apiErr == nil || apiErr.Version != "2.1.329" {
+		t.Fatalf("API-error record not read: %+v", apiErr)
+	}
+	m, err := apiErr.AsAssistant()
+	if err != nil || m.Model != "<synthetic>" {
+		t.Fatalf("API-error record as assistant = %+v, %v", m, err)
+	}
+	if last == nil || last.Type != "atis-latch" {
+		t.Fatalf("tail stopped early at %+v", last)
+	}
+}

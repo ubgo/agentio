@@ -102,7 +102,7 @@ func driftHost(t *testing.T) agentio.Host {
 }
 ```
 
-The report starts with one line per vendor comparing the installed version with the tested range (`installed 2.1.328, tested 2.1.323..2.1.327: newer`, or [`install not found`](ds:block?id=examples-drift-versionline-4gjggnvh) when the binary is not on PATH), then a header line per home; for Claude a second line gives the number of transcripts read and the record versions seen in them.
+The report starts with one line per vendor comparing the installed version with the tested range (`installed 2.1.330, tested 2.1.323..2.1.329: newer`, or [`install not found`](ds:block?id=examples-drift-versionline-4gjggnvh) when the binary is not on PATH), then a header line per home; for Claude a second line gives the number of transcripts read and the record versions seen in them.
 
 ## Step 2 — Read the findings
 

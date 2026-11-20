@@ -20,6 +20,8 @@ PluginDirZip	--plugin-dir .zip	2.1.128		Claude Code CHANGELOG.md 2.1.128 (behavi
 FallbackModelInteractive	--fallback-model interactive	2.1.166		Claude Code CHANGELOG.md 2.1.166 (behaviour; print-only before)
 FlagRestricted	--restricted	2.1.248		Claude Code CHANGELOG.md 2.1.248
 MCPAddJSONStdin	mcp add-json -	2.1.327		Claude Code CHANGELOG.md 2.1.327 (server JSON from stdin; MCPAddCommand still passes it on argv)
+HookOnFailureMCPTool	mcp_tool hook onFailure	2.1.328		Claude Code CHANGELOG.md 2.1.328 ("onFailure": "block" for mcp_tool hooks, as command and http hooks had)
+DisableDeferredToolResumeEnv	CLAUDE_CODE_DISABLE_DEFERRED_TOOL_RESUME	2.1.328		Claude Code CHANGELOG.md 2.1.328 (stops claude -p --resume / --continue from running a tool call a hook deferred)
 FlagPrint	--print			
 FlagVerbose	--verbose			
 FlagOutputFormat	--output-format			

@@ -102,8 +102,8 @@ codex personal info  update-cache    version.json latest 0.156.1 is older than i
 == version check ==
 claude ok 2.1.325 is tested
 codex  ok 0.162.1 is tested
-claude warn 2.0.0 is untested (tested 2.1.323..2.1.327)
-claude warn installed version unknown; tested 2.1.323..2.1.327
+claude warn 2.0.0 is untested (tested 2.1.323..2.1.329)
+claude warn installed version unknown; tested 2.1.323..2.1.329
 ```
 
 The fixture's `.last-cleanup` stamp is later than the example's fixed clock, so `retention` warns about clock skew instead of printing an age; on a real machine the clock is later than the stamp.
