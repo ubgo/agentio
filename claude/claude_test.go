@@ -656,3 +656,28 @@ func TestMCPAddJSONStdinRow(t *testing.T) {
 		t.Fatalf("span %v must start at 2.1.327", span)
 	}
 }
+
+// TestClaude2_1_328Rows pins the two feature rows from the 2.1.328
+// CHANGELOG "Added" lines: "onFailure": "block" on mcp_tool hooks and the
+// CLAUDE_CODE_DISABLE_DEFERRED_TOOL_RESUME variable. Both start at 2.1.328
+// and stay open, and the variable is listed by KnownEnv.
+func TestClaude2_1_328Rows(t *testing.T) {
+	for _, f := range []Feature{FeatureHookOnFailureMCPTool, FeatureDisableDeferredToolResumeEnv} {
+		span := FeatureInfo(f)
+		if span.Since.String() != "2.1.328" || !span.Until.IsZero() || FeatureSource(f) == "" {
+			t.Fatalf("%s: span %v source %q", f, span, FeatureSource(f))
+		}
+		if span.In(agentio.MustVersion("2.1.327")) || !span.In(agentio.MustVersion("2.1.329")) {
+			t.Fatalf("%s: span %v must start at 2.1.328", f, span)
+		}
+	}
+	found := false
+	for _, e := range KnownEnv() {
+		if e.Name == FeatureDisableDeferredToolResumeEnv.String() {
+			found = !e.Secret
+		}
+	}
+	if !found {
+		t.Fatal("CLAUDE_CODE_DISABLE_DEFERRED_TOOL_RESUME missing from KnownEnv or marked secret")
+	}
+}

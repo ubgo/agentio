@@ -4,6 +4,11 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 
 ## [Unreleased]
 
+### Added
+
+- Claude Code 2.1.329 (module `claude`): `TestedMax` is 2.1.329 with a fixture home at `claude/testdata/homes/2.1.329`, so 2.1.328 and 2.1.329 no longer warn `untested-version`. A drift run on real 2.1.328 and 2.1.329 homes found no new record type, enum value or file shape; the only transcript key not seen in earlier records, `apiErrorIsTransient` on an API-error assistant record (first written by 2.1.328), sits outside the typed views and the record still decodes. The fixture carries such a record.
+- Feature rows from the 2.1.328 CHANGELOG (module `claude`): `FeatureHookOnFailureMCPTool` (`"onFailure": "block"` on `mcp_tool` hooks; `HookHandler.OnFailure` already reads it) and `FeatureDisableDeferredToolResumeEnv` (`CLAUDE_CODE_DISABLE_DEFERRED_TOOL_RESUME`, also listed by `KnownEnv`).
+
 ## [0.1.1] - 2026-11-19
 
 Patch release of every module: `github.com/ubgo/agentio` (`v0.1.1`), `claude/v0.1.1`, `codex/v0.1.1`, `codex/state/v0.1.1`, `gemini/v0.1.1`, `pi/v0.1.1` and `builtin/v0.1.1`, plus the first release of `opencode/v0.1.0` and `opencode/store/v0.1.0`.

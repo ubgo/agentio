@@ -48,6 +48,10 @@ const (
 	FeatureFlagRestricted
 	// FeatureMCPAddJSONStdin is mcp add-json -.
 	FeatureMCPAddJSONStdin
+	// FeatureHookOnFailureMCPTool is mcp_tool hook onFailure.
+	FeatureHookOnFailureMCPTool
+	// FeatureDisableDeferredToolResumeEnv is CLAUDE_CODE_DISABLE_DEFERRED_TOOL_RESUME.
+	FeatureDisableDeferredToolResumeEnv
 	// FeatureFlagPrint is --print.
 	FeatureFlagPrint
 	// FeatureFlagVerbose is --verbose.
@@ -169,6 +173,8 @@ func featureSpellings() []string {
 		"--fallback-model interactive",
 		"--restricted",
 		"mcp add-json -",
+		"mcp_tool hook onFailure",
+		"CLAUDE_CODE_DISABLE_DEFERRED_TOOL_RESUME",
 		"--print",
 		"--verbose",
 		"--output-format",
@@ -264,6 +270,10 @@ func FeatureInfo(f Feature) agentio.FeatureSpan {
 		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.248"), Until: agentio.MustVersion("")}
 	case FeatureMCPAddJSONStdin:
 		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.327"), Until: agentio.MustVersion("")}
+	case FeatureHookOnFailureMCPTool:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.328"), Until: agentio.MustVersion("")}
+	case FeatureDisableDeferredToolResumeEnv:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.328"), Until: agentio.MustVersion("")}
 	}
 	return agentio.FeatureSpan{}
 }
@@ -311,6 +321,10 @@ func featureSource(f Feature) string {
 		return "Claude Code CHANGELOG.md 2.1.248"
 	case FeatureMCPAddJSONStdin:
 		return "Claude Code CHANGELOG.md 2.1.327 (server JSON from stdin; MCPAddCommand still passes it on argv)"
+	case FeatureHookOnFailureMCPTool:
+		return "Claude Code CHANGELOG.md 2.1.328 (\"onFailure\": \"block\" for mcp_tool hooks, as command and http hooks had)"
+	case FeatureDisableDeferredToolResumeEnv:
+		return "Claude Code CHANGELOG.md 2.1.328 (stops claude -p --resume / --continue from running a tool call a hook deferred)"
 	}
 	return ""
 }

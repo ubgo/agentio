@@ -27,7 +27,7 @@ func TestRun(t *testing.T) {
 		"fork in work home: claude --resume 3f474440-903e-5410-8bfb-d537b89f9547 --fork-session --session-id 22222222-0000-4000-8000-000000000002\n  CLAUDE_CONFIG_DIR set: true",
 		"unavailable: claude: --worktree needs Claude Code >= 2.1.49 (installed 2.1.40)",
 		"  warning version-unknown: installed Claude Code version unknown; flags not checked",
-		"  warning untested-version: installed 2.1.400 is outside tested 2.1.323..2.1.327",
+		"  warning untested-version: installed 2.1.400 is outside tested 2.1.323..2.1.329",
 		"runner version: 2.1.325",
 		"runner plugin demo@example-market v1.2.0 (user), enabled true, installed 2026-11-01",
 		`background agent ab12 "fix-tests": pid 4242, state blocked, cwd /work/proj4`,
