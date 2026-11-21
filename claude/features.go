@@ -47,7 +47,7 @@ func FeatureSource(f Feature) string { return featureSource(f) }
 // §5.8). They move only when a fixture for a new version is added.
 const (
 	TestedMin = "2.1.323"
-	TestedMax = "2.1.329"
+	TestedMax = "2.1.330"
 )
 
 // Compat parses the tested range. cost: Pure.

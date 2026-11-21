@@ -1,0 +1,1 @@
+{"hooks": {"Stop": [{"hooks": [{"type": "command", "command": "/usr/local/bin/fixture-hook", "timeout": 10}]}]}, "permissions": {"allow": ["Bash(go test *)"]}, "enabledMcpjsonServers": ["proj-db"], "futureKey": {"a": 1}}

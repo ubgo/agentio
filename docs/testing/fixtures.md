@@ -12,6 +12,7 @@ The fixture homes, relative to the repository root:
 | `claude/testdata/homes/2.1.325/userhome` | the same at 2.1.325: `.claude/` (the default home: settings, credentials, sessions, transcripts, history, skills, agents, commands, plugins, policy limits, stats), `.claude-work/` (a second home), `.claude.json` (global state) and `project/` (a project with `.mcp.json`, `CLAUDE.md` and `.claude/`) |
 | `claude/testdata/homes/2.1.327/userhome` | the 2.1.325 tree with the 2.1.327 changes: a session waiting on a dialog (`status` `waiting`, `waitingFor`), three new `.claude.json` keys, `gitCommitSha` on installed plugins, `toolDenialBeforeRun` on a transcript record |
 | `claude/testdata/homes/2.1.329/userhome` | the 2.1.327 tree with every version string moved to 2.1.329, plus an API-error assistant record carrying `apiErrorIsTransient` (written since 2.1.328) |
+| `claude/testdata/homes/2.1.330/userhome` | the 2.1.329 tree with every version string moved to 2.1.330, plus a `data-flow-records` record, `dataFlowOn` and `attributionPlugin` on message records, `failedHookErrorIndexes` on a `stop_hook_summary` record, a user record with a malformed `timestamp`, and `autoCompactWindow` inside the second home's `modelSettings` |
 | `claude/testdata/stream/2.1.325` | a recorded `--output-format stream-json` run |
 | `codex/testdata/homes/0.162.1` | one Codex home at 0.162.1: `config.toml`, `work.config.toml`, `auth.json`, `sessions/`, `session_index.jsonl`, `history.jsonl`, `hooks.json`, `rules/`, `skills/`, `plugins/`, `thread-writer-locks/`, `models_cache.json` |
 

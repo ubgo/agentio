@@ -112,8 +112,12 @@ func (c UpdateChannel) IsKnown() bool { return c == ChannelLatest || c == Channe
 
 // ModelSetting is one entry of modelSettings.
 type ModelSetting struct {
-	EffortLevel Effort          `json:"effortLevel,omitempty"`
-	Unknown     agentio.Unknown `json:"-"`
+	EffortLevel Effort `json:"effortLevel,omitempty"`
+	// AutoCompactWindow is the context size, in tokens, at which a
+	// conversation on this model auto-compacts. Written by Claude Code
+	// since at least 2.1.329; nil when the entry does not set it.
+	AutoCompactWindow *int            `json:"autoCompactWindow,omitempty"`
+	Unknown           agentio.Unknown `json:"-"`
 }
 
 // StatusLine is the statusLine setting.

@@ -58,10 +58,10 @@ cd examples && go run ./compat
 ```
 
 ```text
-claude tested 2.1.323..2.1.329
+claude tested 2.1.323..2.1.330
 codex  tested 0.162.1..0.162.1
-claude.Compat() = {Min: 2.1.323, Max: 2.1.329}
-check "2.1.329" -> in-range
+claude.Compat() = {Min: 2.1.323, Max: 2.1.330}
+check "2.1.330" -> in-range
 check "2.1.400" -> newer (warning untested-version)
 check "2.1.40"  -> older (warning untested-version)
 check ""        -> unknown (warning version-unknown)
@@ -74,10 +74,11 @@ claude --restricted                 since 2.1.248  Claude Code CHANGELOG.md 2.1.
 claude mcp add-json -               since 2.1.327  Claude Code CHANGELOG.md 2.1.327 (server JSON from stdin; MCPAddCommand still passes it on argv)
 claude mcp_tool hook onFailure      since 2.1.328  Claude Code CHANGELOG.md 2.1.328 ("onFailure": "block" for mcp_tool hooks, as command and http hooks had)
 claude CLAUDE_CODE_DISABLE_DEFERRED_TOOL_RESUME since 2.1.328  Claude Code CHANGELOG.md 2.1.328 (stops claude -p --resume / --continue from running a tool call a hook deferred)
-claude features: 70 rows, 22 with a known version
+claude CLAUDE_CODE_FULL_SIGN_IN_LINK since 2.1.330  Claude Code CHANGELOG.md 2.1.330 (=1 prints the full sign-in link of /login, claude auth login and claude setup-token instead of the short one)
+claude features: 71 rows, 23 with a known version
 codex features: 39 rows, 9 with a known version
 --worktree in "2.1.40" : false
---worktree in "2.1.329": true
+--worktree in "2.1.330": true
 --worktree in ""       : true
 claude launch: claude: --worktree needs Claude Code >= 2.1.49 (installed 2.1.40)
   feature=--worktree installed=2.1.40 since=2.1.49 is ErrFeatureUnavailable=true

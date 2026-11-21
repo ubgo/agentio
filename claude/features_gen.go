@@ -52,6 +52,8 @@ const (
 	FeatureHookOnFailureMCPTool
 	// FeatureDisableDeferredToolResumeEnv is CLAUDE_CODE_DISABLE_DEFERRED_TOOL_RESUME.
 	FeatureDisableDeferredToolResumeEnv
+	// FeatureFullSignInLinkEnv is CLAUDE_CODE_FULL_SIGN_IN_LINK.
+	FeatureFullSignInLinkEnv
 	// FeatureFlagPrint is --print.
 	FeatureFlagPrint
 	// FeatureFlagVerbose is --verbose.
@@ -175,6 +177,7 @@ func featureSpellings() []string {
 		"mcp add-json -",
 		"mcp_tool hook onFailure",
 		"CLAUDE_CODE_DISABLE_DEFERRED_TOOL_RESUME",
+		"CLAUDE_CODE_FULL_SIGN_IN_LINK",
 		"--print",
 		"--verbose",
 		"--output-format",
@@ -274,6 +277,8 @@ func FeatureInfo(f Feature) agentio.FeatureSpan {
 		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.328"), Until: agentio.MustVersion("")}
 	case FeatureDisableDeferredToolResumeEnv:
 		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.328"), Until: agentio.MustVersion("")}
+	case FeatureFullSignInLinkEnv:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.330"), Until: agentio.MustVersion("")}
 	}
 	return agentio.FeatureSpan{}
 }
@@ -325,6 +330,8 @@ func featureSource(f Feature) string {
 		return "Claude Code CHANGELOG.md 2.1.328 (\"onFailure\": \"block\" for mcp_tool hooks, as command and http hooks had)"
 	case FeatureDisableDeferredToolResumeEnv:
 		return "Claude Code CHANGELOG.md 2.1.328 (stops claude -p --resume / --continue from running a tool call a hook deferred)"
+	case FeatureFullSignInLinkEnv:
+		return "Claude Code CHANGELOG.md 2.1.330 (=1 prints the full sign-in link of /login, claude auth login and claude setup-token instead of the short one)"
 	}
 	return ""
 }

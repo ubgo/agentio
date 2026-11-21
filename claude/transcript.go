@@ -49,6 +49,13 @@ const (
 	// agentId, parentSessionId, parentLastUuid, contextLength. Seen since
 	// 2.1.323; it points at the parent conversation and carries no content.
 	RecordForkContextRef RecordType = "fork-context-ref"
+	// RecordDataFlowRecords lists which tool calls touched what, in batches:
+	// v (format, 1), sessionId, records (tool_name, tool_use_id, event_id,
+	// touched, source), and optional snapshot and agentId. It has no
+	// version, uuid or timestamp of its own. Seen since 2.1.329, together
+	// with a dataFlowOn flag on the user, assistant, attachment and system
+	// records of the same conversation.
+	RecordDataFlowRecords RecordType = "data-flow-records"
 )
 
 // RecordTypes lists the recorded types. cost: Pure.
@@ -56,7 +63,8 @@ func RecordTypes() []RecordType {
 	return []RecordType{RecordUser, RecordAssistant, RecordAttachment, RecordSystem, RecordAPIRequest, RecordAPIRequestBlob,
 		RecordAtisLatch, RecordLastPrompt, RecordPermissionMode, RecordMode, RecordAITitle, RecordCustomTitle, RecordBridgeSession,
 		RecordCostState, RecordSessionOwner, RecordFileHistorySnapshot, RecordFileHistoryDelta, RecordQueueOperation, RecordToolsUsed,
-		RecordHistorySuppression, RecordPRLink, RecordAgentName, RecordContinuedIn, RecordAPIRequestShape, RecordForkContextRef}
+		RecordHistorySuppression, RecordPRLink, RecordAgentName, RecordContinuedIn, RecordAPIRequestShape, RecordForkContextRef,
+		RecordDataFlowRecords}
 }
 
 // IsKnown reports a recorded type. cost: Pure.
@@ -99,15 +107,43 @@ type Record struct {
 	Raw         agentio.Raw `json:"-"`
 }
 
+// wireRecord decodes the envelope with the timestamp kept as raw JSON: the
+// outer Timestamp field shadows Record.Timestamp, so a value that is not a
+// time cannot fail the whole line.
+type wireRecord struct {
+	Record
+	Timestamp json.RawMessage `json:"timestamp,omitempty"`
+}
+
 // ParseRecord decodes one transcript line; any valid JSON object decodes,
-// whatever its type. cost: Pure.
+// whatever its type. A missing, empty or malformed timestamp leaves
+// Record.Timestamp nil instead of failing the line: Claude Code has written
+// such records (2.1.330 fixed --resume failing on them), and dropping the
+// line would hide a real message. Raw still holds the original text.
+// cost: Pure.
 func ParseRecord(line []byte) (Record, error) {
-	var r Record
-	if err := json.Unmarshal(line, &r); err != nil {
+	var w wireRecord
+	if err := json.Unmarshal(line, &w); err != nil {
 		return Record{}, fmt.Errorf("claude: transcript line: %w", err)
 	}
+	r := w.Record
+	r.Timestamp = parseRecordTime(w.Timestamp)
 	r.Raw = agentio.Raw(bytes.Clone(line))
 	return r, nil
+}
+
+// parseRecordTime reads a record timestamp; nil when the value is absent,
+// null or not an RFC 3339 string.
+func parseRecordTime(raw json.RawMessage) *time.Time {
+	var s string
+	if len(raw) == 0 || json.Unmarshal(raw, &s) != nil {
+		return nil
+	}
+	t, err := time.Parse(time.RFC3339Nano, s)
+	if err != nil {
+		return nil
+	}
+	return &t
 }
 
 func (r Record) as(t RecordType, dst func([]byte) error) error {

@@ -29,7 +29,7 @@ An excerpt of the report the test produces on the fixture homes (user home shown
 ```text
 === Claude Code (claude) ===
 install:   not installed (agentio: binary not found on PATH: claude)
-compat:    unknown (tested 2.1.323..2.1.329, installed -)
+compat:    unknown (tested 2.1.323..2.1.330, installed -)
 supported: installer binary-version identity usage cached-usage subscription token-login token-prober login-commander conversations history-checker history-mover conversation-mover prompt-history live-sessions process-classifier turns home-linker instruction-files mcp-servers skills plugins config run-events doctor live-credential launch-config process-sessions stop-planner turn-files hooks
 
 --- home ~/.claude (default)  name=personal

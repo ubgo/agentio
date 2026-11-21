@@ -13,9 +13,9 @@ func TestRun(t *testing.T) {
 	}
 	out := b.String()
 	for _, want := range []string{
-		"claude tested 2.1.323..2.1.329",
+		"claude tested 2.1.323..2.1.330",
 		"codex  tested 0.162.1..0.162.1",
-		`check "2.1.329" -> in-range`,
+		`check "2.1.330" -> in-range`,
 		`check "2.1.400" -> newer (warning untested-version)`,
 		`check "2.1.40"  -> older (warning untested-version)`,
 		`check ""        -> unknown (warning version-unknown)`,

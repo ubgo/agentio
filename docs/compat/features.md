@@ -117,11 +117,11 @@ cd examples && go run ./compat | tail -10
 ```
 
 ```text
-claude CLAUDE_CODE_DISABLE_DEFERRED_TOOL_RESUME since 2.1.328  Claude Code CHANGELOG.md 2.1.328 (stops claude -p --resume / --continue from running a tool call a hook deferred)
-claude features: 70 rows, 22 with a known version
+claude CLAUDE_CODE_FULL_SIGN_IN_LINK since 2.1.330  Claude Code CHANGELOG.md 2.1.330 (=1 prints the full sign-in link of /login, claude auth login and claude setup-token instead of the short one)
+claude features: 71 rows, 23 with a known version
 codex features: 39 rows, 9 with a known version
 --worktree in "2.1.40" : false
---worktree in "2.1.329": true
+--worktree in "2.1.330": true
 --worktree in ""       : true
 claude launch: claude: --worktree needs Claude Code >= 2.1.49 (installed 2.1.40)
   feature=--worktree installed=2.1.40 since=2.1.49 is ErrFeatureUnavailable=true

@@ -148,7 +148,7 @@ Read paths never run a process; only Runner doors do (see [Doors](../capabilitie
 // starts a process, and Calls records what would have run.
 func TestFakeExec(t *testing.T) {
 	fx := &agenttest.FakeExec{Results: map[string]agentio.ProcessResult{
-		"claude --version": {Stdout: []byte("2.1.329 (Claude Code)\n")},
+		"claude --version": {Stdout: []byte("2.1.330 (Claude Code)\n")},
 	}}
 	a := claude.New(newFixtureHost(t, agenttest.WithExec(fx)))
 	v, err := a.Runner().BinaryVersion(context.Background())
