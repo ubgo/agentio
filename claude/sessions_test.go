@@ -384,3 +384,53 @@ func TestFixture2_1_329Deltas(t *testing.T) {
 		t.Fatalf("tail stopped early at %+v", last)
 	}
 }
+
+// TestFixture2_1_330Deltas reads what the 2.1.330 fixture adds over 2.1.329.
+// A drift run on real 2.1.329 and 2.1.330 homes found a new record type,
+// data-flow-records, with a dataFlowOn flag and an attributionPlugin key on
+// the message records of the same conversation, failedHookErrorIndexes on
+// stop_hook_summary records, and autoCompactWindow inside modelSettings.
+// The 2.1.330 CHANGELOG also fixes --resume failing on a record whose
+// timestamp is missing or invalid, so the fixture carries a user record with
+// a malformed timestamp: it must still decode, with a nil Timestamp.
+func TestFixture2_1_330Deltas(t *testing.T) {
+	a, h := sessionsAgent(t, filepath.Join("testdata", "homes", "2.1.330", "userhome"), nil)
+	recs, err := a.TranscriptTail(h, "3f474440-903e-5410-8bfb-d537b89f9547", 1<<20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	byUUID := map[string]Record{}
+	var flow, last *Record
+	for i := range recs {
+		byUUID[recs[i].UUID] = recs[i]
+		if recs[i].Type == RecordDataFlowRecords {
+			flow = &recs[i]
+		}
+		last = &recs[i]
+	}
+	u, ok := byUUID["7e2b9c41-3d5a-4c8e-b0f6-1a9d2e7c5b33"]
+	if !ok || u.Timestamp != nil || u.Version != "2.1.330" {
+		t.Fatalf("user record with a malformed timestamp not read: %+v (found %v)", u, ok)
+	}
+	if um, err := u.AsUser(); err != nil || len(um.Content) == 0 {
+		t.Fatalf("user record as user = %+v, %v", um, err)
+	}
+	m, err := byUUID["8f3c0d52-4e6b-4d9f-a1c7-2b0e3f8d6c44"].AsAssistant()
+	if err != nil || m.Model != "claude-opus-5-5" || m.Timestamp == nil {
+		t.Fatalf("assistant record with dataFlowOn and attributionPlugin = %+v, %v", m, err)
+	}
+	if flow == nil || !flow.Type.IsKnown() || flow.SessionID != "3f474440-903e-5410-8bfb-d537b89f9547" {
+		t.Fatalf("data-flow-records not read as a known type: %+v", flow)
+	}
+	if last == nil || last.Type != RecordAtisLatch {
+		t.Fatalf("tail stopped early at %+v", last)
+	}
+	work, err := a.UserSettings(a.HomeAt(filepath.Join(a.host.UserHome, ".claude-work")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ms := work.Settings.ModelSettings["claude-opus-5-5"]
+	if ms.AutoCompactWindow == nil || *ms.AutoCompactWindow != 400000 || ms.EffortLevel != "high" || len(ms.Unknown) != 0 {
+		t.Fatalf("modelSettings entry = %+v", ms)
+	}
+}

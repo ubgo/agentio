@@ -170,7 +170,7 @@ unknown version: claude --worktree
   warning version-unknown: installed Claude Code version unknown; flags not checked
 untested version: claude --worktree
   CLAUDE_CONFIG_DIR set: false, warnings: 1
-  warning untested-version: installed 2.1.400 is outside tested 2.1.323..2.1.329
+  warning untested-version: installed 2.1.400 is outside tested 2.1.323..2.1.330
 ```
 
 ## Pitfalls

@@ -129,6 +129,7 @@ Areas follow the library's layers: L1 is the neutral core every agent shares, L2
 | Drift check (`task drift`, `examples/drift`): unknown keys, unknown enum values, unknown records, missing flags | `examples` | [Drift check](../compat/drift.md#step-1--run-the-drift-check) | [drift](../../examples/drift/) |
 | Drift findings and kinds | `examples` | [Drift check](../compat/drift.md#step-2--read-the-findings) | [drift](../../examples/drift/) |
 | Drift baseline comparison (`-baseline`, `-claude-help`) | `examples` | [Drift check](../compat/drift.md#step-3--compare-with-a-baseline) | [drift](../../examples/drift/) |
+| New Claude Code version (`task compat:claude`, `scripts/claude-bump.sh`): CHANGELOG, help diff, drift against the last report, `--apply` | `scripts` | [Drift check](../compat/drift.md#supporting-a-new-claude-code-version) | [drift](../../examples/drift/) |
 
 ## Testing: agenttest and fixtures
 

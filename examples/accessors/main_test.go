@@ -41,7 +41,7 @@ func TestRun(t *testing.T) {
 		"codex skill  pr-review      scope=plugin  plugin=\"github\"",
 		"codex model gpt-6-luna       visible=true  context=272000",
 		"claude work warn  login           no login found in the credentials file or keychain",
-		"claude warn 2.0.0 is untested (tested 2.1.323..2.1.329)",
+		"claude warn 2.0.0 is untested (tested 2.1.323..2.1.330)",
 		"aider: no such agent",
 		"aider (Aider)",
 		"refused: builtin: agent id \"codex\" is already defined: agentio: invalid spec",

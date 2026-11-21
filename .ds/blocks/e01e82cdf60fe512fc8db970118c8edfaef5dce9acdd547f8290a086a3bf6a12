@@ -1,0 +1,51 @@
+func FeatureInfo(f Feature) agentio.FeatureSpan {
+	switch f {
+	case FeatureFlagStreamJSON:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.2.66"), Until: agentio.MustVersion("")}
+	case FeatureFlagMCPConfig:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.2.75"), Until: agentio.MustVersion("")}
+	case FeatureFlagDisallowedTools:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.2.82"), Until: agentio.MustVersion("")}
+	case FeatureFlagContinue:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.2.93"), Until: agentio.MustVersion("")}
+	case FeatureFlagResume:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("0.2.93"), Until: agentio.MustVersion("")}
+	case FeatureConfigDirEnv:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("1.0.6"), Until: agentio.MustVersion("")}
+	case FeatureFlagAddDir:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("1.0.18"), Until: agentio.MustVersion("")}
+	case FeatureFlagSystemPromptFile:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("1.0.55"), Until: agentio.MustVersion("")}
+	case FeatureFlagSettings:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("1.0.61"), Until: agentio.MustVersion("")}
+	case FeatureFlagIncludePartialMessages:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("1.0.109"), Until: agentio.MustVersion("")}
+	case FeatureFlagAgents:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.0.0"), Until: agentio.MustVersion("")}
+	case FeatureFlagMaxBudgetUSD:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.0.28"), Until: agentio.MustVersion("")}
+	case FeatureSessionIDWithFork:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.0.73"), Until: agentio.MustVersion("")}
+	case FeatureFlagFromPR:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.27"), Until: agentio.MustVersion("")}
+	case FeatureFlagWorktree:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.49"), Until: agentio.MustVersion("")}
+	case FeatureFlagName:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.76"), Until: agentio.MustVersion("")}
+	case FeaturePluginDirZip:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.128"), Until: agentio.MustVersion("")}
+	case FeatureFallbackModelInteractive:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.166"), Until: agentio.MustVersion("")}
+	case FeatureFlagRestricted:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.248"), Until: agentio.MustVersion("")}
+	case FeatureMCPAddJSONStdin:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.327"), Until: agentio.MustVersion("")}
+	case FeatureHookOnFailureMCPTool:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.328"), Until: agentio.MustVersion("")}
+	case FeatureDisableDeferredToolResumeEnv:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.328"), Until: agentio.MustVersion("")}
+	case FeatureFullSignInLinkEnv:
+		return agentio.FeatureSpan{Since: agentio.MustVersion("2.1.330"), Until: agentio.MustVersion("")}
+	}
+	return agentio.FeatureSpan{}
+}

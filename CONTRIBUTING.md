@@ -74,7 +74,9 @@ These are easy to break and the reviews check them. Most are also enforced by `i
 
 ## Supporting a new vendor version
 
-1. Install the new version and copy a home into a new fixture directory (`claude/testdata/homes/<version>/` or `codex/testdata/homes/<version>/`), replacing every value.
+For Claude Code, `task compat:claude -- <version>` (`scripts/claude-bump.sh`) does the mechanical part: CHANGELOG entries, `claude --help` diff, drift check against the last saved report, a short report of unknown env vars, flags and keys, and with `--apply` the `TestedMax` raise, the new fixture home and the moved version strings. The steps and the release checklist are in [Drift check](docs/compat/drift.md#supporting-a-new-claude-code-version). By hand, or for Codex:
+
+1. Install the new version and copy a home into a new fixture directory (`claude/testdata/homes/<version>/` or `codex/testdata/homes/<version>/`), replacing every value. Check `git status --ignored` on the new directory: a global gitignore can skip a fixture file such as `project/.claude/settings.local.json`; `git add -f` it.
 2. Run the drift report (`task drift`) on a machine that has the version installed; it lists unknown keys, enum values, record types and flags without printing any value.
 3. Model what changed, add feature-table entries with their changelog source, and raise `TestedMax`.
 4. The tests run over every fixture version, so older versions stay covered.

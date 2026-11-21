@@ -34,6 +34,11 @@ tasks:
     cmds:
       - go run ./drift {{.CLI_ARGS}}
 
+  compat:claude:
+    desc: 'Support a new Claude Code release, mechanical part (scripts/claude-bump.sh) - CHANGELOG entries since TestedMax, claude --help diff, drift check on this machine against the last saved report (saves the next), report of unknown env vars, flags and keys; add --apply to raise TestedMax, create the fixture home and move version strings. Usage: task compat:claude -- 2.1.330 [--apply]'
+    cmds:
+      - bash scripts/claude-bump.sh {{.CLI_ARGS}}
+
   example:darwin:
     desc: Cross-compile examples/agentinfo to dist/agentinfo-darwin-arm64
     cmds:

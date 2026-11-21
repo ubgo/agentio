@@ -681,3 +681,46 @@ func TestClaude2_1_328Rows(t *testing.T) {
 		t.Fatal("CLAUDE_CODE_DISABLE_DEFERRED_TOOL_RESUME missing from KnownEnv or marked secret")
 	}
 }
+
+// TestClaude2_1_330Rows pins the feature row from the 2.1.330 CHANGELOG
+// "Added" line for CLAUDE_CODE_FULL_SIGN_IN_LINK: it starts at 2.1.330,
+// stays open, names its source and is listed by KnownEnv as not secret.
+func TestClaude2_1_330Rows(t *testing.T) {
+	f := FeatureFullSignInLinkEnv
+	span := FeatureInfo(f)
+	if span.Since.String() != "2.1.330" || !span.Until.IsZero() || FeatureSource(f) == "" {
+		t.Fatalf("%s: span %v source %q", f, span, FeatureSource(f))
+	}
+	if span.In(agentio.MustVersion("2.1.329")) || !span.In(agentio.MustVersion("2.1.330")) {
+		t.Fatalf("%s: span %v must start at 2.1.330", f, span)
+	}
+	found := false
+	for _, e := range KnownEnv() {
+		if e.Name == f.String() {
+			found = !e.Secret
+		}
+	}
+	if !found {
+		t.Fatal("CLAUDE_CODE_FULL_SIGN_IN_LINK missing from KnownEnv or marked secret")
+	}
+}
+
+// TestParseRecordTimestamp checks that a record decodes whatever its
+// timestamp holds: a valid time is parsed, while a missing, null, empty,
+// malformed or non-string value leaves Timestamp nil instead of dropping
+// the line (Claude Code 2.1.330 fixed --resume failing on such records).
+func TestParseRecordTimestamp(t *testing.T) {
+	r, err := ParseRecord([]byte(`{"type":"user","uuid":"u1","timestamp":"2026-11-21T09:00:05.123Z"}`))
+	if err != nil || r.Timestamp == nil || !r.Timestamp.Equal(time.Date(2026, 11, 21, 9, 0, 5, 123e6, time.UTC)) {
+		t.Fatalf("valid timestamp = %+v, %v", r.Timestamp, err)
+	}
+	for _, ts := range []string{``, `,"timestamp":null`, `,"timestamp":""`, `,"timestamp":"not-a-time"`, `,"timestamp":1794000000000`} {
+		r, err := ParseRecord([]byte(`{"type":"user","uuid":"u1"` + ts + `}`))
+		if err != nil || r.Timestamp != nil || r.UUID != "u1" || r.Type != RecordUser {
+			t.Fatalf("timestamp %q: record %+v, %v", ts, r, err)
+		}
+	}
+	if _, err := ParseRecord([]byte(`not json`)); err == nil {
+		t.Fatal("a line that is not JSON must still fail")
+	}
+}
