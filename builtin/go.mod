@@ -3,8 +3,8 @@ module github.com/ubgo/agentio/builtin
 go 1.26.4
 
 require (
-	github.com/ubgo/agentio v0.1.1
-	github.com/ubgo/agentio/claude v0.1.2
+	github.com/ubgo/agentio v0.1.2
+	github.com/ubgo/agentio/claude v0.1.4
 	github.com/ubgo/agentio/codex v0.1.1
 	github.com/ubgo/agentio/gemini v0.1.1
 	github.com/ubgo/agentio/opencode v0.1.0
