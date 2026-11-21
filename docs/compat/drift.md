@@ -102,7 +102,7 @@ func driftHost(t *testing.T) agentio.Host {
 }
 ```
 
-The report starts with one line per vendor comparing the installed version with the tested range (`installed 2.1.330, tested 2.1.323..2.1.329: newer`, or [`install not found`](ds:block?id=examples-drift-versionline-4gjggnvh) when the binary is not on PATH), then a header line per home; for Claude a second line gives the number of transcripts read and the record versions seen in them.
+The report starts with one line per vendor comparing the installed version with the tested range (`installed 2.1.400, tested 2.1.323..2.1.330: newer`, or [`install not found`](ds:block?id=examples-drift-versionline-4gjggnvh) when the binary is not on PATH), then a header line per home; for Claude a second line gives the number of transcripts read and the record versions seen in them.
 
 ## Step 2 — Read the findings
 
@@ -183,6 +183,34 @@ func TestClaudeHelp(t *testing.T) {
 ```
 
 A release routine is then: `task drift -- -baseline last.tsv -claude-help help.txt`, read what is left, update the readers or `features.tsv`, and save the new report as the next baseline.
+
+## Supporting a new Claude Code version
+
+`task compat:claude -- <version>` (the script [scripts/claude-bump.sh](../../scripts/claude-bump.sh)) runs that routine for Claude Code in one command, on a machine where the new version is installed:
+
+1. Saves the [Claude Code CHANGELOG](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md) entries after the current `claude.TestedMax` up to `<version>` (`--from` picks another start, `--changelog FILE` reads a saved copy instead of fetching it).
+2. Saves `claude --version` and `claude --help` and diffs the help text with the previous saved one. These two commands do not touch the login; the script runs no other vendor command.
+3. Runs this drift check on the real homes against the newest saved report below `<version>`, then saves the full report as the next baseline.
+4. Prints a short report: the new findings, the help diff, the env vars, flags and camelCase keys the CHANGELOG names that `KnownEnv`, `features.tsv` and the `claude` structs do not know, and the CHANGELOG lines about what agentio reads (transcripts, settings, hooks, `--resume`, login, rate limits).
+5. With `--apply`: raises `TestedMax`, creates `claude/testdata/homes/<version>` from the previous fixture (tracked files only, version strings moved, staged with `git add -f` so a global gitignore cannot drop a file), moves the tested range and the printed `TestedMax` in docs and example outputs, lists the references to the old version that are left, and runs the `claude` and `examples` tests.
+
+Reports go to `$AGENTIO_DRIFT_DIR`, or `--dir`, or `docsi/drift` in the repository (gitignored). They name files, keys and flags, never a value, but they do name your homes, so keep them out of the repository.
+
+```sh
+task compat:claude -- 2.1.330            # report only; writes nothing in the repository
+task compat:claude -- 2.1.330 --apply    # plus TestedMax, fixture home, version strings, tests
+AGENTIO_DRIFT_DIR=~/notes/drift task compat:claude -- 2.1.330
+```
+
+What stays a human step, in order:
+
+- [ ] Read the report. For every new shape, model it (a record type, a struct field, an enum constant) and add it to the new fixture home with made-up values; for every new env var or flag the library emits or gates, add a `features.tsv` row with its CHANGELOG source, run `go generate ./claude/...`, and list an env var in `KnownEnv`.
+- [ ] Add a `TestFixture<version>Deltas` test that reads what the fixture adds, and a test for each feature row.
+- [ ] Write the CHANGELOG entry (module, what changed, what the drift run found).
+- [ ] `task docs:snippets`, then `task check`; `ds ack` each sentence docsync flags after checking it is still true.
+- [ ] Open a PR, start the platforms workflow on the branch (`gh workflow run platforms --ref <branch>`, all three OSes) and docsync, and merge with a merge commit (`gh pr merge --merge`), never a squash: sibling modules pin branch commits.
+- [ ] Tag the changed modules only (`claude/vX.Y.Z`, PATCH bump), push the tag, bump the pins of the modules that require them (`builtin`, `examples`), push, tag those (`builtin/vX.Y.Z`), and check that `proxy.golang.org` serves each new version.
+- [ ] Bump the pins in the programs that use agentio and release them.
 
 ## Try it
 

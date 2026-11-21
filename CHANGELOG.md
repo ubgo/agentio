@@ -4,6 +4,22 @@ All notable changes to agentio are recorded in this file. The format follows [Ke
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-11-21
+
+Patch release of `claude/v0.1.4` and `builtin/v0.1.3` (requires `claude/v0.1.4`). The other modules are unchanged and keep their tags.
+
+### Added
+
+- Claude Code 2.1.330 (module `claude`): `TestedMax` is 2.1.330 with a fixture home at `claude/testdata/homes/2.1.330`, so 2.1.330 no longer warns `untested-version`. The `claude --help` text did not change. A drift run on real 2.1.329 and 2.1.330 homes found shapes first written by 2.1.329 that the 2.1.329 sample had not seen; the fixture carries each of them with made-up values.
+- `RecordDataFlowRecords` (module `claude`): the `data-flow-records` transcript record type (batches of tool calls and what they touched, written since 2.1.329), so it is a known type instead of an `unknown-record` drift finding. The `dataFlowOn` and `attributionPlugin` keys on message records and `failedHookErrorIndexes` on `stop_hook_summary` records stay outside the typed views; the records decode as before.
+- `ModelSetting.AutoCompactWindow` (module `claude`): the per-model `autoCompactWindow` inside `modelSettings`, which used to land in `Unknown`.
+- Feature row `FeatureFullSignInLinkEnv` (module `claude`): `CLAUDE_CODE_FULL_SIGN_IN_LINK`, added in 2.1.330, also listed by `KnownEnv`.
+- `scripts/claude-bump.sh` and `task compat:claude -- <version>`: the mechanical part of supporting a new Claude Code release. It saves the CHANGELOG entries since `TestedMax`, diffs `claude --help`, runs the drift check against the last saved report and saves the next one, and prints the env vars, flags and settings keys the CHANGELOG names that the library does not know. `--apply` raises `TestedMax`, creates the fixture home from the previous one and moves the tested range in docs and example outputs. See [Drift check](docs/compat/drift.md#supporting-a-new-claude-code-version).
+
+### Fixed
+
+- `claude.ParseRecord` no longer drops a transcript line whose `timestamp` is missing, empty or not a time: the record decodes with a nil `Timestamp`. Claude Code has written such records (2.1.330 fixed `--resume` failing on them); before, `TranscriptReader`, `TranscriptTail` and the title scan skipped them, so a real message could disappear from a read.
+
 ## [0.1.3] - 2026-11-20
 
 Patch release of the root module `v0.1.2` and `claude/v0.1.3` (requires root `v0.1.2`). The other modules are unchanged and keep their tags.
